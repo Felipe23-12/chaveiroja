@@ -11,6 +11,9 @@ import Layout from '@/components/Layout';
 import Home from '@/pages/Home';
 import History from '@/pages/History';
 import LocksmithProfile from '@/pages/LocksmithProfile';
+import Mapa from '@/pages/Mapa';
+import Chat from '@/pages/Chat';
+import PainelChaveiro from '@/pages/PainelChaveiro';
 import Login from '@/pages/Login';
 import Register from '@/pages/Register';
 import ForgotPassword from '@/pages/ForgotPassword';
@@ -52,6 +55,9 @@ const AuthenticatedApp = () => {
           <Route path="/" element={<Home />} />
           <Route path="/historico" element={<History />} />
           <Route path="/modo-trabalho" element={<LocksmithProfile />} />
+          <Route path="/mapa" element={<Mapa />} />
+          <Route path="/chat/:locksmithId" element={<Chat />} />
+          <Route path="/painel-chaveiro" element={<PainelChaveiro />} />
         </Route>
       </Route>
       <Route path="*" element={<PageNotFound />} />

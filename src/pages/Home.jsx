@@ -1,13 +1,13 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useRef } from "react";
 import { base44 } from "@/api/base44Client";
-import { Wrench, ArrowRight, ArrowLeft, Loader2, Zap, Search } from "lucide-react";
+import { Wrench, ArrowRight, ArrowLeft, Zap, Bell, Loader2, MapPin, Navigation } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { SERVICE_CATALOG, calculatePrice } from "@/lib/pricing";
 import ServiceCard from "@/components/locksmith/ServiceCard";
 import ServiceConfig from "@/components/locksmith/ServiceConfig";
-import LocksmithCard from "@/components/locksmith/LocksmithCard";
 import RequestTracking from "@/components/locksmith/RequestTracking";
+import MapView from "@/components/map/MapView";
+import { DEFAULT_CENTER, getCustomerLocation, haversineKm } from "@/lib/geo";
 
 export default function Home() {
   const [step, setStep] = useState(1);
@@ -19,15 +19,16 @@ export default function Home() {
   const [customAddons, setCustomAddons] = useState({});
   const [vehicleInfo, setVehicleInfo] = useState({ model: "", year: "", complexity: "simples" });
 
-  const [locksmiths, setLocksmiths] = useState([]);
-  const [loadingLocksmiths, setLoadingLocksmiths] = useState(false);
-  const [selectedLocksmith, setSelectedLocksmith] = useState(null);
+  const [customerLoc, setCustomerLoc] = useState(DEFAULT_CENTER);
+  const [appLocksmiths, setAppLocksmiths] = useState([]);
   const [activeRequest, setActiveRequest] = useState(null);
+  const [selectedLocksmith, setSelectedLocksmith] = useState(null);
   const [submitting, setSubmitting] = useState(false);
+  const [searchError, setSearchError] = useState("");
+  const reqRef = useRef(null);
 
   const service = useMemo(() => SERVICE_CATALOG.find((s) => s.id === serviceId), [serviceId]);
 
-  // Preço calculado (modo app)
   const price = useMemo(() => {
     if (!service) return null;
     return calculatePrice({
@@ -35,18 +36,14 @@ export default function Home() {
       selectedOptions,
       customAddons,
       vehicleInfo,
-      locksmithsAvailable: locksmiths.length || 5,
+      locksmithsAvailable: appLocksmiths.length || 5,
     });
-  }, [service, selectedOptions, customAddons, vehicleInfo, locksmiths.length]);
+  }, [service, selectedOptions, customAddons, vehicleInfo, appLocksmiths.length]);
 
   useEffect(() => {
-    if (step === 3 && locksmiths.length === 0) {
-      setLoadingLocksmiths(true);
-      base44.entities.Locksmith.filter({ available: true }, "distance_km")
-        .then(setLocksmiths)
-        .finally(() => setLoadingLocksmiths(false));
-    }
-  }, [step]);
+    getCustomerLocation().then(setCustomerLoc);
+    base44.entities.Locksmith.filter({ work_mode: "app", available: true }).then(setAppLocksmiths);
+  }, []);
 
   const toggleOption = (optId) => {
     setSelectedOptions((prev) =>
@@ -58,54 +55,75 @@ export default function Home() {
     setCustomAddons((prev) => ({ ...prev, [optId]: value }));
   };
 
-  const handleConfirmConfig = () => {
-    if (!address) return;
-    setStep(3);
-  };
-
-  // Preço final exibido para cada chaveiro (livre = preço próprio; app = calculado)
-  const getOfferedPrice = (locksmith) => {
-    if (locksmith.work_mode === "livre" && locksmith.custom_price_base) {
-      const addons = price?.addons || 0;
-      return locksmith.custom_price_base + addons;
-    }
-    return price?.total || 0;
-  };
-
-  const handleSelectLocksmith = (l) => {
-    if (submitting) return;
-    setSelectedLocksmith(l);
+  // Solicita o serviço: encontra o chaveiro do modo app mais próximo e "toca" nele
+  const handleConfirmConfig = async () => {
+    if (!address || submitting) return;
     setSubmitting(true);
-    const finalPrice = getOfferedPrice(l);
-    base44.entities.ServiceRequest.create({
-      service_type: service.label,
-      address,
-      description,
-      urgency,
-      status: "accepted",
-      locksmith_id: l.id,
-      locksmith_name: l.name,
-      price: finalPrice,
-    })
-      .then((req) => setActiveRequest(req))
-      .finally(() => {
+    setSearchError("");
+    try {
+      const nearest = [...appLocksmiths]
+        .map((l) => ({ l, d: haversineKm(customerLoc, { lat: l.lat, lng: l.lng }) }))
+        .sort((a, b) => a.d - b.d)[0];
+
+      if (!nearest) {
+        setSearchError("Nenhum chaveiro disponível no modo aplicativo agora. Tente novamente.");
         setSubmitting(false);
-        setStep(4);
+        return;
+      }
+
+      const req = await base44.entities.ServiceRequest.create({
+        service_type: service.label,
+        address,
+        description,
+        urgency,
+        status: "ringing",
+        locksmith_id: nearest.l.id,
+        locksmith_name: nearest.l.name,
+        price: price?.total || 0,
+        customer_lat: customerLoc.lat,
+        customer_lng: customerLoc.lng,
+        locksmith_lat: nearest.l.lat,
+        locksmith_lng: nearest.l.lng,
       });
+      setSelectedLocksmith(nearest.l);
+      setActiveRequest(req);
+      reqRef.current = req.id;
+      setStep(3);
+    } finally {
+      setSubmitting(false);
+    }
   };
+
+  // Assina a solicitação para reagir quando o chaveiro aceitar / se mover
+  useEffect(() => {
+    if (!activeRequest) return;
+    const unsub = base44.entities.ServiceRequest.subscribe((event) => {
+      if (event.data?.id === activeRequest.id) {
+        base44.entities.ServiceRequest.get(activeRequest.id).then((updated) => {
+          setActiveRequest(updated);
+          if ((updated.status === "accepted" || updated.status === "on_the_way") && step === 3) {
+            setStep(4);
+          }
+        });
+      }
+    });
+    return unsub;
+  }, [activeRequest?.id, step]);
 
   const handleAdvance = () => {
     if (!activeRequest) return;
     const next = activeRequest.status === "accepted" ? "on_the_way" : "completed";
-    base44.entities.ServiceRequest.update(activeRequest.id, { status: next }).then((updated) =>
-      setActiveRequest(updated)
-    );
+    base44.entities.ServiceRequest.update(activeRequest.id, { status: next }).then(setActiveRequest);
   };
 
   const handleRate = (n) => {
-    base44.entities.ServiceRequest.update(activeRequest.id, { rating: n }).then((updated) =>
-      setActiveRequest(updated)
-    );
+    base44.entities.ServiceRequest.update(activeRequest.id, { rating: n }).then(setActiveRequest);
+  };
+
+  const handleCancel = async () => {
+    if (!activeRequest) return;
+    await base44.entities.ServiceRequest.update(activeRequest.id, { status: "cancelled" });
+    handleNewRequest();
   };
 
   const handleNewRequest = () => {
@@ -119,7 +137,7 @@ export default function Home() {
     setVehicleInfo({ model: "", year: "", complexity: "simples" });
     setSelectedLocksmith(null);
     setActiveRequest(null);
-    setLocksmiths([]);
+    setSearchError("");
   };
 
   return (
@@ -203,63 +221,68 @@ export default function Home() {
             </div>
           </div>
 
+          {searchError && (
+            <p className="text-sm text-red-600 bg-red-50 p-3 rounded-lg">{searchError}</p>
+          )}
+
           <div className="flex gap-3">
             <Button variant="outline" onClick={() => setStep(1)} className="flex-1">
               <ArrowLeft className="w-4 h-4 mr-2" /> Voltar
             </Button>
-            <Button onClick={handleConfirmConfig} disabled={!address} className="flex-1">
-              Buscar chaveiros <Search className="w-4 h-4 ml-2" />
+            <Button onClick={handleConfirmConfig} disabled={!address || submitting} className="flex-1">
+              {submitting ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Bell className="w-4 h-4 mr-2" />}
+              Solicitar chaveiro
             </Button>
           </div>
         </div>
       )}
 
-      {/* Step 3: Selecionar chaveiro */}
-      {step === 3 && (
-        <div className="space-y-5">
-          <div>
-            <h2 className="font-heading font-semibold text-lg text-foreground">Chaveiros disponíveis</h2>
-            <p className="text-sm text-muted-foreground">
-              {service?.label} · valor ofertado R$ {price?.total.toFixed(2)}
+      {/* Step 3: Procurando / tocando no chaveiro */}
+      {step === 3 && activeRequest && (
+        <div className="space-y-5 text-center">
+          <div className="flex flex-col items-center py-8">
+            <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mb-4">
+              <Bell className="w-8 h-8 text-primary animate-bounce" />
+            </div>
+            <h2 className="font-heading font-semibold text-lg text-foreground mb-1">
+              Tocando no chaveiro mais próximo...
+            </h2>
+            <p className="text-sm text-muted-foreground mb-4">
+              {selectedLocksmith?.name} · {service?.label}
             </p>
+            <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
+              <Loader2 className="w-4 h-4 animate-spin" /> Aguardando o profissional aceitar
+            </div>
           </div>
-
-          {loadingLocksmiths ? (
-            <div className="flex flex-col items-center justify-center py-12">
-              <Loader2 className="w-6 h-6 text-primary animate-spin mb-2" />
-              <p className="text-sm text-muted-foreground">Buscando profissionais...</p>
-            </div>
-          ) : locksmiths.length === 0 ? (
-            <div className="text-center py-12">
-              <p className="text-sm text-muted-foreground">Nenhum chaveiro disponível no momento.</p>
-            </div>
-          ) : (
-            <div className="space-y-3">
-              {locksmiths.map((l) => (
-                <LocksmithCard
-                  key={l.id}
-                  locksmith={l}
-                  selected={selectedLocksmith?.id === l.id}
-                  onSelect={() => handleSelectLocksmith(l)}
-                  offeredPrice={getOfferedPrice(l)}
-                />
-              ))}
-            </div>
-          )}
-
-          <Button variant="outline" onClick={() => setStep(2)} className="w-full">
-            <ArrowLeft className="w-4 h-4 mr-2" /> Voltar
+          <Button variant="outline" onClick={handleCancel} className="w-full">
+            Cancelar solicitação
           </Button>
         </div>
       )}
 
-      {/* Step 4: Acompanhamento */}
+      {/* Step 4: Acompanhamento em tempo real */}
       {step === 4 && activeRequest && (
         <div className="space-y-5">
           <div>
-            <h2 className="font-heading font-semibold text-lg text-foreground">Acompanhando serviço</h2>
+            <h2 className="font-heading font-semibold text-lg text-foreground flex items-center gap-2">
+              <Navigation className="w-5 h-5 text-primary" /> Acompanhando serviço
+            </h2>
             <p className="text-sm text-muted-foreground">{activeRequest.service_type} · {activeRequest.address}</p>
           </div>
+
+          <MapView
+            center={{ lat: activeRequest.customer_lat, lng: activeRequest.customer_lng }}
+            height={320}
+            markers={[
+              { id: "c", lat: activeRequest.customer_lat, lng: activeRequest.customer_lng, type: "customer", label: "Você" },
+              { id: "l", lat: activeRequest.locksmith_lat, lng: activeRequest.locksmith_lng, type: "locksmith", label: selectedLocksmith?.name?.split(" ")[0], active: activeRequest.status === "on_the_way" },
+            ]}
+            route={
+              activeRequest.status !== "completed"
+                ? { from: { lat: activeRequest.locksmith_lat, lng: activeRequest.locksmith_lng }, to: { lat: activeRequest.customer_lat, lng: activeRequest.customer_lng } }
+                : null
+            }
+          />
 
           <RequestTracking
             request={activeRequest}
@@ -274,13 +297,6 @@ export default function Home() {
               Solicitar novo serviço
             </Button>
           )}
-        </div>
-      )}
-
-      {step === 4 && !activeRequest && submitting && (
-        <div className="flex flex-col items-center justify-center py-12">
-          <Loader2 className="w-6 h-6 text-primary animate-spin mb-2" />
-          <p className="text-sm text-muted-foreground">Confirmando seu pedido...</p>
         </div>
       )}
     </div>
