@@ -1,8 +1,9 @@
 import React from "react";
-import { Star, MapPin, Clock, Check } from "lucide-react";
+import { Star, MapPin, Clock, Check, BadgeCheck } from "lucide-react";
 import { Image } from "@/components/ui/image";
 
-export default function LocksmithCard({ locksmith, selected, onSelect }) {
+export default function LocksmithCard({ locksmith, selected, onSelect, offeredPrice }) {
+  const isFree = locksmith.work_mode === "livre";
   return (
     <button
       onClick={onSelect}
@@ -25,7 +26,7 @@ export default function LocksmithCard({ locksmith, selected, onSelect }) {
           <p className="font-heading font-semibold text-foreground truncate">{locksmith.name}</p>
           {selected && <Check className="w-4 h-4 text-primary flex-shrink-0" />}
         </div>
-        <div className="flex items-center gap-1 mt-0.5">
+        <div className="flex items-center gap-1 mt-0.5 flex-wrap">
           <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
           <span className="text-xs font-medium text-foreground">{locksmith.rating?.toFixed(1)}</span>
           <span className="text-xs text-muted-foreground">({locksmith.reviews_count})</span>
@@ -40,11 +41,22 @@ export default function LocksmithCard({ locksmith, selected, onSelect }) {
             <Clock className="w-3 h-3" /> ~{locksmith.eta_minutes} min
           </span>
         </div>
+        <div className="mt-2">
+          {isFree ? (
+            <span className="inline-flex items-center gap-1 text-[11px] font-medium px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-600">
+              <BadgeCheck className="w-3 h-3" /> Modo livre · preço do profissional
+            </span>
+          ) : (
+            <span className="inline-flex items-center gap-1 text-[11px] font-medium px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-600">
+              <BadgeCheck className="w-3 h-3" /> Modo app · preço calculado
+            </span>
+          )}
+        </div>
       </div>
 
       <div className="text-right flex-shrink-0">
-        <p className="text-xs text-muted-foreground">a partir de</p>
-        <p className="font-heading font-bold text-foreground">R$ {locksmith.price_per_call?.toFixed(0)}</p>
+        <p className="text-xs text-muted-foreground">{isFree ? "valor do chaveiro" : "valor ofertado"}</p>
+        <p className="font-heading font-bold text-foreground">R$ {(offeredPrice ?? 0).toFixed(2)}</p>
       </div>
     </button>
   );

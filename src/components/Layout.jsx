@@ -1,11 +1,12 @@
 import React from "react";
 import { Link, useLocation, Outlet } from "react-router-dom";
-import { Home, Clock, Wrench, LogOut } from "lucide-react";
+import { Home, Clock, Wrench, LogOut, Briefcase } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 
 const navItems = [
   { label: "Início", path: "/", icon: Home },
   { label: "Histórico", path: "/historico", icon: Clock },
+  { label: "Modo de Trabalho", path: "/modo-trabalho", icon: Briefcase },
 ];
 
 function Sidebar() {

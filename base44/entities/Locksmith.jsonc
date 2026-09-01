@@ -50,6 +50,22 @@
     },
     "bio": {
       "type": "string"
+    },
+    "work_mode": {
+      "type": "string",
+      "enum": [
+        "livre",
+        "app"
+      ],
+      "default": "app"
+    },
+    "custom_price_base": {
+      "type": "number",
+      "default": 0
+    },
+    "monthly_fee_paid": {
+      "type": "boolean",
+      "default": false
     }
   },
   "required": [
