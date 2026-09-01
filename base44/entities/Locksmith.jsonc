@@ -66,6 +66,18 @@
     "monthly_fee_paid": {
       "type": "boolean",
       "default": false
+    },
+    "lat": {
+      "type": "number",
+      "default": -23.55
+    },
+    "lng": {
+      "type": "number",
+      "default": -46.63
+    },
+    "online": {
+      "type": "boolean",
+      "default": false
     }
   },
   "required": [

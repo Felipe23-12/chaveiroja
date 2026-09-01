@@ -1,0 +1,31 @@
+{
+  "name": "ChatMessage",
+  "type": "object",
+  "properties": {
+    "locksmith_id": {
+      "type": "string"
+    },
+    "locksmith_name": {
+      "type": "string"
+    },
+    "sender_type": {
+      "type": "string",
+      "enum": [
+        "customer",
+        "locksmith"
+      ],
+      "default": "customer"
+    },
+    "sender_name": {
+      "type": "string"
+    },
+    "message": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "locksmith_id",
+    "sender_type",
+    "message"
+  ]
+}

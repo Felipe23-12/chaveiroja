@@ -5,23 +5,24 @@
     "service_type": {
       "type": "string",
       "enum": [
-        "Residencial",
-        "Automotivo",
-        "Comercial",
-        "Emergencial"
+        "Abertura Residencial",
+        "Abertura Automotiva",
+        "Abertura Fechadura Tetra",
+        "Abertura Fechadura Eletr\u00f4nica"
       ],
-      "default": "Residencial"
+      "default": "Abertura Residencial"
     },
     "status": {
       "type": "string",
       "enum": [
-        "pending",
+        "searching",
+        "ringing",
         "accepted",
         "on_the_way",
         "completed",
         "cancelled"
       ],
-      "default": "pending"
+      "default": "searching"
     },
     "address": {
       "type": "string"
@@ -52,6 +53,18 @@
     },
     "review": {
       "type": "string"
+    },
+    "customer_lat": {
+      "type": "number"
+    },
+    "customer_lng": {
+      "type": "number"
+    },
+    "locksmith_lat": {
+      "type": "number"
+    },
+    "locksmith_lng": {
+      "type": "number"
     }
   },
   "required": [
