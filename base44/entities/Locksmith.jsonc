@@ -1,0 +1,58 @@
+{
+  "name": "Locksmith",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string"
+    },
+    "specialty": {
+      "type": "string",
+      "enum": [
+        "Residencial",
+        "Automotivo",
+        "Comercial",
+        "Emergencial"
+      ],
+      "default": "Residencial"
+    },
+    "rating": {
+      "type": "number",
+      "default": 5
+    },
+    "reviews_count": {
+      "type": "number",
+      "default": 0
+    },
+    "distance_km": {
+      "type": "number",
+      "default": 0
+    },
+    "eta_minutes": {
+      "type": "number",
+      "default": 0
+    },
+    "price_per_call": {
+      "type": "number",
+      "default": 0
+    },
+    "phone": {
+      "type": "string"
+    },
+    "available": {
+      "type": "boolean",
+      "default": true
+    },
+    "avatar_url": {
+      "type": "string"
+    },
+    "vehicle": {
+      "type": "string"
+    },
+    "bio": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "name"
+  ]
+}

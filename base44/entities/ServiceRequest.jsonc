@@ -1,0 +1,61 @@
+{
+  "name": "ServiceRequest",
+  "type": "object",
+  "properties": {
+    "service_type": {
+      "type": "string",
+      "enum": [
+        "Residencial",
+        "Automotivo",
+        "Comercial",
+        "Emergencial"
+      ],
+      "default": "Residencial"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "accepted",
+        "on_the_way",
+        "completed",
+        "cancelled"
+      ],
+      "default": "pending"
+    },
+    "address": {
+      "type": "string"
+    },
+    "description": {
+      "type": "string"
+    },
+    "urgency": {
+      "type": "string",
+      "enum": [
+        "normal",
+        "urgent"
+      ],
+      "default": "normal"
+    },
+    "price": {
+      "type": "number",
+      "default": 0
+    },
+    "locksmith_id": {
+      "type": "string"
+    },
+    "locksmith_name": {
+      "type": "string"
+    },
+    "rating": {
+      "type": "number"
+    },
+    "review": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "service_type",
+    "address"
+  ]
+}
