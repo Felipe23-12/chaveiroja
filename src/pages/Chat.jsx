@@ -1,9 +1,11 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
-import { ArrowLeft, Send, MessageCircle } from "lucide-react";
+import { ArrowLeft, Send, MessageCircle, Star } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import ReviewForm from "@/components/locksmith/ReviewForm";
 
 export default function Chat() {
   const { locksmithId } = useParams();
@@ -13,6 +15,7 @@ export default function Chat() {
   const [text, setText] = useState("");
   const [sending, setSending] = useState(false);
   const [customerName, setCustomerName] = useState("");
+  const [reviewOpen, setReviewOpen] = useState(false);
   const scrollRef = useRef(null);
 
   useEffect(() => {
@@ -67,7 +70,24 @@ export default function Chat() {
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" /> online · {locksmith?.specialty}
           </p>
         </div>
+        <Button variant="outline" size="sm" onClick={() => setReviewOpen(true)}>
+          <Star className="w-4 h-4 mr-1.5" /> Avaliar
+        </Button>
       </div>
+
+      <Dialog open={reviewOpen} onOpenChange={setReviewOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Avaliar {locksmith?.name}</DialogTitle>
+          </DialogHeader>
+          <ReviewForm
+            locksmithId={locksmithId}
+            locksmithName={locksmith?.name}
+            workMode={locksmith?.work_mode}
+            onSubmitted={() => setReviewOpen(false)}
+          />
+        </DialogContent>
+      </Dialog>
 
       <div className="flex-1 overflow-y-auto space-y-3 pb-4">
         {messages.length === 0 && (

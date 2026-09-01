@@ -2,6 +2,7 @@ import React from "react";
 import { CheckCircle2, Circle, Phone, MessageCircle, Star } from "lucide-react";
 import { Image } from "@/components/ui/image";
 import { Button } from "@/components/ui/button";
+import ReviewForm from "@/components/locksmith/ReviewForm";
 
 const steps = [
   { key: "accepted", label: "Chaveiro aceitou", desc: "Seu pedido foi confirmado" },
@@ -72,20 +73,14 @@ export default function RequestTracking({ request, locksmith, onAdvance, onRate,
         </Button>
       ) : (
         <div className="space-y-3">
-          <div className="flex justify-center gap-2">
-            {[1, 2, 3, 4, 5].map((n) => (
-              <button
-                key={n}
-                onClick={() => onRate(n)}
-                className="text-2xl transition-transform hover:scale-125"
-              >
-                <Star className={`w-8 h-8 ${(request.rating || 0) >= n ? "fill-amber-400 text-amber-400" : "text-border"}`} />
-              </button>
-            ))}
-          </div>
-          {request.rating && (
-            <p className="text-center text-sm text-muted-foreground">Obrigado pela avaliação!</p>
-          )}
+          <p className="text-center text-sm font-medium text-foreground">Avalie o atendimento</p>
+          <ReviewForm
+            locksmithId={locksmith?.id}
+            locksmithName={locksmith?.name}
+            serviceType={request.service_type}
+            workMode={locksmith?.work_mode}
+            onSubmitted={(r) => onRate(r)}
+          />
         </div>
       )}
 

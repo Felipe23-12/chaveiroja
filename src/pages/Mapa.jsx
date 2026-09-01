@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
-import { MapPin, MessageCircle, Wrench, Loader2, Search } from "lucide-react";
+import { MapPin, MessageCircle, Wrench, Loader2, Search, Star } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import MapView from "@/components/map/MapView";
 import { DEFAULT_CENTER, getCustomerLocation, haversineKm } from "@/lib/geo";
@@ -91,9 +91,14 @@ export default function Mapa() {
                   {l.specialty} · {dist} km · ⭐ {l.rating}
                 </p>
               </div>
-              <Button size="sm" onClick={() => navigate(`/chat/${l.id}`)}>
-                <MessageCircle className="w-4 h-4 mr-1.5" /> Chat
-              </Button>
+              <div className="flex gap-2">
+                <Button size="sm" variant="outline" onClick={() => navigate(`/chaveiro/${l.id}`)}>
+                  <Star className="w-4 h-4 mr-1.5" /> Perfil
+                </Button>
+                <Button size="sm" onClick={() => navigate(`/chat/${l.id}`)}>
+                  <MessageCircle className="w-4 h-4 mr-1.5" /> Chat
+                </Button>
+              </div>
             </div>
           );
         })}

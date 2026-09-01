@@ -1,0 +1,37 @@
+{
+  "name": "Review",
+  "type": "object",
+  "properties": {
+    "locksmith_id": {
+      "type": "string"
+    },
+    "locksmith_name": {
+      "type": "string"
+    },
+    "customer_name": {
+      "type": "string"
+    },
+    "rating": {
+      "type": "number",
+      "minimum": 1,
+      "maximum": 5
+    },
+    "comment": {
+      "type": "string"
+    },
+    "service_type": {
+      "type": "string"
+    },
+    "work_mode": {
+      "type": "string",
+      "enum": [
+        "livre",
+        "app"
+      ]
+    }
+  },
+  "required": [
+    "locksmith_id",
+    "rating"
+  ]
+}

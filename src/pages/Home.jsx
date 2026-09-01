@@ -292,7 +292,7 @@ export default function Home() {
             onCall={(l) => (window.location.href = `tel:${l.phone}`)}
           />
 
-          {activeRequest.status === "completed" && activeRequest.rating && (
+          {activeRequest.status === "completed" && (
             <Button onClick={handleNewRequest} variant="outline" className="w-full">
               Solicitar novo serviço
             </Button>
