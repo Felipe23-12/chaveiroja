@@ -14,6 +14,7 @@ import LocksmithProfile from '@/pages/LocksmithProfile';
 import Mapa from '@/pages/Mapa';
 import Chat from '@/pages/Chat';
 import PainelChaveiro from '@/pages/PainelChaveiro';
+import PainelFinanceiro from '@/pages/PainelFinanceiro';
 import LocksmithPublicProfile from '@/pages/LocksmithPublicProfile';
 import Login from '@/pages/Login';
 import Register from '@/pages/Register';
@@ -60,6 +61,7 @@ const AuthenticatedApp = () => {
           <Route path="/chat/:locksmithId" element={<Chat />} />
           <Route path="/chaveiro/:id" element={<LocksmithPublicProfile />} />
           <Route path="/painel-chaveiro" element={<PainelChaveiro />} />
+          <Route path="/painel-financeiro" element={<PainelFinanceiro />} />
         </Route>
       </Route>
       <Route path="*" element={<PageNotFound />} />

@@ -1,6 +1,6 @@
 import React from "react";
 import { Link, useLocation, Outlet } from "react-router-dom";
-import { Home as HomeIcon, Clock, Wrench, LogOut, Briefcase, MapPin, RadioTower } from "lucide-react";
+import { Home as HomeIcon, Clock, Wrench, LogOut, Briefcase, MapPin, RadioTower, Wallet } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 
 const navItems = [
@@ -8,6 +8,7 @@ const navItems = [
   { label: "Mapa", path: "/mapa", icon: MapPin },
   { label: "Histórico", path: "/historico", icon: Clock },
   { label: "Painel Chaveiro", path: "/painel-chaveiro", icon: RadioTower },
+  { label: "Financeiro", path: "/painel-financeiro", icon: Wallet },
   { label: "Modo de Trabalho", path: "/modo-trabalho", icon: Briefcase },
 ];
 
