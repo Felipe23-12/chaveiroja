@@ -144,8 +144,8 @@ export default function PainelFinanceiro() {
                 R$ {monthlyFee.toFixed(2)}/mês
               </p>
               <p className="text-[11px] mt-0.5">
-                <span className={me.monthly_fee_paid ? "text-emerald-600" : "text-red-600"}>
-                  {me.monthly_fee_paid ? "Paga" : "Pendente"}
+                <span className={me?.monthly_fee_paid ? "text-emerald-600" : "text-red-600"}>
+                  {me?.monthly_fee_paid ? "Paga" : "Pendente"}
                 </span>
               </p>
             </>
