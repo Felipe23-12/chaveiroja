@@ -7,6 +7,19 @@
         "admin",
         "user"
       ]
+    },
+    "account_type": {
+      "type": "string",
+      "description": "Tipo de conta do usu\u00e1rio",
+      "enum": [
+        "cliente",
+        "chaveiro"
+      ],
+      "default": "cliente"
+    },
+    "phone": {
+      "type": "string",
+      "description": "Telefone de contato"
     }
   },
   "required": [

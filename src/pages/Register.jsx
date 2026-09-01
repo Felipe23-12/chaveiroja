@@ -4,7 +4,7 @@ import { base44 } from "@/api/base44Client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { UserPlus, Mail, Lock, Loader2 } from "lucide-react";
+import { UserPlus, Mail, Lock, Loader2, User, Wrench, Phone } from "lucide-react";
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
 import AuthLayout from "@/components/AuthLayout";
 import GoogleIcon from "@/components/GoogleIcon";
@@ -12,6 +12,9 @@ import { toast } from "@/components/ui/use-toast";
 import { safeReturnTo } from "@/lib/authReturnTo";
 
 export default function Register() {
+  const [fullName, setFullName] = useState("");
+  const [phone, setPhone] = useState("");
+  const [accountType, setAccountType] = useState("cliente");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -23,8 +26,12 @@ export default function Register() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
+    if (!fullName.trim()) {
+      setError("Informe seu nome");
+      return;
+    }
     if (password !== confirmPassword) {
-      setError("Passwords do not match");
+      setError("As senhas não coincidem");
       return;
     }
     setLoading(true);
@@ -32,7 +39,7 @@ export default function Register() {
       await base44.auth.register({ email, password });
       setShowOtp(true);
     } catch (err) {
-      setError(err.message || "Registration failed");
+      setError(err.message || "Falha no cadastro");
     } finally {
       setLoading(false);
     }
@@ -46,9 +53,20 @@ export default function Register() {
       if (result?.access_token) {
         base44.auth.setToken(result.access_token);
       }
-      window.location.href = safeReturnTo();
+      try {
+        await base44.auth.updateMe({
+          full_name: fullName,
+          phone,
+          account_type: accountType,
+        });
+      } catch (e) {
+        /* não bloqueia o fluxo */
+      }
+      const home = accountType === "chaveiro" ? "/painel-chaveiro" : "/";
+      const returnTo = safeReturnTo();
+      window.location.href = returnTo !== "/" ? returnTo : home;
     } catch (err) {
-      setError(err.message || "Invalid verification code");
+      setError(err.message || "Código inválido");
     } finally {
       setLoading(false);
     }
@@ -59,11 +77,11 @@ export default function Register() {
     try {
       await base44.auth.resendOtp(email);
       toast({
-        title: "Code sent",
-        description: "Check your email for the new code.",
+        title: "Código reenviado",
+        description: "Verifique seu email para o novo código.",
       });
     } catch (err) {
-      setError(err.message || "Failed to resend code");
+      setError(err.message || "Falha ao reenviar o código");
     }
   };
 
@@ -75,9 +93,14 @@ export default function Register() {
     return (
       <AuthLayout
         icon={Mail}
-        title="Verify your email"
-        subtitle={`We sent a code to ${email}`}
+        title="Confirme seu email"
+        subtitle={`Enviamos um código para ${email}`}
       >
+        {accountType === "chaveiro" && (
+          <div className="mb-4 p-3 rounded-lg bg-amber-50 text-amber-700 text-sm">
+            A confirmação do email é obrigatória para ativar sua conta de chaveiro.
+          </div>
+        )}
         {error && (
           <div className="mb-4 p-3 rounded-lg bg-destructive/10 text-destructive text-sm">
             {error}
@@ -109,16 +132,16 @@ export default function Register() {
           {loading ? (
             <>
               <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-              Verifying...
+              Verificando...
             </>
           ) : (
-            "Verify"
+            "Confirmar"
           )}
         </Button>
         <p className="text-center text-sm text-muted-foreground mt-4">
-          Didn't receive the code?{" "}
+          Não recebeu o código?{" "}
           <button onClick={handleResend} className="text-primary font-medium hover:underline">
-            Resend
+            Reenviar
           </button>
         </p>
       </AuthLayout>
@@ -128,16 +151,16 @@ export default function Register() {
   return (
     <AuthLayout
       icon={UserPlus}
-      title="Create your account"
-      subtitle="Sign up to get started"
+      title="Criar sua conta"
+      subtitle="Cadastre-se para começar"
       footer={
         <>
-          Already have an account?{" "}
+          Já tem uma conta?{" "}
           <Link
             to={"/login" + (safeReturnTo() !== "/" ? "?returnTo=" + encodeURIComponent(safeReturnTo()) : "")}
             className="text-primary font-medium hover:underline"
           >
-            Log in
+            Entrar
           </Link>
         </>
       }
@@ -148,7 +171,7 @@ export default function Register() {
         onClick={handleGoogle}
       >
         <GoogleIcon className="w-5 h-5 mr-2" />
-        Continue with Google
+        Continuar com Google
       </Button>
 
       <div className="relative mb-6">
@@ -156,7 +179,7 @@ export default function Register() {
           <div className="w-full border-t border-border" />
         </div>
         <div className="relative flex justify-center text-xs uppercase">
-          <span className="bg-card px-3 text-muted-foreground">or</span>
+          <span className="bg-card px-3 text-muted-foreground">ou</span>
         </div>
       </div>
 
@@ -167,6 +190,72 @@ export default function Register() {
       )}
 
       <form onSubmit={handleSubmit} className="space-y-4">
+        {/* Tipo de conta */}
+        <div className="space-y-2">
+          <Label>Tipo de conta</Label>
+          <div className="grid grid-cols-2 gap-3">
+            <button
+              type="button"
+              onClick={() => setAccountType("cliente")}
+              className={`p-3 rounded-xl border-2 text-sm font-medium transition-all flex flex-col items-center gap-1.5 ${
+                accountType === "cliente"
+                  ? "border-primary bg-primary/5 text-primary"
+                  : "border-border text-muted-foreground"
+              }`}
+            >
+              <User className="w-5 h-5" />
+              Sou Cliente
+            </button>
+            <button
+              type="button"
+              onClick={() => setAccountType("chaveiro")}
+              className={`p-3 rounded-xl border-2 text-sm font-medium transition-all flex flex-col items-center gap-1.5 ${
+                accountType === "chaveiro"
+                  ? "border-primary bg-primary/5 text-primary"
+                  : "border-border text-muted-foreground"
+              }`}
+            >
+              <Wrench className="w-5 h-5" />
+              Sou Chaveiro
+            </button>
+          </div>
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="name">Nome completo</Label>
+          <div className="relative">
+            <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" aria-hidden="true" />
+            <Input
+              id="name"
+              type="text"
+              autoComplete="name"
+              autoFocus
+              placeholder="Seu nome"
+              value={fullName}
+              onChange={(e) => setFullName(e.target.value)}
+              className="pl-10 h-12"
+              required
+            />
+          </div>
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="phone">Telefone</Label>
+          <div className="relative">
+            <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" aria-hidden="true" />
+            <Input
+              id="phone"
+              type="tel"
+              autoComplete="tel"
+              placeholder="(11) 99999-9999"
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+              className="pl-10 h-12"
+              required
+            />
+          </div>
+        </div>
+
         <div className="space-y-2">
           <Label htmlFor="email">Email</Label>
           <div className="relative">
@@ -175,8 +264,7 @@ export default function Register() {
               id="email"
               type="email"
               autoComplete="email"
-              autoFocus
-              placeholder="you@example.com"
+              placeholder="voce@email.com"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               className="pl-10 h-12"
@@ -184,8 +272,9 @@ export default function Register() {
             />
           </div>
         </div>
+
         <div className="space-y-2">
-          <Label htmlFor="password">Password</Label>
+          <Label htmlFor="password">Senha</Label>
           <div className="relative">
             <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" aria-hidden="true" />
             <Input
@@ -200,8 +289,9 @@ export default function Register() {
             />
           </div>
         </div>
+
         <div className="space-y-2">
-          <Label htmlFor="confirm">Confirm Password</Label>
+          <Label htmlFor="confirm">Confirmar senha</Label>
           <div className="relative">
             <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" aria-hidden="true" />
             <Input
@@ -216,14 +306,15 @@ export default function Register() {
             />
           </div>
         </div>
+
         <Button type="submit" className="w-full h-12 font-medium" disabled={loading}>
           {loading ? (
             <>
               <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-              Creating account...
+              Criando conta...
             </>
           ) : (
-            "Create account"
+            "Criar conta"
           )}
         </Button>
       </form>

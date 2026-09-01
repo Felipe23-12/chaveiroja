@@ -7,6 +7,7 @@ import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
 import ScrollToTop from './components/ScrollToTop';
 import ProtectedRoute from '@/components/ProtectedRoute';
+import RoleGuard from '@/components/RoleGuard';
 import Layout from '@/components/Layout';
 import Home from '@/pages/Home';
 import History from '@/pages/History';
@@ -54,14 +55,18 @@ const AuthenticatedApp = () => {
       <Route path="/reset-password" element={<ResetPassword />} />
       <Route element={<ProtectedRoute unauthenticatedElement={<Navigate to="/login" replace />} />}>
         <Route element={<Layout />}>
-          <Route path="/" element={<Home />} />
-          <Route path="/historico" element={<History />} />
-          <Route path="/modo-trabalho" element={<LocksmithProfile />} />
-          <Route path="/mapa" element={<Mapa />} />
-          <Route path="/chat/:locksmithId" element={<Chat />} />
-          <Route path="/chaveiro/:id" element={<LocksmithPublicProfile />} />
-          <Route path="/painel-chaveiro" element={<PainelChaveiro />} />
-          <Route path="/painel-financeiro" element={<PainelFinanceiro />} />
+          <Route element={<RoleGuard allow={["cliente"]} />}>
+            <Route path="/" element={<Home />} />
+            <Route path="/mapa" element={<Mapa />} />
+            <Route path="/historico" element={<History />} />
+            <Route path="/chat/:locksmithId" element={<Chat />} />
+            <Route path="/chaveiro/:id" element={<LocksmithPublicProfile />} />
+          </Route>
+          <Route element={<RoleGuard allow={["chaveiro"]} />}>
+            <Route path="/painel-chaveiro" element={<PainelChaveiro />} />
+            <Route path="/painel-financeiro" element={<PainelFinanceiro />} />
+            <Route path="/modo-trabalho" element={<LocksmithProfile />} />
+          </Route>
         </Route>
       </Route>
       <Route path="*" element={<PageNotFound />} />
