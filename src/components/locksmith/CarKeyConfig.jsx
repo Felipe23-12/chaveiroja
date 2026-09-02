@@ -48,32 +48,24 @@ export default function CarKeyConfig({
         <Button type="button" variant="outline" onClick={onSearch} disabled={searching} className="w-full">
           {searching ? (
             <>
-              <Loader2 className="w-4 h-4 mr-2 animate-spin" /> Pesquisando valor da chave...
+              <Loader2 className="w-4 h-4 mr-2 animate-spin" /> Consultando disponibilidade...
             </>
           ) : (
             <>
-              <Search className="w-4 h-4 mr-2" /> Pesquisar valor da chave original
+              <Search className="w-4 h-4 mr-2" /> Consultar disponibilidade da chave
             </>
           )}
         </Button>
         {searchError && <p className="text-sm text-red-600">{searchError}</p>}
       </div>
 
-      {/* Composição do valor */}
+      {/* O sistema mantém os dados necessários para calcular o serviço, mas não expõe valores nesta etapa. */}
       {keyValue != null && (
-        <div className="p-4 rounded-xl border border-border bg-muted/40 space-y-2">
-          <div className="flex justify-between text-sm">
-            <span className="text-muted-foreground">Valor da chave original</span>
-            <span className="font-semibold text-foreground">R$ {keyValue.toFixed(2)}</span>
-          </div>
-          <div className="flex justify-between text-sm">
-            <span className="text-muted-foreground">Mão de obra</span>
-            <span className="font-semibold text-foreground">R$ {service.laborCost.toFixed(2)}</span>
-          </div>
-          <div className="flex justify-between text-sm text-muted-foreground">
-            <span>Locomoção (R$ {service.costPerKm}/km)</span>
-            <span>calculada ao aceitar</span>
-          </div>
+        <div className="p-4 rounded-xl border border-border bg-muted/40 text-center">
+          <p className="text-sm font-medium text-foreground">Dados da chave consultados</p>
+          <p className="text-xs text-muted-foreground mt-1">
+            O valor será informado após a confirmação da solicitação.
+          </p>
         </div>
       )}
 
