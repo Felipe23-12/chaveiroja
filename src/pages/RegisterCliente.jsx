@@ -8,6 +8,7 @@ import { UserPlus, Mail, Lock, Loader2, User, Phone, CreditCard } from "lucide-r
 import AuthLayout from "@/components/AuthLayout";
 import GoogleIcon from "@/components/GoogleIcon";
 import { safeReturnTo } from "@/lib/authReturnTo";
+import RegisterOtpStep from "@/components/auth/RegisterOtpStep";
 
 export default function RegisterCliente() {
   const [fullName, setFullName] = useState("");
@@ -18,6 +19,7 @@ export default function RegisterCliente() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [showOtp, setShowOtp] = useState(false);
 
   const returnTo = safeReturnTo();
   const qs = returnTo !== "/" ? "?returnTo=" + encodeURIComponent(returnTo) : "";
@@ -42,29 +44,16 @@ export default function RegisterCliente() {
     try {
       const registration = await base44.auth.register({ email, password });
 
-      // Use a token returned by registration when available. Otherwise authenticate
-      // immediately with the credentials just created. The client registration must
-      // not depend on an OTP screen that can leave users blocked when the email code
-      // is not delivered.
+      sessionStorage.setItem("cliente_onboarding", JSON.stringify({
+        fullName, phone, cpf,
+      }));
+
       if (registration?.access_token) {
         base44.auth.setToken(registration.access_token);
+        await finishClientRegistration();
       } else {
-        await base44.auth.loginViaEmailPassword(email, password);
+        setShowOtp(true);
       }
-
-      // Salva o tipo de conta primeiro — campo customizado essencial para o RoleGuard.
-      try {
-        await base44.auth.updateMe({ phone, cpf, account_type: "cliente" });
-      } catch (e) {
-        /* não bloqueia o cadastro se um campo opcional não puder ser salvo */
-      }
-      try {
-        await base44.auth.updateMe({ full_name: fullName });
-      } catch (e) {
-        /* ignora se a plataforma não permitir editar este campo */
-      }
-
-      window.location.assign(returnTo !== "/" ? returnTo : "/");
     } catch (err) {
       const message = String(err?.message || "");
       const requiresVerification = /verif|confirm|otp|c[oó]digo|email/i.test(message);
@@ -83,7 +72,37 @@ export default function RegisterCliente() {
     }
   };
 
+  const finishClientRegistration = async () => {
+    try {
+      await base44.auth.updateMe({ phone, cpf, account_type: "cliente" });
+    } catch (e) {
+      /* não bloqueia o cadastro se um campo opcional não puder ser salvo */
+    }
+    try {
+      await base44.auth.updateMe({ full_name: fullName });
+    } catch (e) {
+      /* ignora se a plataforma não permitir editar este campo */
+    }
+    window.location.assign(returnTo !== "/" ? returnTo : "/");
+  };
+
   const handleGoogle = () => base44.auth.loginWithProvider("google", returnTo);
+
+  if (showOtp) {
+    return (
+      <RegisterOtpStep
+        email={email}
+        title="Confirme seu email"
+        subtitle={`Digite o código enviado para ${email}`}
+        notice={
+          <div className="mb-4 p-3 rounded-lg bg-muted text-sm text-center">
+            O código de confirmação foi enviado para seu email.
+          </div>
+        }
+        onSuccess={finishClientRegistration}
+      />
+    );
+  }
 
   return (
     <AuthLayout
