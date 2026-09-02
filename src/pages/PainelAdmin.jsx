@@ -4,6 +4,7 @@ import { ShieldCheck, Users, Wrench, ClipboardList, Wallet, Trash2, Power } from
 import { Button } from "@/components/ui/button";
 import AdminCharts from "@/components/admin/AdminCharts";
 import ServiceFilters, { filterRequests } from "@/components/admin/ServiceFilters";
+import ServiceGallery from "@/components/locksmith/ServiceGallery";
 
 const fmtMoney = (n) =>
   (n || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
@@ -214,15 +215,24 @@ export default function PainelAdmin() {
               </thead>
               <tbody>
                 {filteredRequests.map((r) => (
-                  <tr key={r.id} className="border-t border-border">
-                    <td className="px-4 py-2 text-foreground">{r.service_type}</td>
-                    <td className="px-4 py-2 text-muted-foreground">{r.locksmith_name || "—"}</td>
-                    <td className="px-4 py-2 capitalize">{r.status}</td>
-                    <td className="px-4 py-2">{fmtMoney(r.price)}</td>
-                    <td className="px-4 py-2 text-muted-foreground">
-                      {new Date(r.created_date).toLocaleDateString("pt-BR")}
-                    </td>
-                  </tr>
+                  <React.Fragment key={r.id}>
+                    <tr className="border-t border-border">
+                      <td className="px-4 py-2 text-foreground">{r.service_type}</td>
+                      <td className="px-4 py-2 text-muted-foreground">{r.locksmith_name || "—"}</td>
+                      <td className="px-4 py-2 capitalize">{r.status}</td>
+                      <td className="px-4 py-2">{fmtMoney(r.price)}</td>
+                      <td className="px-4 py-2 text-muted-foreground">
+                        {new Date(r.created_date).toLocaleDateString("pt-BR")}
+                      </td>
+                    </tr>
+                    {(r.start_photos?.length || r.end_photos?.length) ? (
+                      <tr className="border-t border-border bg-muted/30">
+                        <td colSpan={5} className="px-4 py-2">
+                          <ServiceGallery startPhotos={r.start_photos} endPhotos={r.end_photos} />
+                        </td>
+                      </tr>
+                    ) : null}
+                  </React.Fragment>
                 ))}
                 {filteredRequests.length === 0 && (
                   <tr>

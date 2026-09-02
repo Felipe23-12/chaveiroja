@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { Clock, MapPin, Star, Wrench } from "lucide-react";
 import ServiceFilters, { filterRequests } from "@/components/admin/ServiceFilters";
+import ServiceGallery from "@/components/locksmith/ServiceGallery";
 
 const statusLabels = {
   pending: { label: "Pendente", color: "bg-amber-100 text-amber-700" },
@@ -87,6 +88,7 @@ export default function History() {
                     )}
                   </div>
                 )}
+                <ServiceGallery startPhotos={req.start_photos} endPhotos={req.end_photos} />
               </div>
             );
           })}
