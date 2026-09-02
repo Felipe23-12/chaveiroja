@@ -1,6 +1,6 @@
 import React from "react";
 import { Link, useLocation, Outlet } from "react-router-dom";
-import { Home as HomeIcon, Clock, Wrench, LogOut, Briefcase, MapPin, RadioTower, Wallet, User } from "lucide-react";
+import { Home as HomeIcon, Clock, Wrench, LogOut, Briefcase, MapPin, RadioTower, Wallet, User, ShieldCheck } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { useAuth } from "@/lib/AuthContext";
 
@@ -11,6 +11,7 @@ const ALL_NAV = [
   { label: "Painel Chaveiro", path: "/painel-chaveiro", icon: RadioTower, roles: ["chaveiro"] },
   { label: "Financeiro", path: "/painel-financeiro", icon: Wallet, roles: ["chaveiro"] },
   { label: "Modo de Trabalho", path: "/modo-trabalho", icon: Briefcase, roles: ["chaveiro"] },
+  { label: "Painel Admin", path: "/painel-admin", icon: ShieldCheck, roles: ["admin"] },
 ];
 
 function Sidebar() {
@@ -18,7 +19,7 @@ function Sidebar() {
   const { user } = useAuth();
   const accountType = user?.account_type || (user?.role === "admin" ? "admin" : "cliente");
   const navItems = ALL_NAV.filter((i) => accountType === "admin" || i.roles.includes(accountType));
-  const homePath = accountType === "chaveiro" ? "/painel-chaveiro" : "/";
+  const homePath = accountType === "chaveiro" ? "/painel-chaveiro" : accountType === "admin" ? "/painel-admin" : "/";
 
   const handleLogout = async () => {
     await base44.auth.logout();

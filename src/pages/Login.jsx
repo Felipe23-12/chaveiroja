@@ -26,7 +26,8 @@ export default function Login() {
       if (dest === "/") {
         try {
           const me = await base44.auth.me();
-          dest = me?.account_type === "chaveiro" ? "/painel-chaveiro" : "/";
+          const at = me?.account_type;
+          dest = at === "chaveiro" ? "/painel-chaveiro" : at === "admin" ? "/painel-admin" : "/";
         } catch {
           dest = "/";
         }

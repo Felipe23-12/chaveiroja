@@ -21,6 +21,9 @@ import Login from '@/pages/Login';
 import Register from '@/pages/Register';
 import ForgotPassword from '@/pages/ForgotPassword';
 import ResetPassword from '@/pages/ResetPassword';
+import RegisterCliente from '@/pages/RegisterCliente';
+import RegisterChaveiro from '@/pages/RegisterChaveiro';
+import PainelAdmin from '@/pages/PainelAdmin';
 // Add page imports here
 
 const AuthenticatedApp = () => {
@@ -53,6 +56,8 @@ const AuthenticatedApp = () => {
       <Route path="/register" element={<Register />} />
       <Route path="/forgot-password" element={<ForgotPassword />} />
       <Route path="/reset-password" element={<ResetPassword />} />
+      <Route path="/cadastro/cliente" element={<RegisterCliente />} />
+      <Route path="/cadastro/chaveiro" element={<RegisterChaveiro />} />
       <Route element={<ProtectedRoute unauthenticatedElement={<Navigate to="/login" replace />} />}>
         <Route element={<Layout />}>
           <Route element={<RoleGuard allow={["cliente"]} />}>
@@ -66,6 +71,9 @@ const AuthenticatedApp = () => {
             <Route path="/painel-chaveiro" element={<PainelChaveiro />} />
             <Route path="/painel-financeiro" element={<PainelFinanceiro />} />
             <Route path="/modo-trabalho" element={<LocksmithProfile />} />
+          </Route>
+          <Route element={<RoleGuard allow={["admin"]} />}>
+            <Route path="/painel-admin" element={<PainelAdmin />} />
           </Route>
         </Route>
       </Route>
