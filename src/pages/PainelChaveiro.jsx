@@ -11,6 +11,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import MapView from "@/components/map/MapView";
+import RealLocksmithsMap from "@/components/map/RealLocksmithsMap";
 import PhotoUploader from "@/components/locksmith/PhotoUploader";
 import WalletCard from "@/components/locksmith/WalletCard";
 import WithdrawalSection from "@/components/locksmith/WithdrawalSection";
@@ -388,23 +389,16 @@ export default function PainelChaveiro() {
         </div>
       ) : (
         pendingCount === 0 && (
-          <div className="text-center py-12 rounded-xl border border-dashed border-border">
-            {isAppMode ? (
-              <>
-                <Bell className="w-8 h-8 text-muted-foreground mx-auto mb-2" />
-                <p className="text-sm text-muted-foreground">
-                  {me?.online ? "Aguardando solicitações..." : "Fique online para receber solicitações."}
-                </p>
-              </>
-            ) : (
-              <>
-                <MapPin className="w-8 h-8 text-muted-foreground mx-auto mb-2" />
-                <p className="text-sm text-muted-foreground">
-                  No Modo Livre você aparece no mapa dos clientes e negocia pelo chat.
-                </p>
-              </>
-            )}
-          </div>
+          isAppMode ? (
+            <div className="text-center py-12 rounded-xl border border-dashed border-border">
+              <Bell className="w-8 h-8 text-muted-foreground mx-auto mb-2" />
+              <p className="text-sm text-muted-foreground">
+                {me?.online ? "Aguardando solicitações..." : "Fique online para receber solicitações."}
+              </p>
+            </div>
+          ) : (
+            <RealLocksmithsMap me={me} />
+          )
         )
       )}
     </div>
