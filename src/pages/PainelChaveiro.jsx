@@ -11,7 +11,33 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import MapView from "@/components/map/MapView";
+import { useToast } from "@/components/ui/use-toast";
 import { haversineKm, stepToward } from "@/lib/geo";
+
+// Raio de cobertura para considerar um pedido "na região" do chaveiro (km)
+const REGION_RADIUS_KM = 15;
+
+// Alerta sonoro curto via Web Audio (não depende de arquivos externos)
+function playBeep() {
+  try {
+    const AudioCtx = window.AudioContext || window.webkitAudioContext;
+    if (!AudioCtx) return;
+    const ctx = new AudioCtx();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.type = "sine";
+    osc.frequency.value = 880;
+    gain.gain.setValueAtTime(0.0001, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.3, ctx.currentTime + 0.02);
+    gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.5);
+    osc.start();
+    osc.stop(ctx.currentTime + 0.5);
+  } catch (e) {
+    // silencioso se o navegador bloquear áudio
+  }
+}
 
 export default function PainelChaveiro() {
   const [locksmiths, setLocksmiths] = useState([]);
@@ -21,6 +47,8 @@ export default function PainelChaveiro() {
   const [active, setActive] = useState(null); // serviço em andamento
   const [extraCost, setExtraCost] = useState("");
   const moveTimer = useRef(null);
+  const notifiedIds = useRef(new Set());
+  const { toast } = useToast();
 
   const selected = locksmiths.find((l) => l.id === selectedId) || me;
 
@@ -52,6 +80,30 @@ export default function PainelChaveiro() {
     const unsub = base44.entities.ServiceRequest.subscribe(() => load());
     return unsub;
   }, [selectedId]);
+
+  // Notificação imediata de novos pedidos na região do chaveiro
+  useEffect(() => {
+    if (!selectedId || !me) return;
+    const unsub = base44.entities.ServiceRequest.subscribe((event) => {
+      if (event.type !== "create") return;
+      const r = event.data;
+      if (!r || notifiedIds.current.has(r.id)) return;
+      if (r.status !== "searching" && r.status !== "ringing") return;
+      if (r.locksmith_id === selectedId) return; // já tratado pelo card de toque
+      const dist = haversineKm(
+        { lat: me.lat, lng: me.lng },
+        { lat: r.customer_lat, lng: r.customer_lng }
+      );
+      if (dist > REGION_RADIUS_KM) return;
+      notifiedIds.current.add(r.id);
+      playBeep();
+      toast({
+        title: "🔔 Novo pedido na sua região",
+        description: `${r.service_type} · ${r.address} · ${dist.toFixed(1)} km de você`,
+      });
+    });
+    return unsub;
+  }, [selectedId, me]);
 
   // Assina o serviço em andamento deste chaveiro (aceito / a caminho)
   useEffect(() => {
