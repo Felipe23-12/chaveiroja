@@ -15,6 +15,7 @@ import RealLocksmithsMap from "@/components/map/RealLocksmithsMap";
 import PhotoUploader from "@/components/locksmith/PhotoUploader";
 import WalletCard from "@/components/locksmith/WalletCard";
 import WithdrawalSection from "@/components/locksmith/WithdrawalSection";
+import StripeConnectSetup from "@/components/locksmith/StripeConnectSetup";
 import IncomingRequestAlert from "@/components/locksmith/IncomingRequestAlert";
 import PendingRequestsList from "@/components/locksmith/PendingRequestsList";
 import { useToast } from "@/components/ui/use-toast";
@@ -341,6 +342,13 @@ export default function PainelChaveiro() {
           <Button onClick={toggleOnline} variant={me.online ? "destructive" : "default"} size="sm">
             <Power className="w-4 h-4 mr-1.5" /> {me.online ? "Sair" : "Entrar"}
           </Button>
+        </div>
+      )}
+
+      {/* Recebimentos automáticos via Stripe Connect */}
+      {me && isAppMode && (
+        <div className="mb-5">
+          <StripeConnectSetup />
         </div>
       )}
 
