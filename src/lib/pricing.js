@@ -3,6 +3,9 @@
 export const CAR_KEY_LABOR = 350;
 export const CAR_KEY_COST_PER_KM = 1.5;
 
+// Limiar do valor "médio" usado no ajuste por urgência
+export const TIER_MEDIUM = 0.6;
+
 export const SERVICE_CATALOG = [
   {
     id: "abertura_residencial",
@@ -93,6 +96,7 @@ export function calculatePrice({
   customAddons = {},
   vehicleInfo = null,
   locksmithsAvailable = 5,
+  urgency = "normal",
 }) {
   if (!service) return null;
 
@@ -104,6 +108,14 @@ export function calculatePrice({
   // menos chaveiros disponíveis => preço maior
   if (locksmithsAvailable <= 2) factor = Math.min(factor + 0.15, 1);
   else if (locksmithsAvailable >= 8) factor = Math.max(factor - 0.1, 0.1);
+
+  // Ajuste por urgência (modo aplicativo):
+  // urgente => app oferta valores médios e altos; normal => médios e baixos
+  if (urgency === "urgent") {
+    factor = Math.max(factor, TIER_MEDIUM);
+  } else {
+    factor = Math.min(factor, TIER_MEDIUM);
+  }
 
   let base = Math.round(low + span * factor);
   const breakdown = [{ label: `${service.label} (${time.label})`, value: base }];

@@ -46,6 +46,7 @@ export default function Home() {
       customAddons,
       vehicleInfo,
       locksmithsAvailable: appLocksmiths.length || 5,
+      urgency,
     });
   }, [service, selectedOptions, customAddons, vehicleInfo, appLocksmiths.length, keyValue]);
 
