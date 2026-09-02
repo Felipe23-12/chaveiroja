@@ -1,0 +1,58 @@
+{
+  "name": "StripeConnectAccount",
+  "type": "object",
+  "properties": {
+    "locksmith_id": {
+      "type": "string"
+    },
+    "stripe_account_id": {
+      "type": "string"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "created",
+        "onboarding",
+        "active",
+        "restricted",
+        "disabled"
+      ],
+      "default": "created"
+    },
+    "charges_enabled": {
+      "type": "boolean",
+      "default": false
+    },
+    "payouts_enabled": {
+      "type": "boolean",
+      "default": false
+    },
+    "pix_payments_status": {
+      "type": "string",
+      "enum": [
+        "active",
+        "pending",
+        "inactive",
+        "unrequested",
+        "unknown"
+      ],
+      "default": "unknown"
+    },
+    "details_submitted": {
+      "type": "boolean",
+      "default": false
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "updated_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "required": [
+    "locksmith_id",
+    "stripe_account_id"
+  ]
+}
