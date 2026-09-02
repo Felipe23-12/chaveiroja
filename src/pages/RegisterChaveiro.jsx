@@ -61,10 +61,17 @@ export default function RegisterChaveiro() {
   };
 
   const handleVerified = async () => {
+    // Salva o tipo de conta primeiro — campo customizado essencial para o RoleGuard
     try {
-      await base44.auth.updateMe({ full_name: fullName, phone, account_type: "chaveiro" });
+      await base44.auth.updateMe({ phone, account_type: "chaveiro" });
     } catch (e) {
       /* não bloqueia o fluxo */
+    }
+    // full_name é built-in e pode não ser editável via updateMe — tenta separadamente
+    try {
+      await base44.auth.updateMe({ full_name: fullName });
+    } catch (e) {
+      /* ignora se a plataforma não permitir */
     }
     try {
       await base44.entities.Locksmith.create({
