@@ -12,6 +12,8 @@ import {
 } from "@/components/ui/select";
 import { WORK_MODES, calculateRepasse } from "@/lib/pricing";
 import { downloadCommissionCSV, downloadCommissionPDF } from "@/lib/commissionReport";
+import WalletCard from "@/components/locksmith/WalletCard";
+import WithdrawalSection from "@/components/locksmith/WithdrawalSection";
 
 export default function PainelFinanceiro() {
   const [locksmiths, setLocksmiths] = useState([]);
@@ -151,6 +153,17 @@ export default function PainelFinanceiro() {
           <p className="text-xs text-muted-foreground">
             Modo {me.work_mode === "livre" ? "Livre" : "Aplicativo"}
           </p>
+        </div>
+      )}
+
+      {/* Carteira digital e saque via Pix — modo app */}
+      {me && isAppMode && (
+        <div className="mb-6">
+          <h2 className="font-heading font-semibold text-lg text-foreground mb-3">Carteira digital</h2>
+          <WalletCard balance={me.wallet_balance} pending={me.pending_balance} />
+          <div className="mt-4">
+            <WithdrawalSection locksmith={me} onWithdrawalMade={() => base44.entities.Locksmith.get(selectedId).then(setMe)} />
+          </div>
         </div>
       )}
 

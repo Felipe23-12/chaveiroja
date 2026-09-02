@@ -16,6 +16,8 @@ import MapView from "@/components/map/MapView";
 import { DEFAULT_CENTER, getCustomerLocation, haversineKm } from "@/lib/geo";
 import { getClientLoyalty, applyLoyaltyDiscount } from "@/lib/loyalty";
 import PointsProgressCard from "@/components/locksmith/PointsProgressCard";
+import PaymentStep from "@/components/payment/PaymentStep";
+import { preAuthorizePayment, capturePayment, cancelPayment } from "@/lib/payments";
 import { Image } from "@/components/ui/image";
 
 export default function Home() {
@@ -38,6 +40,7 @@ export default function Home() {
   const [submitting, setSubmitting] = useState(false);
   const [searchError, setSearchError] = useState("");
   const [loyalty, setLoyalty] = useState(null);
+  const [paying, setPaying] = useState(false);
   const reqRef = useRef(null);
 
   const service = useMemo(() => SERVICE_CATALOG.find((s) => s.id === serviceId), [serviceId]);
@@ -119,7 +122,7 @@ export default function Home() {
         address,
         description,
         urgency,
-        status: "ringing",
+        status: "searching",
         locksmith_id: nearest.l.id,
         locksmith_name: nearest.l.name,
         customer_lat: customerLoc.lat,
@@ -169,6 +172,43 @@ export default function Home() {
     }
   };
 
+  // Confirma o pagamento (pré-autorização) e inicia a busca do chaveiro
+  const handleConfirmPayment = async (method) => {
+    if (!activeRequest || paying) return;
+    setPaying(true);
+    setSearchError("");
+    try {
+      const user = await base44.auth.me();
+      await preAuthorizePayment({
+        serviceRequestId: activeRequest.id,
+        amount: activeRequest.price,
+        method,
+        locksmithId: selectedLocksmith?.id,
+        locksmithName: selectedLocksmith?.name,
+        clientId: user?.id,
+        clientName: user?.full_name,
+      });
+      await base44.entities.ServiceRequest.update(activeRequest.id, { status: "ringing", payment_method: method });
+      setActiveRequest((prev) => ({ ...prev, status: "ringing", payment_method: method }));
+      setStep(4);
+    } catch (e) {
+      setSearchError(e.message || "Falha ao processar pagamento");
+    } finally {
+      setPaying(false);
+    }
+  };
+
+  // Volta do passo de pagamento para a configuração
+  const handlePaymentBack = async () => {
+    if (!activeRequest) { setStep(2); return; }
+    if (activeRequest.payment_id) {
+      await cancelPayment(activeRequest.payment_id, 0).catch(() => {});
+    }
+    await base44.entities.ServiceRequest.update(activeRequest.id, { status: "cancelled", payment_status: "cancelled" });
+    setActiveRequest(null);
+    setStep(2);
+  };
+
   // Assina a solicitação para reagir quando o chaveiro aceitar / se mover
   useEffect(() => {
     if (!activeRequest) return;
@@ -176,14 +216,17 @@ export default function Home() {
       if (event.data?.id === activeRequest.id) {
         base44.entities.ServiceRequest.get(activeRequest.id).then((updated) => {
           setActiveRequest(updated);
-          if (updated.status === "accepted" && step === 3) {
-            setStep(4);
-          }
-          if (updated.status === "on_the_way" && step === 4) {
+          if (updated.status === "accepted" && step === 4) {
             setStep(5);
           }
-          if (updated.status === "completed" && step === 5) {
+          if (updated.status === "on_the_way" && step === 5) {
             setStep(6);
+          }
+          if (updated.status === "completed" && step === 6) {
+            setStep(7);
+            if (updated.payment_id) {
+              capturePayment(updated.payment_id).catch(() => {});
+            }
             base44.auth.me()
               .then((u) => getClientLoyalty(u.id))
               .then(setLoyalty)
@@ -231,6 +274,10 @@ export default function Home() {
       }
     }
 
+    if (activeRequest.payment_id) {
+      await cancelPayment(activeRequest.payment_id, update.cancellation_fee || 0).catch(() => {});
+      update.payment_status = activeRequest.payment_method === "pix" ? "refunded" : "cancelled";
+    }
     await base44.entities.ServiceRequest.update(activeRequest.id, update);
     handleNewRequest();
   };
@@ -250,6 +297,7 @@ export default function Home() {
     setSelectedLocksmith(null);
     setActiveRequest(null);
     setSearchError("");
+    setPaying(false);
   };
 
   const showAppFlow = module === "app" || step > 1 || activeRequest;
@@ -277,7 +325,7 @@ export default function Home() {
 
       {showAppFlow && (
         <div className="flex items-center gap-2 mb-6">
-          {[1, 2, 3, 4, 5, 6].map((n) => (
+          {[1, 2, 3, 4, 5, 6, 7].map((n) => (
             <div
               key={n}
               className={`h-1.5 flex-1 rounded-full transition-colors ${step >= n ? "bg-primary" : "bg-border"}`}
@@ -375,14 +423,29 @@ export default function Home() {
             </Button>
             <Button onClick={handleConfirmConfig} disabled={!address || submitting || (service?.isCarKey && !keyValue)} className="flex-1">
               {submitting ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Bell className="w-4 h-4 mr-2" />}
-              Solicitar chaveiro
+              Continuar para pagamento
             </Button>
           </div>
         </div>
       )}
 
-      {/* Step 3: Procurando / tocando no chaveiro */}
+      {/* Step 3: Pagamento */}
       {step === 3 && activeRequest && (
+        <div className="space-y-3">
+          <PaymentStep
+            amount={activeRequest.price}
+            processing={paying}
+            onConfirm={handleConfirmPayment}
+            onBack={handlePaymentBack}
+          />
+          {searchError && (
+            <p className="text-sm text-red-600 bg-red-50 p-3 rounded-lg">{searchError}</p>
+          )}
+        </div>
+      )}
+
+      {/* Step 4: Procurando / tocando no chaveiro */}
+      {step === 4 && activeRequest && (
         <div className="space-y-5 text-center">
           <div className="flex flex-col items-center py-8">
             <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mb-4">
@@ -404,8 +467,8 @@ export default function Home() {
         </div>
       )}
 
-      {/* Step 4: Pedido em andamento (chaveiro aceitou) */}
-      {step === 4 && activeRequest && activeRequest.status === "accepted" && (
+      {/* Step 5: Pedido em andamento (chaveiro aceitou) */}
+      {step === 5 && activeRequest && activeRequest.status === "accepted" && (
         <div className="space-y-5 text-center">
           <div className="flex flex-col items-center py-8">
             <div className="w-16 h-16 rounded-full bg-emerald-100 flex items-center justify-center mb-4">
@@ -422,14 +485,14 @@ export default function Home() {
             </span>
           </div>
           <LocksmithMiniProfile locksmith={selectedLocksmith} />
-          <Button onClick={() => { handleAdvance(); setStep(5); }} size="lg" className="w-full">
+          <Button onClick={() => { handleAdvance(); setStep(6); }} size="lg" className="w-full">
             Acompanhar no mapa <Navigation className="w-4 h-4 ml-2" />
           </Button>
         </div>
       )}
 
-      {/* Step 5: Acompanhamento em tempo real */}
-      {step === 5 && activeRequest && (
+      {/* Step 6: Acompanhamento em tempo real */}
+      {step === 6 && activeRequest && (
         <div className="space-y-5">
           <div>
             <h2 className="font-heading font-semibold text-lg text-foreground flex items-center gap-2">
@@ -474,8 +537,8 @@ export default function Home() {
         </div>
       )}
 
-      {/* Step 6: Avaliação final */}
-      {step === 6 && activeRequest && activeRequest.status === "completed" && (
+      {/* Step 7: Avaliação final */}
+      {step === 7 && activeRequest && activeRequest.status === "completed" && (
         <div className="space-y-5">
           <div className="flex flex-col items-center text-center py-4">
             <div className="w-16 h-16 rounded-full bg-emerald-100 flex items-center justify-center mb-4">

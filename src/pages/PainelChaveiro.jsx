@@ -91,13 +91,12 @@ export default function PainelChaveiro() {
   useEffect(() => {
     if (!selectedId || !me) return;
     const unsub = base44.entities.ServiceRequest.subscribe((event) => {
-      if (event.type !== "create") return;
       const r = event.data;
       if (!r || notifiedIds.current.has(r.id)) return;
-      if (r.status !== "searching" && r.status !== "ringing") return;
 
       if (r.locksmith_id === selectedId) {
-        // Solicitação recebida no modo aplicativo — alerta prioritário
+        // Solicitação direcionada: só notifica após o pagamento (status ringing)
+        if (r.status !== "ringing") return;
         notifiedIds.current.add(r.id);
         playBeep();
         setTimeout(playBeep, 600);
@@ -109,7 +108,9 @@ export default function PainelChaveiro() {
         return;
       }
 
-      // Alerta de proximidade para pedidos na região (não direcionados)
+      // Alerta de proximidade: apenas novos pedidos com status searching
+      if (event.type !== "create") return;
+      if (r.status !== "searching") return;
       const dist = haversineKm(
         { lat: me.lat, lng: me.lng },
         { lat: r.customer_lat, lng: r.customer_lng }

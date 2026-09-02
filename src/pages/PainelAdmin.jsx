@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
-import { ShieldCheck, Users, Wrench, ClipboardList, Wallet, Trash2, Power } from "lucide-react";
+import { ShieldCheck, Users, Wrench, ClipboardList, Wallet, Trash2, Power, ArrowDownToLine, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import AdminCharts from "@/components/admin/AdminCharts";
 import ServiceFilters, { filterRequests } from "@/components/admin/ServiceFilters";
 import ServiceGallery from "@/components/locksmith/ServiceGallery";
+import { completeWithdrawal } from "@/lib/payments";
 
 const fmtMoney = (n) =>
   (n || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
@@ -22,20 +23,23 @@ export default function PainelAdmin() {
   const [users, setUsers] = useState([]);
   const [locksmiths, setLocksmiths] = useState([]);
   const [requests, setRequests] = useState([]);
+  const [withdrawals, setWithdrawals] = useState([]);
   const [filters, setFilters] = useState({ date: "", serviceType: "", locksmithName: "" });
   const [loading, setLoading] = useState(true);
 
   const load = async () => {
     setLoading(true);
     try {
-      const [u, l, r] = await Promise.all([
+      const [u, l, r, w] = await Promise.all([
         base44.entities.User.list(),
         base44.entities.Locksmith.list(),
         base44.entities.ServiceRequest.list("-created_date", 1000),
+        base44.entities.Withdrawal.list("-created_date", 100),
       ]);
       setUsers(u);
       setLocksmiths(l);
       setRequests(r);
+      setWithdrawals(w);
     } finally {
       setLoading(false);
     }
@@ -191,6 +195,64 @@ export default function PainelAdmin() {
           </div>
         </div>
       </section>
+
+      {withdrawals.length > 0 && (
+        <section>
+          <h2 className="font-heading font-semibold text-lg text-foreground mb-3 flex items-center gap-2">
+            <ArrowDownToLine className="w-5 h-5" /> Saques solicitados
+          </h2>
+          <div className="rounded-xl border border-border overflow-hidden bg-white">
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead className="bg-muted/50 text-muted-foreground text-left">
+                  <tr>
+                    <th className="px-4 py-2 font-medium">Chaveiro</th>
+                    <th className="px-4 py-2 font-medium">Valor</th>
+                    <th className="px-4 py-2 font-medium">Chave Pix</th>
+                    <th className="px-4 py-2 font-medium">Banco</th>
+                    <th className="px-4 py-2 font-medium">Status</th>
+                    <th className="px-4 py-2 font-medium">Ação</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {withdrawals.map((w) => (
+                    <tr key={w.id} className="border-t border-border">
+                      <td className="px-4 py-2 text-foreground">{w.locksmith_name}</td>
+                      <td className="px-4 py-2 font-medium">{fmtMoney(w.amount)}</td>
+                      <td className="px-4 py-2 text-muted-foreground">{w.pix_key_value}</td>
+                      <td className="px-4 py-2 text-muted-foreground">{w.bank_name || "—"}</td>
+                      <td className="px-4 py-2">
+                        <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${
+                          w.status === "completed" ? "bg-emerald-50 text-emerald-600"
+                          : w.status === "processing" ? "bg-blue-50 text-blue-600"
+                          : w.status === "failed" ? "bg-red-50 text-red-600"
+                          : "bg-amber-50 text-amber-600"
+                        }`}>
+                          {w.status === "completed" ? "Concluído" : w.status === "processing" ? "Processando" : w.status === "failed" ? "Falhou" : "Solicitado"}
+                        </span>
+                      </td>
+                      <td className="px-4 py-2">
+                        {w.status === "requested" || w.status === "processing" ? (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={async () => {
+                              await completeWithdrawal(w.id);
+                              setWithdrawals((prev) => prev.map((x) => x.id === w.id ? { ...x, status: "completed" } : x));
+                            }}
+                          >
+                            <CheckCircle2 className="w-3.5 h-3.5 mr-1" /> Processar
+                          </Button>
+                        ) : "—"}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+      )}
 
       <section>
         <h2 className="font-heading font-semibold text-lg text-foreground mb-3">Solicitações</h2>
