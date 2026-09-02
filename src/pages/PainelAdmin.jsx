@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { ShieldCheck, Users, Wrench, ClipboardList, Wallet, Trash2, Power } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import AdminCharts from "@/components/admin/AdminCharts";
 
 const fmtMoney = (n) =>
   (n || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
@@ -27,7 +28,7 @@ export default function PainelAdmin() {
       const [u, l, r] = await Promise.all([
         base44.entities.User.list(),
         base44.entities.Locksmith.list(),
-        base44.entities.ServiceRequest.list("-created_date", 50),
+        base44.entities.ServiceRequest.list("-created_date", 1000),
       ]);
       setUsers(u);
       setLocksmiths(l);
@@ -84,6 +85,8 @@ export default function PainelAdmin() {
         <StatCard icon={ClipboardList} label="Solicitações" value={requests.length} />
         <StatCard icon={Wallet} label="Receita (concluídos)" value={fmtMoney(revenue)} />
       </div>
+
+      <AdminCharts requests={requests} />
 
       <section>
         <h2 className="font-heading font-semibold text-lg text-foreground mb-3">Usuários</h2>
