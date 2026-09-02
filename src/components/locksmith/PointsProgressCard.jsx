@@ -1,11 +1,13 @@
 import React from "react";
-import { Gift, Sparkles, Trophy } from "lucide-react";
+import { Gift, Sparkles, Trophy, PartyPopper } from "lucide-react";
 
 export default function PointsProgressCard({ loyalty }) {
   if (!loyalty) return null;
 
   const { completedCount, available, progress, next } = loyalty;
   const pct = Math.min(100, (progress / next) * 100);
+  const remaining = next - progress;
+  const justReached = progress === 0 && completedCount >= next && available > 0;
 
   return (
     <div className="rounded-2xl border border-border bg-card p-4 mb-6 space-y-3">
@@ -23,17 +25,22 @@ export default function PointsProgressCard({ loyalty }) {
         </div>
       </div>
 
-      {/* Aviso de desconto liberado */}
+      {/* Aviso de desconto liberado — destaque máximo */}
       {available > 0 ? (
-        <div className="flex items-start gap-2.5 p-3 rounded-xl bg-emerald-50 border border-emerald-100">
-          <Gift className="w-5 h-5 text-emerald-600 shrink-0 mt-0.5" />
-          <div>
-            <p className="text-sm font-semibold text-emerald-700">
-              Desconto de 10% liberado!
-            </p>
-            <p className="text-xs text-emerald-600/90">
-              Você tem {available} {available === 1 ? "desconto disponível" : "descontos disponíveis"} para usar no próximo pedido.
-            </p>
+        <div className="relative overflow-hidden rounded-xl bg-gradient-to-r from-emerald-500 to-emerald-600 p-4 animate-pulse">
+          <div className="absolute -top-6 -right-6 w-20 h-20 rounded-full bg-white/10" />
+          <div className="relative flex items-start gap-3">
+            <div className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center shrink-0">
+              <PartyPopper className="w-5 h-5 text-white" />
+            </div>
+            <div>
+              <p className="font-heading font-bold text-base text-white">
+                🎉 Desconto de 10% liberado!
+              </p>
+              <p className="text-xs text-white/90 mt-0.5">
+                Você concluiu {next} serviços e ganhou {available} {available === 1 ? "desconto disponível" : "descontos disponíveis"} para usar no próximo pedido.
+              </p>
+            </div>
           </div>
         </div>
       ) : (
@@ -43,16 +50,16 @@ export default function PointsProgressCard({ loyalty }) {
               <Sparkles className="w-3.5 h-3.5" />
               Progresso para o próximo desconto
             </span>
-            <span>{progress}/{next}</span>
+            <span className="font-medium text-foreground">{progress}/{next}</span>
           </div>
-          <div className="h-2 rounded-full bg-muted overflow-hidden">
+          <div className="h-2.5 rounded-full bg-muted overflow-hidden">
             <div
               className="h-full bg-primary rounded-full transition-all"
               style={{ width: `${pct}%` }}
             />
           </div>
-          <p className="text-[11px] text-muted-foreground mt-1.5">
-            Conclua mais {next - progress} {next - progress === 1 ? "serviço" : "serviços"} para liberar 10% off no próximo pedido.
+          <p className="text-sm font-medium text-foreground mt-2">
+            Faltam apenas <span className="text-primary font-bold">{remaining}</span> {remaining === 1 ? "serviço" : "serviços"} para liberar 10% off no próximo pedido.
           </p>
         </div>
       )}
