@@ -75,10 +75,13 @@ export default function RegisterOtpStep({ email, title, subtitle, notice, onSucc
           "Confirmar"
         )}
       </Button>
-      <p className="text-center text-sm text-muted-foreground mt-4">
-        Não recebeu o código?{" "}
+      <div className="mt-4 p-3 rounded-lg bg-amber-50 text-amber-700 text-xs text-center">
+        Não recebeu? Verifique a pasta de <strong>spam/lixo eletrônico</strong> ou aguarde 2-3 minutos.
+      </div>
+      <p className="text-center text-sm text-muted-foreground mt-3">
+        Não chegou ainda?{" "}
         <button onClick={handleResend} className="text-primary font-medium hover:underline">
-          Reenviar
+          Reenviar código
         </button>
       </p>
     </AuthLayout>
