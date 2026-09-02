@@ -28,6 +28,7 @@ export default function PainelAdmin() {
   const [withdrawals, setWithdrawals] = useState([]);
   const [filters, setFilters] = useState({ date: "", serviceType: "", status: "", locksmithName: "", search: "" });
   const [loading, setLoading] = useState(true);
+  const [resetting, setResetting] = useState(false);
 
   const load = async () => {
     setLoading(true);
@@ -73,6 +74,35 @@ export default function PainelAdmin() {
     setLocksmiths((prev) => prev.filter((x) => x.id !== l.id));
   };
 
+  const removeUser = async (u) => {
+    if (!window.confirm(`Remover o usuário ${u.full_name || u.email}?`)) return;
+    try {
+      await base44.entities.User.delete(u.id);
+      setUsers((prev) => prev.filter((x) => x.id !== u.id));
+    } catch (e) {
+      alert("Erro ao remover usuário: " + (e.message || e));
+    }
+  };
+
+  const resetAll = async () => {
+    if (!window.confirm("ATENÇÃO: Isso vai excluir TODOS os chaveiros e TODOS os usuários (exceto você). Esta ação não pode ser desfeita. Deseja continuar?")) return;
+    if (!window.confirm("Confirme novamente: excluir todos os dados de usuários e chaveiros?")) return;
+    setResetting(true);
+    try {
+      await base44.entities.Locksmith.deleteMany({});
+      const me = await base44.auth.me();
+      const others = users.filter((u) => u.id !== me.id);
+      for (const u of others) {
+        try { await base44.entities.User.delete(u.id); } catch (e) {}
+      }
+      await load();
+    } catch (e) {
+      alert("Erro ao resetar: " + (e.message || e));
+    } finally {
+      setResetting(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-20">
@@ -91,6 +121,18 @@ export default function PainelAdmin() {
           <h1 className="font-heading font-bold text-2xl text-foreground">Painel Administrativo</h1>
           <p className="text-sm text-muted-foreground">Visão geral da plataforma</p>
         </div>
+      </div>
+
+      <div className="flex justify-end">
+        <Button
+          variant="destructive"
+          onClick={resetAll}
+          disabled={resetting}
+          className="gap-2"
+        >
+          <Trash2 className="w-4 h-4" />
+          {resetting ? "Resetando..." : "Resetar tudo (usuários e chaveiros)"}
+        </Button>
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
@@ -114,6 +156,7 @@ export default function PainelAdmin() {
                   <th className="px-4 py-2 font-medium">Nome</th>
                   <th className="px-4 py-2 font-medium">Email</th>
                   <th className="px-4 py-2 font-medium">Tipo</th>
+                  <th className="px-4 py-2 font-medium">Ações</th>
                 </tr>
               </thead>
               <tbody>
@@ -126,11 +169,21 @@ export default function PainelAdmin() {
                         {u.account_type || u.role || "—"}
                       </span>
                     </td>
+                    <td className="px-4 py-2">
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        onClick={() => removeUser(u)}
+                        title="Remover usuário"
+                      >
+                        <Trash2 className="w-4 h-4 text-destructive" />
+                      </Button>
+                    </td>
                   </tr>
                 ))}
                 {users.length === 0 && (
                   <tr>
-                    <td colSpan={3} className="px-4 py-6 text-center text-muted-foreground">
+                    <td colSpan={4} className="px-4 py-6 text-center text-muted-foreground">
                       Nenhum usuário
                     </td>
                   </tr>
