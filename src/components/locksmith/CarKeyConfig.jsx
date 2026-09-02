@@ -1,9 +1,10 @@
 import React from "react";
-import { MapPin, Search, Loader2 } from "lucide-react";
+import { Search, Loader2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import PriceSummary from "./PriceSummary";
+import AddressAutocomplete from "./AddressAutocomplete";
 
 export default function CarKeyConfig({
   service,
@@ -11,6 +12,7 @@ export default function CarKeyConfig({
   setVehicleInfo,
   address,
   setAddress,
+  onAddressSelect,
   description,
   setDescription,
   keyValue,
@@ -69,18 +71,15 @@ export default function CarKeyConfig({
         </div>
       )}
 
-      {/* Endereço e descrição */}
+      {/* Endereço com autocomplete */}
       <div>
         <label className="text-sm font-medium text-foreground mb-1.5 block">Endereço</label>
-        <div className="relative">
-          <MapPin className="w-4 h-4 text-muted-foreground absolute left-3 top-1/2 -translate-y-1/2" />
-          <Input
-            value={address}
-            onChange={(e) => setAddress(e.target.value)}
-            placeholder="Ex: Rua das Flores, 123 - Centro"
-            className="pl-9"
-          />
-        </div>
+        <AddressAutocomplete
+          value={address}
+          onChange={setAddress}
+          onSelect={onAddressSelect}
+          placeholder="Digite seu endereço..."
+        />
       </div>
 
       <div>

@@ -26,16 +26,8 @@ export default async function(req) {
         return Response.json({ error: 'Valor mínimo é R$ 1,00' }, { status: 400 });
       }
 
-      const params = new URLSearchParams();
-      params.append("amount", String(cents));
-      params.append("currency", "brl");
-      params.append("description", description || "Pagamento Chaveiro Já");
-
-      if (method === "pix") {
-        params.append("payment_method_types", "pix");
-      } else {
-        params.append("payment_method_types", "card");
-      }
+      const pmType = method === "pix" ? "pix" : "card";
+      const bodyStr = `amount=${cents}&currency=brl&description=${encodeURIComponent(description || "Pagamento Chaveiro Já")}&payment_method_types[]=${pmType}`;
 
       const res = await fetch(`${STRIPE_API}/payment_intents`, {
         method: "POST",
@@ -43,7 +35,7 @@ export default async function(req) {
           "Authorization": `Bearer ${stripeKey}`,
           "Content-Type": "application/x-www-form-urlencoded",
         },
-        body: params.toString(),
+        body: bodyStr,
       });
 
       const intent = await res.json();

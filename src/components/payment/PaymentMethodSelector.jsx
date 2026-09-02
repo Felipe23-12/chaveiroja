@@ -5,9 +5,9 @@ import { cn } from "@/lib/utils";
 const ICONS = { CreditCard, QrCode };
 
 const METHODS = [
-  { id: "credit_card", label: "Cartão de Crédito", icon: "CreditCard", description: "Pré-autoriza agora, cobra ao concluir" },
-  { id: "debit_card", label: "Cartão de Débito", icon: "CreditCard", description: "Pré-autoriza agora, cobra ao concluir" },
-  { id: "pix", label: "Pix", icon: "QrCode", description: "Pagamento imediato ao concluir" },
+  { id: "credit_card", label: "Cartão de Crédito", icon: "CreditCard", description: "Pagamento à vista no cartão" },
+  { id: "debit_card", label: "Cartão de Débito", icon: "CreditCard", description: "Débito imediato" },
+  { id: "pix", label: "Pix", icon: "QrCode", description: "Pagamento imediato via QR Code" },
 ];
 
 export default function PaymentMethodSelector({ selected, onSelect }) {

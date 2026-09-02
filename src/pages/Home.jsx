@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useRef } from "react";
 import { base44 } from "@/api/base44Client";
-import { ArrowRight, ArrowLeft, Zap, Bell, Loader2, MapPin, Navigation, CheckCircle2 } from "lucide-react";
+import { ArrowRight, ArrowLeft, Zap, Bell, Loader2, Navigation, CheckCircle2, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { SERVICE_CATALOG, calculatePrice, calculateCarKeyPrice, CAR_KEY_LABOR, CAR_KEY_COST_PER_KM, calculateCancellationFee, CANCELLATION_THRESHOLD_MINUTES } from "@/lib/pricing";
 import { searchCarKeyValue } from "@/lib/carKey";
@@ -17,7 +17,7 @@ import { DEFAULT_CENTER, getCustomerLocation, haversineKm, fetchDrivingRoute, et
 import { getClientLoyalty, applyLoyaltyDiscount } from "@/lib/loyalty";
 import PointsProgressCard from "@/components/locksmith/PointsProgressCard";
 import PaymentStep from "@/components/payment/PaymentStep";
-import { capturePayment, cancelPayment } from "@/lib/payments";
+import { createPaymentRecord, confirmPaymentPaid } from "@/lib/payments";
 import { Image } from "@/components/ui/image";
 
 export default function Home() {
@@ -43,6 +43,7 @@ export default function Home() {
   const [paying, setPaying] = useState(false);
   const [routePath, setRoutePath] = useState(null);
   const [routeEta, setRouteEta] = useState(null);
+  const [cancelFeeData, setCancelFeeData] = useState(null);
   const reqRef = useRef(null);
 
   const service = useMemo(() => SERVICE_CATALOG.find((s) => s.id === serviceId), [serviceId]);
@@ -81,6 +82,10 @@ export default function Home() {
     setCustomAddons((prev) => ({ ...prev, [optId]: value }));
   };
 
+  const handleAddressSelect = ({ lat, lng }) => {
+    setCustomerLoc({ lat, lng });
+  };
+
   const handleSearchKey = async () => {
     if (!vehicleInfo.model.trim() || !vehicleInfo.year.trim()) {
       setSearchError("Informe modelo e ano do veículo");
@@ -104,6 +109,7 @@ export default function Home() {
   };
 
   // Solicita o serviço: encontra o chaveiro do modo app mais próximo e "toca" nele
+  // O pagamento acontece APÓS a conclusão do serviço, não antes.
   const handleConfirmConfig = async () => {
     if (!address || submitting) return;
     setSubmitting(true);
@@ -124,7 +130,7 @@ export default function Home() {
         address,
         description,
         urgency,
-        status: "searching",
+        status: "ringing",
         locksmith_id: nearest.l.id,
         locksmith_name: nearest.l.name,
         customer_lat: customerLoc.lat,
@@ -174,15 +180,30 @@ export default function Home() {
     }
   };
 
-  // Pagamento já foi confirmado via Stripe no PaymentStep — apenas atualiza status
-  const handleConfirmPayment = async (method) => {
-    if (!activeRequest || paying) return;
+  // Pagamento confirmado via Stripe após a conclusão do serviço
+  const handleServicePayment = async (method, stripePaymentIntentId) => {
+    if (!activeRequest) return;
     setPaying(true);
     setSearchError("");
     try {
-      await base44.entities.ServiceRequest.update(activeRequest.id, { status: "ringing", payment_method: method });
-      setActiveRequest((prev) => ({ ...prev, status: "ringing", payment_method: method }));
-      setStep(4);
+      const user = await base44.auth.me();
+      const payment = await createPaymentRecord({
+        serviceRequestId: activeRequest.id,
+        amount: activeRequest.price,
+        method,
+        locksmithId: selectedLocksmith?.id,
+        locksmithName: selectedLocksmith?.name,
+        clientId: user?.id,
+        clientName: user?.full_name,
+        stripePaymentIntentId,
+      });
+      await confirmPaymentPaid(payment.id);
+      setActiveRequest((prev) => ({ ...prev, payment_id: payment.id, payment_status: "paid" }));
+      setStep(7);
+      base44.auth.me()
+        .then((u) => getClientLoyalty(u.id))
+        .then(setLoyalty)
+        .catch(() => {});
     } catch (e) {
       setSearchError(e.message || "Falha ao processar pagamento");
     } finally {
@@ -190,15 +211,36 @@ export default function Home() {
     }
   };
 
-  // Volta do passo de pagamento para a configuração
-  const handlePaymentBack = async () => {
-    if (!activeRequest) { setStep(2); return; }
-    if (activeRequest.payment_id) {
-      await cancelPayment(activeRequest.payment_id, 0).catch(() => {});
+  // Pagamento da taxa de cancelamento
+  const handleCancelFeePayment = async (method, stripePaymentIntentId) => {
+    if (!activeRequest || !cancelFeeData) return;
+    setPaying(true);
+    try {
+      const user = await base44.auth.me();
+      const payment = await createPaymentRecord({
+        serviceRequestId: activeRequest.id,
+        amount: cancelFeeData.fee,
+        method,
+        locksmithId: selectedLocksmith?.id,
+        locksmithName: selectedLocksmith?.name,
+        clientId: user?.id,
+        clientName: user?.full_name,
+        stripePaymentIntentId,
+      });
+      await confirmPaymentPaid(payment.id);
+      await base44.entities.ServiceRequest.update(activeRequest.id, {
+        status: "cancelled",
+        cancellation_fee: cancelFeeData.fee,
+        cancellation_locksmith_amount: cancelFeeData.locksmithAmount,
+        cancellation_app_fee: cancelFeeData.appFee,
+        payment_status: "paid",
+      });
+      handleNewRequest();
+    } catch (e) {
+      setSearchError(e.message || "Falha ao processar taxa de cancelamento");
+    } finally {
+      setPaying(false);
     }
-    await base44.entities.ServiceRequest.update(activeRequest.id, { status: "cancelled", payment_status: "cancelled" });
-    setActiveRequest(null);
-    setStep(2);
   };
 
   // Assina a solicitação para reagir quando o chaveiro aceitar / se mover
@@ -208,21 +250,14 @@ export default function Home() {
       if (event.data?.id === activeRequest.id) {
         base44.entities.ServiceRequest.get(activeRequest.id).then((updated) => {
           setActiveRequest(updated);
-          if (updated.status === "accepted" && step === 4) {
+          if (updated.status === "accepted" && step === 3) {
+            setStep(4);
+          }
+          if (updated.status === "on_the_way" && step === 4) {
             setStep(5);
           }
-          if (updated.status === "on_the_way" && step === 5) {
+          if (updated.status === "completed" && step === 5) {
             setStep(6);
-          }
-          if (updated.status === "completed" && step === 6) {
-            setStep(7);
-            if (updated.payment_id) {
-              capturePayment(updated.payment_id).catch(() => {});
-            }
-            base44.auth.me()
-              .then((u) => getClientLoyalty(u.id))
-              .then(setLoyalty)
-              .catch(() => {});
           }
         });
       }
@@ -230,9 +265,9 @@ export default function Home() {
     return unsub;
   }, [activeRequest?.id, step]);
 
-  // Busca a rota real de carro entre o chaveiro e o cliente (OSRM) para exibir o trajeto e o ETA preciso
+  // Busca a rota real de carro entre o chaveiro e o cliente (OSRM)
   useEffect(() => {
-    if (step !== 6 || !activeRequest) return;
+    if (step !== 5 || !activeRequest) return;
     const from = { lat: activeRequest.locksmith_lat, lng: activeRequest.locksmith_lng };
     const to = { lat: activeRequest.customer_lat, lng: activeRequest.customer_lng };
     if (!from.lat || !to.lat) return;
@@ -258,35 +293,30 @@ export default function Home() {
 
   const handleCancel = async () => {
     if (!activeRequest) return;
-    const update = { status: "cancelled" };
     const isApp = selectedLocksmith?.work_mode === "app";
     const postConfirmation =
       isApp &&
       activeRequest.accepted_at &&
       (activeRequest.status === "accepted" || activeRequest.status === "on_the_way");
 
+    // Se o chaveiro já aceitou e passou do tempo limite, cobra taxa de cancelamento
     if (postConfirmation) {
       const elapsedMin = (Date.now() - new Date(activeRequest.accepted_at).getTime()) / 60000;
       if (elapsedMin >= CANCELLATION_THRESHOLD_MINUTES) {
         const c = calculateCancellationFee(activeRequest.price);
         const ok = window.confirm(
           `Cancelamento após ${CANCELLATION_THRESHOLD_MINUTES} minutos da confirmação do chaveiro.\n\n` +
-          `Será cobrada uma taxa de 25% sobre o valor do serviço (R$ ${c.fee.toFixed(2)}):\n` +
-          `• R$ ${c.locksmithAmount.toFixed(2)} para o chaveiro\n` +
-          `• R$ ${c.appFee.toFixed(2)} para o aplicativo\n\nDeseja continuar com o cancelamento?`
+          `Será cobrada uma taxa de 25% sobre o valor do serviço (R$ ${c.fee.toFixed(2)}).\n\nDeseja continuar?`
         );
         if (!ok) return;
-        update.cancellation_fee = c.fee;
-        update.cancellation_locksmith_amount = c.locksmithAmount;
-        update.cancellation_app_fee = c.appFee;
+        // Mostra a tela de pagamento da taxa de cancelamento
+        setCancelFeeData(c);
+        return;
       }
     }
 
-    if (activeRequest.payment_id) {
-      await cancelPayment(activeRequest.payment_id, update.cancellation_fee || 0).catch(() => {});
-      update.payment_status = activeRequest.payment_method === "pix" ? "refunded" : "cancelled";
-    }
-    await base44.entities.ServiceRequest.update(activeRequest.id, update);
+    // Sem taxa: apenas cancela
+    await base44.entities.ServiceRequest.update(activeRequest.id, { status: "cancelled" });
     handleNewRequest();
   };
 
@@ -306,6 +336,9 @@ export default function Home() {
     setActiveRequest(null);
     setSearchError("");
     setPaying(false);
+    setCancelFeeData(null);
+    setRoutePath(null);
+    setRouteEta(null);
   };
 
   const showAppFlow = module === "app" || step > 1 || activeRequest;
@@ -361,7 +394,7 @@ export default function Home() {
         </div>
       )}
 
-      {/* Modo Livre: mapa interativo com chaveiros online ou em atendimento */}
+      {/* Modo Livre: mapa interativo com chaveiros online */}
       {!showAppFlow && <LiveLocksmithsMap customerLoc={customerLoc} />}
 
       {/* Step 2: Configuração + preço */}
@@ -374,14 +407,13 @@ export default function Home() {
               setVehicleInfo={setVehicleInfo}
               address={address}
               setAddress={setAddress}
+              onAddressSelect={handleAddressSelect}
               description={description}
               setDescription={setDescription}
               keyValue={keyValue}
               searching={searching}
               searchError={searchError}
               onSearch={handleSearchKey}
-              // O valor não aparece durante a configuração.
-              // Ele só é exibido depois que a solicitação é confirmada, na etapa de pagamento.
               price={null}
             />
           ) : (
@@ -389,6 +421,7 @@ export default function Home() {
               service={service}
               address={address}
               setAddress={setAddress}
+              onAddressSelect={handleAddressSelect}
               description={description}
               setDescription={setDescription}
               selectedOptions={selectedOptions}
@@ -397,7 +430,6 @@ export default function Home() {
               setCustomAddon={setCustomAddon}
               vehicleInfo={vehicleInfo}
               setVehicleInfo={setVehicleInfo}
-              // O cliente só vê o valor após confirmar a solicitação.
               price={null}
             />
           )}
@@ -434,31 +466,14 @@ export default function Home() {
             </Button>
             <Button onClick={handleConfirmConfig} disabled={!address || submitting || (service?.isCarKey && !keyValue)} className="flex-1">
               {submitting ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Bell className="w-4 h-4 mr-2" />}
-              Continuar para pagamento
+              Solicitar chaveiro
             </Button>
           </div>
         </div>
       )}
 
-      {/* Step 3: Pagamento */}
+      {/* Step 3: Procurando / tocando no chaveiro */}
       {step === 3 && activeRequest && (
-        <div className="space-y-3">
-          <PaymentStep
-            amount={activeRequest.price}
-            activeRequest={activeRequest}
-            selectedLocksmith={selectedLocksmith}
-            processing={paying}
-            onConfirm={handleConfirmPayment}
-            onBack={handlePaymentBack}
-          />
-          {searchError && (
-            <p className="text-sm text-red-600 bg-red-50 p-3 rounded-lg">{searchError}</p>
-          )}
-        </div>
-      )}
-
-      {/* Step 4: Procurando / tocando no chaveiro */}
-      {step === 4 && activeRequest && (
         <div className="space-y-5 text-center">
           <div className="flex flex-col items-center py-8">
             <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mb-4">
@@ -480,8 +495,8 @@ export default function Home() {
         </div>
       )}
 
-      {/* Step 5: Pedido em andamento (chaveiro aceitou) */}
-      {step === 5 && activeRequest && activeRequest.status === "accepted" && (
+      {/* Step 4: Pedido em andamento (chaveiro aceitou) */}
+      {step === 4 && activeRequest && activeRequest.status === "accepted" && (
         <div className="space-y-5 text-center">
           <div className="flex flex-col items-center py-8">
             <div className="w-16 h-16 rounded-full bg-emerald-100 flex items-center justify-center mb-4">
@@ -498,14 +513,14 @@ export default function Home() {
             </span>
           </div>
           <LocksmithMiniProfile locksmith={selectedLocksmith} />
-          <Button onClick={() => { handleAdvance(); setStep(6); }} size="lg" className="w-full">
+          <Button onClick={() => { handleAdvance(); setStep(5); }} size="lg" className="w-full">
             Acompanhar no mapa <Navigation className="w-4 h-4 ml-2" />
           </Button>
         </div>
       )}
 
-      {/* Step 6: Acompanhamento em tempo real */}
-      {step === 6 && activeRequest && (
+      {/* Step 5: Acompanhamento em tempo real */}
+      {step === 5 && activeRequest && (
         <div className="space-y-5">
           <div>
             <h2 className="font-heading font-semibold text-lg text-foreground flex items-center gap-2">
@@ -552,14 +567,37 @@ export default function Home() {
         </div>
       )}
 
-      {/* Step 7: Avaliação final */}
-      {step === 7 && activeRequest && activeRequest.status === "completed" && (
-        <div className="space-y-5">
+      {/* Step 6: Pagamento (após conclusão do serviço) */}
+      {step === 6 && activeRequest && activeRequest.status === "completed" && (
+        <div className="space-y-3">
           <div className="flex flex-col items-center text-center py-4">
             <div className="w-16 h-16 rounded-full bg-emerald-100 flex items-center justify-center mb-4">
               <CheckCircle2 className="w-8 h-8 text-emerald-600" />
             </div>
             <h2 className="font-heading font-semibold text-lg text-foreground mb-1">Serviço concluído!</h2>
+            <p className="text-sm text-muted-foreground">{activeRequest.service_type} · {selectedLocksmith?.name}</p>
+          </div>
+          <PaymentStep
+            amount={activeRequest.price}
+            description={`${activeRequest.service_type} - ${activeRequest.address}`}
+            processing={paying}
+            onConfirm={handleServicePayment}
+            onBack={handleNewRequest}
+          />
+          {searchError && (
+            <p className="text-sm text-red-600 bg-red-50 p-3 rounded-lg">{searchError}</p>
+          )}
+        </div>
+      )}
+
+      {/* Step 7: Avaliação final */}
+      {step === 7 && activeRequest && (
+        <div className="space-y-5">
+          <div className="flex flex-col items-center text-center py-4">
+            <div className="w-16 h-16 rounded-full bg-emerald-100 flex items-center justify-center mb-4">
+              <CheckCircle2 className="w-8 h-8 text-emerald-600" />
+            </div>
+            <h2 className="font-heading font-semibold text-lg text-foreground mb-1">Pagamento confirmado!</h2>
             <p className="text-sm text-muted-foreground">{activeRequest.service_type} · {selectedLocksmith?.name}</p>
           </div>
 
@@ -579,6 +617,31 @@ export default function Home() {
           <Button onClick={handleNewRequest} variant="outline" className="w-full">
             Solicitar novo serviço
           </Button>
+        </div>
+      )}
+
+      {/* Tela de pagamento da taxa de cancelamento */}
+      {cancelFeeData && activeRequest && (
+        <div className="space-y-3">
+          <div className="flex flex-col items-center text-center py-4">
+            <div className="w-16 h-16 rounded-full bg-amber-100 flex items-center justify-center mb-4">
+              <AlertTriangle className="w-8 h-8 text-amber-600" />
+            </div>
+            <h2 className="font-heading font-semibold text-lg text-foreground mb-1">Taxa de cancelamento</h2>
+            <p className="text-sm text-muted-foreground">
+              O chaveiro já havia aceitado seu pedido. Pague a taxa de cancelamento para liberar novos pedidos.
+            </p>
+          </div>
+          <PaymentStep
+            amount={cancelFeeData.fee}
+            description={`Taxa de cancelamento - ${activeRequest.service_type}`}
+            processing={paying}
+            onConfirm={handleCancelFeePayment}
+            onBack={handleNewRequest}
+          />
+          {searchError && (
+            <p className="text-sm text-red-600 bg-red-50 p-3 rounded-lg">{searchError}</p>
+          )}
         </div>
       )}
     </div>

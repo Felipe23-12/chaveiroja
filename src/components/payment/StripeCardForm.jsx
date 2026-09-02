@@ -1,45 +1,29 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import { loadStripe } from "@stripe/stripe-js";
+import { Elements, CardElement, useStripe, useElements } from "@stripe/react-stripe-js";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Loader2, Lock, ShieldCheck, CreditCard } from "lucide-react";
+import { Loader2, Lock, ShieldCheck } from "lucide-react";
 
-// Formulário de cartão simulado (sem dependência de Stripe.js).
-// Coleta os dados para exibição e confirma a pré-autorização localmente.
-export default function StripeCardForm({ processing, onConfirm }) {
-  const [cardNumber, setCardNumber] = useState("");
-  const [expiry, setExpiry] = useState("");
-  const [cvc, setCvc] = useState("");
+function CardForm({ clientSecret, onConfirm, processing }) {
+  const stripe = useStripe();
+  const elements = useElements();
   const [error, setError] = useState("");
 
-  const formatCardNumber = (val) => {
-    const digits = val.replace(/\D/g, "").slice(0, 16);
-    return digits.replace(/(\d{4})(?=\d)/g, "$1 ");
-  };
-
-  const formatExpiry = (val) => {
-    const digits = val.replace(/\D/g, "").slice(0, 4);
-    if (digits.length >= 3) return `${digits.slice(0, 2)}/${digits.slice(2)}`;
-    return digits;
-  };
-
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
+    if (!stripe || !elements) return;
     setError("");
-    const digits = cardNumber.replace(/\s/g, "");
-    if (digits.length < 13) {
-      setError("Número do cartão inválido");
-      return;
+    const cardElement = elements.getElement(CardElement);
+    const result = await stripe.confirmCardPayment(clientSecret, {
+      payment_method: { card: cardElement },
+    });
+    if (result.error) {
+      setError(result.error.message);
+    } else if (result.paymentIntent.status === "succeeded") {
+      onConfirm();
+    } else if (result.paymentIntent.status === "requires_action") {
+      setError("Pagamento requer autenticação adicional. Tente outro cartão.");
     }
-    if (!/^\d{2}\/\d{2}$/.test(expiry)) {
-      setError("Validade inválida (MM/AA)");
-      return;
-    }
-    if (cvc.length < 3) {
-      setError("CVC inválido");
-      return;
-    }
-    onConfirm();
   };
 
   return (
@@ -49,49 +33,51 @@ export default function StripeCardForm({ processing, onConfirm }) {
         Pagamento seguro e criptografado
       </div>
 
-      <div>
-        <Label className="text-xs">Número do cartão</Label>
-        <div className="relative mt-1">
-          <Input
-            value={cardNumber}
-            onChange={(e) => setCardNumber(formatCardNumber(e.target.value))}
-            placeholder="0000 0000 0000 0000"
-            inputMode="numeric"
-            className="pr-10"
-          />
-          <CreditCard className="w-4 h-4 text-muted-foreground absolute right-3 top-1/2 -translate-y-1/2" />
-        </div>
-      </div>
-
-      <div className="grid grid-cols-2 gap-3">
-        <div>
-          <Label className="text-xs">Validade</Label>
-          <Input
-            value={expiry}
-            onChange={(e) => setExpiry(formatExpiry(e.target.value))}
-            placeholder="MM/AA"
-            inputMode="numeric"
-            className="mt-1"
-          />
-        </div>
-        <div>
-          <Label className="text-xs">CVC</Label>
-          <Input
-            value={cvc}
-            onChange={(e) => setCvc(e.target.value.replace(/\D/g, "").slice(0, 4))}
-            placeholder="123"
-            inputMode="numeric"
-            className="mt-1"
-          />
-        </div>
+      <div className="p-3 rounded-lg border border-border bg-white">
+        <CardElement
+          options={{
+            style: {
+              base: {
+                fontSize: "16px",
+                color: "#1a1a1a",
+                "::placeholder": { color: "#9ca3af" },
+              },
+              invalid: { color: "#dc2626" },
+            },
+          }}
+        />
       </div>
 
       {error && <p className="text-sm text-red-600">{error}</p>}
 
-      <Button type="submit" disabled={processing} size="lg" className="w-full">
+      <Button type="submit" disabled={!stripe || processing} size="lg" className="w-full">
         {processing ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Lock className="w-4 h-4 mr-2" />}
-        Pré-autorizar cartão
+        Pagar agora
       </Button>
     </form>
+  );
+}
+
+export default function StripeCardForm({ clientSecret, publishableKey, onConfirm, processing }) {
+  const [stripePromise, setStripePromise] = useState(null);
+
+  useEffect(() => {
+    if (publishableKey) {
+      setStripePromise(loadStripe(publishableKey));
+    }
+  }, [publishableKey]);
+
+  if (!stripePromise) {
+    return (
+      <div className="flex justify-center py-4">
+        <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+
+  return (
+    <Elements stripe={stripePromise}>
+      <CardForm clientSecret={clientSecret} onConfirm={onConfirm} processing={processing} />
+    </Elements>
   );
 }

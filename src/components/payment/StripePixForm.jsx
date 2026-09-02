@@ -1,17 +1,17 @@
 import React, { useState, useEffect } from "react";
 import { Loader2, CheckCircle2, Copy, QrCode } from "lucide-react";
-import { checkPixPayment } from "@/lib/payments";
+import { getStripePaymentStatus } from "@/lib/payments";
 
-export default function StripePixForm({ pixData, paymentId, onConfirmed }) {
+export default function StripePixForm({ pixData, paymentIntentId, onConfirmed }) {
   const [copied, setCopied] = useState(false);
   const [status, setStatus] = useState("waiting"); // waiting | paid
 
   useEffect(() => {
-    if (!paymentId) return;
+    if (!paymentIntentId) return;
     const interval = setInterval(async () => {
       try {
-        const result = await checkPixPayment(paymentId);
-        if (result.status === "paid" || result.success) {
+        const stripeStatus = await getStripePaymentStatus(paymentIntentId);
+        if (stripeStatus === "succeeded") {
           clearInterval(interval);
           setStatus("paid");
           setTimeout(onConfirmed, 800);
@@ -21,7 +21,7 @@ export default function StripePixForm({ pixData, paymentId, onConfirmed }) {
       }
     }, 3000);
     return () => clearInterval(interval);
-  }, [paymentId]);
+  }, [paymentIntentId]);
 
   const handleCopy = () => {
     navigator.clipboard?.writeText(pixData?.emv || "");
@@ -67,7 +67,7 @@ export default function StripePixForm({ pixData, paymentId, onConfirmed }) {
           ) : (
             <Loader2 className="w-3.5 h-3.5 animate-spin" />
           )}
-          {status === "paid" ? "Pagamento confirmado! Solicitando chaveiro..." : "Aguardando pagamento Pix..."}
+          {status === "paid" ? "Pagamento confirmado!" : "Aguardando pagamento Pix..."}
         </p>
       </div>
     </div>

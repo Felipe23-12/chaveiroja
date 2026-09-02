@@ -1,13 +1,14 @@
 import React from "react";
-import { MapPin } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import PriceSummary from "./PriceSummary";
+import AddressAutocomplete from "./AddressAutocomplete";
 
 export default function ServiceConfig({
   service,
   address,
   setAddress,
+  onAddressSelect,
   description,
   setDescription,
   selectedOptions,
@@ -102,18 +103,15 @@ export default function ServiceConfig({
         </div>
       )}
 
-      {/* Endereço e descrição */}
+      {/* Endereço com autocomplete */}
       <div>
         <label className="text-sm font-medium text-foreground mb-1.5 block">Endereço</label>
-        <div className="relative">
-          <MapPin className="w-4 h-4 text-muted-foreground absolute left-3 top-1/2 -translate-y-1/2" />
-          <Input
-            value={address}
-            onChange={(e) => setAddress(e.target.value)}
-            placeholder="Ex: Rua das Flores, 123 - Centro"
-            className="pl-9"
-          />
-        </div>
+        <AddressAutocomplete
+          value={address}
+          onChange={setAddress}
+          onSelect={onAddressSelect}
+          placeholder="Digite seu endereço..."
+        />
       </div>
 
       <div>

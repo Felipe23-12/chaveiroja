@@ -3,8 +3,8 @@ import { base44 } from "@/api/base44Client";
 export const COMMISSION_RATE = 0.15;
 
 export const PAYMENT_METHODS = [
-  { id: "credit_card", label: "Cartão de Crédito", icon: "CreditCard", description: "Pré-autorização agora, cobrança ao concluir" },
-  { id: "debit_card", label: "Cartão de Débito", icon: "CreditCard", description: "Pré-autorização agora, cobrança ao concluir" },
+  { id: "credit_card", label: "Cartão de Crédito", icon: "CreditCard", description: "Pagamento à vista no cartão" },
+  { id: "debit_card", label: "Cartão de Débito", icon: "CreditCard", description: "Débito imediato" },
   { id: "pix", label: "Pix", icon: "QrCode", description: "Pagamento imediato via QR Code" },
 ];
 
@@ -15,9 +15,42 @@ export function calculatePaymentBreakdown(amount) {
   return { amount: a, commission, net };
 }
 
-// Cria registro de Payment diretamente via SDK (sem backend function)
-// Retorna dados simulados no formato que os formulários esperam.
-export async function createStripePayment({ serviceRequestId, amount, method, locksmithId, locksmithName, clientId, clientName }) {
+// Cria um PaymentIntent no Stripe via backend function.
+// Retorna { payment_intent_id, client_secret, publishable_key, pix_data? }
+export async function createStripePaymentIntent({ amount, method, description }) {
+  const res = await base44.functions.invoke("stripePayment", {
+    action: "create_intent",
+    amount,
+    method,
+    description,
+  });
+  return res.data;
+}
+
+// Consulta o status de um PaymentIntent no Stripe
+export async function getStripePaymentStatus(paymentIntentId) {
+  const res = await base44.functions.invoke("stripePayment", {
+    action: "get_status",
+    payment_intent_id: paymentIntentId,
+  });
+  return res.data?.status;
+}
+
+// Cancela um PaymentIntent no Stripe
+export async function cancelStripePayment(paymentIntentId) {
+  if (!paymentIntentId) return;
+  try {
+    await base44.functions.invoke("stripePayment", {
+      action: "cancel",
+      payment_intent_id: paymentIntentId,
+    });
+  } catch (e) {
+    /* ignora */
+  }
+}
+
+// Cria registro de Payment no banco e vincula ao ServiceRequest
+export async function createPaymentRecord({ serviceRequestId, amount, method, locksmithId, locksmithName, clientId, clientName, stripePaymentIntentId }) {
   const breakdown = calculatePaymentBreakdown(amount);
   const now = new Date().toISOString();
 
@@ -32,6 +65,7 @@ export async function createStripePayment({ serviceRequestId, amount, method, lo
     net_amount: breakdown.net,
     method,
     status: "pre_authorized",
+    stripe_payment_intent_id: stripePaymentIntentId,
     pre_authorized_at: now,
   });
 
@@ -41,31 +75,17 @@ export async function createStripePayment({ serviceRequestId, amount, method, lo
     payment_status: "pre_authorized",
   });
 
-  if (method === "pix") {
-    return {
-      payment_id: payment.id,
-      pix_data: {
-        emv: "00020126360014BR.GOV.BCB.PIX0116chaveiroja@pix5204000053039865802BR5913CHAVEIRO JA6009SAO PAULO62070503***6304ABCD",
-        image_url: null,
-      },
-    };
-  }
-
-  return {
-    payment_id: payment.id,
-    client_secret: "simulated_secret_" + payment.id,
-    publishable_key: "simulated",
-  };
+  return payment;
 }
 
-// Captura o pagamento ao concluir o serviço — credita a carteira do chaveiro
-export async function capturePayment(paymentId) {
+// Marca o pagamento como pago e credita a carteira do chaveiro
+export async function confirmPaymentPaid(paymentId) {
   if (!paymentId) return;
   const payment = await base44.entities.Payment.get(paymentId);
   if (!payment) return;
 
-  const updated = await base44.entities.Payment.update(paymentId, {
-    status: "captured",
+  await base44.entities.Payment.update(paymentId, {
+    status: "paid",
     captured_at: new Date().toISOString(),
   });
 
@@ -78,53 +98,10 @@ export async function capturePayment(paymentId) {
 
   if (payment.service_request_id) {
     await base44.entities.ServiceRequest.update(payment.service_request_id, {
-      payment_status: "captured",
+      payment_status: "paid",
       commission_status: "paid",
     });
   }
-
-  return updated;
-}
-
-// Verifica status do PIX (simulado: confirma automaticamente após 6 segundos)
-export async function checkPixPayment(paymentId) {
-  if (!paymentId) return { status: "pending" };
-  const payment = await base44.entities.Payment.get(paymentId);
-  if (!payment) return { status: "pending" };
-
-  const elapsed = (Date.now() - new Date(payment.pre_authorized_at).getTime()) / 1000;
-  if (elapsed >= 6) {
-    await base44.entities.Payment.update(paymentId, {
-      status: "paid",
-      captured_at: new Date().toISOString(),
-    });
-    if (payment.service_request_id) {
-      await base44.entities.ServiceRequest.update(payment.service_request_id, {
-        payment_status: "paid",
-      });
-    }
-    return { status: "paid", success: true };
-  }
-  return { status: "pending" };
-}
-
-// Cancela pagamento (libera pré-autorização ou estorna Pix)
-export async function cancelPayment(paymentId, cancellationFee = 0) {
-  if (!paymentId) return;
-  const payment = await base44.entities.Payment.get(paymentId);
-  if (!payment) return;
-
-  const isPix = payment.method === "pix";
-  const newStatus = isPix ? "refunded" : "cancelled";
-  await base44.entities.Payment.update(paymentId, { status: newStatus });
-
-  if (payment.service_request_id) {
-    await base44.entities.ServiceRequest.update(payment.service_request_id, {
-      payment_status: newStatus,
-    });
-  }
-
-  return { success: true };
 }
 
 // Solicita saque via Pix: move saldo da carteira para pendente

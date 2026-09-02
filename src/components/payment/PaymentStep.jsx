@@ -2,12 +2,11 @@ import React, { useState } from "react";
 import { ArrowLeft, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import PaymentMethodSelector from "@/components/payment/PaymentMethodSelector";
-import { calculatePaymentBreakdown, createStripePayment } from "@/lib/payments";
-import { base44 } from "@/api/base44Client";
+import { calculatePaymentBreakdown, createStripePaymentIntent } from "@/lib/payments";
 import StripeCardForm from "@/components/payment/StripeCardForm";
 import StripePixForm from "@/components/payment/StripePixForm";
 
-export default function PaymentStep({ amount, activeRequest, selectedLocksmith, onConfirm, onBack, processing }) {
+export default function PaymentStep({ amount, description, onConfirm, onBack, processing }) {
   const [method, setMethod] = useState("");
   const [stripeData, setStripeData] = useState(null);
   const [creating, setCreating] = useState(false);
@@ -18,19 +17,14 @@ export default function PaymentStep({ amount, activeRequest, selectedLocksmith, 
     setMethod(m);
     setStripeData(null);
     setCreateError("");
-    if (!activeRequest) return;
     setCreating(true);
     try {
-      const user = await base44.auth.me();
-      const result = await createStripePayment({
-        serviceRequestId: activeRequest.id,
+      const result = await createStripePaymentIntent({
         amount,
         method: m,
-        locksmithId: selectedLocksmith?.id,
-        locksmithName: selectedLocksmith?.name,
-        clientId: user?.id,
-        clientName: user?.full_name,
+        description,
       });
+      if (result.error) throw new Error(result.error);
       setStripeData(result);
     } catch (e) {
       setCreateError(e.message || "Falha ao iniciar pagamento");
@@ -43,7 +37,7 @@ export default function PaymentStep({ amount, activeRequest, selectedLocksmith, 
     <div className="space-y-5">
       <div>
         <h2 className="font-heading font-semibold text-lg text-foreground">Forma de pagamento</h2>
-        <p className="text-sm text-muted-foreground">Como deseja pagar pelo serviço?</p>
+        <p className="text-sm text-muted-foreground">Pague pelo serviço agora</p>
       </div>
 
       <PaymentMethodSelector selected={method} onSelect={handleSelectMethod} />
@@ -61,13 +55,15 @@ export default function PaymentStep({ amount, activeRequest, selectedLocksmith, 
           {method === "pix" ? (
             <StripePixForm
               pixData={stripeData.pix_data}
-              paymentId={stripeData.payment_id}
-              onConfirmed={() => onConfirm(method)}
+              paymentIntentId={stripeData.payment_intent_id}
+              onConfirmed={() => onConfirm(method, stripeData.payment_intent_id)}
             />
           ) : (
             <StripeCardForm
+              clientSecret={stripeData.client_secret}
+              publishableKey={stripeData.publishable_key}
               processing={processing}
-              onConfirm={() => onConfirm(method)}
+              onConfirm={() => onConfirm(method, stripeData.payment_intent_id)}
             />
           )}
         </div>
@@ -79,12 +75,8 @@ export default function PaymentStep({ amount, activeRequest, selectedLocksmith, 
             <span className="text-muted-foreground">Valor do serviço</span>
             <span className="font-medium text-foreground">R$ {breakdown.amount.toFixed(2)}</span>
           </div>
-          <div className="flex justify-between text-sm">
-            <span className="text-muted-foreground">Taxa do app (15%)</span>
-            <span className="font-medium text-red-500">- R$ {breakdown.commission.toFixed(2)}</span>
-          </div>
           <div className="flex justify-between text-sm pt-1.5 border-t border-border">
-            <span className="font-medium text-foreground">Você paga</span>
+            <span className="font-medium text-foreground">Total</span>
             <span className="font-heading font-bold text-lg text-foreground">R$ {breakdown.amount.toFixed(2)}</span>
           </div>
         </div>
