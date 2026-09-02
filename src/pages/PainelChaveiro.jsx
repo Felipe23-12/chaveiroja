@@ -18,6 +18,7 @@ import WithdrawalSection from "@/components/locksmith/WithdrawalSection";
 import IncomingRequestAlert from "@/components/locksmith/IncomingRequestAlert";
 import PendingRequestsList from "@/components/locksmith/PendingRequestsList";
 import { useToast } from "@/components/ui/use-toast";
+import DarkModeToggle from "@/components/DarkModeToggle";
 import { haversineKm, stepToward } from "@/lib/geo";
 
 // Raio de cobertura para considerar um pedido "na região" do chaveiro (km)
@@ -256,12 +257,15 @@ export default function PainelChaveiro() {
           <h1 className="font-heading font-bold text-2xl text-foreground">Painel do Chaveiro</h1>
           <p className="text-sm text-muted-foreground">Receba solicitações e atenda em tempo real</p>
         </div>
-        {pendingCount > 0 && (
-          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-red-500 text-white text-sm font-bold animate-pulse">
-            <Bell className="w-4 h-4" />
-            {pendingCount}
-          </div>
-        )}
+        <div className="flex items-center gap-2">
+          {pendingCount > 0 && (
+            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-red-500 text-white text-sm font-bold animate-pulse">
+              <Bell className="w-4 h-4" />
+              {pendingCount}
+            </div>
+          )}
+          <DarkModeToggle />
+        </div>
       </div>
 
       {/* Seleção de perfil */}
