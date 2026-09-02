@@ -580,6 +580,7 @@ export default function Home() {
           <PaymentStep
             amount={activeRequest.price}
             description={`${activeRequest.service_type} - ${activeRequest.address}`}
+            locksmithId={selectedLocksmith?.id}
             processing={paying}
             onConfirm={handleServicePayment}
             onBack={handleNewRequest}
@@ -635,6 +636,7 @@ export default function Home() {
           <PaymentStep
             amount={cancelFeeData.fee}
             description={`Taxa de cancelamento - ${activeRequest.service_type}`}
+            locksmithId={selectedLocksmith?.id}
             processing={paying}
             onConfirm={handleCancelFeePayment}
             onBack={handleNewRequest}
