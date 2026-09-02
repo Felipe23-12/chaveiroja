@@ -14,6 +14,8 @@ import LocksmithMiniProfile from "@/components/locksmith/LocksmithMiniProfile";
 import ReviewForm from "@/components/locksmith/ReviewForm";
 import MapView from "@/components/map/MapView";
 import { DEFAULT_CENTER, getCustomerLocation, haversineKm } from "@/lib/geo";
+import { getClientLoyalty, applyLoyaltyDiscount } from "@/lib/loyalty";
+import PointsProgressCard from "@/components/locksmith/PointsProgressCard";
 import { Image } from "@/components/ui/image";
 
 export default function Home() {
@@ -35,6 +37,7 @@ export default function Home() {
   const [selectedLocksmith, setSelectedLocksmith] = useState(null);
   const [submitting, setSubmitting] = useState(false);
   const [searchError, setSearchError] = useState("");
+  const [loyalty, setLoyalty] = useState(null);
   const reqRef = useRef(null);
 
   const service = useMemo(() => SERVICE_CATALOG.find((s) => s.id === serviceId), [serviceId]);
@@ -57,6 +60,10 @@ export default function Home() {
   useEffect(() => {
     getCustomerLocation().then(setCustomerLoc);
     base44.entities.Locksmith.filter({ work_mode: "app", available: true }).then(setAppLocksmiths);
+    base44.auth.me()
+      .then((u) => getClientLoyalty(u.id))
+      .then(setLoyalty)
+      .catch(() => setLoyalty(null));
   }, []);
 
   const toggleOption = (optId) => {
@@ -121,20 +128,37 @@ export default function Home() {
         locksmith_lng: nearest.l.lng,
       };
 
+      const useDiscount = loyalty?.available > 0;
+
       let req;
       if (service.isCarKey) {
         const carPrice = calculateCarKeyPrice({ keyValue: keyValue || 0, distanceKm: nearest.d, extraCost: 0 });
+        const basePrice = carPrice.total;
+        const disc = useDiscount ? applyLoyaltyDiscount(basePrice) : { amount: 0, final: basePrice };
         req = await base44.entities.ServiceRequest.create({
           ...base,
-          price: carPrice.total,
+          price: disc.final,
           key_value: carPrice.keyValue,
           labor_cost: carPrice.laborCost,
           locomotion_cost: carPrice.locomotion,
           distance_km: carPrice.distanceKm,
           extra_cost: 0,
+          discount_applied: useDiscount,
+          discount_amount: disc.amount,
         });
       } else {
-        req = await base44.entities.ServiceRequest.create({ ...base, price: price?.total || 0 });
+        const basePrice = price?.total || 0;
+        const disc = useDiscount ? applyLoyaltyDiscount(basePrice) : { amount: 0, final: basePrice };
+        req = await base44.entities.ServiceRequest.create({
+          ...base,
+          price: disc.final,
+          discount_applied: useDiscount,
+          discount_amount: disc.amount,
+        });
+      }
+
+      if (useDiscount) {
+        setLoyalty((prev) => (prev ? { ...prev, available: prev.available - 1 } : prev));
       }
       setSelectedLocksmith(nearest.l);
       setActiveRequest(req);
@@ -160,6 +184,10 @@ export default function Home() {
           }
           if (updated.status === "completed" && step === 5) {
             setStep(6);
+            base44.auth.me()
+              .then((u) => getClientLoyalty(u.id))
+              .then(setLoyalty)
+              .catch(() => {});
           }
         });
       }
@@ -261,6 +289,7 @@ export default function Home() {
       {/* Step 1: Serviço */}
       {step === 1 && showAppFlow && (
         <div className="space-y-5">
+          <PointsProgressCard loyalty={loyalty} />
           <div>
             <h2 className="font-heading font-semibold text-lg text-foreground">Qual serviço você precisa?</h2>
             <p className="text-sm text-muted-foreground">Selecione o tipo de atendimento</p>

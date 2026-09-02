@@ -132,6 +132,16 @@
       },
       "default": [],
       "description": "Fotos do final do servi\u00e7o registradas pelo chaveiro ao concluir o atendimento (modo app)"
+    },
+    "discount_applied": {
+      "type": "boolean",
+      "default": false,
+      "description": "Indica se o desconto de fidelidade (10%) foi aplicado a este pedido"
+    },
+    "discount_amount": {
+      "type": "number",
+      "default": 0,
+      "description": "Valor do desconto de fidelidade aplicado ao pedido"
     }
   },
   "required": [
