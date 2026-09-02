@@ -6,7 +6,7 @@ import { calculatePaymentBreakdown, createStripePaymentIntent } from "@/lib/paym
 import StripeCardForm from "@/components/payment/StripeCardForm";
 import StripePixForm from "@/components/payment/StripePixForm";
 
-export default function PaymentStep({ amount, description, onConfirm, onBack, processing }) {
+export default function PaymentStep({ amount, description, locksmithId, onConfirm, onBack, processing }) {
   const [method, setMethod] = useState("");
   const [stripeData, setStripeData] = useState(null);
   const [creating, setCreating] = useState(false);
@@ -23,6 +23,7 @@ export default function PaymentStep({ amount, description, onConfirm, onBack, pr
         amount,
         method: m,
         description,
+        locksmithId,
       });
       if (result.error) throw new Error(result.error);
       setStripeData(result);
