@@ -16,7 +16,7 @@ import { Wrench, Mail, Lock, Loader2, User, Phone, CreditCard } from "lucide-rea
 import AuthLayout from "@/components/AuthLayout";
 import GoogleIcon from "@/components/GoogleIcon";
 import { safeReturnTo } from "@/lib/authReturnTo";
-import RegisterOtpStep from "@/components/auth/RegisterOtpStep";
+import InlineOtpInput from "@/components/auth/InlineOtpInput";
 
 export default function RegisterChaveiro() {
   const [fullName, setFullName] = useState("");
@@ -94,38 +94,22 @@ export default function RegisterChaveiro() {
 
   const handleGoogle = () => base44.auth.loginWithProvider("google", returnTo);
 
-  if (showOtp) {
-    return (
-      <RegisterOtpStep
-        email={email}
-        title="Confirme seu email"
-        subtitle={`Digite o código enviado para ${email}`}
-        notice={
-          <div className="mb-4 p-3 rounded-lg bg-muted text-sm text-center">
-            O código de confirmação foi enviado para seu email.
-          </div>
-        }
-        onSuccess={async () => {
-          // O tipo da conta precisa ser gravado antes do redirecionamento.
-          // Caso contrário, o sistema pode usar o fallback "cliente" ao carregar o painel.
-          const raw = sessionStorage.getItem("chaveiro_onboarding");
-          const data = raw ? JSON.parse(raw) : null;
-          if (data) {
-            await base44.auth.updateMe({
-              phone: data.phone,
-              cpf: data.cpf,
-              full_name: data.fullName,
-              account_type: "chaveiro",
-            });
-          } else {
-            await base44.auth.updateMe({ account_type: "chaveiro" });
-          }
-          const dest = returnTo !== "/" ? returnTo : "/painel-chaveiro";
-          window.location.assign(dest);
-        }}
-      />
-    );
-  }
+  const finishLocksmithRegistration = async () => {
+    const raw = sessionStorage.getItem("chaveiro_onboarding");
+    const data = raw ? JSON.parse(raw) : null;
+    if (data) {
+      await base44.auth.updateMe({
+        phone: data.phone,
+        cpf: data.cpf,
+        full_name: data.fullName,
+        account_type: "chaveiro",
+      });
+    } else {
+      await base44.auth.updateMe({ account_type: "chaveiro" });
+    }
+    const dest = returnTo !== "/" ? returnTo : "/painel-chaveiro";
+    window.location.assign(dest);
+  };
 
   return (
     <AuthLayout
@@ -317,6 +301,10 @@ export default function RegisterChaveiro() {
             "Criar conta de chaveiro"
           )}
         </Button>
+
+        {showOtp && (
+          <InlineOtpInput email={email} onSuccess={finishLocksmithRegistration} />
+        )}
       </form>
 
       <p className="text-center text-sm text-muted-foreground mt-4">

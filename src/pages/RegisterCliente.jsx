@@ -8,7 +8,7 @@ import { UserPlus, Mail, Lock, Loader2, User, Phone, CreditCard } from "lucide-r
 import AuthLayout from "@/components/AuthLayout";
 import GoogleIcon from "@/components/GoogleIcon";
 import { safeReturnTo } from "@/lib/authReturnTo";
-import RegisterOtpStep from "@/components/auth/RegisterOtpStep";
+import InlineOtpInput from "@/components/auth/InlineOtpInput";
 
 export default function RegisterCliente() {
   const [fullName, setFullName] = useState("");
@@ -82,22 +82,6 @@ export default function RegisterCliente() {
   };
 
   const handleGoogle = () => base44.auth.loginWithProvider("google", returnTo);
-
-  if (showOtp) {
-    return (
-      <RegisterOtpStep
-        email={email}
-        title="Confirme seu email"
-        subtitle={`Digite o código enviado para ${email}`}
-        notice={
-          <div className="mb-4 p-3 rounded-lg bg-muted text-sm text-center">
-            O código de confirmação foi enviado para seu email.
-          </div>
-        }
-        onSuccess={finishClientRegistration}
-      />
-    );
-  }
 
   return (
     <AuthLayout
@@ -249,6 +233,10 @@ export default function RegisterCliente() {
             "Criar conta"
           )}
         </Button>
+
+        {showOtp && (
+          <InlineOtpInput email={email} onSuccess={finishClientRegistration} />
+        )}
       </form>
 
       <p className="text-center text-sm text-muted-foreground mt-4">
