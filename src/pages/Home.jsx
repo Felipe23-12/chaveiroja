@@ -11,6 +11,7 @@ import RequestTracking from "@/components/locksmith/RequestTracking";
 import LiveLocksmithsMap from "@/components/locksmith/LiveLocksmithsMap";
 import ModuleSelector from "@/components/locksmith/ModuleSelector";
 import LocksmithMiniProfile from "@/components/locksmith/LocksmithMiniProfile";
+import ReviewForm from "@/components/locksmith/ReviewForm";
 import MapView from "@/components/map/MapView";
 import { DEFAULT_CENTER, getCustomerLocation, haversineKm } from "@/lib/geo";
 import { Image } from "@/components/ui/image";
@@ -157,6 +158,9 @@ export default function Home() {
           if (updated.status === "on_the_way" && step === 4) {
             setStep(5);
           }
+          if (updated.status === "completed" && step === 5) {
+            setStep(6);
+          }
         });
       }
     });
@@ -245,7 +249,7 @@ export default function Home() {
 
       {showAppFlow && (
         <div className="flex items-center gap-2 mb-6">
-          {[1, 2, 3, 4, 5].map((n) => (
+          {[1, 2, 3, 4, 5, 6].map((n) => (
             <div
               key={n}
               className={`h-1.5 flex-1 rounded-full transition-colors ${step >= n ? "bg-primary" : "bg-border"}`}
@@ -438,6 +442,36 @@ export default function Home() {
               Solicitar novo serviço
             </Button>
           )}
+        </div>
+      )}
+
+      {/* Step 6: Avaliação final */}
+      {step === 6 && activeRequest && activeRequest.status === "completed" && (
+        <div className="space-y-5">
+          <div className="flex flex-col items-center text-center py-4">
+            <div className="w-16 h-16 rounded-full bg-emerald-100 flex items-center justify-center mb-4">
+              <CheckCircle2 className="w-8 h-8 text-emerald-600" />
+            </div>
+            <h2 className="font-heading font-semibold text-lg text-foreground mb-1">Serviço concluído!</h2>
+            <p className="text-sm text-muted-foreground">{activeRequest.service_type} · {selectedLocksmith?.name}</p>
+          </div>
+
+          <LocksmithMiniProfile locksmith={selectedLocksmith} />
+
+          <div className="p-4 rounded-2xl border border-border bg-card">
+            <p className="text-center text-sm font-medium text-foreground mb-3">Avalie o atendimento do chaveiro</p>
+            <ReviewForm
+              locksmithId={selectedLocksmith?.id}
+              locksmithName={selectedLocksmith?.name}
+              serviceType={activeRequest.service_type}
+              workMode={selectedLocksmith?.work_mode}
+              onSubmitted={(r) => handleRate(r)}
+            />
+          </div>
+
+          <Button onClick={handleNewRequest} variant="outline" className="w-full">
+            Solicitar novo serviço
+          </Button>
         </div>
       )}
     </div>
