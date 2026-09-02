@@ -11,6 +11,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import MapView from "@/components/map/MapView";
+import PhotoUploader from "@/components/locksmith/PhotoUploader";
 import { useToast } from "@/components/ui/use-toast";
 import { haversineKm, stepToward } from "@/lib/geo";
 
@@ -46,6 +47,9 @@ export default function PainelChaveiro() {
   const [ring, setRing] = useState(null); // solicitação chegando
   const [active, setActive] = useState(null); // serviço em andamento
   const [extraCost, setExtraCost] = useState("");
+  const [arrived, setArrived] = useState(false);
+  const [startPhotos, setStartPhotos] = useState([]);
+  const [endPhotos, setEndPhotos] = useState([]);
   const moveTimer = useRef(null);
   const notifiedIds = useRef(new Set());
   const { toast } = useToast();
@@ -136,6 +140,13 @@ export default function PainelChaveiro() {
     return unsub;
   }, [selectedId]);
 
+  // Reseta estado de chegada e sincroniza fotos ao mudar de serviço ativo
+  useEffect(() => {
+    setArrived(false);
+    setStartPhotos(active?.start_photos || []);
+    setEndPhotos(active?.end_photos || []);
+  }, [active?.id]);
+
   // Simula o deslocamento do chaveiro até o cliente
   useEffect(() => {
     if (!active || active.status === "completed") {
@@ -148,7 +159,7 @@ export default function PainelChaveiro() {
       const cur = { lat: fresh.locksmith_lat, lng: fresh.locksmith_lng };
       const dist = haversineKm(cur, dest);
       if (dist < 0.05) {
-        await base44.entities.ServiceRequest.update(active.id, { status: "completed" });
+        setArrived(true);
         if (moveTimer.current) clearInterval(moveTimer.current);
         return;
       }
@@ -189,7 +200,38 @@ export default function PainelChaveiro() {
     setRing(null);
   };
 
+  const handleConfirmStart = async () => {
+    if (!active || !startPhotos.length) return;
+    await base44.entities.ServiceRequest.update(active.id, { start_photos: startPhotos });
+  };
+
+  const handleFinish = async () => {
+    if (!active || !endPhotos.length) return;
+    await base44.entities.ServiceRequest.update(active.id, {
+      end_photos: endPhotos,
+      status: "completed",
+    });
+  };
+
   const isAppMode = me?.work_mode === "app";
+  const startDone = (active?.start_photos?.length || 0) > 0;
+  const phase = !active
+    ? "moving"
+    : active.status === "completed"
+    ? "completed"
+    : startDone
+    ? "finishing"
+    : arrived
+    ? "arrived"
+    : "moving";
+  const phaseLabel =
+    phase === "moving"
+      ? "A caminho do cliente"
+      : phase === "arrived"
+      ? "Chegou no local!"
+      : phase === "finishing"
+      ? "Em atendimento"
+      : "Serviço concluído";
 
   return (
     <div className="max-w-2xl mx-auto px-4 py-6 md:py-10">
@@ -281,30 +323,60 @@ export default function PainelChaveiro() {
           <div className="p-4 rounded-xl border border-border bg-card">
             <div className="flex items-center gap-2 text-primary mb-1">
               <Navigation className="w-4 h-4" />
-              <p className="font-medium">A caminho do cliente</p>
+              <p className="font-medium">{phaseLabel}</p>
             </div>
             <p className="text-sm text-foreground">{active.service_type}</p>
             <p className="text-xs text-muted-foreground">{active.address}</p>
             <p className="text-xs text-muted-foreground mt-1">
               Status: <span className="font-medium text-foreground">
-                {active.status === "accepted" ? "Aceito" : active.status === "on_the_way" ? "A caminho" : "Concluído"}
+                {phase === "arrived" ? "No local" : phase === "finishing" ? "Em atendimento" : active.status === "accepted" ? "Aceito" : active.status === "on_the_way" ? "A caminho" : "Concluído"}
               </span>
             </p>
           </div>
 
-          <MapView
-            center={{ lat: active.customer_lat, lng: active.customer_lng }}
-            height={320}
-            markers={[
-              { id: "c", lat: active.customer_lat, lng: active.customer_lng, type: "customer", label: "Cliente" },
-              { id: "l", lat: active.locksmith_lat, lng: active.locksmith_lng, type: "locksmith", label: "Você", active: active.status === "on_the_way" },
-            ]}
-            route={
-              active.status !== "completed"
-                ? { from: { lat: active.locksmith_lat, lng: active.locksmith_lng }, to: { lat: active.customer_lat, lng: active.customer_lng } }
-                : null
-            }
-          />
+          {phase === "moving" && (
+            <MapView
+              center={{ lat: active.customer_lat, lng: active.customer_lng }}
+              height={320}
+              markers={[
+                { id: "c", lat: active.customer_lat, lng: active.customer_lng, type: "customer", label: "Cliente" },
+                { id: "l", lat: active.locksmith_lat, lng: active.locksmith_lng, type: "locksmith", label: "Você", active: active.status === "on_the_way" },
+              ]}
+              route={
+                active.status !== "completed"
+                  ? { from: { lat: active.locksmith_lat, lng: active.locksmith_lng }, to: { lat: active.customer_lat, lng: active.customer_lng } }
+                  : null
+              }
+            />
+          )}
+
+          {phase === "arrived" && (
+            <div className="p-4 rounded-xl border border-border bg-card space-y-3">
+              <p className="text-sm font-medium text-foreground">Registre as fotos do início do serviço</p>
+              <PhotoUploader
+                label="Fotos da chegada no local"
+                photos={startPhotos}
+                onChange={setStartPhotos}
+              />
+              <Button onClick={handleConfirmStart} disabled={!startPhotos.length} className="w-full">
+                <Check className="w-4 h-4 mr-1.5" /> Confirmar início do atendimento
+              </Button>
+            </div>
+          )}
+
+          {phase === "finishing" && (
+            <div className="p-4 rounded-xl border border-border bg-card space-y-3">
+              <p className="text-sm font-medium text-foreground">Registre as fotos do final do serviço</p>
+              <PhotoUploader
+                label="Fotos do serviço finalizado"
+                photos={endPhotos}
+                onChange={setEndPhotos}
+              />
+              <Button onClick={handleFinish} disabled={!endPhotos.length} className="w-full">
+                <Check className="w-4 h-4 mr-1.5" /> Finalizar serviço
+              </Button>
+            </div>
+          )}
 
           {active.status === "completed" && (
             <div className="p-4 rounded-xl bg-emerald-50 text-emerald-700 text-sm flex items-center gap-2">

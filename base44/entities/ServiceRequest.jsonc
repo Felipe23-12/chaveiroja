@@ -116,6 +116,22 @@
       "type": "number",
       "default": 0,
       "description": "Parte da taxa de cancelamento destinada ao aplicativo (5% do valor total)"
+    },
+    "start_photos": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "default": [],
+      "description": "Fotos do in\u00edcio do servi\u00e7o registradas pelo chaveiro ao chegar no local (modo app)"
+    },
+    "end_photos": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "default": [],
+      "description": "Fotos do final do servi\u00e7o registradas pelo chaveiro ao concluir o atendimento (modo app)"
     }
   },
   "required": [
