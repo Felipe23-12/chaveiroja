@@ -45,17 +45,13 @@ export default function ServiceConfig({
                       className="w-4 h-4 accent-primary"
                     />
                     <span className="text-sm font-medium text-foreground flex-1">{opt.label}</span>
-                    {opt.price === "custom" ? (
-                      <span className="text-xs text-muted-foreground">valor à parte</span>
-                    ) : (
-                      <span className="text-sm font-semibold text-foreground">+ R$ {opt.price}</span>
-                    )}
+                    <span className="text-xs text-muted-foreground">Adicional após confirmação</span>
                   </label>
                   {opt.price === "custom" && checked && (
                     <div className="mt-2 pl-6">
                       <Input
                         type="number"
-                        placeholder="Valor do acréscimo (R$)"
+                        placeholder="Valor do acréscimo"
                         value={customAddons[opt.id] || ""}
                         onChange={(e) => setCustomAddon(opt.id, e.target.value)}
                       />
