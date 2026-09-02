@@ -4,6 +4,7 @@ import { Briefcase, Check, Loader2, Wallet, Percent } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { WORK_MODES, calculateCommission } from "@/lib/pricing";
+import LocksmithHistorySummary from "@/components/locksmith/LocksmithHistorySummary";
 
 export default function LocksmithProfile() {
   const [locksmiths, setLocksmiths] = useState([]);
@@ -167,6 +168,9 @@ export default function LocksmithProfile() {
               </div>
             </div>
           )}
+
+          {/* Histórico e avaliações */}
+          <LocksmithHistorySummary locksmithId={selected.id} />
         </div>
       )}
     </div>
