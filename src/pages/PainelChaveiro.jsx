@@ -215,6 +215,14 @@ export default function PainelChaveiro() {
       end_photos: endPhotos,
       status: "completed",
     });
+    // Envia email automático de conclusão ao cliente
+    try {
+      await base44.functions.invoke("sendServiceCompletionEmail", {
+        service_request_id: active.id,
+      });
+    } catch (e) {
+      /* não bloqueia o fluxo se o email falhar */
+    }
   };
 
   const isAppMode = me?.work_mode === "app";
