@@ -1,0 +1,25 @@
+{
+  "type": "object",
+  "properties": {
+    "email": {
+      "type": "string",
+      "format": "email"
+    },
+    "account_type": {
+      "type": "string",
+      "enum": [
+        "chaveiro",
+        "cliente"
+      ]
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "completed"
+      ]
+    }
+  },
+  "required": [],
+  "name": "RegistrationAttempt"
+}

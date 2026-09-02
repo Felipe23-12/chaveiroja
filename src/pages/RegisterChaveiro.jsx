@@ -55,17 +55,37 @@ export default function RegisterChaveiro() {
     }
     setLoading(true);
     try {
-      await base44.auth.register({ email, password });
-      // Confirmação por email removida — os códigos não estavam chegando.
-      // Salva os dados do cadastro para criar o perfil após o login automático.
+      const registration = await base44.auth.register({ email, password });
+
+      // Base44 currently sends an OTP for email/password registrations.
+      // When registration already returns a token, use it directly; otherwise
+      // try the normal login flow. This avoids a second login when the platform
+      // has already authenticated the newly-created account.
+      if (registration?.access_token) {
+        base44.auth.setToken(registration.access_token);
+      } else {
+        await base44.auth.loginViaEmailPassword(email, password);
+      }
+
       sessionStorage.setItem("chaveiro_onboarding", JSON.stringify({
         fullName, phone, cpf, specialty, vehicle, bio,
       }));
       const dest = returnTo !== "/" ? returnTo : "/painel-chaveiro";
       window.history.replaceState({}, "", `${window.location.pathname}?returnTo=${encodeURIComponent(dest)}`);
-      await base44.auth.loginViaEmailPassword(email, password);
+      window.location.assign(dest);
     } catch (err) {
-      setError(err.message || "Falha no cadastro");
+      const message = String(err?.message || "");
+      const requiresVerification = /verif|confirm|otp|c[oó]digo|email/i.test(message);
+
+      if (requiresVerification) {
+        setError(
+          "O cadastro foi criado, mas o Base44 está exigindo confirmação do email. " +
+          "O código precisa ser enviado pelo serviço de email do Base44; essa exigência não pode ser removida apenas pelo aplicativo. " +
+          "Tente reenviar o código ou use 'Continuar com Google'."
+        );
+      } else {
+        setError(message || "Falha no cadastro");
+      }
       setLoading(false);
     }
   };
