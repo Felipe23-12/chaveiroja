@@ -76,8 +76,16 @@ export default function PainelChaveiro() {
     try {
       const data = JSON.parse(raw);
       sessionStorage.removeItem("chaveiro_onboarding");
-      base44.auth.updateMe({ phone: data.phone, cpf: data.cpf, account_type: "chaveiro" }).catch(() => {});
-      base44.auth.updateMe({ full_name: data.fullName }).catch(() => {});
+      // Garante que o usuário permaneça identificado como CHAVEIRO.
+      // O perfil é atualizado antes de criar/usar os dados profissionais.
+      base44.auth.updateMe({
+        phone: data.phone,
+        cpf: data.cpf,
+        full_name: data.fullName,
+        account_type: "chaveiro",
+      }).catch((err) => {
+        console.error("Falha ao atualizar tipo da conta do chaveiro", err);
+      });
       base44.entities.Locksmith.create({
         name: data.fullName,
         specialty: data.specialty,
