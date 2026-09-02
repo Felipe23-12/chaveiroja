@@ -99,7 +99,7 @@ export default function StripeConnectSetup() {
 
       {active ? (
         <div className="flex items-center gap-2 text-sm text-emerald-700 bg-emerald-50 rounded-lg p-3">
-          <CheckCircle2 className="w-4 h-4" /> Conta Stripe ativa para receber e receber repasses.
+          <CheckCircle2 className="w-4 h-4" /> Conta Stripe ativa para receber pagamentos e repasses.
         </div>
       ) : (
         <div className="flex items-center gap-2 text-sm text-amber-700 bg-amber-50 rounded-lg p-3">
