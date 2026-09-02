@@ -48,14 +48,34 @@ export default function PainelFinanceiro() {
   const stats = useMemo(() => {
     let gross = 0;
     let commission = 0;
+    let commissionPaid = 0;
+    let commissionPending = 0;
+    let paidCount = 0;
     completed.forEach((r) => {
       const price = Number(r.price) || 0;
       gross += price;
-      if (isAppMode) commission += price * commissionRate;
+      if (isAppMode) {
+        const comm = price * commissionRate;
+        commission += comm;
+        if ((r.commission_status || "pending") === "paid") {
+          commissionPaid += comm;
+          paidCount += 1;
+        } else {
+          commissionPending += comm;
+        }
+      }
     });
     const net = gross - commission;
-    return { gross, commission, net, count: completed.length };
+    return { gross, commission, net, count: completed.length, commissionPaid, commissionPending, paidCount };
   }, [completed, isAppMode]);
+
+  const handleToggleCommission = async (r) => {
+    const newStatus = (r.commission_status || "pending") === "paid" ? "pending" : "paid";
+    await base44.entities.ServiceRequest.update(r.id, { commission_status: newStatus });
+    setCompleted((prev) =>
+      prev.map((x) => (x.id === r.id ? { ...x, commission_status: newStatus } : x))
+    );
+  };
 
   const handleToggleFee = async () => {
     if (!me) return;
@@ -192,6 +212,32 @@ export default function PainelFinanceiro() {
         </div>
       )}
 
+      {/* Resumo de compensação — modo app */}
+      {isAppMode && completed.length > 0 && (
+        <div className="grid grid-cols-2 gap-3 mb-5">
+          <div className="p-3 rounded-xl bg-emerald-50 border border-emerald-100">
+            <div className="flex items-center gap-2 text-emerald-700 mb-1">
+              <BadgeCheck className="w-4 h-4" />
+              <span className="text-xs font-medium">Comissões compensadas</span>
+            </div>
+            <p className="font-heading font-bold text-lg text-emerald-700">
+              R$ {stats.commissionPaid.toFixed(2)}
+            </p>
+            <p className="text-[11px] text-emerald-600/80 mt-0.5">{stats.paidCount} serviço(s)</p>
+          </div>
+          <div className="p-3 rounded-xl bg-amber-50 border border-amber-100">
+            <div className="flex items-center gap-2 text-amber-700 mb-1">
+              <Clock className="w-4 h-4" />
+              <span className="text-xs font-medium">Pendentes de processamento</span>
+            </div>
+            <p className="font-heading font-bold text-lg text-amber-700">
+              R$ {stats.commissionPending.toFixed(2)}
+            </p>
+            <p className="text-[11px] text-amber-600/80 mt-0.5">{completed.length - stats.paidCount} serviço(s)</p>
+          </div>
+        </div>
+      )}
+
       {/* Comissões descontadas nos serviços concluídos */}
       <h2 className="font-heading font-semibold text-lg text-foreground mb-3">
         {isAppMode ? "Comissões descontadas (15%)" : "Serviços concluídos"}
@@ -221,13 +267,38 @@ export default function PainelFinanceiro() {
                     <p className="text-[11px] text-muted-foreground mt-0.5">
                       {new Date(r.created_date).toLocaleDateString("pt-BR")}
                     </p>
+                    {isAppMode && (
+                      <span
+                        className={`inline-flex items-center gap-1 mt-1.5 px-2 py-0.5 rounded-full text-[11px] font-medium ${
+                          (r.commission_status || "pending") === "paid"
+                            ? "bg-emerald-100 text-emerald-700"
+                            : "bg-amber-100 text-amber-700"
+                        }`}
+                      >
+                        {(r.commission_status || "pending") === "paid" ? (
+                          <><BadgeCheck className="w-3 h-3" /> Comissão compensada</>
+                        ) : (
+                          <><Clock className="w-3 h-3" /> Comissão pendente</>
+                        )}
+                      </span>
+                    )}
                   </div>
-                  <div className="text-right shrink-0">
+                  <div className="text-right shrink-0 flex flex-col items-end gap-1">
                     <p className="text-sm font-medium text-foreground">R$ {price.toFixed(2)}</p>
                     {isAppMode && (
                       <p className="text-[11px] text-red-500">- R$ {comm.toFixed(2)} (15%)</p>
                     )}
-                    <p className="text-sm font-semibold text-emerald-600 mt-0.5">R$ {net.toFixed(2)}</p>
+                    <p className="text-sm font-semibold text-emerald-600">R$ {net.toFixed(2)}</p>
+                    {isAppMode && (
+                      <Button
+                        size="sm"
+                        variant={(r.commission_status || "pending") === "paid" ? "outline" : "default"}
+                        className="h-7 text-xs"
+                        onClick={() => handleToggleCommission(r)}
+                      >
+                        {(r.commission_status || "pending") === "paid" ? "Reverter" : "Marcar compensada"}
+                      </Button>
+                    )}
                   </div>
                 </div>
               </div>
