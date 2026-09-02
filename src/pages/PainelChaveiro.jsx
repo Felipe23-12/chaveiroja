@@ -12,6 +12,8 @@ import {
 } from "@/components/ui/select";
 import MapView from "@/components/map/MapView";
 import PhotoUploader from "@/components/locksmith/PhotoUploader";
+import WalletCard from "@/components/locksmith/WalletCard";
+import WithdrawalSection from "@/components/locksmith/WithdrawalSection";
 import { useToast } from "@/components/ui/use-toast";
 import { haversineKm, stepToward } from "@/lib/geo";
 
@@ -273,6 +275,23 @@ export default function PainelChaveiro() {
           <Button onClick={toggleOnline} variant={me.online ? "destructive" : "default"} size="sm">
             <Power className="w-4 h-4 mr-1.5" /> {me.online ? "Sair" : "Entrar"}
           </Button>
+        </div>
+      )}
+
+      {/* Carteira e saque — modo app */}
+      {me && isAppMode && (
+        <div className="mb-5">
+          <WalletCard
+            balance={me.wallet_balance}
+            pending={me.pending_balance}
+            onWithdraw={() => document.getElementById("withdrawal-section")?.scrollIntoView({ behavior: "smooth" })}
+          />
+          <div id="withdrawal-section" className="mt-3">
+            <WithdrawalSection
+              locksmith={me}
+              onWithdrawalMade={() => base44.entities.Locksmith.get(selectedId).then(setMe)}
+            />
+          </div>
         </div>
       )}
 
