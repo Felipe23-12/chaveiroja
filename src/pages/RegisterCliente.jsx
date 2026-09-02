@@ -7,7 +7,6 @@ import { Label } from "@/components/ui/label";
 import { UserPlus, Mail, Lock, Loader2, User, Phone, CreditCard } from "lucide-react";
 import AuthLayout from "@/components/AuthLayout";
 import GoogleIcon from "@/components/GoogleIcon";
-import RegisterOtpStep from "@/components/auth/RegisterOtpStep";
 import { safeReturnTo } from "@/lib/authReturnTo";
 
 export default function RegisterCliente() {
@@ -19,7 +18,6 @@ export default function RegisterCliente() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
-  const [showOtp, setShowOtp] = useState(false);
 
   const returnTo = safeReturnTo();
   const qs = returnTo !== "/" ? "?returnTo=" + encodeURIComponent(returnTo) : "";
@@ -42,43 +40,50 @@ export default function RegisterCliente() {
     }
     setLoading(true);
     try {
-      await base44.auth.register({ email, password });
-      setShowOtp(true);
+      const registration = await base44.auth.register({ email, password });
+
+      // Use a token returned by registration when available. Otherwise authenticate
+      // immediately with the credentials just created. The client registration must
+      // not depend on an OTP screen that can leave users blocked when the email code
+      // is not delivered.
+      if (registration?.access_token) {
+        base44.auth.setToken(registration.access_token);
+      } else {
+        await base44.auth.loginViaEmailPassword(email, password);
+      }
+
+      // Salva o tipo de conta primeiro — campo customizado essencial para o RoleGuard.
+      try {
+        await base44.auth.updateMe({ phone, cpf, account_type: "cliente" });
+      } catch (e) {
+        /* não bloqueia o cadastro se um campo opcional não puder ser salvo */
+      }
+      try {
+        await base44.auth.updateMe({ full_name: fullName });
+      } catch (e) {
+        /* ignora se a plataforma não permitir editar este campo */
+      }
+
+      window.location.assign(returnTo !== "/" ? returnTo : "/");
     } catch (err) {
-      setError(err.message || "Falha no cadastro");
+      const message = String(err?.message || "");
+      const requiresVerification = /verif|confirm|otp|c[oó]digo|email/i.test(message);
+
+      if (requiresVerification) {
+        setError(
+          "O cadastro foi criado, mas o Base44 está exigindo confirmação do email. " +
+          "Essa exigência vem do serviço de autenticação e não pode ser removida apenas pelo aplicativo. " +
+          "Tente reenviar o código ou use 'Continuar com Google'."
+        );
+      } else {
+        setError(message || "Falha no cadastro");
+      }
     } finally {
       setLoading(false);
     }
   };
 
-  const handleVerified = async () => {
-    // Salva o tipo de conta primeiro — campo customizado essencial para o RoleGuard
-    try {
-      await base44.auth.updateMe({ phone, cpf, account_type: "cliente" });
-    } catch (e) {
-      /* não bloqueia o fluxo */
-    }
-    // full_name é built-in e pode não ser editável via updateMe — tenta separadamente
-    try {
-      await base44.auth.updateMe({ full_name: fullName });
-    } catch (e) {
-      /* ignora se a plataforma não permitir */
-    }
-    window.location.href = returnTo !== "/" ? returnTo : "/";
-  };
-
   const handleGoogle = () => base44.auth.loginWithProvider("google", returnTo);
-
-  if (showOtp) {
-    return (
-      <RegisterOtpStep
-        email={email}
-        title="Confirme seu email"
-        subtitle={`Enviamos um código para ${email}`}
-        onSuccess={handleVerified}
-      />
-    );
-  }
 
   return (
     <AuthLayout
