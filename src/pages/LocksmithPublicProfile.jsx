@@ -5,15 +5,30 @@ import { ArrowLeft, Star, MessageCircle, MapPin, Wrench } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { haversineKm, DEFAULT_CENTER, getCustomerLocation } from "@/lib/geo";
 import LocksmithCredentialsTabs from "@/components/locksmith/LocksmithCredentialsTabs";
+import { saveLocksmithProfile, getLocksmithProfile } from "@/lib/offlineCache";
+import { WifiOff } from "lucide-react";
 
 export default function LocksmithPublicProfile() {
   const { id } = useParams();
   const navigate = useNavigate();
   const [locksmith, setLocksmith] = useState(null);
   const [center, setCenter] = useState(DEFAULT_CENTER);
+  const [offline, setOffline] = useState(false);
 
   useEffect(() => {
-    base44.entities.Locksmith.get(id).then(setLocksmith);
+    base44.entities.Locksmith.get(id)
+      .then((data) => {
+        setLocksmith(data);
+        saveLocksmithProfile(data);
+      })
+      .catch(() => {
+        // Sem conexão — usa o perfil armazenado em cache
+        const cached = getLocksmithProfile(id);
+        if (cached) {
+          setLocksmith(cached);
+          setOffline(true);
+        }
+      });
     getCustomerLocation().then(setCenter);
   }, [id]);
 
@@ -29,6 +44,13 @@ export default function LocksmithPublicProfile() {
       <Button variant="ghost" size="icon" onClick={() => navigate(-1)} className="mb-3">
         <ArrowLeft className="w-5 h-5" />
       </Button>
+
+      {offline && (
+        <div className="mb-4 p-3 rounded-lg bg-amber-50 text-amber-700 text-sm flex items-center gap-2">
+          <WifiOff className="w-4 h-4 shrink-0" />
+          <span>Você está offline. Exibindo o perfil armazenado em cache.</span>
+        </div>
+      )}
 
       <div className="flex items-center gap-4 mb-5">
         <div className="w-16 h-16 rounded-full bg-emerald-500 text-white flex items-center justify-center text-2xl font-semibold">

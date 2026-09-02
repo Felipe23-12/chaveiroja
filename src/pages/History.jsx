@@ -5,6 +5,8 @@ import ServiceFilters, { filterRequests } from "@/components/admin/ServiceFilter
 import ServiceSearchBar from "@/components/admin/ServiceSearchBar";
 import ServiceGallery from "@/components/locksmith/ServiceGallery";
 import SaveToCalendarButton from "@/components/locksmith/SaveToCalendarButton";
+import { saveLastService, getLastService } from "@/lib/offlineCache";
+import { WifiOff } from "lucide-react";
 
 const statusLabels = {
   pending: { label: "Pendente", color: "bg-amber-100 text-amber-700" },
@@ -17,11 +19,23 @@ const statusLabels = {
 export default function History() {
   const [requests, setRequests] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [offline, setOffline] = useState(false);
   const [filters, setFilters] = useState({ date: "", serviceType: "", status: "", locksmithName: "", search: "" });
 
   useEffect(() => {
     base44.entities.ServiceRequest.list("-created_date", 50)
-      .then(setRequests)
+      .then((data) => {
+        setRequests(data);
+        if (data.length > 0) saveLastService(data[0]);
+      })
+      .catch(() => {
+        // Sem conexão — usa o último atendimento armazenado
+        const cached = getLastService();
+        if (cached) {
+          setRequests([cached]);
+          setOffline(true);
+        }
+      })
       .finally(() => setLoading(false));
   }, []);
 
@@ -46,6 +60,13 @@ export default function History() {
           <p className="text-sm text-muted-foreground">Seus serviços solicitados</p>
         </div>
       </div>
+
+      {offline && (
+        <div className="mb-4 p-3 rounded-lg bg-amber-50 text-amber-700 text-sm flex items-center gap-2">
+          <WifiOff className="w-4 h-4 shrink-0" />
+          <span>Você está offline. Exibindo o último atendimento armazenado.</span>
+        </div>
+      )}
 
       <div className="mb-3">
         <ServiceSearchBar
