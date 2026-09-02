@@ -9,12 +9,15 @@ import ServiceConfig from "@/components/locksmith/ServiceConfig";
 import CarKeyConfig from "@/components/locksmith/CarKeyConfig";
 import RequestTracking from "@/components/locksmith/RequestTracking";
 import LiveLocksmithsMap from "@/components/locksmith/LiveLocksmithsMap";
+import ModuleSelector from "@/components/locksmith/ModuleSelector";
+import LocksmithMiniProfile from "@/components/locksmith/LocksmithMiniProfile";
 import MapView from "@/components/map/MapView";
 import { DEFAULT_CENTER, getCustomerLocation, haversineKm } from "@/lib/geo";
 import { Image } from "@/components/ui/image";
 
 export default function Home() {
   const [step, setStep] = useState(1);
+  const [module, setModule] = useState("app");
   const [serviceId, setServiceId] = useState("");
   const [address, setAddress] = useState("");
   const [description, setDescription] = useState("");
@@ -217,6 +220,8 @@ export default function Home() {
     setSearchError("");
   };
 
+  const showAppFlow = module === "app" || step > 1 || activeRequest;
+
   return (
     <div className="max-w-2xl mx-auto px-4 py-6 md:py-10">
       <div className="mb-8">
@@ -234,17 +239,23 @@ export default function Home() {
         </div>
       </div>
 
-      <div className="flex items-center gap-2 mb-6">
-        {[1, 2, 3, 4, 5].map((n) => (
-          <div
-            key={n}
-            className={`h-1.5 flex-1 rounded-full transition-colors ${step >= n ? "bg-primary" : "bg-border"}`}
-          />
-        ))}
-      </div>
+      {step === 1 && !activeRequest && (
+        <ModuleSelector module={module} setModule={setModule} />
+      )}
+
+      {showAppFlow && (
+        <div className="flex items-center gap-2 mb-6">
+          {[1, 2, 3, 4, 5].map((n) => (
+            <div
+              key={n}
+              className={`h-1.5 flex-1 rounded-full transition-colors ${step >= n ? "bg-primary" : "bg-border"}`}
+            />
+          ))}
+        </div>
+      )}
 
       {/* Step 1: Serviço */}
-      {step === 1 && (
+      {step === 1 && showAppFlow && (
         <div className="space-y-5">
           <div>
             <h2 className="font-heading font-semibold text-lg text-foreground">Qual serviço você precisa?</h2>
@@ -258,10 +269,11 @@ export default function Home() {
           <Button onClick={() => setStep(2)} disabled={!serviceId} size="lg" className="w-full">
             Continuar <ArrowRight className="w-4 h-4 ml-2" />
           </Button>
-
-          <LiveLocksmithsMap customerLoc={customerLoc} />
         </div>
       )}
+
+      {/* Modo Livre: mapa interativo com chaveiros online ou em atendimento */}
+      {!showAppFlow && <LiveLocksmithsMap customerLoc={customerLoc} />}
 
       {/* Step 2: Configuração + preço */}
       {step === 2 && service && (
@@ -376,6 +388,7 @@ export default function Home() {
               <CheckCircle2 className="w-3.5 h-3.5" /> Status: Em Andamento
             </span>
           </div>
+          <LocksmithMiniProfile locksmith={selectedLocksmith} />
           <Button onClick={() => { handleAdvance(); setStep(5); }} size="lg" className="w-full">
             Acompanhar no mapa <Navigation className="w-4 h-4 ml-2" />
           </Button>

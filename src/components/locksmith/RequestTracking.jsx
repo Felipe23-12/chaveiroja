@@ -1,5 +1,6 @@
 import React from "react";
-import { CheckCircle2, Circle, Phone, MessageCircle, Star } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { CheckCircle2, Circle, Phone, MessageCircle, Star, User } from "lucide-react";
 import { Image } from "@/components/ui/image";
 import { Button } from "@/components/ui/button";
 import ReviewForm from "@/components/locksmith/ReviewForm";
@@ -11,6 +12,7 @@ const steps = [
 ];
 
 export default function RequestTracking({ request, locksmith, onAdvance, onRate, onCall }) {
+  const navigate = useNavigate();
   const currentIndex = steps.findIndex((s) => s.key === request.status);
 
   return (
@@ -36,11 +38,14 @@ export default function RequestTracking({ request, locksmith, onAdvance, onRate,
             </div>
           </div>
           <div className="flex gap-2">
-            <button onClick={() => onCall(locksmith)} className="w-10 h-10 rounded-full bg-green-50 flex items-center justify-center text-green-600">
+            <button onClick={() => onCall(locksmith)} className="w-10 h-10 rounded-full bg-green-50 flex items-center justify-center text-green-600" title="Ligar">
               <Phone className="w-4 h-4" />
             </button>
-            <button className="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center text-blue-600">
+            <button className="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center text-blue-600" title="Conversar">
               <MessageCircle className="w-4 h-4" />
+            </button>
+            <button onClick={() => navigate(`/chaveiro/${locksmith.id}`)} className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary" title="Ver perfil">
+              <User className="w-4 h-4" />
             </button>
           </div>
         </div>
