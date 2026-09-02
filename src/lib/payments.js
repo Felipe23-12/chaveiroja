@@ -17,12 +17,13 @@ export function calculatePaymentBreakdown(amount) {
 
 // Cria um PaymentIntent no Stripe via backend function.
 // Retorna { payment_intent_id, client_secret, publishable_key, pix_data? }
-export async function createStripePaymentIntent({ amount, method, description }) {
+export async function createStripePaymentIntent({ amount, method, description, locksmithId }) {
   const res = await base44.functions.invoke("stripePayment", {
     action: "create_intent",
     amount,
     method,
     description,
+    locksmith_id: locksmithId,
   });
   return res.data;
 }
@@ -89,11 +90,16 @@ export async function confirmPaymentPaid(paymentId) {
     captured_at: new Date().toISOString(),
   });
 
-  // Credita o valor líquido na carteira do chaveiro
+  // Com Stripe Connect, o repasse líquido já é direcionado automaticamente ao chaveiro.
+  // A carteira interna continua sendo usada apenas para pagamentos legados sem Connect.
   if (payment.locksmith_id && payment.net_amount) {
-    const locksmith = await base44.entities.Locksmith.get(payment.locksmith_id);
-    const newBalance = Math.round(((locksmith.wallet_balance || 0) + payment.net_amount) * 100) / 100;
-    await base44.entities.Locksmith.update(payment.locksmith_id, { wallet_balance: newBalance });
+    const connect = await base44.entities.StripeConnectAccount.filter({ locksmith_id: payment.locksmith_id }).catch(() => []);
+    const connectAtivo = !!connect?.[0]?.stripe_account_id && connect?.[0]?.charges_enabled && connect?.[0]?.payouts_enabled;
+    if (!connectAtivo) {
+      const locksmith = await base44.entities.Locksmith.get(payment.locksmith_id);
+      const newBalance = Math.round(((locksmith.wallet_balance || 0) + payment.net_amount) * 100) / 100;
+      await base44.entities.Locksmith.update(payment.locksmith_id, { wallet_balance: newBalance });
+    }
   }
 
   if (payment.service_request_id) {
