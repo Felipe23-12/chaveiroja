@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import AdminCharts from "@/components/admin/AdminCharts";
 import ServiceFilters, { filterRequests } from "@/components/admin/ServiceFilters";
 import ServiceGallery from "@/components/locksmith/ServiceGallery";
+import FinancialConsolidation from "@/components/admin/FinancialConsolidation";
 import { completeWithdrawal } from "@/lib/payments";
 
 const fmtMoney = (n) =>
@@ -96,6 +97,8 @@ export default function PainelAdmin() {
       </div>
 
       <AdminCharts requests={requests} />
+
+      <FinancialConsolidation requests={requests} locksmiths={locksmiths} />
 
       <section>
         <h2 className="font-heading font-semibold text-lg text-foreground mb-3">Usuários</h2>
