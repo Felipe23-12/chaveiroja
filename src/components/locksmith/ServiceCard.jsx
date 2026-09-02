@@ -6,6 +6,7 @@ const iconMap = {
   abertura_automotiva: Car,
   abertura_tetra: KeyRound,
   abertura_eletronica: Fingerprint,
+  confeccao_chave_carro: Car,
 };
 
 const colorMap = {
@@ -13,6 +14,7 @@ const colorMap = {
   abertura_automotiva: { color: "text-amber-600", bg: "bg-amber-50" },
   abertura_tetra: { color: "text-violet-600", bg: "bg-violet-50" },
   abertura_eletronica: { color: "text-teal-600", bg: "bg-teal-50" },
+  confeccao_chave_carro: { color: "text-rose-600", bg: "bg-rose-50" },
 };
 
 export default function ServiceCard({ service, selected, onClick }) {
@@ -31,7 +33,7 @@ export default function ServiceCard({ service, selected, onClick }) {
       <p className="font-heading font-semibold text-foreground">{service.label}</p>
       <p className="text-xs text-muted-foreground mt-0.5">{service.description}</p>
       <p className="text-xs font-medium text-foreground mt-2">
-        a partir de R$ {service.baseRange[0]}
+        {service.baseRange ? `a partir de R$ ${service.baseRange[0]}` : "valor calculado na hora"}
       </p>
     </button>
   );

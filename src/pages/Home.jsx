@@ -2,9 +2,11 @@ import React, { useState, useEffect, useMemo, useRef } from "react";
 import { base44 } from "@/api/base44Client";
 import { Wrench, ArrowRight, ArrowLeft, Zap, Bell, Loader2, MapPin, Navigation } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { SERVICE_CATALOG, calculatePrice } from "@/lib/pricing";
+import { SERVICE_CATALOG, calculatePrice, calculateCarKeyPrice, CAR_KEY_LABOR, CAR_KEY_COST_PER_KM } from "@/lib/pricing";
+import { searchCarKeyValue } from "@/lib/carKey";
 import ServiceCard from "@/components/locksmith/ServiceCard";
 import ServiceConfig from "@/components/locksmith/ServiceConfig";
+import CarKeyConfig from "@/components/locksmith/CarKeyConfig";
 import RequestTracking from "@/components/locksmith/RequestTracking";
 import MapView from "@/components/map/MapView";
 import { DEFAULT_CENTER, getCustomerLocation, haversineKm } from "@/lib/geo";
@@ -18,6 +20,8 @@ export default function Home() {
   const [selectedOptions, setSelectedOptions] = useState([]);
   const [customAddons, setCustomAddons] = useState({});
   const [vehicleInfo, setVehicleInfo] = useState({ model: "", year: "", complexity: "simples" });
+  const [keyValue, setKeyValue] = useState(null);
+  const [searching, setSearching] = useState(false);
 
   const [customerLoc, setCustomerLoc] = useState(DEFAULT_CENTER);
   const [appLocksmiths, setAppLocksmiths] = useState([]);
@@ -31,6 +35,9 @@ export default function Home() {
 
   const price = useMemo(() => {
     if (!service) return null;
+    if (service.isCarKey) {
+      return calculateCarKeyPrice({ keyValue: keyValue || 0, distanceKm: 0, extraCost: 0 });
+    }
     return calculatePrice({
       service,
       selectedOptions,
@@ -38,7 +45,7 @@ export default function Home() {
       vehicleInfo,
       locksmithsAvailable: appLocksmiths.length || 5,
     });
-  }, [service, selectedOptions, customAddons, vehicleInfo, appLocksmiths.length]);
+  }, [service, selectedOptions, customAddons, vehicleInfo, appLocksmiths.length, keyValue]);
 
   useEffect(() => {
     getCustomerLocation().then(setCustomerLoc);
@@ -53,6 +60,28 @@ export default function Home() {
 
   const setCustomAddon = (optId, value) => {
     setCustomAddons((prev) => ({ ...prev, [optId]: value }));
+  };
+
+  const handleSearchKey = async () => {
+    if (!vehicleInfo.model.trim() || !vehicleInfo.year.trim()) {
+      setSearchError("Informe modelo e ano do veículo");
+      return;
+    }
+    setSearching(true);
+    setSearchError("");
+    try {
+      const val = await searchCarKeyValue(vehicleInfo.model, vehicleInfo.year);
+      if (val == null || val <= 0) {
+        setSearchError("Não foi possível encontrar o valor da chave. Tente novamente.");
+        setKeyValue(null);
+      } else {
+        setKeyValue(val);
+      }
+    } catch (e) {
+      setSearchError(e.message || "Falha ao pesquisar o valor da chave");
+    } finally {
+      setSearching(false);
+    }
   };
 
   // Solicita o serviço: encontra o chaveiro do modo app mais próximo e "toca" nele
@@ -71,7 +100,7 @@ export default function Home() {
         return;
       }
 
-      const req = await base44.entities.ServiceRequest.create({
+      const base = {
         service_type: service.label,
         address,
         description,
@@ -79,12 +108,27 @@ export default function Home() {
         status: "ringing",
         locksmith_id: nearest.l.id,
         locksmith_name: nearest.l.name,
-        price: price?.total || 0,
         customer_lat: customerLoc.lat,
         customer_lng: customerLoc.lng,
         locksmith_lat: nearest.l.lat,
         locksmith_lng: nearest.l.lng,
-      });
+      };
+
+      let req;
+      if (service.isCarKey) {
+        const carPrice = calculateCarKeyPrice({ keyValue: keyValue || 0, distanceKm: nearest.d, extraCost: 0 });
+        req = await base44.entities.ServiceRequest.create({
+          ...base,
+          price: carPrice.total,
+          key_value: carPrice.keyValue,
+          labor_cost: carPrice.laborCost,
+          locomotion_cost: carPrice.locomotion,
+          distance_km: carPrice.distanceKm,
+          extra_cost: 0,
+        });
+      } else {
+        req = await base44.entities.ServiceRequest.create({ ...base, price: price?.total || 0 });
+      }
       setSelectedLocksmith(nearest.l);
       setActiveRequest(req);
       reqRef.current = req.id;
@@ -135,6 +179,9 @@ export default function Home() {
     setSelectedOptions([]);
     setCustomAddons({});
     setVehicleInfo({ model: "", year: "", complexity: "simples" });
+    setKeyValue(null);
+    setSearching(false);
+    setSearchError("");
     setSelectedLocksmith(null);
     setActiveRequest(null);
     setSearchError("");
@@ -184,20 +231,37 @@ export default function Home() {
       {/* Step 2: Configuração + preço */}
       {step === 2 && service && (
         <div className="space-y-5">
-          <ServiceConfig
-            service={service}
-            address={address}
-            setAddress={setAddress}
-            description={description}
-            setDescription={setDescription}
-            selectedOptions={selectedOptions}
-            toggleOption={toggleOption}
-            customAddons={customAddons}
-            setCustomAddon={setCustomAddon}
-            vehicleInfo={vehicleInfo}
-            setVehicleInfo={setVehicleInfo}
-            price={price}
-          />
+          {service.isCarKey ? (
+            <CarKeyConfig
+              service={service}
+              vehicleInfo={vehicleInfo}
+              setVehicleInfo={setVehicleInfo}
+              address={address}
+              setAddress={setAddress}
+              description={description}
+              setDescription={setDescription}
+              keyValue={keyValue}
+              searching={searching}
+              searchError={searchError}
+              onSearch={handleSearchKey}
+              price={price}
+            />
+          ) : (
+            <ServiceConfig
+              service={service}
+              address={address}
+              setAddress={setAddress}
+              description={description}
+              setDescription={setDescription}
+              selectedOptions={selectedOptions}
+              toggleOption={toggleOption}
+              customAddons={customAddons}
+              setCustomAddon={setCustomAddon}
+              vehicleInfo={vehicleInfo}
+              setVehicleInfo={setVehicleInfo}
+              price={price}
+            />
+          )}
 
           <div>
             <label className="text-sm font-medium text-foreground mb-1.5 block">Urgência</label>
@@ -229,7 +293,7 @@ export default function Home() {
             <Button variant="outline" onClick={() => setStep(1)} className="flex-1">
               <ArrowLeft className="w-4 h-4 mr-2" /> Voltar
             </Button>
-            <Button onClick={handleConfirmConfig} disabled={!address || submitting} className="flex-1">
+            <Button onClick={handleConfirmConfig} disabled={!address || submitting || (service?.isCarKey && !keyValue)} className="flex-1">
               {submitting ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Bell className="w-4 h-4 mr-2" />}
               Solicitar chaveiro
             </Button>

@@ -85,10 +85,25 @@ export default function RequestTracking({ request, locksmith, onAdvance, onRate,
       )}
 
       {/* Price */}
-      <div className="flex justify-between items-center p-4 rounded-2xl bg-muted">
-        <span className="text-sm text-muted-foreground">Valor do serviço</span>
-        <span className="font-heading font-bold text-lg text-foreground">R$ {request.price?.toFixed(2)}</span>
-      </div>
+      {request.key_value != null ? (
+        <div className="p-4 rounded-2xl bg-muted space-y-1.5">
+          <div className="flex justify-between text-sm"><span className="text-muted-foreground">Valor da chave</span><span className="font-medium text-foreground">R$ {request.key_value?.toFixed(2)}</span></div>
+          <div className="flex justify-between text-sm"><span className="text-muted-foreground">Mão de obra</span><span className="font-medium text-foreground">R$ {request.labor_cost?.toFixed(2)}</span></div>
+          <div className="flex justify-between text-sm"><span className="text-muted-foreground">Locomoção ({request.distance_km?.toFixed(1)} km)</span><span className="font-medium text-foreground">R$ {request.locomotion_cost?.toFixed(2)}</span></div>
+          {request.extra_cost > 0 && (
+            <div className="flex justify-between text-sm"><span className="text-muted-foreground">Custos adicionais</span><span className="font-medium text-foreground">R$ {request.extra_cost?.toFixed(2)}</span></div>
+          )}
+          <div className="flex justify-between border-t border-border pt-1.5">
+            <span className="font-heading font-semibold text-foreground">Total</span>
+            <span className="font-heading font-bold text-lg text-foreground">R$ {request.price?.toFixed(2)}</span>
+          </div>
+        </div>
+      ) : (
+        <div className="flex justify-between items-center p-4 rounded-2xl bg-muted">
+          <span className="text-sm text-muted-foreground">Valor do serviço</span>
+          <span className="font-heading font-bold text-lg text-foreground">R$ {request.price?.toFixed(2)}</span>
+        </div>
+      )}
     </div>
   );
 }

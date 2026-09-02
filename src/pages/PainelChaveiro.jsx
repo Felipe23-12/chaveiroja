@@ -19,6 +19,7 @@ export default function PainelChaveiro() {
   const [me, setMe] = useState(null);
   const [ring, setRing] = useState(null); // solicitação chegando
   const [active, setActive] = useState(null); // serviço em andamento
+  const [extraCost, setExtraCost] = useState("");
   const moveTimer = useRef(null);
 
   const selected = locksmiths.find((l) => l.id === selectedId) || me;
@@ -100,11 +101,16 @@ export default function PainelChaveiro() {
 
   const handleAccept = async () => {
     if (!ring || !me) return;
+    const extra = Number(extraCost) || 0;
+    const newPrice = Math.round(((ring.price || 0) + extra) * 100) / 100;
     await base44.entities.ServiceRequest.update(ring.id, {
       status: "accepted",
       locksmith_lat: me.lat,
       locksmith_lng: me.lng,
+      price: newPrice,
+      extra_cost: extra,
     });
+    setExtraCost("");
     setRing(null);
   };
 
@@ -167,7 +173,28 @@ export default function PainelChaveiro() {
           </div>
           <p className="text-sm text-foreground">{ring.service_type}</p>
           <p className="text-xs text-muted-foreground mt-0.5">{ring.address}</p>
-          <p className="text-sm font-medium text-foreground mt-2">R$ {ring.price?.toFixed(2)}</p>
+          {ring.key_value != null ? (
+            <div className="mt-2 space-y-1 text-sm">
+              <div className="flex justify-between"><span className="text-muted-foreground">Valor da chave</span><span className="font-medium">R$ {ring.key_value?.toFixed(2)}</span></div>
+              <div className="flex justify-between"><span className="text-muted-foreground">Mão de obra</span><span className="font-medium">R$ {ring.labor_cost?.toFixed(2)}</span></div>
+              <div className="flex justify-between"><span className="text-muted-foreground">Locomoção ({ring.distance_km?.toFixed(1)} km)</span><span className="font-medium">R$ {ring.locomotion_cost?.toFixed(2)}</span></div>
+              <div className="flex justify-between border-t border-border pt-1"><span className="font-semibold text-foreground">Total</span><span className="font-bold text-foreground">R$ {ring.price?.toFixed(2)}</span></div>
+            </div>
+          ) : (
+            <p className="text-sm font-medium text-foreground mt-2">R$ {ring.price?.toFixed(2)}</p>
+          )}
+          <div className="mt-3">
+            <label className="text-xs text-muted-foreground">Custos adicionais (opcional)</label>
+            <input
+              type="number"
+              min="0"
+              step="0.01"
+              value={extraCost}
+              onChange={(e) => setExtraCost(e.target.value)}
+              placeholder="R$ 0,00"
+              className="w-full mt-1 px-3 py-2 rounded-lg border border-border bg-white text-sm"
+            />
+          </div>
           <div className="flex gap-2 mt-4">
             <Button onClick={handleAccept} className="flex-1">
               <Check className="w-4 h-4 mr-1.5" /> Aceitar

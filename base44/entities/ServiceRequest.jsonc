@@ -8,7 +8,8 @@
         "Abertura Residencial",
         "Abertura Automotiva",
         "Abertura Fechadura Tetra",
-        "Abertura Fechadura Eletr\u00f4nica"
+        "Abertura Fechadura Eletr\u00f4nica",
+        "Confec\u00e7\u00e3o de Chave de Carro"
       ],
       "default": "Abertura Residencial"
     },
@@ -65,6 +66,27 @@
     },
     "locksmith_lng": {
       "type": "number"
+    },
+    "key_value": {
+      "type": "number",
+      "description": "Valor da chave original pesquisado (confec\u00e7\u00e3o de chave de carro)"
+    },
+    "labor_cost": {
+      "type": "number",
+      "description": "M\u00e3o de obra fixa (confec\u00e7\u00e3o de chave de carro)"
+    },
+    "locomotion_cost": {
+      "type": "number",
+      "description": "Custo de locomo\u00e7\u00e3o (R$ por km \u00d7 dist\u00e2ncia)"
+    },
+    "distance_km": {
+      "type": "number",
+      "description": "Dist\u00e2ncia do chaveiro at\u00e9 o cliente em km"
+    },
+    "extra_cost": {
+      "type": "number",
+      "default": 0,
+      "description": "Custos adicionais informados pelo chaveiro ao aceitar"
     }
   },
   "required": [

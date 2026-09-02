@@ -1,5 +1,8 @@
 // Motor de precificação e catálogo de serviços do ChaveiroJá
 
+export const CAR_KEY_LABOR = 350;
+export const CAR_KEY_COST_PER_KM = 1.5;
+
 export const SERVICE_CATALOG = [
   {
     id: "abertura_residencial",
@@ -32,6 +35,15 @@ export const SERVICE_CATALOG = [
     label: "Abertura Fechadura Eletrônica",
     description: "Fechadura eletrônica / digital",
     baseRange: [350, 500],
+  },
+  {
+    id: "confeccao_chave_carro",
+    label: "Confecção de Chave de Carro",
+    description: "Cópia/original de chave do veículo (modo aplicativo)",
+    needsVehicleInfo: true,
+    isCarKey: true,
+    laborCost: CAR_KEY_LABOR,
+    costPerKm: CAR_KEY_COST_PER_KM,
   },
 ];
 
@@ -126,6 +138,38 @@ export function calculatePrice({
 
   const total = base + addonsTotal;
   return { base, addons: addonsTotal, total, breakdown, timeTier: time };
+}
+
+// Cálculo da confecção de chave de carro (modo aplicativo):
+// valor da chave original + mão de obra fixa + locomoção (R$ por km) + adicionais
+export function calculateCarKeyPrice({
+  keyValue = 0,
+  distanceKm = 0,
+  laborCost = CAR_KEY_LABOR,
+  costPerKm = CAR_KEY_COST_PER_KM,
+  extraCost = 0,
+}) {
+  const kv = Number(keyValue) || 0;
+  const dist = Number(distanceKm) || 0;
+  const extra = Number(extraCost) || 0;
+  const labor = Number(laborCost) || 0;
+  const perKm = Number(costPerKm) || 0;
+
+  const locomotion = Math.round(perKm * dist * 100) / 100;
+  const total = Math.round((kv + labor + locomotion + extra) * 100) / 100;
+
+  const breakdown = [
+    { label: "Valor da chave original", value: kv },
+    { label: "Mão de obra", value: labor },
+  ];
+  if (dist > 0) {
+    breakdown.push({ label: `Locomoção (${dist.toFixed(1)} km × R$ ${perKm})`, value: locomotion });
+  }
+  if (extra > 0) {
+    breakdown.push({ label: "Custos adicionais", value: extra });
+  }
+
+  return { keyValue: kv, laborCost: labor, locomotion, distanceKm: dist, extraCost: extra, total, breakdown };
 }
 
 // Calcula a comissão do app no modo "app" (15%)
