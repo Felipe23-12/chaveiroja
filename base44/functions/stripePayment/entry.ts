@@ -20,14 +20,34 @@ export default async function(req) {
 
     // Cria um PaymentIntent no Stripe
     if (action === "create_intent") {
-      const { amount, method, description } = body;
+      const { amount, method, description, locksmith_id } = body;
       const cents = Math.round(Number(amount) * 100);
       if (cents < 100) {
         return Response.json({ error: 'Valor mínimo é R$ 1,00' }, { status: 400 });
       }
 
       const pmType = method === "pix" ? "pix" : "card";
-      const bodyStr = `amount=${cents}&currency=brl&description=${encodeURIComponent(description || "Pagamento Chaveiro Já")}&payment_method_types[]=${pmType}`;
+      let destinationAccountId = "";
+      if (locksmith_id) {
+        const records = await base44.asServiceRole.entities.StripeConnectAccount.filter({ locksmith_id });
+        destinationAccountId = records?.[0]?.stripe_account_id || "";
+        if (!destinationAccountId) {
+          return Response.json({ error: "Este chaveiro ainda não configurou o recebimento pelo Stripe." }, { status: 400 });
+        }
+      }
+
+      const applicationFee = Math.round(cents * 0.15);
+      const params: Record<string, string> = {
+        amount: String(cents),
+        currency: "brl",
+        description: description || "Pagamento Chaveiro Já",
+        "payment_method_types[]": pmType,
+      };
+      if (destinationAccountId) {
+        params["transfer_data[destination]"] = destinationAccountId;
+        params["application_fee_amount"] = String(applicationFee);
+      }
+      const bodyStr = stripeForm(params);
 
       const res = await fetch(`${STRIPE_API}/payment_intents`, {
         method: "POST",
