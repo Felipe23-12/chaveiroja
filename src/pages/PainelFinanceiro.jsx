@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { base44 } from "@/api/base44Client";
-import { Wallet, TrendingUp, Receipt, BadgeCheck, Clock, Loader2 } from "lucide-react";
+import { Wallet, TrendingUp, Receipt, BadgeCheck, Clock, Loader2, FileDown, FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import {
@@ -11,6 +11,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { WORK_MODES } from "@/lib/pricing";
+import { downloadCommissionCSV, downloadCommissionPDF } from "@/lib/commissionReport";
 
 export default function PainelFinanceiro() {
   const [locksmiths, setLocksmiths] = useState([]);
@@ -140,6 +141,26 @@ export default function PainelFinanceiro() {
           <p className="text-xs text-muted-foreground">
             Modo {me.work_mode === "livre" ? "Livre" : "Aplicativo"}
           </p>
+        </div>
+      )}
+
+      {/* Botões de relatório de comissões */}
+      {me && isAppMode && (
+        <div className="flex flex-wrap gap-2 mb-5">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => downloadCommissionPDF({ me, completed, cancelled, isAppMode, commissionRate })}
+          >
+            <FileDown className="w-4 h-4" /> Relatório PDF
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => downloadCommissionCSV({ me, completed, cancelled, isAppMode, commissionRate })}
+          >
+            <FileText className="w-4 h-4" /> Relatório CSV
+          </Button>
         </div>
       )}
 
