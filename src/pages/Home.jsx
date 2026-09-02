@@ -17,7 +17,7 @@ import { DEFAULT_CENTER, getCustomerLocation, haversineKm } from "@/lib/geo";
 import { getClientLoyalty, applyLoyaltyDiscount } from "@/lib/loyalty";
 import PointsProgressCard from "@/components/locksmith/PointsProgressCard";
 import PaymentStep from "@/components/payment/PaymentStep";
-import { preAuthorizePayment, capturePayment, cancelPayment } from "@/lib/payments";
+import { capturePayment, cancelPayment } from "@/lib/payments";
 import { Image } from "@/components/ui/image";
 
 export default function Home() {
@@ -172,22 +172,12 @@ export default function Home() {
     }
   };
 
-  // Confirma o pagamento (pré-autorização) e inicia a busca do chaveiro
+  // Pagamento já foi confirmado via Stripe no PaymentStep — apenas atualiza status
   const handleConfirmPayment = async (method) => {
     if (!activeRequest || paying) return;
     setPaying(true);
     setSearchError("");
     try {
-      const user = await base44.auth.me();
-      await preAuthorizePayment({
-        serviceRequestId: activeRequest.id,
-        amount: activeRequest.price,
-        method,
-        locksmithId: selectedLocksmith?.id,
-        locksmithName: selectedLocksmith?.name,
-        clientId: user?.id,
-        clientName: user?.full_name,
-      });
       await base44.entities.ServiceRequest.update(activeRequest.id, { status: "ringing", payment_method: method });
       setActiveRequest((prev) => ({ ...prev, status: "ringing", payment_method: method }));
       setStep(4);
@@ -434,6 +424,8 @@ export default function Home() {
         <div className="space-y-3">
           <PaymentStep
             amount={activeRequest.price}
+            activeRequest={activeRequest}
+            selectedLocksmith={selectedLocksmith}
             processing={paying}
             onConfirm={handleConfirmPayment}
             onBack={handlePaymentBack}

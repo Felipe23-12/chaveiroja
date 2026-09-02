@@ -1,12 +1,11 @@
 import { base44 } from "@/api/base44Client";
-import { WORK_MODES } from "@/lib/pricing";
 
-export const COMMISSION_RATE = WORK_MODES.app.feeValue; // 0.15
+export const COMMISSION_RATE = 0.15;
 
 export const PAYMENT_METHODS = [
   { id: "credit_card", label: "Cartão de Crédito", icon: "CreditCard", description: "Pré-autorização agora, cobrança ao concluir" },
   { id: "debit_card", label: "Cartão de Débito", icon: "CreditCard", description: "Pré-autorização agora, cobrança ao concluir" },
-  { id: "pix", label: "Pix", icon: "QrCode", description: "Pagamento imediato ao concluir o serviço" },
+  { id: "pix", label: "Pix", icon: "QrCode", description: "Pagamento imediato via QR Code" },
 ];
 
 export function calculatePaymentBreakdown(amount) {
@@ -16,89 +15,30 @@ export function calculatePaymentBreakdown(amount) {
   return { amount: a, commission, net };
 }
 
-// Pré-autorização: cria registro de Payment
-// Cartão → status pre_authorized | Pix → status paid (pagamento imediato simulado)
-export async function preAuthorizePayment({ serviceRequestId, amount, method, locksmithId, locksmithName, clientId, clientName }) {
-  const breakdown = calculatePaymentBreakdown(amount);
-  const isPix = method === "pix";
-
-  const payment = await base44.entities.Payment.create({
-    service_request_id: serviceRequestId,
-    locksmith_id: locksmithId,
-    locksmith_name: locksmithName,
-    client_id: clientId,
-    client_name: clientName,
-    amount: breakdown.amount,
-    commission_amount: breakdown.commission,
-    net_amount: breakdown.net,
-    method,
-    status: isPix ? "paid" : "pre_authorized",
-    pre_authorized_at: new Date().toISOString(),
-    captured_at: isPix ? new Date().toISOString() : null,
+// Cria PaymentIntent no Stripe via backend function
+export async function createStripePayment({ serviceRequestId, amount, method, locksmithId, locksmithName, clientId, clientName }) {
+  const res = await base44.functions.invoke("stripe-create-payment", {
+    amount, method, serviceRequestId, locksmithId, locksmithName, clientId, clientName,
   });
-
-  await base44.entities.ServiceRequest.update(serviceRequestId, {
-    payment_id: payment.id,
-    payment_method: method,
-    payment_status: isPix ? "paid" : "pre_authorized",
-  });
-
-  // Pix é imediato: credita na carteira do chaveiro agora
-  if (isPix) {
-    await creditWallet(locksmithId, breakdown.net);
-  }
-
-  return payment;
+  return res.data;
 }
 
-// Captura o pagamento ao concluir o serviço (cartão)
+// Captura pagamento de cartão ao concluir o serviço
 export async function capturePayment(paymentId) {
-  const payment = await base44.entities.Payment.get(paymentId);
-  if (payment.status === "captured" || payment.status === "paid") return payment;
-
-  const updated = await base44.entities.Payment.update(paymentId, {
-    status: "captured",
-    captured_at: new Date().toISOString(),
-  });
-
-  await base44.entities.ServiceRequest.update(payment.service_request_id, {
-    payment_status: "captured",
-  });
-
-  await creditWallet(payment.locksmith_id, payment.net_amount);
-  return updated;
+  const res = await base44.functions.invoke("stripe-capture-payment", { paymentId });
+  return res.data;
 }
 
-// Cancela o pagamento (libera pré-autorização ou estorna Pix)
+// Verifica status do PIX (polling até confirmação)
+export async function checkPixPayment(paymentId) {
+  const res = await base44.functions.invoke("stripe-check-payment", { paymentId });
+  return res.data;
+}
+
+// Cancela pagamento (libera pré-autorização de cartão ou estorna Pix)
 export async function cancelPayment(paymentId, cancellationFee = 0) {
-  const payment = await base44.entities.Payment.get(paymentId);
-  if (!payment) return;
-
-  const isPix = payment.method === "pix";
-  const newStatus = isPix ? "refunded" : "cancelled";
-
-  await base44.entities.Payment.update(paymentId, { status: newStatus });
-  await base44.entities.ServiceRequest.update(payment.service_request_id, {
-    payment_status: newStatus,
-  });
-
-  // Se Pix já foi pago e há taxa de cancelamento, retem apenas a taxa
-  if (isPix && cancellationFee > 0) {
-    const refundAmount = Math.max(0, payment.amount - cancellationFee);
-    const locksmithShare = payment.net_amount > 0 ? Math.min(payment.net_amount, cancellationFee * 0.8) : 0;
-    if (locksmithShare > 0) {
-      await creditWallet(payment.locksmith_id, locksmithShare);
-    }
-    return { refundAmount };
-  }
-}
-
-// Credita valor líquido na carteira do chaveiro
-export async function creditWallet(locksmithId, amount) {
-  if (!locksmithId || !amount) return;
-  const locksmith = await base44.entities.Locksmith.get(locksmithId);
-  const newBalance = Math.round(((locksmith.wallet_balance || 0) + amount) * 100) / 100;
-  await base44.entities.Locksmith.update(locksmithId, { wallet_balance: newBalance });
+  const res = await base44.functions.invoke("stripe-cancel-payment", { paymentId, cancellationFee });
+  return res.data;
 }
 
 // Solicita saque via Pix: move saldo da carteira para pendente
