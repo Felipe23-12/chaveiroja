@@ -45,7 +45,10 @@ export default function Register() {
             <Wrench className="w-6 h-6 text-amber-600" />
           </div>
           <div className="flex-1">
-            <p className="font-heading font-semibold text-foreground">Sou chaveiro</p>
+            <div className="flex items-center gap-2">
+              <p className="font-heading font-semibold text-foreground">Sou chaveiro</p>
+              <span className="text-[10px] font-semibold uppercase tracking-wide bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded">Profissional</span>
+            </div>
             <p className="text-sm text-muted-foreground">Receba solicitações e gerencie seus serviços</p>
           </div>
           <ArrowRight className="w-5 h-5 text-muted-foreground" />
