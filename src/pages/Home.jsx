@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useRef } from "react";
 import { base44 } from "@/api/base44Client";
-import { Wrench, ArrowRight, ArrowLeft, Zap, Bell, Loader2, MapPin, Navigation } from "lucide-react";
+import { ArrowRight, ArrowLeft, Zap, Bell, Loader2, MapPin, Navigation } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { SERVICE_CATALOG, calculatePrice, calculateCarKeyPrice, CAR_KEY_LABOR, CAR_KEY_COST_PER_KM } from "@/lib/pricing";
 import { searchCarKeyValue } from "@/lib/carKey";
@@ -10,6 +10,7 @@ import CarKeyConfig from "@/components/locksmith/CarKeyConfig";
 import RequestTracking from "@/components/locksmith/RequestTracking";
 import MapView from "@/components/map/MapView";
 import { DEFAULT_CENTER, getCustomerLocation, haversineKm } from "@/lib/geo";
+import { Image } from "@/components/ui/image";
 
 export default function Home() {
   const [step, setStep] = useState(1);
@@ -191,11 +192,14 @@ export default function Home() {
     <div className="max-w-2xl mx-auto px-4 py-6 md:py-10">
       <div className="mb-8">
         <div className="flex items-center gap-2 mb-2">
-          <div className="w-10 h-10 rounded-xl bg-primary flex items-center justify-center">
-            <Wrench className="w-5 h-5 text-primary-foreground" />
-          </div>
+          <Image
+            src="https://media.base44.com/images/public/6a975d266a8000184833026a/9589e6a99_generated_image.png"
+            alt="Chaveiro Já"
+            fittingType="fit"
+            className="w-11 h-11 rounded-xl"
+          />
           <div>
-            <h1 className="font-heading font-bold text-2xl text-foreground">ChaveiroJá</h1>
+            <h1 className="font-heading font-bold text-2xl text-foreground">Chaveiro Já</h1>
             <p className="text-sm text-muted-foreground">Chaveiros de confiança a um toque</p>
           </div>
         </div>

@@ -1,8 +1,9 @@
 import React from "react";
 import { Link, useLocation, Outlet } from "react-router-dom";
-import { Home as HomeIcon, Clock, Wrench, LogOut, Briefcase, MapPin, RadioTower, Wallet, User, ShieldCheck } from "lucide-react";
+import { Home as HomeIcon, Clock, LogOut, Briefcase, MapPin, RadioTower, Wallet, User, ShieldCheck } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { useAuth } from "@/lib/AuthContext";
+import { Image } from "@/components/ui/image";
 
 const ALL_NAV = [
   { label: "Início", path: "/", icon: HomeIcon, roles: ["cliente"] },
@@ -32,11 +33,14 @@ function Sidebar() {
     <aside className="w-full md:w-64 md:min-h-screen bg-white border-r border-border flex flex-col">
       <div className="p-5 border-b border-border">
         <Link to={homePath} className="flex items-center gap-2">
-          <div className="w-9 h-9 rounded-xl bg-primary flex items-center justify-center">
-            <Wrench className="w-5 h-5 text-primary-foreground" />
-          </div>
+          <Image
+            src="https://media.base44.com/images/public/6a975d266a8000184833026a/9589e6a99_generated_image.png"
+            alt="Chaveiro Já"
+            fittingType="fit"
+            className="w-10 h-10 rounded-xl"
+          />
           <div className="leading-tight">
-            <p className="font-heading font-bold text-foreground">ChaveiroJá</p>
+            <p className="font-heading font-bold text-foreground">Chaveiro Já</p>
             <p className="text-[11px] text-muted-foreground">Socorro na hora</p>
           </div>
         </Link>
