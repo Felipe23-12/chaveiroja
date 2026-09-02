@@ -27,6 +27,17 @@ function Recenter({ center }) {
   return null;
 }
 
+// Corrige o dimensionamento do mapa após o mount — sem isso os tiles
+// não carregam corretamente (mapa cinza / sem nomes de ruas e bairros).
+function MapResizer() {
+  const map = useMap();
+  useEffect(() => {
+    const t = setTimeout(() => map.invalidateSize(), 200);
+    return () => clearTimeout(t);
+  }, [map]);
+  return null;
+}
+
 /**
  * Mapa real (OpenStreetMap) mostrando chaveiros do Modo Livre online em tempo real.
  * Inclui ruas, nomes de cidades, bairros etc.
@@ -84,6 +95,7 @@ export default function RealLocksmithsMap({ me }) {
             url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
           />
           <Recenter center={center} />
+          <MapResizer />
           {me && (
             <Marker position={[me.lat, me.lng]} icon={meIcon}>
               <Popup>
