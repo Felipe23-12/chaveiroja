@@ -4,6 +4,7 @@ import { Clock, MapPin, Star, Wrench } from "lucide-react";
 import ServiceFilters, { filterRequests } from "@/components/admin/ServiceFilters";
 import ServiceSearchBar from "@/components/admin/ServiceSearchBar";
 import ServiceGallery from "@/components/locksmith/ServiceGallery";
+import SaveToCalendarButton from "@/components/locksmith/SaveToCalendarButton";
 
 const statusLabels = {
   pending: { label: "Pendente", color: "bg-amber-100 text-amber-700" },
@@ -97,6 +98,7 @@ export default function History() {
                   </div>
                 )}
                 <ServiceGallery startPhotos={req.start_photos} endPhotos={req.end_photos} />
+                {req.status === "completed" && <SaveToCalendarButton request={req} />}
               </div>
             );
           })}
