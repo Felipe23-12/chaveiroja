@@ -8,6 +8,7 @@ import ServiceCard from "@/components/locksmith/ServiceCard";
 import ServiceConfig from "@/components/locksmith/ServiceConfig";
 import CarKeyConfig from "@/components/locksmith/CarKeyConfig";
 import RequestTracking from "@/components/locksmith/RequestTracking";
+import LiveLocksmithsMap from "@/components/locksmith/LiveLocksmithsMap";
 import MapView from "@/components/map/MapView";
 import { DEFAULT_CENTER, getCustomerLocation, haversineKm } from "@/lib/geo";
 import { Image } from "@/components/ui/image";
@@ -229,6 +230,8 @@ export default function Home() {
           <Button onClick={() => setStep(2)} disabled={!serviceId} size="lg" className="w-full">
             Continuar <ArrowRight className="w-4 h-4 ml-2" />
           </Button>
+
+          <LiveLocksmithsMap customerLoc={customerLoc} />
         </div>
       )}
 
