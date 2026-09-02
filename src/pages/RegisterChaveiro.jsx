@@ -78,15 +78,11 @@ export default function RegisterChaveiro() {
       const requiresVerification = /verif|confirm|otp|c[oó]digo|email/i.test(message);
 
       if (requiresVerification) {
-        setError(
-          "O cadastro foi criado, mas o Base44 está exigindo confirmação do email. " +
-          "O código precisa ser enviado pelo serviço de email do Base44; essa exigência não pode ser removida apenas pelo aplicativo. " +
-          "Tente reenviar o código ou use 'Continuar com Google'."
-        );
+        setShowOtp(true);
       } else {
         setError(message || "Falha no cadastro");
+        setLoading(false);
       }
-      setLoading(false);
     }
   };
 

@@ -59,16 +59,11 @@ export default function RegisterCliente() {
       const requiresVerification = /verif|confirm|otp|c[oó]digo|email/i.test(message);
 
       if (requiresVerification) {
-        setError(
-          "O cadastro foi criado, mas o Base44 está exigindo confirmação do email. " +
-          "Essa exigência vem do serviço de autenticação e não pode ser removida apenas pelo aplicativo. " +
-          "Tente reenviar o código ou use 'Continuar com Google'."
-        );
+        setShowOtp(true);
       } else {
         setError(message || "Falha no cadastro");
+        setLoading(false);
       }
-    } finally {
-      setLoading(false);
     }
   };
 
