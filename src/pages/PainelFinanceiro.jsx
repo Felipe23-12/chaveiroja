@@ -10,7 +10,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { WORK_MODES } from "@/lib/pricing";
+import { WORK_MODES, calculateRepasse } from "@/lib/pricing";
 import { downloadCommissionCSV, downloadCommissionPDF } from "@/lib/commissionReport";
 
 export default function PainelFinanceiro() {
@@ -58,22 +58,32 @@ export default function PainelFinanceiro() {
     let commissionPending = 0;
     let paidCount = 0;
     completed.forEach((r) => {
-      const price = Number(r.price) || 0;
-      gross += price;
+      const repasse = calculateRepasse({
+        price: r.price,
+        workMode: me?.work_mode,
+        status: r.status,
+      });
+      gross += repasse.gross;
+      commission += repasse.commission;
       if (isAppMode) {
-        const comm = price * commissionRate;
-        commission += comm;
         if ((r.commission_status || "pending") === "paid") {
-          commissionPaid += comm;
+          commissionPaid += repasse.commission;
           paidCount += 1;
         } else {
-          commissionPending += comm;
+          commissionPending += repasse.commission;
         }
       }
     });
     let cancellationTotal = 0;
     cancelled.forEach((r) => {
-      cancellationTotal += Number(r.cancellation_locksmith_amount) || 0;
+      const repasse = calculateRepasse({
+        price: r.price,
+        workMode: me?.work_mode,
+        status: r.status,
+        cancellation_locksmith_amount: r.cancellation_locksmith_amount,
+        cancellation_app_fee: r.cancellation_app_fee,
+      });
+      cancellationTotal += repasse.locksmithAmount;
     });
     const net = gross - commission + cancellationTotal;
     return {
@@ -87,7 +97,7 @@ export default function PainelFinanceiro() {
       cancellationTotal,
       cancelledCount: cancelled.length,
     };
-  }, [completed, cancelled, isAppMode]);
+  }, [completed, cancelled, isAppMode, me?.work_mode]);
 
   const handleToggleCommission = async (r) => {
     const newStatus = (r.commission_status || "pending") === "paid" ? "pending" : "paid";
@@ -298,9 +308,16 @@ export default function PainelFinanceiro() {
           </div>
           <div className="space-y-2">
             {cancelled.map((r) => {
-              const fee = Number(r.cancellation_fee) || 0;
-              const locksmithAmt = Number(r.cancellation_locksmith_amount) || 0;
-              const appFee = Number(r.cancellation_app_fee) || 0;
+              const repasse = calculateRepasse({
+                price: r.price,
+                workMode: me?.work_mode,
+                status: r.status,
+                cancellation_locksmith_amount: r.cancellation_locksmith_amount,
+                cancellation_app_fee: r.cancellation_app_fee,
+              });
+              const fee = repasse.cancellationFee;
+              const locksmithAmt = repasse.locksmithAmount;
+              const appFee = repasse.appAmount;
               return (
                 <div key={r.id} className="p-3 rounded-xl border border-border bg-card">
                   <div className="flex items-start justify-between gap-3">
@@ -342,9 +359,14 @@ export default function PainelFinanceiro() {
       ) : (
         <div className="space-y-2">
           {completed.map((r) => {
-            const price = Number(r.price) || 0;
-            const comm = isAppMode ? price * commissionRate : 0;
-            const net = price - comm;
+            const repasse = calculateRepasse({
+              price: r.price,
+              workMode: me?.work_mode,
+              status: r.status,
+            });
+            const price = repasse.gross;
+            const comm = repasse.commission;
+            const net = repasse.locksmithAmount;
             return (
               <div key={r.id} className="p-3 rounded-xl border border-border bg-card">
                 <div className="flex items-start justify-between gap-3">

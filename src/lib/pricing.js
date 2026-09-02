@@ -205,3 +205,51 @@ export function calculateCancellationFee(price) {
   const appFee = Math.round(p * CANCELLATION_APP_SHARE * 100) / 100;
   return { fee, locksmithAmount, appFee };
 }
+
+// Calcula o repasse (valor líquido) devido ao chaveiro para um serviço,
+// descontando a comissão do app conforme o modo de operação e a taxa de
+// cancelamento quando houver.
+//
+//  - Serviço concluído no modo app: comissão de 15% para o app, 85% para o chaveiro.
+//  - Serviço concluído no modo livre: sem comissão (repasse integral; a
+//    mensalidade fixa é tratada à parte).
+//  - Serviço cancelado com taxa (modo app): 20% do valor para o chaveiro e
+//    5% para o app (a "comissão" do app sobre o cancelamento é de 5%).
+export function calculateRepasse({
+  price = 0,
+  workMode,
+  status,
+  cancellation_locksmith_amount = 0,
+  cancellation_app_fee = 0,
+}) {
+  const p = Number(price) || 0;
+  const locksmithCancellation = Number(cancellation_locksmith_amount) || 0;
+  const appCancellation = Number(cancellation_app_fee) || 0;
+
+  // Cancelamento com taxa de cancelamento (modo app)
+  if (status === "cancelled" && locksmithCancellation > 0) {
+    return {
+      gross: p,
+      commission: appCancellation,
+      commissionRate: CANCELLATION_APP_SHARE, // 5%
+      cancellationFee: locksmithCancellation + appCancellation,
+      locksmithAmount: locksmithCancellation, // 20%
+      appAmount: appCancellation, // 5%
+      type: "cancelamento",
+    };
+  }
+
+  // Serviço concluído
+  const rate = workMode === "app" ? WORK_MODES.app.feeValue : 0; // 15% app, 0% livre
+  const commission = Math.round(p * rate * 100) / 100;
+  const locksmithAmount = Math.round((p - commission) * 100) / 100;
+  return {
+    gross: p,
+    commission,
+    commissionRate: rate,
+    cancellationFee: 0,
+    locksmithAmount,
+    appAmount: commission,
+    type: "concluido",
+  };
+}
