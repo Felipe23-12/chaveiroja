@@ -100,6 +100,20 @@ export default function RegisterChaveiro() {
           </div>
         }
         onSuccess={async () => {
+          // O tipo da conta precisa ser gravado antes do redirecionamento.
+          // Caso contrário, o sistema pode usar o fallback "cliente" ao carregar o painel.
+          const raw = sessionStorage.getItem("chaveiro_onboarding");
+          const data = raw ? JSON.parse(raw) : null;
+          if (data) {
+            await base44.auth.updateMe({
+              phone: data.phone,
+              cpf: data.cpf,
+              full_name: data.fullName,
+              account_type: "chaveiro",
+            });
+          } else {
+            await base44.auth.updateMe({ account_type: "chaveiro" });
+          }
           const dest = returnTo !== "/" ? returnTo : "/painel-chaveiro";
           window.location.assign(dest);
         }}
