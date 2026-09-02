@@ -81,7 +81,8 @@ export default function RegisterCliente() {
     window.location.assign(returnTo !== "/" ? returnTo : "/");
   };
 
-  const handleGoogle = () => base44.auth.loginWithProvider("google", returnTo);
+  const handleGoogle = () =>
+    base44.auth.loginWithProvider("google", "/google-complete?tipo=cliente");
 
   return (
     <AuthLayout

@@ -92,7 +92,8 @@ export default function RegisterChaveiro() {
     }
   };
 
-  const handleGoogle = () => base44.auth.loginWithProvider("google", returnTo);
+  const handleGoogle = () =>
+    base44.auth.loginWithProvider("google", "/google-complete?tipo=chaveiro");
 
   const finishLocksmithRegistration = async () => {
     const raw = sessionStorage.getItem("chaveiro_onboarding");
