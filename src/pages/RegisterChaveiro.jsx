@@ -68,6 +68,12 @@ export default function RegisterChaveiro() {
       // verificação e deixar o usuário sem onde informar o código.
       if (registration?.access_token) {
         base44.auth.setToken(registration.access_token);
+        await base44.auth.updateMe({
+          phone,
+          cpf,
+          full_name: fullName,
+          account_type: "chaveiro",
+        });
         const dest = returnTo !== "/" ? returnTo : "/painel-chaveiro";
         window.location.assign(dest);
       } else {
