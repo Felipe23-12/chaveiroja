@@ -13,6 +13,7 @@ const ALL_NAV = [
   { label: "Financeiro", path: "/painel-financeiro", icon: Wallet, roles: ["chaveiro"] },
   { label: "Modo de Trabalho", path: "/modo-trabalho", icon: Briefcase, roles: ["chaveiro"] },
   { label: "Painel Admin", path: "/painel-admin", icon: ShieldCheck, roles: ["admin"] },
+  { label: "Financeiro", path: "/painel-financeiro-admin", icon: Wallet, roles: ["admin"] },
 ];
 
 function Sidebar() {

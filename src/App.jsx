@@ -24,6 +24,7 @@ import ResetPassword from '@/pages/ResetPassword';
 import RegisterCliente from '@/pages/RegisterCliente';
 import RegisterChaveiro from '@/pages/RegisterChaveiro';
 import PainelAdmin from '@/pages/PainelAdmin';
+import PainelFinanceiroAdmin from '@/pages/PainelFinanceiroAdmin';
 import GoogleComplete from '@/pages/GoogleComplete';
 import PoliticaReembolso from '@/pages/PoliticaReembolso';
 // Add page imports here
@@ -78,6 +79,7 @@ const AuthenticatedApp = () => {
           </Route>
           <Route element={<RoleGuard allow={["admin"]} />}>
             <Route path="/painel-admin" element={<PainelAdmin />} />
+            <Route path="/painel-financeiro-admin" element={<PainelFinanceiroAdmin />} />
           </Route>
         </Route>
       </Route>
