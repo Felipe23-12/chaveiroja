@@ -15,7 +15,7 @@ const statusLabels = {
 export default function History() {
   const [requests, setRequests] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [filters, setFilters] = useState({ date: "", serviceType: "", locksmithName: "" });
+  const [filters, setFilters] = useState({ date: "", serviceType: "", status: "", locksmithName: "" });
 
   useEffect(() => {
     base44.entities.ServiceRequest.list("-created_date", 50)
@@ -49,7 +49,7 @@ export default function History() {
         <ServiceFilters
           filters={filters}
           onChange={setFilters}
-          onClear={() => setFilters({ date: "", serviceType: "", locksmithName: "" })}
+          onClear={() => setFilters({ date: "", serviceType: "", status: "", locksmithName: "" })}
         />
       </div>
 

@@ -18,7 +18,16 @@ export const SERVICE_TYPES = [
   "Confecção de Chave de Carro",
 ];
 
-export function filterRequests(requests, { date, serviceType, locksmithName }) {
+export const SERVICE_STATUSES = [
+  { value: "searching", label: "Buscando" },
+  { value: "ringing", label: "Chamando" },
+  { value: "accepted", label: "Aceito" },
+  { value: "on_the_way", label: "A caminho" },
+  { value: "completed", label: "Concluído" },
+  { value: "cancelled", label: "Cancelado" },
+];
+
+export function filterRequests(requests, { date, serviceType, status, locksmithName }) {
   return requests.filter((r) => {
     if (date) {
       const d = new Date(r.created_date);
@@ -26,6 +35,7 @@ export function filterRequests(requests, { date, serviceType, locksmithName }) {
       if (key !== date) return false;
     }
     if (serviceType && r.service_type !== serviceType) return false;
+    if (status && r.status !== status) return false;
     if (locksmithName) {
       const name = (r.locksmith_name || "").toLowerCase();
       if (!name.includes(locksmithName.toLowerCase())) return false;
@@ -35,9 +45,9 @@ export function filterRequests(requests, { date, serviceType, locksmithName }) {
 }
 
 export default function ServiceFilters({ filters, onChange, onClear }) {
-  const hasFilters = filters.date || filters.serviceType || filters.locksmithName;
+  const hasFilters = filters.date || filters.serviceType || filters.status || filters.locksmithName;
   return (
-    <div className="flex flex-col sm:flex-row gap-2 items-end">
+    <div className="flex flex-col sm:flex-row gap-2 items-end flex-wrap">
       <div className="flex flex-col gap-1 flex-1 min-w-[140px]">
         <label className="text-xs text-muted-foreground flex items-center gap-1">
           <Calendar className="w-3 h-3" /> Data
@@ -47,6 +57,25 @@ export default function ServiceFilters({ filters, onChange, onClear }) {
           value={filters.date || ""}
           onChange={(e) => onChange({ ...filters, date: e.target.value })}
         />
+      </div>
+      <div className="flex flex-col gap-1 flex-1 min-w-[150px]">
+        <label className="text-xs text-muted-foreground flex items-center gap-1">
+          <Filter className="w-3 h-3" /> Status
+        </label>
+        <Select
+          value={filters.status || "all"}
+          onValueChange={(v) => onChange({ ...filters, status: v === "all" ? "" : v })}
+        >
+          <SelectTrigger className="w-full">
+            <SelectValue placeholder="Todos os status" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Todos os status</SelectItem>
+            {SERVICE_STATUSES.map((s) => (
+              <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
       <div className="flex flex-col gap-1 flex-1 min-w-[160px]">
         <label className="text-xs text-muted-foreground flex items-center gap-1">

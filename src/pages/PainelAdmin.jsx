@@ -25,7 +25,7 @@ export default function PainelAdmin() {
   const [locksmiths, setLocksmiths] = useState([]);
   const [requests, setRequests] = useState([]);
   const [withdrawals, setWithdrawals] = useState([]);
-  const [filters, setFilters] = useState({ date: "", serviceType: "", locksmithName: "" });
+  const [filters, setFilters] = useState({ date: "", serviceType: "", status: "", locksmithName: "" });
   const [loading, setLoading] = useState(true);
 
   const load = async () => {
@@ -263,7 +263,7 @@ export default function PainelAdmin() {
           <ServiceFilters
             filters={filters}
             onChange={setFilters}
-            onClear={() => setFilters({ date: "", serviceType: "", locksmithName: "" })}
+            onClear={() => setFilters({ date: "", serviceType: "", status: "", locksmithName: "" })}
           />
         </div>
         <div className="rounded-xl border border-border overflow-hidden bg-white">
