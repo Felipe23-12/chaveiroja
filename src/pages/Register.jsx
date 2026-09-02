@@ -6,6 +6,14 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { UserPlus, Mail, Lock, Loader2, User, Wrench, Phone } from "lucide-react";
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import AuthLayout from "@/components/AuthLayout";
 import GoogleIcon from "@/components/GoogleIcon";
 import { toast } from "@/components/ui/use-toast";
@@ -15,6 +23,9 @@ export default function Register() {
   const [fullName, setFullName] = useState("");
   const [phone, setPhone] = useState("");
   const [accountType, setAccountType] = useState("cliente");
+  const [specialty, setSpecialty] = useState("Residencial");
+  const [vehicle, setVehicle] = useState("");
+  const [bio, setBio] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -32,6 +43,10 @@ export default function Register() {
     }
     if (password !== confirmPassword) {
       setError("As senhas não coincidem");
+      return;
+    }
+    if (accountType === "chaveiro" && !vehicle.trim()) {
+      setError("Informe seu veículo (ex: Moto Honda Pop 110i)");
       return;
     }
     setLoading(true);
@@ -61,6 +76,22 @@ export default function Register() {
         });
       } catch (e) {
         /* não bloqueia o fluxo */
+      }
+      if (accountType === "chaveiro") {
+        try {
+          await base44.entities.Locksmith.create({
+            name: fullName,
+            specialty,
+            vehicle,
+            bio,
+            phone,
+            work_mode: "app",
+            available: true,
+            online: false,
+          });
+        } catch (e) {
+          /* o perfil pode ser ajustado depois no Modo de Trabalho */
+        }
       }
       const home = accountType === "chaveiro" ? "/painel-chaveiro" : "/";
       const returnTo = safeReturnTo();
@@ -255,6 +286,48 @@ export default function Register() {
             />
           </div>
         </div>
+
+        {accountType === "chaveiro" && (
+          <div className="space-y-4 rounded-xl border border-border bg-muted/30 p-4">
+            <p className="text-sm font-semibold text-foreground">Dados profissionais</p>
+            <div className="space-y-2">
+              <Label htmlFor="specialty">Especialidade</Label>
+              <Select value={specialty} onValueChange={setSpecialty}>
+                <SelectTrigger id="specialty" className="h-12">
+                  <SelectValue placeholder="Escolha sua especialidade" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Residencial">Residencial</SelectItem>
+                  <SelectItem value="Automotivo">Automotivo</SelectItem>
+                  <SelectItem value="Comercial">Comercial</SelectItem>
+                  <SelectItem value="Emergencial">Emergencial</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="vehicle">Veículo</Label>
+              <Input
+                id="vehicle"
+                type="text"
+                placeholder="Ex: Moto Honda Pop 110i"
+                value={vehicle}
+                onChange={(e) => setVehicle(e.target.value)}
+                className="h-12"
+                required
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="bio">Apresentação (opcional)</Label>
+              <Textarea
+                id="bio"
+                placeholder="Conte um pouco sobre sua experiência..."
+                value={bio}
+                onChange={(e) => setBio(e.target.value)}
+                rows={2}
+              />
+            </div>
+          </div>
+        )}
 
         <div className="space-y-2">
           <Label htmlFor="email">Email</Label>
