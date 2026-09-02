@@ -14,6 +14,7 @@ import MapView from "@/components/map/MapView";
 import PhotoUploader from "@/components/locksmith/PhotoUploader";
 import WalletCard from "@/components/locksmith/WalletCard";
 import WithdrawalSection from "@/components/locksmith/WithdrawalSection";
+import IncomingRequestAlert from "@/components/locksmith/IncomingRequestAlert";
 import { useToast } from "@/components/ui/use-toast";
 import { haversineKm, stepToward } from "@/lib/geo";
 
@@ -46,9 +47,8 @@ export default function PainelChaveiro() {
   const [locksmiths, setLocksmiths] = useState([]);
   const [selectedId, setSelectedId] = useState("");
   const [me, setMe] = useState(null);
-  const [ring, setRing] = useState(null); // solicitação chegando
+  const [pendingRequests, setPendingRequests] = useState([]); // solicitações aguardando aceitação
   const [active, setActive] = useState(null); // serviço em andamento
-  const [extraCost, setExtraCost] = useState("");
   const [arrived, setArrived] = useState(false);
   const [startPhotos, setStartPhotos] = useState([]);
   const [endPhotos, setEndPhotos] = useState([]);
@@ -80,7 +80,7 @@ export default function PainelChaveiro() {
     if (!selectedId) return;
     const load = () =>
       base44.entities.ServiceRequest.filter({ locksmith_id: selectedId, status: "ringing" }, "-created_date").then(
-        (list) => setRing(list[0] || null)
+        (list) => setPendingRequests(list)
       );
     load();
     const unsub = base44.entities.ServiceRequest.subscribe(() => load());
@@ -181,11 +181,11 @@ export default function PainelChaveiro() {
     await base44.entities.Locksmith.update(me.id, { online: !me.online });
   };
 
-  const handleAccept = async () => {
-    if (!ring || !me) return;
-    const extra = Number(extraCost) || 0;
-    const newPrice = Math.round(((ring.price || 0) + extra) * 100) / 100;
-    await base44.entities.ServiceRequest.update(ring.id, {
+  const handleAccept = async (extra = 0) => {
+    const req = pendingRequests[0];
+    if (!req || !me) return;
+    const newPrice = Math.round(((req.price || 0) + extra) * 100) / 100;
+    await base44.entities.ServiceRequest.update(req.id, {
       status: "accepted",
       accepted_at: new Date().toISOString(),
       locksmith_lat: me.lat,
@@ -193,14 +193,12 @@ export default function PainelChaveiro() {
       price: newPrice,
       extra_cost: extra,
     });
-    setExtraCost("");
-    setRing(null);
   };
 
   const handleReject = async () => {
-    if (!ring) return;
-    await base44.entities.ServiceRequest.update(ring.id, { status: "cancelled" });
-    setRing(null);
+    const req = pendingRequests[0];
+    if (!req) return;
+    await base44.entities.ServiceRequest.update(req.id, { status: "cancelled" });
   };
 
   const handleConfirmStart = async () => {
@@ -217,6 +215,8 @@ export default function PainelChaveiro() {
   };
 
   const isAppMode = me?.work_mode === "app";
+  const ring = pendingRequests[0] || null;
+  const pendingCount = pendingRequests.length;
   const startDone = (active?.start_photos?.length || 0) > 0;
   const phase = !active
     ? "moving"
@@ -242,10 +242,16 @@ export default function PainelChaveiro() {
         <div className="w-10 h-10 rounded-xl bg-primary flex items-center justify-center">
           <Wrench className="w-5 h-5 text-primary-foreground" />
         </div>
-        <div>
+        <div className="flex-1">
           <h1 className="font-heading font-bold text-2xl text-foreground">Painel do Chaveiro</h1>
           <p className="text-sm text-muted-foreground">Receba solicitações e atenda em tempo real</p>
         </div>
+        {pendingCount > 0 && (
+          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-red-500 text-white text-sm font-bold animate-pulse">
+            <Bell className="w-4 h-4" />
+            {pendingCount}
+          </div>
+        )}
       </div>
 
       {/* Seleção de perfil */}
@@ -295,46 +301,13 @@ export default function PainelChaveiro() {
         </div>
       )}
 
-      {/* Toque (ring) — modo app */}
+      {/* Alerta de nova solicitação — modo app */}
       {ring && isAppMode && (
-        <div className="p-5 rounded-2xl border-2 border-primary bg-primary/5 mb-5 animate-pulse">
-          <div className="flex items-center gap-2 text-primary mb-2">
-            <Bell className="w-5 h-5 animate-bounce" />
-            <p className="font-semibold">Nova solicitação!</p>
-          </div>
-          <p className="text-sm text-foreground">{ring.service_type}</p>
-          <p className="text-xs text-muted-foreground mt-0.5">{ring.address}</p>
-          {ring.key_value != null ? (
-            <div className="mt-2 space-y-1 text-sm">
-              <div className="flex justify-between"><span className="text-muted-foreground">Valor da chave</span><span className="font-medium">R$ {ring.key_value?.toFixed(2)}</span></div>
-              <div className="flex justify-between"><span className="text-muted-foreground">Mão de obra</span><span className="font-medium">R$ {ring.labor_cost?.toFixed(2)}</span></div>
-              <div className="flex justify-between"><span className="text-muted-foreground">Locomoção ({ring.distance_km?.toFixed(1)} km)</span><span className="font-medium">R$ {ring.locomotion_cost?.toFixed(2)}</span></div>
-              <div className="flex justify-between border-t border-border pt-1"><span className="font-semibold text-foreground">Total</span><span className="font-bold text-foreground">R$ {ring.price?.toFixed(2)}</span></div>
-            </div>
-          ) : (
-            <p className="text-sm font-medium text-foreground mt-2">R$ {ring.price?.toFixed(2)}</p>
-          )}
-          <div className="mt-3">
-            <label className="text-xs text-muted-foreground">Custos adicionais (opcional)</label>
-            <input
-              type="number"
-              min="0"
-              step="0.01"
-              value={extraCost}
-              onChange={(e) => setExtraCost(e.target.value)}
-              placeholder="R$ 0,00"
-              className="w-full mt-1 px-3 py-2 rounded-lg border border-border bg-white text-sm"
-            />
-          </div>
-          <div className="flex gap-2 mt-4">
-            <Button onClick={handleAccept} className="flex-1">
-              <Check className="w-4 h-4 mr-1.5" /> Aceitar
-            </Button>
-            <Button onClick={handleReject} variant="outline" className="flex-1">
-              <X className="w-4 h-4 mr-1.5" /> Recusar
-            </Button>
-          </div>
-        </div>
+        <IncomingRequestAlert
+          request={ring}
+          onAccept={handleAccept}
+          onReject={handleReject}
+        />
       )}
 
       {/* Serviço em andamento */}
@@ -405,7 +378,7 @@ export default function PainelChaveiro() {
           )}
         </div>
       ) : (
-        !ring && (
+        pendingCount === 0 && (
           <div className="text-center py-12 rounded-xl border border-dashed border-border">
             {isAppMode ? (
               <>
