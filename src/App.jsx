@@ -25,6 +25,7 @@ import RegisterCliente from '@/pages/RegisterCliente';
 import RegisterChaveiro from '@/pages/RegisterChaveiro';
 import PainelAdmin from '@/pages/PainelAdmin';
 import GoogleComplete from '@/pages/GoogleComplete';
+import PoliticaReembolso from '@/pages/PoliticaReembolso';
 // Add page imports here
 
 const AuthenticatedApp = () => {
@@ -60,6 +61,7 @@ const AuthenticatedApp = () => {
       <Route path="/cadastro/cliente" element={<RegisterCliente />} />
       <Route path="/cadastro/chaveiro" element={<RegisterChaveiro />} />
       <Route path="/google-complete" element={<GoogleComplete />} />
+      <Route path="/politica-reembolso" element={<PoliticaReembolso />} />
       <Route element={<ProtectedRoute unauthenticatedElement={<Navigate to="/login" replace />} />}>
         <Route element={<Layout />}>
           <Route element={<RoleGuard allow={["cliente"]} />}>
