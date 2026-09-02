@@ -36,6 +36,7 @@ export default function Mapa() {
       lat: l.lat,
       lng: l.lng,
       type: "locksmith",
+      busy: !l.available,
       label: l.name.split(" ")[0],
       onClick: () => navigate(`/chat/${l.id}`),
     })),
@@ -77,14 +78,15 @@ export default function Mapa() {
               key={l.id}
               className="flex items-center gap-3 p-3 rounded-xl border border-border bg-card hover:shadow-sm transition-shadow"
             >
-              <div className="w-11 h-11 rounded-full bg-emerald-500 text-white flex items-center justify-center font-semibold">
+              <div className={`w-11 h-11 rounded-full text-white flex items-center justify-center font-semibold ${l.available ? "bg-emerald-500" : "bg-amber-500"}`}>
                 {l.name.charAt(0)}
               </div>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2">
                   <p className="font-medium text-foreground truncate">{l.name}</p>
-                  <span className="flex items-center gap-1 text-[11px] text-emerald-600 font-medium">
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" /> online
+                  <span className={`flex items-center gap-1 text-[11px] font-medium ${l.available ? "text-emerald-600" : "text-amber-600"}`}>
+                    <span className={`w-1.5 h-1.5 rounded-full ${l.available ? "bg-emerald-500" : "bg-amber-500"}`} />
+                    {l.available ? "livre" : "em atendimento"}
                   </span>
                 </div>
                 <p className="text-xs text-muted-foreground">

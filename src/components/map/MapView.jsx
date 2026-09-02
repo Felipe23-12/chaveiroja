@@ -1,5 +1,5 @@
 import React from "react";
-import { MapPin, Navigation, Wrench } from "lucide-react";
+import { MapPin, Navigation, Wrench, Clock } from "lucide-react";
 
 // Janela de visualização do mapa em graus (cobertura ao redor do centro)
 const VIEW_SPAN = 0.03;
@@ -63,6 +63,7 @@ export default function MapView({ center, markers = [], route = null, height = 3
       {markers.map((m) => {
         const p = project(m.lat, m.lng, c);
         const isCustomer = m.type === "customer";
+        const isBusy = m.type === "locksmith" && m.busy;
         return (
           <button
             key={m.id}
@@ -75,12 +76,18 @@ export default function MapView({ center, markers = [], route = null, height = 3
                 className={`flex items-center justify-center rounded-full shadow-lg border-2 ${
                   isCustomer
                     ? "w-9 h-9 bg-blue-600 border-white text-white"
-                    : m.active
-                    ? "w-10 h-10 bg-primary border-white text-primary-foreground animate-pulse"
+                    : isBusy
+                    ? "w-9 h-9 bg-amber-500 border-white text-white"
                     : "w-9 h-9 bg-emerald-500 border-white text-white"
                 }`}
               >
-                {isCustomer ? <MapPin className="w-4 h-4" /> : <Wrench className="w-4 h-4" />}
+                {isCustomer ? (
+                  <MapPin className="w-4 h-4" />
+                ) : isBusy ? (
+                  <Clock className="w-4 h-4" />
+                ) : (
+                  <Wrench className="w-4 h-4" />
+                )}
               </div>
               <div className="w-0.5 h-2 bg-slate-700/60" />
               {m.label && (
@@ -96,7 +103,8 @@ export default function MapView({ center, markers = [], route = null, height = 3
       {/* Legenda */}
       <div className="absolute bottom-2 left-2 flex items-center gap-3 px-2.5 py-1.5 rounded-lg bg-white/90 shadow text-[11px] text-slate-600">
         <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-full bg-blue-600" /> Você</span>
-        <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-full bg-emerald-500" /> Chaveiro online</span>
+        <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-full bg-emerald-500" /> Livre</span>
+        <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-full bg-amber-500" /> Em atendimento</span>
       </div>
 
       {route && (

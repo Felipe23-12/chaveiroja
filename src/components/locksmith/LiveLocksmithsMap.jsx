@@ -42,6 +42,7 @@ export default function LiveLocksmithsMap({ customerLoc }) {
       lat: l.lat,
       lng: l.lng,
       type: "locksmith",
+      busy: !l.available,
       label: l.name?.split(" ")[0],
       onClick: () => navigate(`/chat/${l.id}`),
     })),
@@ -58,10 +59,16 @@ export default function LiveLocksmithsMap({ customerLoc }) {
             Profissionais do <strong>Modo Livre</strong> visíveis no mapa · toque para conversar
           </p>
         </div>
-        <span className="text-xs font-medium text-emerald-600 flex items-center gap-1.5">
-          <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-          {loading ? "…" : withDist.length} online
-        </span>
+        <div className="flex items-center gap-3 text-xs">
+          <span className="flex items-center gap-1.5 text-emerald-600 font-medium">
+            <span className="w-2 h-2 rounded-full bg-emerald-500" />
+            {loading ? "…" : withDist.filter((l) => l.available).length} livres
+          </span>
+          <span className="flex items-center gap-1.5 text-amber-600 font-medium">
+            <span className="w-2 h-2 rounded-full bg-amber-500" />
+            {loading ? "…" : withDist.filter((l) => !l.available).length} em atendimento
+          </span>
+        </div>
       </div>
 
       <MapView center={customerLoc} markers={markers} height={300} />
@@ -87,11 +94,16 @@ export default function LiveLocksmithsMap({ customerLoc }) {
               key={l.id}
               className="flex items-center gap-3 p-2.5 rounded-xl border border-border bg-card"
             >
-              <div className="w-9 h-9 rounded-full bg-emerald-500 text-white flex items-center justify-center font-semibold text-sm shrink-0">
+              <div className={`w-9 h-9 rounded-full text-white flex items-center justify-center font-semibold text-sm shrink-0 ${l.available ? "bg-emerald-500" : "bg-amber-500"}`}>
                 {l.name?.charAt(0)}
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-foreground truncate">{l.name}</p>
+                <div className="flex items-center gap-2">
+                  <p className="text-sm font-medium text-foreground truncate">{l.name}</p>
+                  <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded-full ${l.available ? "bg-emerald-100 text-emerald-700" : "bg-amber-100 text-amber-700"}`}>
+                    {l.available ? "Livre" : "Em atendimento"}
+                  </span>
+                </div>
                 <p className="text-xs text-muted-foreground">
                   {l.specialty} · {l.distance} km · ⭐ {l.rating}
                 </p>
