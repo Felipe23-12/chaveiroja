@@ -32,8 +32,8 @@ export default function ServiceCard({ service, selected, onClick }) {
       </div>
       <p className="font-heading font-semibold text-foreground">{service.label}</p>
       <p className="text-xs text-muted-foreground mt-0.5">{service.description}</p>
-      <p className="text-xs font-medium text-foreground mt-2">
-        {service.baseRange ? `a partir de R$ ${service.baseRange[0]}` : "valor calculado na hora"}
+      <p className="text-xs font-medium text-muted-foreground mt-2">
+        Valor informado após a confirmação
       </p>
     </button>
   );
