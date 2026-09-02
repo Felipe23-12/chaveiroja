@@ -12,7 +12,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Wrench, Mail, Lock, Loader2, User, Phone } from "lucide-react";
+import { Wrench, Mail, Lock, Loader2, User, Phone, CreditCard } from "lucide-react";
 import AuthLayout from "@/components/AuthLayout";
 import GoogleIcon from "@/components/GoogleIcon";
 import { safeReturnTo } from "@/lib/authReturnTo";
@@ -20,6 +20,7 @@ import { safeReturnTo } from "@/lib/authReturnTo";
 export default function RegisterChaveiro() {
   const [fullName, setFullName] = useState("");
   const [phone, setPhone] = useState("");
+  const [cpf, setCpf] = useState("");
   const [specialty, setSpecialty] = useState("Residencial");
   const [vehicle, setVehicle] = useState("");
   const [bio, setBio] = useState("");
@@ -47,13 +48,18 @@ export default function RegisterChaveiro() {
       setError("Informe seu veículo (ex: Moto Honda Pop 110i)");
       return;
     }
+    const cpfDigits = cpf.replace(/\D/g, "");
+    if (cpfDigits.length !== 11) {
+      setError("Informe um CPF válido (11 dígitos)");
+      return;
+    }
     setLoading(true);
     try {
       await base44.auth.register({ email, password });
       // Confirmação por email removida — os códigos não estavam chegando.
       // Salva os dados do cadastro para criar o perfil após o login automático.
       sessionStorage.setItem("chaveiro_onboarding", JSON.stringify({
-        fullName, phone, specialty, vehicle, bio,
+        fullName, phone, cpf, specialty, vehicle, bio,
       }));
       const dest = returnTo !== "/" ? returnTo : "/painel-chaveiro";
       window.history.replaceState({}, "", `${window.location.pathname}?returnTo=${encodeURIComponent(dest)}`);
@@ -132,6 +138,23 @@ export default function RegisterChaveiro() {
               placeholder="(11) 99999-9999"
               value={phone}
               onChange={(e) => setPhone(e.target.value)}
+              className="pl-10 h-12"
+              required
+            />
+          </div>
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="cpf">CPF</Label>
+          <div className="relative">
+            <CreditCard className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" aria-hidden="true" />
+            <Input
+              id="cpf"
+              type="text"
+              inputMode="numeric"
+              placeholder="000.000.000-00"
+              value={cpf}
+              onChange={(e) => setCpf(e.target.value)}
               className="pl-10 h-12"
               required
             />

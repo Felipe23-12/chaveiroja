@@ -21,7 +21,16 @@ export default function Login() {
     setError("");
     setLoading(true);
     try {
-      await base44.auth.loginViaEmailPassword(email, password);
+      let loginEmail = email;
+      // Se não tem @, trata como telefone e busca o email associado
+      if (!email.includes("@")) {
+        const res = await base44.functions.invoke("getEmailByPhone", { phone: email });
+        if (!res.data?.email) {
+          throw new Error("Telefone não encontrado. Cadastre-se primeiro.");
+        }
+        loginEmail = res.data.email;
+      }
+      await base44.auth.loginViaEmailPassword(loginEmail, password);
       let dest = returnTo;
       if (dest === "/") {
         try {
@@ -87,15 +96,15 @@ export default function Login() {
 
       <form onSubmit={handleSubmit} className="space-y-4">
         <div className="space-y-2">
-          <Label htmlFor="email">Email</Label>
+          <Label htmlFor="email">Email ou telefone</Label>
           <div className="relative">
             <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" aria-hidden="true" />
             <Input
               id="email"
-              type="email"
-              autoComplete="email"
+              type="text"
+              autoComplete="username"
               autoFocus
-              placeholder="voce@email.com"
+              placeholder="voce@email.com ou (11) 99999-9999"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               className="pl-10 h-12"

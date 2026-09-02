@@ -19,7 +19,11 @@
     },
     "phone": {
       "type": "string",
-      "description": "Telefone de contato"
+      "description": "Telefone de contato (usado tamb\u00e9m como login)"
+    },
+    "cpf": {
+      "type": "string",
+      "description": "CPF do usu\u00e1rio"
     }
   },
   "required": [

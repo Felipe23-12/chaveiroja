@@ -76,7 +76,7 @@ export default function PainelChaveiro() {
     try {
       const data = JSON.parse(raw);
       sessionStorage.removeItem("chaveiro_onboarding");
-      base44.auth.updateMe({ phone: data.phone, account_type: "chaveiro" }).catch(() => {});
+      base44.auth.updateMe({ phone: data.phone, cpf: data.cpf, account_type: "chaveiro" }).catch(() => {});
       base44.auth.updateMe({ full_name: data.fullName }).catch(() => {});
       base44.entities.Locksmith.create({
         name: data.fullName,
