@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet";
 import L from "leaflet";
+import { ZoomIn, ZoomOut } from "lucide-react";
 import "leaflet/dist/leaflet.css";
 import { base44 } from "@/api/base44Client";
 import { haversineKm } from "@/lib/geo";
@@ -36,6 +37,31 @@ function MapResizer() {
     return () => clearTimeout(t);
   }, [map]);
   return null;
+}
+
+// Botões de zoom customizados sobre o mapa
+function ZoomControls() {
+  const map = useMap();
+  return (
+    <div className="leaflet-control-zoom leaflet-bar leaflet-control" style={{ position: "absolute", right: 12, bottom: 24, zIndex: 1000 }}>
+      <button
+        type="button"
+        aria-label="Aproximar"
+        onClick={() => map.zoomIn()}
+        className="flex items-center justify-center w-9 h-9 bg-white border-b border-border text-foreground hover:bg-accent transition-colors"
+      >
+        <ZoomIn className="w-4 h-4" />
+      </button>
+      <button
+        type="button"
+        aria-label="Afastar"
+        onClick={() => map.zoomOut()}
+        className="flex items-center justify-center w-9 h-9 bg-white border-t border-border text-foreground hover:bg-accent transition-colors"
+      >
+        <ZoomOut className="w-4 h-4" />
+      </button>
+    </div>
+  );
 }
 
 /**
@@ -89,6 +115,7 @@ export default function RealLocksmithsMap({ me }) {
           zoom={13}
           style={{ height: "100%", width: "100%" }}
           scrollWheelZoom
+          zoomControl={false}
         >
           <TileLayer
             attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
@@ -96,6 +123,7 @@ export default function RealLocksmithsMap({ me }) {
           />
           <Recenter center={center} />
           <MapResizer />
+          <ZoomControls />
           {me && (
             <Marker position={[me.lat, me.lng]} icon={meIcon}>
               <Popup>
