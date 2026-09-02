@@ -16,6 +16,7 @@ import { Wrench, Mail, Lock, Loader2, User, Phone, CreditCard } from "lucide-rea
 import AuthLayout from "@/components/AuthLayout";
 import GoogleIcon from "@/components/GoogleIcon";
 import { safeReturnTo } from "@/lib/authReturnTo";
+import RegisterOtpStep from "@/components/auth/RegisterOtpStep";
 
 export default function RegisterChaveiro() {
   const [fullName, setFullName] = useState("");
@@ -29,6 +30,7 @@ export default function RegisterChaveiro() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [showOtp, setShowOtp] = useState(false);
 
   const returnTo = safeReturnTo();
   const qs = returnTo !== "/" ? "?returnTo=" + encodeURIComponent(returnTo) : "";
@@ -57,22 +59,20 @@ export default function RegisterChaveiro() {
     try {
       const registration = await base44.auth.register({ email, password });
 
-      // Base44 currently sends an OTP for email/password registrations.
-      // When registration already returns a token, use it directly; otherwise
-      // try the normal login flow. This avoids a second login when the platform
-      // has already authenticated the newly-created account.
-      if (registration?.access_token) {
-        base44.auth.setToken(registration.access_token);
-      } else {
-        await base44.auth.loginViaEmailPassword(email, password);
-      }
-
       sessionStorage.setItem("chaveiro_onboarding", JSON.stringify({
         fullName, phone, cpf, specialty, vehicle, bio,
       }));
-      const dest = returnTo !== "/" ? returnTo : "/painel-chaveiro";
-      window.history.replaceState({}, "", `${window.location.pathname}?returnTo=${encodeURIComponent(dest)}`);
-      window.location.assign(dest);
+
+      // O cadastro por email do Base44 envia um código OTP. Mostramos a etapa
+      // de confirmação imediatamente, em vez de tentar fazer login antes da
+      // verificação e deixar o usuário sem onde informar o código.
+      if (registration?.access_token) {
+        base44.auth.setToken(registration.access_token);
+        const dest = returnTo !== "/" ? returnTo : "/painel-chaveiro";
+        window.location.assign(dest);
+      } else {
+        setShowOtp(true);
+      }
     } catch (err) {
       const message = String(err?.message || "");
       const requiresVerification = /verif|confirm|otp|c[oó]digo|email/i.test(message);
@@ -91,6 +91,25 @@ export default function RegisterChaveiro() {
   };
 
   const handleGoogle = () => base44.auth.loginWithProvider("google", returnTo);
+
+  if (showOtp) {
+    return (
+      <RegisterOtpStep
+        email={email}
+        title="Confirme seu email"
+        subtitle={`Digite o código enviado para ${email}`}
+        notice={
+          <div className="mb-4 p-3 rounded-lg bg-muted text-sm text-center">
+            O código de confirmação foi enviado para seu email.
+          </div>
+        }
+        onSuccess={async () => {
+          const dest = returnTo !== "/" ? returnTo : "/painel-chaveiro";
+          window.location.assign(dest);
+        }}
+      />
+    );
+  }
 
   return (
     <AuthLayout
