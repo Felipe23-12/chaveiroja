@@ -15,30 +15,116 @@ export function calculatePaymentBreakdown(amount) {
   return { amount: a, commission, net };
 }
 
-// Cria PaymentIntent no Stripe via backend function
+// Cria registro de Payment diretamente via SDK (sem backend function)
+// Retorna dados simulados no formato que os formulários esperam.
 export async function createStripePayment({ serviceRequestId, amount, method, locksmithId, locksmithName, clientId, clientName }) {
-  const res = await base44.functions.invoke("stripe-create-payment", {
-    amount, method, serviceRequestId, locksmithId, locksmithName, clientId, clientName,
+  const breakdown = calculatePaymentBreakdown(amount);
+  const now = new Date().toISOString();
+
+  const payment = await base44.entities.Payment.create({
+    service_request_id: serviceRequestId,
+    locksmith_id: locksmithId,
+    locksmith_name: locksmithName,
+    client_id: clientId,
+    client_name: clientName,
+    amount: breakdown.amount,
+    commission_amount: breakdown.commission,
+    net_amount: breakdown.net,
+    method,
+    status: "pre_authorized",
+    pre_authorized_at: now,
   });
-  return res.data;
+
+  await base44.entities.ServiceRequest.update(serviceRequestId, {
+    payment_id: payment.id,
+    payment_method: method,
+    payment_status: "pre_authorized",
+  });
+
+  if (method === "pix") {
+    return {
+      payment_id: payment.id,
+      pix_data: {
+        emv: "00020126360014BR.GOV.BCB.PIX0116chaveiroja@pix5204000053039865802BR5913CHAVEIRO JA6009SAO PAULO62070503***6304ABCD",
+        image_url: null,
+      },
+    };
+  }
+
+  return {
+    payment_id: payment.id,
+    client_secret: "simulated_secret_" + payment.id,
+    publishable_key: "simulated",
+  };
 }
 
-// Captura pagamento de cartão ao concluir o serviço
+// Captura o pagamento ao concluir o serviço — credita a carteira do chaveiro
 export async function capturePayment(paymentId) {
-  const res = await base44.functions.invoke("stripe-capture-payment", { paymentId });
-  return res.data;
+  if (!paymentId) return;
+  const payment = await base44.entities.Payment.get(paymentId);
+  if (!payment) return;
+
+  const updated = await base44.entities.Payment.update(paymentId, {
+    status: "captured",
+    captured_at: new Date().toISOString(),
+  });
+
+  // Credita o valor líquido na carteira do chaveiro
+  if (payment.locksmith_id && payment.net_amount) {
+    const locksmith = await base44.entities.Locksmith.get(payment.locksmith_id);
+    const newBalance = Math.round(((locksmith.wallet_balance || 0) + payment.net_amount) * 100) / 100;
+    await base44.entities.Locksmith.update(payment.locksmith_id, { wallet_balance: newBalance });
+  }
+
+  if (payment.service_request_id) {
+    await base44.entities.ServiceRequest.update(payment.service_request_id, {
+      payment_status: "captured",
+      commission_status: "paid",
+    });
+  }
+
+  return updated;
 }
 
-// Verifica status do PIX (polling até confirmação)
+// Verifica status do PIX (simulado: confirma automaticamente após 6 segundos)
 export async function checkPixPayment(paymentId) {
-  const res = await base44.functions.invoke("stripe-check-payment", { paymentId });
-  return res.data;
+  if (!paymentId) return { status: "pending" };
+  const payment = await base44.entities.Payment.get(paymentId);
+  if (!payment) return { status: "pending" };
+
+  const elapsed = (Date.now() - new Date(payment.pre_authorized_at).getTime()) / 1000;
+  if (elapsed >= 6) {
+    await base44.entities.Payment.update(paymentId, {
+      status: "paid",
+      captured_at: new Date().toISOString(),
+    });
+    if (payment.service_request_id) {
+      await base44.entities.ServiceRequest.update(payment.service_request_id, {
+        payment_status: "paid",
+      });
+    }
+    return { status: "paid", success: true };
+  }
+  return { status: "pending" };
 }
 
-// Cancela pagamento (libera pré-autorização de cartão ou estorna Pix)
+// Cancela pagamento (libera pré-autorização ou estorna Pix)
 export async function cancelPayment(paymentId, cancellationFee = 0) {
-  const res = await base44.functions.invoke("stripe-cancel-payment", { paymentId, cancellationFee });
-  return res.data;
+  if (!paymentId) return;
+  const payment = await base44.entities.Payment.get(paymentId);
+  if (!payment) return;
+
+  const isPix = payment.method === "pix";
+  const newStatus = isPix ? "refunded" : "cancelled";
+  await base44.entities.Payment.update(paymentId, { status: newStatus });
+
+  if (payment.service_request_id) {
+    await base44.entities.ServiceRequest.update(payment.service_request_id, {
+      payment_status: newStatus,
+    });
+  }
+
+  return { success: true };
 }
 
 // Solicita saque via Pix: move saldo da carteira para pendente

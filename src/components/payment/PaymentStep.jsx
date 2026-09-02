@@ -66,8 +66,6 @@ export default function PaymentStep({ amount, activeRequest, selectedLocksmith, 
             />
           ) : (
             <StripeCardForm
-              clientSecret={stripeData.client_secret}
-              publishableKey={stripeData.publishable_key}
               processing={processing}
               onConfirm={() => onConfirm(method)}
             />
