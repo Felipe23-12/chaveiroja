@@ -81,7 +81,9 @@ export default function PainelChaveiro() {
     return unsub;
   }, [selectedId]);
 
-  // Notificação imediata de novos pedidos na região do chaveiro
+  // Notificação imediata de novos pedidos: prioritária para solicitações
+  // recebidas no modo aplicativo (direcionadas ao chaveiro) e de proximidade
+  // para pedidos na região não direcionados a ele.
   useEffect(() => {
     if (!selectedId || !me) return;
     const unsub = base44.entities.ServiceRequest.subscribe((event) => {
@@ -89,7 +91,21 @@ export default function PainelChaveiro() {
       const r = event.data;
       if (!r || notifiedIds.current.has(r.id)) return;
       if (r.status !== "searching" && r.status !== "ringing") return;
-      if (r.locksmith_id === selectedId) return; // já tratado pelo card de toque
+
+      if (r.locksmith_id === selectedId) {
+        // Solicitação recebida no modo aplicativo — alerta prioritário
+        notifiedIds.current.add(r.id);
+        playBeep();
+        setTimeout(playBeep, 600);
+        setTimeout(playBeep, 1200);
+        toast({
+          title: "🔔 Nova solicitação para você!",
+          description: `${r.service_type} · ${r.address}`,
+        });
+        return;
+      }
+
+      // Alerta de proximidade para pedidos na região (não direcionados)
       const dist = haversineKm(
         { lat: me.lat, lng: me.lng },
         { lat: r.customer_lat, lng: r.customer_lng }
