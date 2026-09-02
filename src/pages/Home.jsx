@@ -380,7 +380,9 @@ export default function Home() {
               searching={searching}
               searchError={searchError}
               onSearch={handleSearchKey}
-              price={price}
+              // O valor não aparece durante a configuração.
+              // Ele só é exibido depois que a solicitação é confirmada, na etapa de pagamento.
+              price={null}
             />
           ) : (
             <ServiceConfig
@@ -395,7 +397,8 @@ export default function Home() {
               setCustomAddon={setCustomAddon}
               vehicleInfo={vehicleInfo}
               setVehicleInfo={setVehicleInfo}
-              price={price}
+              // O cliente só vê o valor após confirmar a solicitação.
+              price={null}
             />
           )}
 
