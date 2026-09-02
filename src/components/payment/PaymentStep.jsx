@@ -27,7 +27,12 @@ export default function PaymentStep({ amount, description, onConfirm, onBack, pr
       if (result.error) throw new Error(result.error);
       setStripeData(result);
     } catch (e) {
-      setCreateError(e.message || "Falha ao iniciar pagamento");
+      const msg = e?.message || "";
+      if (msg.includes("pix") && msg.toLowerCase().includes("invalid")) {
+        setCreateError("Pagamento via Pix ainda não ativado na conta Stripe. Use cartão por enquanto — ative o Pix no dashboard do Stripe em Settings → Payment methods.");
+      } else {
+        setCreateError(msg || "Falha ao iniciar pagamento");
+      }
     } finally {
       setCreating(false);
     }
