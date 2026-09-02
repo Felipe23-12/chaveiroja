@@ -157,6 +157,7 @@ export default function PainelChaveiro() {
     const newPrice = Math.round(((ring.price || 0) + extra) * 100) / 100;
     await base44.entities.ServiceRequest.update(ring.id, {
       status: "accepted",
+      accepted_at: new Date().toISOString(),
       locksmith_lat: me.lat,
       locksmith_lng: me.lng,
       price: newPrice,

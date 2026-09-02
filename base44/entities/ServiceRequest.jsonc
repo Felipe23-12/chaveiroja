@@ -96,6 +96,26 @@
       ],
       "default": "pending",
       "description": "Status de compensa\u00e7\u00e3o da comiss\u00e3o de 15% (modo app): pendente ou compensada"
+    },
+    "accepted_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Data/hora em que o chaveiro confirmou (aceitou) o servi\u00e7o"
+    },
+    "cancellation_fee": {
+      "type": "number",
+      "default": 0,
+      "description": "Taxa de cancelamento cobrada do cliente (25% do valor total) quando cancela ap\u00f3s 5 min da confirma\u00e7\u00e3o"
+    },
+    "cancellation_locksmith_amount": {
+      "type": "number",
+      "default": 0,
+      "description": "Parte da taxa de cancelamento destinada ao chaveiro (20% do valor total)"
+    },
+    "cancellation_app_fee": {
+      "type": "number",
+      "default": 0,
+      "description": "Parte da taxa de cancelamento destinada ao aplicativo (5% do valor total)"
     }
   },
   "required": [

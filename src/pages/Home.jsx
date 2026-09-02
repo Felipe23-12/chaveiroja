@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo, useRef } from "react";
 import { base44 } from "@/api/base44Client";
 import { ArrowRight, ArrowLeft, Zap, Bell, Loader2, MapPin, Navigation } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { SERVICE_CATALOG, calculatePrice, calculateCarKeyPrice, CAR_KEY_LABOR, CAR_KEY_COST_PER_KM } from "@/lib/pricing";
+import { SERVICE_CATALOG, calculatePrice, calculateCarKeyPrice, CAR_KEY_LABOR, CAR_KEY_COST_PER_KM, calculateCancellationFee, CANCELLATION_THRESHOLD_MINUTES } from "@/lib/pricing";
 import { searchCarKeyValue } from "@/lib/carKey";
 import ServiceCard from "@/components/locksmith/ServiceCard";
 import ServiceConfig from "@/components/locksmith/ServiceConfig";
@@ -168,7 +168,31 @@ export default function Home() {
 
   const handleCancel = async () => {
     if (!activeRequest) return;
-    await base44.entities.ServiceRequest.update(activeRequest.id, { status: "cancelled" });
+    const update = { status: "cancelled" };
+    const isApp = selectedLocksmith?.work_mode === "app";
+    const postConfirmation =
+      isApp &&
+      activeRequest.accepted_at &&
+      (activeRequest.status === "accepted" || activeRequest.status === "on_the_way");
+
+    if (postConfirmation) {
+      const elapsedMin = (Date.now() - new Date(activeRequest.accepted_at).getTime()) / 60000;
+      if (elapsedMin >= CANCELLATION_THRESHOLD_MINUTES) {
+        const c = calculateCancellationFee(activeRequest.price);
+        const ok = window.confirm(
+          `Cancelamento após ${CANCELLATION_THRESHOLD_MINUTES} minutos da confirmação do chaveiro.\n\n` +
+          `Será cobrada uma taxa de 25% sobre o valor do serviço (R$ ${c.fee.toFixed(2)}):\n` +
+          `• R$ ${c.locksmithAmount.toFixed(2)} para o chaveiro\n` +
+          `• R$ ${c.appFee.toFixed(2)} para o aplicativo\n\nDeseja continuar com o cancelamento?`
+        );
+        if (!ok) return;
+        update.cancellation_fee = c.fee;
+        update.cancellation_locksmith_amount = c.locksmithAmount;
+        update.cancellation_app_fee = c.appFee;
+      }
+    }
+
+    await base44.entities.ServiceRequest.update(activeRequest.id, update);
     handleNewRequest();
   };
 
@@ -362,6 +386,12 @@ export default function Home() {
             onRate={handleRate}
             onCall={(l) => (window.location.href = `tel:${l.phone}`)}
           />
+
+          {activeRequest.status !== "completed" && (
+            <Button onClick={handleCancel} variant="outline" className="w-full text-red-600 border-red-200 hover:bg-red-50">
+              Cancelar serviço
+            </Button>
+          )}
 
           {activeRequest.status === "completed" && (
             <Button onClick={handleNewRequest} variant="outline" className="w-full">

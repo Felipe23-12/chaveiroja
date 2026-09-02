@@ -17,6 +17,7 @@ export default function PainelFinanceiro() {
   const [selectedId, setSelectedId] = useState("");
   const [me, setMe] = useState(null);
   const [completed, setCompleted] = useState([]);
+  const [cancelled, setCancelled] = useState([]);
   const [loading, setLoading] = useState(true);
   const [togglingFee, setTogglingFee] = useState(false);
 
@@ -35,6 +36,10 @@ export default function PainelFinanceiro() {
       base44.entities.ServiceRequest
         .filter({ locksmith_id: selectedId, status: "completed" }, "-created_date")
         .then(setCompleted)
+        .then(() =>
+          base44.entities.ServiceRequest.filter({ locksmith_id: selectedId, status: "cancelled" }, "-created_date")
+        )
+        .then((list) => setCancelled(list.filter((r) => Number(r.cancellation_fee) > 0)))
         .finally(() => setLoading(false));
     load();
     const unsub = base44.entities.ServiceRequest.subscribe(() => load());
@@ -65,9 +70,23 @@ export default function PainelFinanceiro() {
         }
       }
     });
-    const net = gross - commission;
-    return { gross, commission, net, count: completed.length, commissionPaid, commissionPending, paidCount };
-  }, [completed, isAppMode]);
+    let cancellationTotal = 0;
+    cancelled.forEach((r) => {
+      cancellationTotal += Number(r.cancellation_locksmith_amount) || 0;
+    });
+    const net = gross - commission + cancellationTotal;
+    return {
+      gross,
+      commission,
+      net,
+      count: completed.length,
+      commissionPaid,
+      commissionPending,
+      paidCount,
+      cancellationTotal,
+      cancelledCount: cancelled.length,
+    };
+  }, [completed, cancelled, isAppMode]);
 
   const handleToggleCommission = async (r) => {
     const newStatus = (r.commission_status || "pending") === "paid" ? "pending" : "paid";
@@ -234,6 +253,53 @@ export default function PainelFinanceiro() {
               R$ {stats.commissionPending.toFixed(2)}
             </p>
             <p className="text-[11px] text-amber-600/80 mt-0.5">{completed.length - stats.paidCount} serviço(s)</p>
+          </div>
+        </div>
+      )}
+
+      {/* Taxas de cancelamento recebidas — modo app */}
+      {isAppMode && cancelled.length > 0 && (
+        <div className="mb-6">
+          <h2 className="font-heading font-semibold text-lg text-foreground mb-3">
+            Taxas de cancelamento recebidas (20%)
+          </h2>
+          <div className="p-4 rounded-xl bg-emerald-50 border border-emerald-100 mb-3">
+            <div className="flex items-center gap-2 text-emerald-700 mb-1">
+              <BadgeCheck className="w-4 h-4" />
+              <span className="text-xs font-medium">Total recebido de cancelamentos</span>
+            </div>
+            <p className="font-heading font-bold text-2xl text-emerald-700">
+              R$ {stats.cancellationTotal.toFixed(2)}
+            </p>
+            <p className="text-[11px] text-emerald-600/80 mt-0.5">
+              {stats.cancelledCount} cancelamento(s) com taxa · 5% repassado ao app
+            </p>
+          </div>
+          <div className="space-y-2">
+            {cancelled.map((r) => {
+              const fee = Number(r.cancellation_fee) || 0;
+              const locksmithAmt = Number(r.cancellation_locksmith_amount) || 0;
+              const appFee = Number(r.cancellation_app_fee) || 0;
+              return (
+                <div key={r.id} className="p-3 rounded-xl border border-border bg-card">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium text-foreground truncate">{r.service_type}</p>
+                      <p className="text-xs text-muted-foreground truncate">{r.address}</p>
+                      <p className="text-[11px] text-muted-foreground mt-0.5">
+                        {new Date(r.created_date).toLocaleDateString("pt-BR")} · Cancelado após confirmação
+                      </p>
+                    </div>
+                    <div className="text-right shrink-0">
+                      <p className="text-[11px] text-muted-foreground">Taxa do cliente (25%)</p>
+                      <p className="text-sm font-medium text-foreground">R$ {fee.toFixed(2)}</p>
+                      <p className="text-[11px] text-emerald-600 mt-0.5">+ R$ {locksmithAmt.toFixed(2)} para você (20%)</p>
+                      <p className="text-[11px] text-muted-foreground">R$ {appFee.toFixed(2)} para o app (5%)</p>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
           </div>
         </div>
       )}

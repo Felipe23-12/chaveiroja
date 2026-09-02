@@ -177,3 +177,19 @@ export function calculateCommission(total, workMode) {
   if (workMode === "app") return Math.round(total * WORK_MODES.app.feeValue * 100) / 100;
   return 0;
 }
+
+// Taxa de cancelamento (modo aplicativo): após 5 minutos da confirmação do
+// chaveiro, o cliente que cancelar paga 25% do valor total — 20% para o
+// chaveiro e 5% para o aplicativo.
+export const CANCELLATION_THRESHOLD_MINUTES = 5;
+export const CANCELLATION_FEE_RATE = 0.25;
+export const CANCELLATION_LOCKSMITH_SHARE = 0.20;
+export const CANCELLATION_APP_SHARE = 0.05;
+
+export function calculateCancellationFee(price) {
+  const p = Number(price) || 0;
+  const fee = Math.round(p * CANCELLATION_FEE_RATE * 100) / 100;
+  const locksmithAmount = Math.round(p * CANCELLATION_LOCKSMITH_SHARE * 100) / 100;
+  const appFee = Math.round(p * CANCELLATION_APP_SHARE * 100) / 100;
+  return { fee, locksmithAmount, appFee };
+}
