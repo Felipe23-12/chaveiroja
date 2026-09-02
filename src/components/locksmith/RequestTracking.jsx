@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import ReviewForm from "@/components/locksmith/ReviewForm";
 
 const steps = [
-  { key: "accepted", label: "Chaveiro aceitou", desc: "Seu pedido foi confirmado" },
+  { key: "accepted", label: "Pedido em andamento", desc: "Chaveiro aceitou seu pedido" },
   { key: "on_the_way", label: "A caminho", desc: "O chaveiro está indo até você" },
   { key: "completed", label: "Serviço concluído", desc: "Atendimento finalizado" },
 ];

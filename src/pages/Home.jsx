@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useRef } from "react";
 import { base44 } from "@/api/base44Client";
-import { ArrowRight, ArrowLeft, Zap, Bell, Loader2, MapPin, Navigation } from "lucide-react";
+import { ArrowRight, ArrowLeft, Zap, Bell, Loader2, MapPin, Navigation, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { SERVICE_CATALOG, calculatePrice, calculateCarKeyPrice, CAR_KEY_LABOR, CAR_KEY_COST_PER_KM, calculateCancellationFee, CANCELLATION_THRESHOLD_MINUTES } from "@/lib/pricing";
 import { searchCarKeyValue } from "@/lib/carKey";
@@ -147,8 +147,11 @@ export default function Home() {
       if (event.data?.id === activeRequest.id) {
         base44.entities.ServiceRequest.get(activeRequest.id).then((updated) => {
           setActiveRequest(updated);
-          if ((updated.status === "accepted" || updated.status === "on_the_way") && step === 3) {
+          if (updated.status === "accepted" && step === 3) {
             setStep(4);
+          }
+          if (updated.status === "on_the_way" && step === 4) {
+            setStep(5);
           }
         });
       }
@@ -231,7 +234,7 @@ export default function Home() {
       </div>
 
       <div className="flex items-center gap-2 mb-6">
-        {[1, 2, 3, 4].map((n) => (
+        {[1, 2, 3, 4, 5].map((n) => (
           <div
             key={n}
             className={`h-1.5 flex-1 rounded-full transition-colors ${step >= n ? "bg-primary" : "bg-border"}`}
@@ -355,8 +358,31 @@ export default function Home() {
         </div>
       )}
 
-      {/* Step 4: Acompanhamento em tempo real */}
-      {step === 4 && activeRequest && (
+      {/* Step 4: Pedido em andamento (chaveiro aceitou) */}
+      {step === 4 && activeRequest && activeRequest.status === "accepted" && (
+        <div className="space-y-5 text-center">
+          <div className="flex flex-col items-center py-8">
+            <div className="w-16 h-16 rounded-full bg-emerald-100 flex items-center justify-center mb-4">
+              <CheckCircle2 className="w-8 h-8 text-emerald-600" />
+            </div>
+            <h2 className="font-heading font-semibold text-lg text-foreground mb-1">
+              Chaveiro aceitou seu pedido!
+            </h2>
+            <p className="text-sm text-muted-foreground mb-4">
+              {selectedLocksmith?.name} · {service?.label}
+            </p>
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-100 text-emerald-700 text-xs font-medium">
+              <CheckCircle2 className="w-3.5 h-3.5" /> Status: Em Andamento
+            </span>
+          </div>
+          <Button onClick={() => { handleAdvance(); setStep(5); }} size="lg" className="w-full">
+            Acompanhar no mapa <Navigation className="w-4 h-4 ml-2" />
+          </Button>
+        </div>
+      )}
+
+      {/* Step 5: Acompanhamento em tempo real */}
+      {step === 5 && activeRequest && (
         <div className="space-y-5">
           <div>
             <h2 className="font-heading font-semibold text-lg text-foreground flex items-center gap-2">
