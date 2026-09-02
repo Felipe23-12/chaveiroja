@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
-import { ShieldCheck, Users, Wrench, ClipboardList, Wallet, Trash2, Power, ArrowDownToLine, CheckCircle2 } from "lucide-react";
+import { ShieldCheck, Users, Wrench, ClipboardList, Wallet, Trash2, Power, ArrowDownToLine, CheckCircle2, Info } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import AdminCharts from "@/components/admin/AdminCharts";
 import ServiceFilters, { filterRequests } from "@/components/admin/ServiceFilters";
@@ -148,6 +148,13 @@ export default function PainelAdmin() {
 
       <section>
         <h2 className="font-heading font-semibold text-lg text-foreground mb-3">Usuários</h2>
+        <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 mb-3 flex items-start gap-2">
+          <Info className="w-4 h-4 text-amber-600 mt-0.5 shrink-0" />
+          <p className="text-xs text-amber-800">
+            O botão de exclusão abaixo remove <strong>apenas o registro do banco de dados</strong>. Para liberar o e-mail
+            e permitir recadastro, é necessário excluir a conta de autenticação em <strong>Dashboard → Users → ícone de lixeira</strong> no painel do Base44.
+          </p>
+        </div>
         <div className="rounded-xl border border-border overflow-hidden bg-white">
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
