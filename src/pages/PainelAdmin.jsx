@@ -3,6 +3,7 @@ import { base44 } from "@/api/base44Client";
 import { ShieldCheck, Users, Wrench, ClipboardList, Wallet, Trash2, Power } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import AdminCharts from "@/components/admin/AdminCharts";
+import ServiceFilters, { filterRequests } from "@/components/admin/ServiceFilters";
 
 const fmtMoney = (n) =>
   (n || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
@@ -20,6 +21,7 @@ export default function PainelAdmin() {
   const [users, setUsers] = useState([]);
   const [locksmiths, setLocksmiths] = useState([]);
   const [requests, setRequests] = useState([]);
+  const [filters, setFilters] = useState({ date: "", serviceType: "", locksmithName: "" });
   const [loading, setLoading] = useState(true);
 
   const load = async () => {
@@ -45,6 +47,8 @@ export default function PainelAdmin() {
   const revenue = requests
     .filter((r) => r.status === "completed")
     .reduce((s, r) => s + (r.price || 0), 0);
+
+  const filteredRequests = filterRequests(requests, filters);
 
   const toggleAvailable = async (l) => {
     await base44.entities.Locksmith.update(l.id, { available: !l.available });
@@ -178,6 +182,52 @@ export default function PainelAdmin() {
                   <tr>
                     <td colSpan={5} className="px-4 py-6 text-center text-muted-foreground">
                       Nenhum chaveiro
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <section>
+        <h2 className="font-heading font-semibold text-lg text-foreground mb-3">Solicitações</h2>
+        <div className="mb-3">
+          <ServiceFilters
+            filters={filters}
+            onChange={setFilters}
+            onClear={() => setFilters({ date: "", serviceType: "", locksmithName: "" })}
+          />
+        </div>
+        <div className="rounded-xl border border-border overflow-hidden bg-white">
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead className="bg-muted/50 text-muted-foreground text-left">
+                <tr>
+                  <th className="px-4 py-2 font-medium">Tipo</th>
+                  <th className="px-4 py-2 font-medium">Chaveiro</th>
+                  <th className="px-4 py-2 font-medium">Status</th>
+                  <th className="px-4 py-2 font-medium">Valor</th>
+                  <th className="px-4 py-2 font-medium">Data</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredRequests.map((r) => (
+                  <tr key={r.id} className="border-t border-border">
+                    <td className="px-4 py-2 text-foreground">{r.service_type}</td>
+                    <td className="px-4 py-2 text-muted-foreground">{r.locksmith_name || "—"}</td>
+                    <td className="px-4 py-2 capitalize">{r.status}</td>
+                    <td className="px-4 py-2">{fmtMoney(r.price)}</td>
+                    <td className="px-4 py-2 text-muted-foreground">
+                      {new Date(r.created_date).toLocaleDateString("pt-BR")}
+                    </td>
+                  </tr>
+                ))}
+                {filteredRequests.length === 0 && (
+                  <tr>
+                    <td colSpan={5} className="px-4 py-6 text-center text-muted-foreground">
+                      Nenhuma solicitação encontrada
                     </td>
                   </tr>
                 )}

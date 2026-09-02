@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { Clock, MapPin, Star, Wrench } from "lucide-react";
+import ServiceFilters, { filterRequests } from "@/components/admin/ServiceFilters";
 
 const statusLabels = {
   pending: { label: "Pendente", color: "bg-amber-100 text-amber-700" },
@@ -13,12 +14,15 @@ const statusLabels = {
 export default function History() {
   const [requests, setRequests] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [filters, setFilters] = useState({ date: "", serviceType: "", locksmithName: "" });
 
   useEffect(() => {
     base44.entities.ServiceRequest.list("-created_date", 50)
       .then(setRequests)
       .finally(() => setLoading(false));
   }, []);
+
+  const filtered = filterRequests(requests, filters);
 
   if (loading) {
     return (
@@ -40,6 +44,14 @@ export default function History() {
         </div>
       </div>
 
+      <div className="mb-4">
+        <ServiceFilters
+          filters={filters}
+          onChange={setFilters}
+          onClear={() => setFilters({ date: "", serviceType: "", locksmithName: "" })}
+        />
+      </div>
+
       {requests.length === 0 ? (
         <div className="text-center py-16">
           <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center mx-auto mb-4">
@@ -50,7 +62,7 @@ export default function History() {
         </div>
       ) : (
         <div className="space-y-3">
-          {requests.map((req) => {
+          {filtered.map((req) => {
             const st = statusLabels[req.status] || statusLabels.pending;
             return (
               <div key={req.id} className="p-4 rounded-2xl bg-white border border-border">
@@ -78,6 +90,11 @@ export default function History() {
               </div>
             );
           })}
+          {filtered.length === 0 && (
+            <div className="text-center py-10 text-sm text-muted-foreground">
+              Nenhum serviço encontrado com os filtros aplicados.
+            </div>
+          )}
         </div>
       )}
     </div>
