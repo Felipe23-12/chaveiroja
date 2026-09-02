@@ -122,6 +122,33 @@ Deno.serve(async (req) => {
       return Response.json({ success: true, url: link.url, expires_at: link.expires_at });
     }
 
+    if (action === 'request_pix') {
+      const records = await base44.asServiceRole.entities.StripeConnectAccount.filter({ locksmith_id: locksmithId });
+      const record = records?.[0];
+      if (!record?.stripe_account_id) {
+        return Response.json({ error: 'Conta Stripe Connect ainda não foi criada' }, { status: 400 });
+      }
+
+      try {
+        const capability = await stripeRequest(`/accounts/${record.stripe_account_id}/capabilities/pix_payments`, stripeKey, {
+          method: 'POST',
+          body: stripeForm({ requested: true }),
+        });
+        await base44.asServiceRole.entities.StripeConnectAccount.update(record.id, {
+          pix_payments_status: capability.status || 'unknown',
+          updated_at: new Date().toISOString(),
+        });
+        return Response.json({ success: true, status: capability.status || 'unknown' });
+      } catch (error) {
+        const message = error?.message || 'Não foi possível solicitar a capacidade Pix';
+        await base44.asServiceRole.entities.StripeConnectAccount.update(record.id, {
+          pix_payments_status: 'inactive',
+          updated_at: new Date().toISOString(),
+        });
+        return Response.json({ success: false, status: 'inactive', error: message }, { status: 200 });
+      }
+    }
+
     if (action === 'get_status') {
       const records = await base44.asServiceRole.entities.StripeConnectAccount.filter({ locksmith_id: locksmithId });
       const record = records?.[0];
