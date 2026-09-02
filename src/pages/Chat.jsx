@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import ReviewForm from "@/components/locksmith/ReviewForm";
+import QuickMessages from "@/components/chat/QuickMessages";
 
 export default function Chat() {
   const { locksmithId } = useParams();
@@ -42,6 +43,22 @@ export default function Chat() {
     setSending(true);
     const msg = text.trim();
     setText("");
+    try {
+      await base44.entities.ChatMessage.create({
+        locksmith_id: locksmithId,
+        locksmith_name: locksmith?.name,
+        sender_type: "customer",
+        sender_name: customerName,
+        message: msg,
+      });
+    } finally {
+      setSending(false);
+    }
+  };
+
+  const handleQuickSend = async (msg) => {
+    if (sending) return;
+    setSending(true);
     try {
       await base44.entities.ChatMessage.create({
         locksmith_id: locksmithId,
@@ -113,6 +130,7 @@ export default function Chat() {
         <div ref={scrollRef} />
       </div>
 
+      <QuickMessages onSend={handleQuickSend} disabled={sending} />
       <form onSubmit={handleSend} className="flex gap-2 pt-3 border-t border-border">
         <Input
           value={text}
