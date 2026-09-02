@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from "react";
-import { Bell, Check, X, MapPin, Clock, AlertCircle } from "lucide-react";
+import React, { useState, useEffect, useRef } from "react";
+import { Bell, Check, X, MapPin, Clock, AlertCircle, Volume2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 function formatElapsed(seconds) {
@@ -8,19 +8,71 @@ function formatElapsed(seconds) {
   return `${m}:${s.toString().padStart(2, "0")}`;
 }
 
+// Alerta sonoro curto via Web Audio
+function playBeep() {
+  try {
+    const AudioCtx = window.AudioContext || window.webkitAudioContext;
+    if (!AudioCtx) return;
+    const ctx = new AudioCtx();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.type = "sine";
+    osc.frequency.value = 880;
+    gain.gain.setValueAtTime(0.0001, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.3, ctx.currentTime + 0.02);
+    gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.4);
+    osc.start();
+    osc.stop(ctx.currentTime + 0.4);
+  } catch (e) {
+    // silencioso
+  }
+}
+
 export default function IncomingRequestAlert({ request, onAccept, onReject }) {
   const [elapsed, setElapsed] = useState(0);
   const [extraCost, setExtraCost] = useState("");
+  const [muted, setMuted] = useState(false);
+  const mutedRef = useRef(false);
 
+  useEffect(() => {
+    mutedRef.current = muted;
+  }, [muted]);
+
+  // Timer + som repetitivo + vibração enquanto a solicitação está pendente
   useEffect(() => {
     if (!request) return;
     setElapsed(0);
     setExtraCost("");
     const start = Date.now();
+
     const timer = setInterval(() => {
       setElapsed((Date.now() - start) / 1000);
     }, 1000);
-    return () => clearInterval(timer);
+
+    // Som repetitivo: 3 bipes a cada 5 segundos (fica mais rápido após 30s)
+    const soundTimer = setInterval(() => {
+      if (mutedRef.current) return;
+      playBeep();
+      setTimeout(playBeep, 250);
+      setTimeout(playBeep, 500);
+    }, 5000);
+
+    // Vibração no celular: padrão repetitivo
+    let vibrateTimer;
+    if (navigator.vibrate) {
+      navigator.vibrate([400, 200, 400]);
+      vibrateTimer = setInterval(() => {
+        if (!mutedRef.current) navigator.vibrate([400, 200, 400]);
+      }, 5000);
+    }
+
+    return () => {
+      clearInterval(timer);
+      clearInterval(soundTimer);
+      if (vibrateTimer) clearInterval(vibrateTimer);
+    };
   }, [request?.id]);
 
   if (!request) return null;
@@ -36,25 +88,38 @@ export default function IncomingRequestAlert({ request, onAccept, onReject }) {
 
   return (
     <div
-      className={`rounded-2xl border-2 mb-5 overflow-hidden transition-all ${
-        isUrgent ? "border-red-500 bg-red-50" : "border-primary bg-primary/5"
+      className={`rounded-2xl border-2 mb-5 overflow-hidden animate-alert-slide ${
+        isUrgent
+          ? "border-red-500 bg-red-50 animate-alert-flash"
+          : "border-primary bg-primary/5"
       }`}
     >
-      {/* Cabeçalho pulsante */}
+      {/* Cabeçalho piscante */}
       <div
-        className={`flex items-center justify-between px-4 py-2.5 ${
-          isUrgent ? "bg-red-500 text-white" : "bg-primary text-primary-foreground"
+        className={`flex items-center justify-between px-4 py-3 ${
+          isUrgent
+            ? "bg-red-500 text-white animate-alert-blink"
+            : "bg-primary text-primary-foreground"
         }`}
       >
         <div className="flex items-center gap-2">
           <Bell className="w-5 h-5 animate-bounce" />
           <span className="font-heading font-bold text-sm">
-            {isUrgent ? "⚠️ Solicitação urgente!" : "Nova solicitação!"}
+            {isUrgent ? "⚠️ URGENTE — RESPONDA!" : "Nova solicitação!"}
           </span>
         </div>
-        <div className="flex items-center gap-1.5 text-xs font-medium">
-          <Clock className="w-3.5 h-3.5" />
-          <span className="tabular-nums">{formatElapsed(elapsed)}</span>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setMuted((m) => !m)}
+            className="p-1 rounded hover:bg-white/20 transition-colors"
+            title={muted ? "Ativar som" : "Silenciar"}
+          >
+            <Volume2 className={`w-4 h-4 ${muted ? "opacity-40" : ""}`} />
+          </button>
+          <div className="flex items-center gap-1.5 text-xs font-medium">
+            <Clock className="w-3.5 h-3.5" />
+            <span className="tabular-nums">{formatElapsed(elapsed)}</span>
+          </div>
         </div>
       </div>
 
@@ -100,9 +165,9 @@ export default function IncomingRequestAlert({ request, onAccept, onReject }) {
 
         {/* Aviso de tempo limite */}
         {isUrgent && (
-          <div className="flex items-center gap-2 text-xs text-red-600 bg-red-100 p-2 rounded-lg">
+          <div className="flex items-center gap-2 text-xs text-red-600 bg-red-100 p-2 rounded-lg animate-alert-blink">
             <AlertCircle className="w-4 h-4 shrink-0" />
-            <span>A solicitação pode expirar — aceite ou recuse o mais rápido possível.</span>
+            <span>A solicitação pode expirar — aceite ou recuse o mais rápido possível!</span>
           </div>
         )}
 
@@ -122,10 +187,10 @@ export default function IncomingRequestAlert({ request, onAccept, onReject }) {
 
         {/* Ações */}
         <div className="flex gap-2">
-          <Button onClick={handleAccept} className="flex-1">
+          <Button onClick={handleAccept} className="flex-1" size="lg">
             <Check className="w-4 h-4 mr-1.5" /> Aceitar
           </Button>
-          <Button onClick={onReject} variant="outline" className="flex-1">
+          <Button onClick={onReject} variant="outline" className="flex-1" size="lg">
             <X className="w-4 h-4 mr-1.5" /> Recusar
           </Button>
         </div>

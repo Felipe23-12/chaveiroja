@@ -237,7 +237,15 @@ export default function PainelChaveiro() {
       : "Serviço concluído";
 
   return (
-    <div className="max-w-2xl mx-auto px-4 py-6 md:py-10">
+    <div className={`max-w-2xl mx-auto px-4 py-6 md:py-10 ${pendingCount > 0 && isAppMode ? "pt-14 md:pt-14" : ""}`}>
+      {/* Banner fixo piscante no topo quando há solicitações pendentes */}
+      {pendingCount > 0 && isAppMode && (
+        <div className="fixed top-0 left-0 right-0 z-50 bg-red-500 text-white text-center py-2 text-sm font-bold animate-alert-blink shadow-lg md:left-64">
+          <Bell className="w-4 h-4 inline mr-2 animate-bounce" />
+          {pendingCount === 1 ? "1 solicitação aguardando resposta!" : `${pendingCount} solicitações aguardando resposta!`}
+        </div>
+      )}
+
       <div className="flex items-center gap-2 mb-6">
         <div className="w-10 h-10 rounded-xl bg-primary flex items-center justify-center">
           <Wrench className="w-5 h-5 text-primary-foreground" />
