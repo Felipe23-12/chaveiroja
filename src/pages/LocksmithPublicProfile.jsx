@@ -4,7 +4,7 @@ import { base44 } from "@/api/base44Client";
 import { ArrowLeft, Star, MessageCircle, MapPin, Wrench } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { haversineKm, DEFAULT_CENTER, getCustomerLocation } from "@/lib/geo";
-import ReviewsList from "@/components/locksmith/ReviewsList";
+import LocksmithCredentialsTabs from "@/components/locksmith/LocksmithCredentialsTabs";
 
 export default function LocksmithPublicProfile() {
   const { id } = useParams();
@@ -71,8 +71,7 @@ export default function LocksmithPublicProfile() {
         </Button>
       )}
 
-      <h2 className="font-heading font-semibold text-lg text-foreground mb-3">Avaliações dos clientes</h2>
-      <ReviewsList locksmithId={locksmith.id} />
+      <LocksmithCredentialsTabs locksmith={locksmith} />
     </div>
   );
 }
