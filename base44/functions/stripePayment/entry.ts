@@ -3,6 +3,12 @@ import { secrets } from 'base44:runtime';
 
 const STRIPE_API = "https://api.stripe.com/v1";
 
+function stripeForm(data: Record<string, string | number | boolean>) {
+  const form = new URLSearchParams();
+  for (const [key, value] of Object.entries(data)) form.append(key, String(value));
+  return form.toString();
+}
+
 export default async function(req) {
   try {
     const base44 = createClientFromRequest(req);
