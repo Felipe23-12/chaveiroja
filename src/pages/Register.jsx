@@ -53,6 +53,13 @@ export default function Register() {
           </div>
           <ArrowRight className="w-5 h-5 text-muted-foreground" />
         </Link>
+
+        <p className="text-xs text-center text-muted-foreground pt-3">
+          Ao continuar, você declara estar ciente da{" "}
+          <Link to="/politica-reembolso" className="text-primary hover:underline font-medium">
+            Política de Reembolso e Garantia de Serviço
+          </Link>.
+        </p>
       </div>
     </AuthLayout>
   );
