@@ -103,6 +103,28 @@
       "type": "boolean",
       "default": false
     },
+    "monthly_fee_due_day": {
+      "type": "number",
+      "minimum": 1,
+      "maximum": 28,
+      "default": 1,
+      "description": "Dia do m\u00eas escolhido pelo chaveiro (modo livre) para o vencimento da mensalidade"
+    },
+    "monthly_fee_method": {
+      "type": "string",
+      "enum": [
+        "pix",
+        "credit_card",
+        "debit_card",
+        "boleto"
+      ],
+      "description": "M\u00e9todo de pagamento da mensalidade (modo livre)"
+    },
+    "monthly_fee_last_paid": {
+      "type": "string",
+      "format": "date",
+      "description": "Data do \u00faltimo pagamento da mensalidade"
+    },
     "lat": {
       "type": "number",
       "default": -23.55

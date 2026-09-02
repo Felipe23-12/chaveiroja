@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { WORK_MODES, calculateCommission } from "@/lib/pricing";
 import LocksmithHistorySummary from "@/components/locksmith/LocksmithHistorySummary";
+import MonthlySubscriptionConfig from "@/components/locksmith/MonthlySubscriptionConfig";
 
 export default function LocksmithProfile() {
   const [locksmiths, setLocksmiths] = useState([]);
@@ -39,9 +40,9 @@ export default function LocksmithProfile() {
       .finally(() => setSaving(false));
   };
 
-  const payMonthly = () => {
+  const updateLocksmith = (data) => {
     setSaving(true);
-    base44.entities.Locksmith.update(selectedId, { monthly_fee_paid: true })
+    base44.entities.Locksmith.update(selectedId, data)
       .then((updated) => setLocksmiths((prev) => prev.map((l) => (l.id === updated.id ? updated : l))))
       .finally(() => setSaving(false));
   };
@@ -102,42 +103,25 @@ export default function LocksmithProfile() {
 
           {/* Configuração modo livre */}
           {selected.work_mode === "livre" && (
-            <div className="rounded-2xl border border-border bg-white p-4 space-y-3">
-              <div>
-                <label className="text-sm font-medium text-foreground mb-1.5 block">
-                  Valor base do seu serviço (R$)
-                </label>
-                <Input
-                  type="number"
-                  value={selected.custom_price_base || ""}
-                  onChange={(e) => setCustomPrice(e.target.value)}
-                  placeholder="Ex: 150"
-                />
-                <p className="text-xs text-muted-foreground mt-1">
-                  Você define o valor. Adicionais (miolo, etc.) somam ao valor base.
-                </p>
-              </div>
-
-              <div className="flex items-center justify-between p-3 rounded-xl bg-muted">
-                <div className="flex items-center gap-2">
-                  <Wallet className="w-4 h-4 text-muted-foreground" />
-                  <span className="text-sm">Assinatura mensal</span>
+            <div className="space-y-3">
+              <div className="rounded-2xl border border-border bg-white p-4 space-y-3">
+                <div>
+                  <label className="text-sm font-medium text-foreground mb-1.5 block">
+                    Valor base do seu serviço (R$)
+                  </label>
+                  <Input
+                    type="number"
+                    value={selected.custom_price_base || ""}
+                    onChange={(e) => setCustomPrice(e.target.value)}
+                    placeholder="Ex: 150"
+                  />
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Você define o valor. Adicionais (miolo, etc.) somam ao valor base.
+                  </p>
                 </div>
-                <span className="font-semibold text-foreground">R$ 50,00 / mês</span>
               </div>
 
-              <div className={`flex items-center justify-between p-3 rounded-xl ${
-                selected.monthly_fee_paid ? "bg-green-50" : "bg-amber-50"
-              }`}>
-                <span className="text-sm font-medium">
-                  {selected.monthly_fee_paid ? "Mensalidade paga" : "Mensalidade pendente"}
-                </span>
-                {!selected.monthly_fee_paid && (
-                  <Button size="sm" onClick={payMonthly} disabled={saving}>
-                    Pagar R$ 50
-                  </Button>
-                )}
-              </div>
+              <MonthlySubscriptionConfig locksmith={selected} onUpdate={updateLocksmith} />
             </div>
           )}
 
