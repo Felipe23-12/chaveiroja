@@ -69,6 +69,36 @@ export default function PainelChaveiro() {
     });
   }, []);
 
+  // Onboarding: cria o perfil do chaveiro após cadastro (sem confirmação por email)
+  useEffect(() => {
+    const raw = sessionStorage.getItem("chaveiro_onboarding");
+    if (!raw) return;
+    try {
+      const data = JSON.parse(raw);
+      sessionStorage.removeItem("chaveiro_onboarding");
+      base44.auth.updateMe({ phone: data.phone, account_type: "chaveiro" }).catch(() => {});
+      base44.auth.updateMe({ full_name: data.fullName }).catch(() => {});
+      base44.entities.Locksmith.create({
+        name: data.fullName,
+        specialty: data.specialty,
+        vehicle: data.vehicle,
+        bio: data.bio,
+        phone: data.phone,
+        work_mode: "app",
+        available: true,
+        online: false,
+      }).then(() => {
+        base44.entities.Locksmith.list().then((list) => {
+          setLocksmiths(list);
+          const mine = list.find((l) => l.name === data.fullName);
+          if (mine) setSelectedId(mine.id);
+        });
+      }).catch(() => {});
+    } catch (e) {
+      /* dados inválidos — ignora */
+    }
+  }, []);
+
   useEffect(() => {
     if (!selectedId) return;
     base44.entities.Locksmith.get(selectedId).then(setMe);

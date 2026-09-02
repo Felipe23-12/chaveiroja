@@ -12,10 +12,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Wrench, Mail, Lock, Loader2, User, Phone, ShieldCheck } from "lucide-react";
+import { Wrench, Mail, Lock, Loader2, User, Phone } from "lucide-react";
 import AuthLayout from "@/components/AuthLayout";
 import GoogleIcon from "@/components/GoogleIcon";
-import RegisterOtpStep from "@/components/auth/RegisterOtpStep";
 import { safeReturnTo } from "@/lib/authReturnTo";
 
 export default function RegisterChaveiro() {
@@ -29,7 +28,6 @@ export default function RegisterChaveiro() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
-  const [showOtp, setShowOtp] = useState(false);
 
   const returnTo = safeReturnTo();
   const qs = returnTo !== "/" ? "?returnTo=" + encodeURIComponent(returnTo) : "";
@@ -52,65 +50,21 @@ export default function RegisterChaveiro() {
     setLoading(true);
     try {
       await base44.auth.register({ email, password });
-      setShowOtp(true);
+      // Confirmação por email removida — os códigos não estavam chegando.
+      // Salva os dados do cadastro para criar o perfil após o login automático.
+      sessionStorage.setItem("chaveiro_onboarding", JSON.stringify({
+        fullName, phone, specialty, vehicle, bio,
+      }));
+      const dest = returnTo !== "/" ? returnTo : "/painel-chaveiro";
+      window.history.replaceState({}, "", `${window.location.pathname}?returnTo=${encodeURIComponent(dest)}`);
+      await base44.auth.loginViaEmailPassword(email, password);
     } catch (err) {
       setError(err.message || "Falha no cadastro");
-    } finally {
       setLoading(false);
     }
   };
 
-  const handleVerified = async () => {
-    // Salva o tipo de conta primeiro — campo customizado essencial para o RoleGuard
-    try {
-      await base44.auth.updateMe({ phone, account_type: "chaveiro" });
-    } catch (e) {
-      /* não bloqueia o fluxo */
-    }
-    // full_name é built-in e pode não ser editável via updateMe — tenta separadamente
-    try {
-      await base44.auth.updateMe({ full_name: fullName });
-    } catch (e) {
-      /* ignora se a plataforma não permitir */
-    }
-    try {
-      await base44.entities.Locksmith.create({
-        name: fullName,
-        specialty,
-        vehicle,
-        bio,
-        phone,
-        work_mode: "app",
-        available: true,
-        online: false,
-      });
-    } catch (e) {
-      /* o perfil pode ser ajustado depois no Modo de Trabalho */
-    }
-    window.location.href = returnTo !== "/" ? returnTo : "/painel-chaveiro";
-  };
-
   const handleGoogle = () => base44.auth.loginWithProvider("google", returnTo);
-
-  if (showOtp) {
-    return (
-      <RegisterOtpStep
-        email={email}
-        title="Confirme seu email"
-        subtitle={`Enviamos um código para ${email}`}
-        notice={
-          <div className="mb-4 p-3 rounded-lg bg-amber-50 text-amber-700 text-sm flex items-start gap-2">
-            <ShieldCheck className="w-4 h-4 mt-0.5 shrink-0" />
-            <span>
-              A confirmação do email é obrigatória para ativar sua conta de chaveiro e começar a
-              receber solicitações.
-            </span>
-          </div>
-        }
-        onSuccess={handleVerified}
-      />
-    );
-  }
 
   return (
     <AuthLayout
