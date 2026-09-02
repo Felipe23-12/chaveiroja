@@ -13,7 +13,7 @@ import ModuleSelector from "@/components/locksmith/ModuleSelector";
 import LocksmithMiniProfile from "@/components/locksmith/LocksmithMiniProfile";
 import ReviewForm from "@/components/locksmith/ReviewForm";
 import MapView from "@/components/map/MapView";
-import { DEFAULT_CENTER, getCustomerLocation, haversineKm } from "@/lib/geo";
+import { DEFAULT_CENTER, getCustomerLocation, haversineKm, fetchDrivingRoute, etaMinutes } from "@/lib/geo";
 import { getClientLoyalty, applyLoyaltyDiscount } from "@/lib/loyalty";
 import PointsProgressCard from "@/components/locksmith/PointsProgressCard";
 import PaymentStep from "@/components/payment/PaymentStep";
@@ -41,6 +41,8 @@ export default function Home() {
   const [searchError, setSearchError] = useState("");
   const [loyalty, setLoyalty] = useState(null);
   const [paying, setPaying] = useState(false);
+  const [routePath, setRoutePath] = useState(null);
+  const [routeEta, setRouteEta] = useState(null);
   const reqRef = useRef(null);
 
   const service = useMemo(() => SERVICE_CATALOG.find((s) => s.id === serviceId), [serviceId]);
@@ -227,6 +229,22 @@ export default function Home() {
     });
     return unsub;
   }, [activeRequest?.id, step]);
+
+  // Busca a rota real de carro entre o chaveiro e o cliente (OSRM) para exibir o trajeto e o ETA preciso
+  useEffect(() => {
+    if (step !== 6 || !activeRequest) return;
+    const from = { lat: activeRequest.locksmith_lat, lng: activeRequest.locksmith_lng };
+    const to = { lat: activeRequest.customer_lat, lng: activeRequest.customer_lng };
+    if (!from.lat || !to.lat) return;
+    setRoutePath(null);
+    setRouteEta(null);
+    fetchDrivingRoute(from, to).then((r) => {
+      if (r) {
+        setRoutePath(r.coordinates);
+        setRouteEta(etaMinutes(r.duration));
+      }
+    });
+  }, [step, activeRequest?.locksmith_lat, activeRequest?.locksmith_lng, activeRequest?.customer_lat, activeRequest?.customer_lng]);
 
   const handleAdvance = () => {
     if (!activeRequest) return;
@@ -505,6 +523,8 @@ export default function Home() {
                 ? { from: { lat: activeRequest.locksmith_lat, lng: activeRequest.locksmith_lng }, to: { lat: activeRequest.customer_lat, lng: activeRequest.customer_lng } }
                 : null
             }
+            routePath={routePath}
+            eta={routeEta}
           />
 
           <RequestTracking

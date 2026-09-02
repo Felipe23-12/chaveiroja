@@ -17,11 +17,16 @@ function project(lat, lng, center) {
  * markers: [{ id, lat, lng, type: "customer"|"locksmith", label, active }]
  * route: { from: {lat,lng}, to: {lat,lng} } | null
  */
-export default function MapView({ center, markers = [], route = null, height = 360, onMarkerClick }) {
+export default function MapView({ center, markers = [], route = null, routePath = null, eta = null, height = 360, onMarkerClick }) {
   const c = center || { lat: -23.55, lng: -46.63 };
 
   const from = route ? project(route.from.lat, route.from.lng, c) : null;
   const to = route ? project(route.to.lat, route.to.lng, c) : null;
+
+  const pathPoints = routePath && routePath.length > 1
+    ? routePath.map((p) => project(p.lat, p.lng, c))
+    : null;
+  const polylinePoints = pathPoints ? pathPoints.map((p) => `${p.x},${p.y}`).join(" ") : null;
 
   return (
     <div
@@ -44,18 +49,41 @@ export default function MapView({ center, markers = [], route = null, height = 3
       </div>
 
       {/* Rota */}
-      {route && from && to && (
+      {(routePath || (route && from && to)) && (
         <svg className="absolute inset-0 w-full h-full pointer-events-none">
-          <line
-            x1={`${from.x}%`}
-            y1={`${from.y}%`}
-            x2={`${to.x}%`}
-            y2={`${to.y}%`}
-            stroke="#0f172a"
-            strokeWidth={3}
-            strokeDasharray="6 6"
-            strokeLinecap="round"
-          />
+          {routePath && pathPoints && pathPoints.length > 1 ? (
+            <>
+              <polyline
+                points={polylinePoints}
+                fill="none"
+                stroke="#0f172a"
+                strokeWidth={4}
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                opacity={0.85}
+              />
+              <polyline
+                points={polylinePoints}
+                fill="none"
+                stroke="#38bdf8"
+                strokeWidth={2}
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeDasharray="5 5"
+              />
+            </>
+          ) : (
+            <line
+              x1={`${from.x}%`}
+              y1={`${from.y}%`}
+              x2={`${to.x}%`}
+              y2={`${to.y}%`}
+              stroke="#0f172a"
+              strokeWidth={3}
+              strokeDasharray="6 6"
+              strokeLinecap="round"
+            />
+          )}
         </svg>
       )}
 
@@ -109,7 +137,7 @@ export default function MapView({ center, markers = [], route = null, height = 3
 
       {route && (
         <div className="absolute top-2 right-2 flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-white/90 shadow text-[11px] font-medium text-slate-700">
-          <Navigation className="w-3.5 h-3.5 text-primary" /> Rota até você
+          <Navigation className="w-3.5 h-3.5 text-primary" /> {eta ? `${eta} min · chegada` : "Rota até você"}
         </div>
       )}
     </div>

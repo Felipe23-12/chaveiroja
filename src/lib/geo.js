@@ -26,6 +26,33 @@ function toRad(v) {
   return (v * Math.PI) / 180;
 }
 
+// Busca a rota de carro entre dois pontos via OSRM (gratuito, sem chave de API).
+// Retorna { coordinates: [{lat,lng}...], duration: segundos, distance: metros } ou null.
+export async function fetchDrivingRoute(from, to) {
+  if (!from || !to || !from.lat || !to.lat) return null;
+  try {
+    const url = `https://router.project-osrm.org/route/v1/driving/${from.lng},${from.lat};${to.lng},${to.lat}?overview=full&geometries=geojson`;
+    const res = await fetch(url);
+    if (!res.ok) return null;
+    const data = await res.json();
+    if (!data.routes || data.routes.length === 0) return null;
+    const route = data.routes[0];
+    return {
+      coordinates: route.geometry.coordinates.map(([lng, lat]) => ({ lat, lng })),
+      duration: route.duration,
+      distance: route.distance,
+    };
+  } catch (e) {
+    return null;
+  }
+}
+
+// Converte duração (segundos) em minutos arredondados (mínimo 1)
+export function etaMinutes(durationSeconds) {
+  if (!durationSeconds) return 0;
+  return Math.max(1, Math.round(durationSeconds / 60));
+}
+
 // Tenta obter a localização do navegador; usa o centro padrão como fallback
 export function getCustomerLocation() {
   return new Promise((resolve) => {
