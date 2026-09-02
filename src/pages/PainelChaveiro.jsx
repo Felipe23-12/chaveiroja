@@ -15,6 +15,7 @@ import PhotoUploader from "@/components/locksmith/PhotoUploader";
 import WalletCard from "@/components/locksmith/WalletCard";
 import WithdrawalSection from "@/components/locksmith/WithdrawalSection";
 import IncomingRequestAlert from "@/components/locksmith/IncomingRequestAlert";
+import PendingRequestsList from "@/components/locksmith/PendingRequestsList";
 import { useToast } from "@/components/ui/use-toast";
 import { haversineKm, stepToward } from "@/lib/geo";
 
@@ -181,11 +182,11 @@ export default function PainelChaveiro() {
     await base44.entities.Locksmith.update(me.id, { online: !me.online });
   };
 
-  const handleAccept = async (extra = 0) => {
-    const req = pendingRequests[0];
+  const handleAccept = async (reqId, extra = 0) => {
+    const req = pendingRequests.find((r) => r.id === reqId);
     if (!req || !me) return;
     const newPrice = Math.round(((req.price || 0) + extra) * 100) / 100;
-    await base44.entities.ServiceRequest.update(req.id, {
+    await base44.entities.ServiceRequest.update(reqId, {
       status: "accepted",
       accepted_at: new Date().toISOString(),
       locksmith_lat: me.lat,
@@ -195,10 +196,10 @@ export default function PainelChaveiro() {
     });
   };
 
-  const handleReject = async () => {
-    const req = pendingRequests[0];
+  const handleReject = async (reqId) => {
+    const req = pendingRequests.find((r) => r.id === reqId);
     if (!req) return;
-    await base44.entities.ServiceRequest.update(req.id, { status: "cancelled" });
+    await base44.entities.ServiceRequest.update(reqId, { status: "cancelled" });
   };
 
   const handleConfirmStart = async () => {
@@ -309,10 +310,10 @@ export default function PainelChaveiro() {
         </div>
       )}
 
-      {/* Alerta de nova solicitação — modo app */}
-      {ring && isAppMode && (
-        <IncomingRequestAlert
-          request={ring}
+      {/* Fila de solicitações pendentes — modo app */}
+      {pendingCount > 0 && isAppMode && (
+        <PendingRequestsList
+          requests={pendingRequests}
           onAccept={handleAccept}
           onReject={handleReject}
         />
