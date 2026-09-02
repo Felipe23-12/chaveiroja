@@ -1,0 +1,80 @@
+{
+  "name": "Payment",
+  "type": "object",
+  "properties": {
+    "service_request_id": {
+      "type": "string",
+      "description": "ID do ServiceRequest associado"
+    },
+    "locksmith_id": {
+      "type": "string"
+    },
+    "locksmith_name": {
+      "type": "string"
+    },
+    "client_id": {
+      "type": "string"
+    },
+    "client_name": {
+      "type": "string"
+    },
+    "amount": {
+      "type": "number",
+      "default": 0,
+      "description": "Valor total pago pelo cliente"
+    },
+    "commission_amount": {
+      "type": "number",
+      "default": 0,
+      "description": "Comiss\u00e3o do app (15%)"
+    },
+    "net_amount": {
+      "type": "number",
+      "default": 0,
+      "description": "Valor l\u00edquido creditado na carteira do chaveiro"
+    },
+    "method": {
+      "type": "string",
+      "enum": [
+        "credit_card",
+        "debit_card",
+        "pix"
+      ],
+      "description": "M\u00e9todo de pagamento"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "pre_authorized",
+        "captured",
+        "paid",
+        "cancelled",
+        "refunded",
+        "failed"
+      ],
+      "default": "pre_authorized",
+      "description": "Status do pagamento no Stripe"
+    },
+    "stripe_payment_intent_id": {
+      "type": "string",
+      "description": "ID do PaymentIntent no Stripe"
+    },
+    "stripe_client_secret": {
+      "type": "string",
+      "description": "Client secret do PaymentIntent para confirma\u00e7\u00e3o no frontend"
+    },
+    "pre_authorized_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "captured_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "required": [
+    "service_request_id",
+    "amount",
+    "method"
+  ]
+}

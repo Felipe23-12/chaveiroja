@@ -1,0 +1,60 @@
+{
+  "name": "Withdrawal",
+  "type": "object",
+  "properties": {
+    "locksmith_id": {
+      "type": "string"
+    },
+    "locksmith_name": {
+      "type": "string"
+    },
+    "amount": {
+      "type": "number",
+      "default": 0,
+      "description": "Valor solicitado para saque"
+    },
+    "pix_key_type": {
+      "type": "string",
+      "enum": [
+        "cpf",
+        "cnpj",
+        "email",
+        "phone",
+        "random"
+      ],
+      "description": "Tipo da chave Pix de destino"
+    },
+    "pix_key_value": {
+      "type": "string",
+      "description": "Chave Pix de destino"
+    },
+    "bank_name": {
+      "type": "string",
+      "description": "Nome do banco de destino"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "requested",
+        "processing",
+        "completed",
+        "failed"
+      ],
+      "default": "requested",
+      "description": "Status do saque"
+    },
+    "requested_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "completed_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "required": [
+    "locksmith_id",
+    "amount",
+    "pix_key_value"
+  ]
+}

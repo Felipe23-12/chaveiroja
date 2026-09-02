@@ -114,6 +114,35 @@
     "online": {
       "type": "boolean",
       "default": false
+    },
+    "wallet_balance": {
+      "type": "number",
+      "default": 0,
+      "description": "Saldo dispon\u00edvel para saque na carteira digital"
+    },
+    "pending_balance": {
+      "type": "number",
+      "default": 0,
+      "description": "Saldo em processamento (saques solicitados)"
+    },
+    "pix_key_type": {
+      "type": "string",
+      "enum": [
+        "cpf",
+        "cnpj",
+        "email",
+        "phone",
+        "random"
+      ],
+      "description": "Tipo da chave Pix do chaveiro para receber saques"
+    },
+    "pix_key_value": {
+      "type": "string",
+      "description": "Chave Pix do chaveiro para receber saques"
+    },
+    "bank_name": {
+      "type": "string",
+      "description": "Nome do banco do chaveiro"
     }
   },
   "required": [

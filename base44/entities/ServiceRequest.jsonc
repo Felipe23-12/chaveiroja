@@ -142,6 +142,32 @@
       "type": "number",
       "default": 0,
       "description": "Valor do desconto de fidelidade aplicado ao pedido"
+    },
+    "payment_id": {
+      "type": "string",
+      "description": "ID do registro de Payment associado a este pedido"
+    },
+    "payment_method": {
+      "type": "string",
+      "enum": [
+        "credit_card",
+        "debit_card",
+        "pix"
+      ],
+      "description": "M\u00e9todo de pagamento selecionado pelo cliente"
+    },
+    "payment_status": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "pre_authorized",
+        "captured",
+        "paid",
+        "cancelled",
+        "refunded"
+      ],
+      "default": "pending",
+      "description": "Status do pagamento neste pedido"
     }
   },
   "required": [
