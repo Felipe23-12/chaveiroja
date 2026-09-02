@@ -4,6 +4,7 @@ import { ShieldCheck, Users, Wrench, ClipboardList, Wallet, Trash2, Power, Arrow
 import { Button } from "@/components/ui/button";
 import AdminCharts from "@/components/admin/AdminCharts";
 import ServiceFilters, { filterRequests } from "@/components/admin/ServiceFilters";
+import ServiceSearchBar from "@/components/admin/ServiceSearchBar";
 import ServiceGallery from "@/components/locksmith/ServiceGallery";
 import FinancialConsolidation from "@/components/admin/FinancialConsolidation";
 import { completeWithdrawal } from "@/lib/payments";
@@ -25,7 +26,7 @@ export default function PainelAdmin() {
   const [locksmiths, setLocksmiths] = useState([]);
   const [requests, setRequests] = useState([]);
   const [withdrawals, setWithdrawals] = useState([]);
-  const [filters, setFilters] = useState({ date: "", serviceType: "", status: "", locksmithName: "" });
+  const [filters, setFilters] = useState({ date: "", serviceType: "", status: "", locksmithName: "", search: "" });
   const [loading, setLoading] = useState(true);
 
   const load = async () => {
@@ -54,7 +55,10 @@ export default function PainelAdmin() {
     .filter((r) => r.status === "completed")
     .reduce((s, r) => s + (r.price || 0), 0);
 
-  const filteredRequests = filterRequests(requests, filters);
+  const customerNameMap = {};
+  users.forEach((u) => { customerNameMap[u.id] = u.full_name || u.email || ""; });
+
+  const filteredRequests = filterRequests(requests, filters, customerNameMap);
 
   const toggleAvailable = async (l) => {
     await base44.entities.Locksmith.update(l.id, { available: !l.available });
@@ -260,10 +264,17 @@ export default function PainelAdmin() {
       <section>
         <h2 className="font-heading font-semibold text-lg text-foreground mb-3">Solicitações</h2>
         <div className="mb-3">
+          <ServiceSearchBar
+            value={filters.search}
+            onChange={(v) => setFilters({ ...filters, search: v })}
+            placeholder="Buscar por cliente, chaveiro ou tipo de serviço"
+          />
+        </div>
+        <div className="mb-3">
           <ServiceFilters
             filters={filters}
             onChange={setFilters}
-            onClear={() => setFilters({ date: "", serviceType: "", status: "", locksmithName: "" })}
+            onClear={() => setFilters({ date: "", serviceType: "", status: "", locksmithName: "", search: "" })}
           />
         </div>
         <div className="rounded-xl border border-border overflow-hidden bg-white">

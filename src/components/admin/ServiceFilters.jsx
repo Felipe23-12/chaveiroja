@@ -27,7 +27,8 @@ export const SERVICE_STATUSES = [
   { value: "cancelled", label: "Cancelado" },
 ];
 
-export function filterRequests(requests, { date, serviceType, status, locksmithName }) {
+export function filterRequests(requests, { date, serviceType, status, locksmithName, search }, customerNameMap) {
+  const q = (search || "").trim().toLowerCase();
   return requests.filter((r) => {
     if (date) {
       const d = new Date(r.created_date);
@@ -39,6 +40,19 @@ export function filterRequests(requests, { date, serviceType, status, locksmithN
     if (locksmithName) {
       const name = (r.locksmith_name || "").toLowerCase();
       if (!name.includes(locksmithName.toLowerCase())) return false;
+    }
+    if (q) {
+      const haystack = [
+        r.service_type,
+        r.locksmith_name,
+        r.address,
+        r.description,
+        customerNameMap ? customerNameMap[r.created_by_id] : "",
+      ]
+        .filter(Boolean)
+        .join(" ")
+        .toLowerCase();
+      if (!haystack.includes(q)) return false;
     }
     return true;
   });

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { Clock, MapPin, Star, Wrench } from "lucide-react";
 import ServiceFilters, { filterRequests } from "@/components/admin/ServiceFilters";
+import ServiceSearchBar from "@/components/admin/ServiceSearchBar";
 import ServiceGallery from "@/components/locksmith/ServiceGallery";
 
 const statusLabels = {
@@ -15,7 +16,7 @@ const statusLabels = {
 export default function History() {
   const [requests, setRequests] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [filters, setFilters] = useState({ date: "", serviceType: "", status: "", locksmithName: "" });
+  const [filters, setFilters] = useState({ date: "", serviceType: "", status: "", locksmithName: "", search: "" });
 
   useEffect(() => {
     base44.entities.ServiceRequest.list("-created_date", 50)
@@ -45,11 +46,18 @@ export default function History() {
         </div>
       </div>
 
+      <div className="mb-3">
+        <ServiceSearchBar
+          value={filters.search}
+          onChange={(v) => setFilters({ ...filters, search: v })}
+          placeholder="Buscar por chaveiro, tipo de serviço ou endereço"
+        />
+      </div>
       <div className="mb-4">
         <ServiceFilters
           filters={filters}
           onChange={setFilters}
-          onClear={() => setFilters({ date: "", serviceType: "", status: "", locksmithName: "" })}
+          onClear={() => setFilters({ date: "", serviceType: "", status: "", locksmithName: "", search: "" })}
         />
       </div>
 
