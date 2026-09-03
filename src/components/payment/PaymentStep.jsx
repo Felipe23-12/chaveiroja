@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { ArrowLeft, Loader2 } from "lucide-react";
+import { ArrowLeft, Loader2, Banknote } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import PaymentMethodSelector from "@/components/payment/PaymentMethodSelector";
 import { calculatePaymentBreakdown, createStripePaymentIntent } from "@/lib/payments";
@@ -17,6 +17,8 @@ export default function PaymentStep({ amount, description, locksmithId, onConfir
     setMethod(m);
     setStripeData(null);
     setCreateError("");
+    // Dinheiro não cria PaymentIntent no Stripe — o chaveiro confirma o recebimento
+    if (m === "dinheiro") return;
     setCreating(true);
     try {
       const result = await createStripePaymentIntent({
@@ -56,7 +58,20 @@ export default function PaymentStep({ amount, description, locksmithId, onConfir
 
       {createError && <p className="text-sm text-red-600 bg-red-50 p-3 rounded-lg">{createError}</p>}
 
-      {method && stripeData && !creating && (
+      {method === "dinheiro" && !creating && (
+        <div className="p-4 rounded-2xl border border-border bg-card space-y-3">
+          <p className="text-sm text-muted-foreground">
+            Você pagará <strong className="text-foreground">R$ {breakdown.amount.toFixed(2)}</strong> em dinheiro diretamente ao chaveiro.
+            Confirme para que ele registre o recebimento e finalize o atendimento.
+          </p>
+          <Button onClick={() => onConfirm("dinheiro", null)} className="w-full" disabled={processing}>
+            {processing ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Banknote className="w-4 h-4 mr-2" />}
+            Confirmar pagamento em dinheiro
+          </Button>
+        </div>
+      )}
+
+      {method && method !== "dinheiro" && stripeData && !creating && (
         <div className="p-4 rounded-2xl border border-border bg-card space-y-4">
           {method === "pix" ? (
             <StripePixForm

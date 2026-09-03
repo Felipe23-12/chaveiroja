@@ -22,6 +22,7 @@ import { useToast } from "@/components/ui/use-toast";
 import DarkModeToggle from "@/components/DarkModeToggle";
 import { haversineKm, stepToward } from "@/lib/geo";
 import { SERVICE_CATALOG } from "@/lib/pricing";
+import { confirmCashReceived } from "@/lib/payments";
 
 // Raio de cobertura para considerar um pedido "na região" do chaveiro (km)
 const REGION_RADIUS_KM = 15;
@@ -190,8 +191,36 @@ export default function PainelChaveiro() {
       base44.entities.ServiceRequest
         .filter({ locksmith_id: selectedId }, "-created_date")
         .then((list) => {
-          const ongoing = list.find((r) => r.status === "accepted" || r.status === "on_the_way");
+          const ongoing = list.find((r) =>
+            r.status === "accepted" ||
+            r.status === "on_the_way" ||
+            (r.status === "completed" && (!r.locksmith_confirmed || r.payment_status !== "paid"))
+          );
           setActive(ongoing || null);
+          // Notifica quando o cliente solicita confirmação de finalização
+          if (ongoing?.client_confirmed && !ongoing?.locksmith_confirmed) {
+            const notifyKey = `confirm_${ongoing.id}`;
+            if (!notifiedIds.current.has(notifyKey)) {
+              notifiedIds.current.add(notifyKey);
+              playBeep();
+              toast({
+                title: "🔔 Cliente solicitou confirmação",
+                description: `${ongoing.service_type} · R$ ${ongoing.price?.toFixed(2)}`,
+              });
+            }
+          }
+          // Notifica quando o cliente seleciona pagamento em dinheiro
+          if (ongoing?.payment_method === "dinheiro" && !ongoing?.cash_received && ongoing?.locksmith_confirmed) {
+            const notifyKey = `cash_${ongoing.id}`;
+            if (!notifiedIds.current.has(notifyKey)) {
+              notifiedIds.current.add(notifyKey);
+              playBeep();
+              toast({
+                title: "💵 Pagamento em dinheiro",
+                description: "Confirme o recebimento de R$ " + ongoing.price?.toFixed(2),
+              });
+            }
+          }
         });
     load();
     const unsub = base44.entities.ServiceRequest.subscribe(() => load());
@@ -274,6 +303,30 @@ export default function PainelChaveiro() {
       });
     } catch (e) {
       /* não bloqueia o fluxo se o email falhar */
+    }
+  };
+
+  // Chaveiro confirma a finalização do serviço (após solicitação do cliente)
+  const handleConfirmCompletion = async () => {
+    if (!active) return;
+    await base44.entities.ServiceRequest.update(active.id, { locksmith_confirmed: true });
+    toast({
+      title: "Finalização confirmada",
+      description: "O cliente foi liberado para selecionar a forma de pagamento.",
+    });
+  };
+
+  // Chaveiro confirma que recebeu o pagamento em dinheiro
+  const handleConfirmCash = async () => {
+    if (!active || !me) return;
+    try {
+      await confirmCashReceived({ serviceRequestId: active.id, locksmithId: me.id, amount: active.price });
+      toast({
+        title: "Recebimento confirmado",
+        description: "Pagamento em dinheiro registrado. A comissão será descontada do próximo pagamento via app.",
+      });
+    } catch (e) {
+      toast({ title: "Erro", description: e.message || "Falha ao confirmar recebimento", variant: "destructive" });
     }
   };
 
@@ -453,8 +506,76 @@ export default function PainelChaveiro() {
           )}
 
           {active.status === "completed" && (
-            <div className="p-4 rounded-xl bg-emerald-50 text-emerald-700 text-sm flex items-center gap-2">
-              <Check className="w-5 h-5" /> Serviço concluído!
+            <div className="space-y-3">
+              {/* Valor do serviço */}
+              <div className="p-4 rounded-xl border border-border bg-muted/50">
+                <p className="text-xs text-muted-foreground mb-1">Valor do serviço</p>
+                <p className="font-heading font-bold text-2xl text-foreground">R$ {active.price?.toFixed(2)}</p>
+                {active.payment_method && (
+                  <p className="text-sm text-muted-foreground mt-1">
+                    Forma de pagamento: <span className="font-medium text-foreground">
+                      {active.payment_method === "dinheiro" ? "Dinheiro" :
+                       active.payment_method === "credit_card" ? "Cartão de Crédito" :
+                       active.payment_method === "debit_card" ? "Cartão de Débito" :
+                       active.payment_method === "pix" ? "Pix" : "—"}
+                    </span>
+                  </p>
+                )}
+              </div>
+
+              {/* Cliente solicitou confirmação de finalização */}
+              {active.client_confirmed && !active.locksmith_confirmed && (
+                <div className="p-4 rounded-xl border-2 border-amber-300 bg-amber-50 space-y-3">
+                  <div className="flex items-center gap-2 text-amber-700">
+                    <Bell className="w-5 h-5" />
+                    <p className="font-medium text-sm">Cliente solicitou confirmação de finalização</p>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    O cliente confirmou que o serviço foi finalizado. Confirme para liberar o pagamento.
+                  </p>
+                  <Button onClick={handleConfirmCompletion} className="w-full">
+                    <Check className="w-4 h-4 mr-1.5" /> Confirmar finalização
+                  </Button>
+                </div>
+              )}
+
+              {/* Aguardando cliente selecionar forma de pagamento */}
+              {active.locksmith_confirmed && !active.payment_method && (
+                <div className="p-4 rounded-xl bg-blue-50 text-blue-700 text-sm flex items-center gap-2">
+                  <Loader2 className="w-4 h-4 animate-spin" /> Aguardando cliente selecionar a forma de pagamento…
+                </div>
+              )}
+
+              {/* Cliente selecionou dinheiro — chaveiro confirma recebimento */}
+              {active.locksmith_confirmed && active.payment_method === "dinheiro" && !active.cash_received && (
+                <div className="p-4 rounded-xl border-2 border-emerald-300 bg-emerald-50 space-y-3">
+                  <div className="flex items-center gap-2 text-emerald-700">
+                    <Check className="w-5 h-5" />
+                    <p className="font-medium text-sm">Cliente pagará em dinheiro</p>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Confirme o recebimento de <strong className="text-foreground">R$ {active.price?.toFixed(2)}</strong> em dinheiro.
+                    A comissão de 15% será descontada do seu próximo pagamento via app.
+                  </p>
+                  <Button onClick={handleConfirmCash} className="w-full">
+                    <Check className="w-4 h-4 mr-1.5" /> Recebi em dinheiro
+                  </Button>
+                </div>
+              )}
+
+              {/* Pagamento em dinheiro confirmado */}
+              {active.cash_received && (
+                <div className="p-4 rounded-xl bg-emerald-50 text-emerald-700 text-sm flex items-center gap-2">
+                  <Check className="w-5 h-5" /> Pagamento recebido em dinheiro!
+                </div>
+              )}
+
+              {/* Pagamento via app confirmado */}
+              {active.locksmith_confirmed && active.payment_method && active.payment_method !== "dinheiro" && active.payment_status === "paid" && (
+                <div className="p-4 rounded-xl bg-emerald-50 text-emerald-700 text-sm flex items-center gap-2">
+                  <Check className="w-5 h-5" /> Pagamento confirmado via app!
+                </div>
+              )}
             </div>
           )}
         </div>

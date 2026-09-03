@@ -3,7 +3,6 @@ import { useNavigate } from "react-router-dom";
 import { CheckCircle2, Circle, Phone, MessageCircle, Star, User } from "lucide-react";
 import { Image } from "@/components/ui/image";
 import { Button } from "@/components/ui/button";
-import ReviewForm from "@/components/locksmith/ReviewForm";
 
 const steps = [
   { key: "accepted", label: "Pedido em andamento", desc: "Chaveiro aceitou seu pedido" },
@@ -11,7 +10,7 @@ const steps = [
   { key: "completed", label: "Serviço concluído", desc: "Atendimento finalizado" },
 ];
 
-export default function RequestTracking({ request, locksmith, onAdvance, onRate, onCall }) {
+export default function RequestTracking({ request, locksmith, onAdvance, onCall }) {
   const navigate = useNavigate();
   const currentIndex = steps.findIndex((s) => s.key === request.status);
 
@@ -74,18 +73,11 @@ export default function RequestTracking({ request, locksmith, onAdvance, onRate,
       {/* Actions */}
       {request.status !== "completed" ? (
         <Button onClick={onAdvance} className="w-full" size="lg">
-          {request.status === "accepted" ? "Confirmar que está a caminho" : "Finalizar serviço"}
+          {request.status === "accepted" ? "Confirmar que está a caminho" : "Marcar serviço como concluído"}
         </Button>
       ) : (
-        <div className="space-y-3">
-          <p className="text-center text-sm font-medium text-foreground">Avalie o atendimento</p>
-          <ReviewForm
-            locksmithId={locksmith?.id}
-            locksmithName={locksmith?.name}
-            serviceType={request.service_type}
-            workMode={locksmith?.work_mode}
-            onSubmitted={(r) => onRate(r)}
-          />
+        <div className="p-4 rounded-xl bg-emerald-50 text-emerald-700 text-sm flex items-center gap-2">
+          <CheckCircle2 className="w-5 h-5" /> Serviço concluído! Aguarde a confirmação.
         </div>
       )}
 

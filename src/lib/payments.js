@@ -79,7 +79,8 @@ export async function createPaymentRecord({ serviceRequestId, amount, method, lo
   return payment;
 }
 
-// Marca o pagamento como pago e credita a carteira do chaveiro
+// Marca o pagamento como pago e credita a carteira do chaveiro.
+// Se o chaveiro tem comissão acumulada de serviços pagos em dinheiro, desconta do líquido.
 export async function confirmPaymentPaid(paymentId) {
   if (!paymentId) return;
   const payment = await base44.entities.Payment.get(paymentId);
@@ -97,8 +98,15 @@ export async function confirmPaymentPaid(paymentId) {
     const connectAtivo = !!connect?.[0]?.stripe_account_id && connect?.[0]?.charges_enabled && connect?.[0]?.payouts_enabled;
     if (!connectAtivo) {
       const locksmith = await base44.entities.Locksmith.get(payment.locksmith_id);
-      const newBalance = Math.round(((locksmith.wallet_balance || 0) + payment.net_amount) * 100) / 100;
-      await base44.entities.Locksmith.update(payment.locksmith_id, { wallet_balance: newBalance });
+      // Desconta a comissão acumulada de serviços anteriores pagos em dinheiro
+      const pendingCash = locksmith.pending_cash_commission || 0;
+      const creditAmount = Math.max(0, Math.round((payment.net_amount - pendingCash) * 100) / 100);
+      const newBalance = Math.round(((locksmith.wallet_balance || 0) + creditAmount) * 100) / 100;
+      const updateData = { wallet_balance: newBalance };
+      if (pendingCash > 0) {
+        updateData.pending_cash_commission = 0;
+      }
+      await base44.entities.Locksmith.update(payment.locksmith_id, updateData);
     }
   }
 
@@ -108,6 +116,28 @@ export async function confirmPaymentPaid(paymentId) {
       commission_status: "paid",
     });
   }
+}
+
+// Confirma o recebimento em dinheiro pelo chaveiro: marca o pedido como pago
+// e acumula a comissão de 15% para descontar do próximo pagamento via app.
+export async function confirmCashReceived({ serviceRequestId, locksmithId, amount }) {
+  const breakdown = calculatePaymentBreakdown(amount);
+
+  await base44.entities.ServiceRequest.update(serviceRequestId, {
+    cash_received: true,
+    payment_method: "dinheiro",
+    payment_status: "paid",
+    commission_status: "paid",
+  });
+
+  // Acumula a comissão no campo do chaveiro
+  if (locksmithId) {
+    const locksmith = await base44.entities.Locksmith.get(locksmithId);
+    const newPending = Math.round(((locksmith.pending_cash_commission || 0) + breakdown.commission) * 100) / 100;
+    await base44.entities.Locksmith.update(locksmithId, { pending_cash_commission: newPending });
+  }
+
+  return { commission: breakdown.commission };
 }
 
 // Solicita saque via Pix: move saldo da carteira para pendente

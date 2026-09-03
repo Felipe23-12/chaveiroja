@@ -162,6 +162,11 @@
       "default": 0,
       "description": "Saldo em processamento (saques solicitados)"
     },
+    "pending_cash_commission": {
+      "type": "number",
+      "default": 0,
+      "description": "Comiss\u00e3o acumulada de servi\u00e7os pagos em dinheiro, a ser descontada do pr\u00f3ximo pagamento via app"
+    },
     "pix_key_type": {
       "type": "string",
       "enum": [

@@ -152,7 +152,8 @@
       "enum": [
         "credit_card",
         "debit_card",
-        "pix"
+        "pix",
+        "dinheiro"
       ],
       "description": "M\u00e9todo de pagamento selecionado pelo cliente"
     },
@@ -168,6 +169,21 @@
       ],
       "default": "pending",
       "description": "Status do pagamento neste pedido"
+    },
+    "client_confirmed": {
+      "type": "boolean",
+      "default": false,
+      "description": "Cliente confirmou que o chaveiro finalizou o servi\u00e7o"
+    },
+    "locksmith_confirmed": {
+      "type": "boolean",
+      "default": false,
+      "description": "Chaveiro confirmou a finaliza\u00e7\u00e3o do servi\u00e7o ap\u00f3s solicita\u00e7\u00e3o do cliente"
+    },
+    "cash_received": {
+      "type": "boolean",
+      "default": false,
+      "description": "Chaveiro confirmou ter recebido o pagamento em dinheiro do cliente"
     }
   },
   "required": [

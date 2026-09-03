@@ -1,14 +1,15 @@
 import React from "react";
-import { CreditCard, QrCode } from "lucide-react";
+import { CreditCard, QrCode, Banknote } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-const ICONS = { CreditCard, QrCode };
+const ICONS = { CreditCard, QrCode, Banknote };
 
 const METHODS = [
   { id: "credit_card", label: "Cartão de Crédito", icon: "CreditCard", description: "Pagamento à vista no cartão" },
   { id: "debit_card", label: "Cartão de Débito", icon: "CreditCard", description: "Débito imediato" },
   // Pix temporariamente oculto — exige conta Stripe brasileira ativada para Pix.
   // { id: "pix", label: "Pix", icon: "QrCode", description: "Pagamento imediato via QR Code" },
+  { id: "dinheiro", label: "Dinheiro", icon: "Banknote", description: "Pagar em espécie ao chaveiro" },
 ];
 
 export default function PaymentMethodSelector({ selected, onSelect }) {

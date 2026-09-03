@@ -218,9 +218,32 @@ export default function Home() {
     }
   };
 
+  // Cliente confirma que o chaveiro finalizou o serviço
+  const handleClientConfirm = async () => {
+    if (!activeRequest) return;
+    await base44.entities.ServiceRequest.update(activeRequest.id, { client_confirmed: true });
+    setActiveRequest((prev) => ({ ...prev, client_confirmed: true }));
+  };
+
   // Pagamento confirmado via Stripe após a conclusão do serviço
   const handleServicePayment = async (method, stripePaymentIntentId) => {
     if (!activeRequest) return;
+
+    // Dinheiro: não cria PaymentIntent no Stripe — o chaveiro confirma o recebimento
+    if (method === "dinheiro") {
+      setPaying(true);
+      setSearchError("");
+      try {
+        await base44.entities.ServiceRequest.update(activeRequest.id, { payment_method: "dinheiro" });
+        setActiveRequest((prev) => ({ ...prev, payment_method: "dinheiro" }));
+      } catch (e) {
+        setSearchError(e.message || "Falha ao registrar forma de pagamento");
+      } finally {
+        setPaying(false);
+      }
+      return;
+    }
+
     setPaying(true);
     setSearchError("");
     try {
@@ -237,7 +260,7 @@ export default function Home() {
       });
       await confirmPaymentPaid(payment.id);
       setActiveRequest((prev) => ({ ...prev, payment_id: payment.id, payment_status: "paid" }));
-      setStep(7);
+      setStep(8);
       base44.auth.me()
         .then((u) => getClientLoyalty(u.id))
         .then(setLoyalty)
@@ -296,6 +319,12 @@ export default function Home() {
           }
           if (updated.status === "completed" && step === 5) {
             setStep(6);
+          }
+          if (updated.locksmith_confirmed && step === 6) {
+            setStep(7);
+          }
+          if (updated.cash_received && step === 7) {
+            setStep(8);
           }
         });
       }
@@ -404,7 +433,7 @@ export default function Home() {
 
       {showAppFlow && (
         <div className="flex items-center gap-2 mb-6">
-          {[1, 2, 3, 4, 5, 6, 7].map((n) => (
+          {[1, 2, 3, 4, 5, 6, 7, 8].map((n) => (
             <div
               key={n}
               className={`h-1.5 flex-1 rounded-full transition-colors ${step >= n ? "bg-primary" : "bg-border"}`}
@@ -606,9 +635,9 @@ export default function Home() {
         </div>
       )}
 
-      {/* Step 6: Pagamento (após conclusão do serviço) */}
+      {/* Step 6: Cliente confirma que o chaveiro finalizou o serviço */}
       {step === 6 && activeRequest && activeRequest.status === "completed" && (
-        <div className="space-y-3">
+        <div className="space-y-5">
           <div className="flex flex-col items-center text-center py-4">
             <div className="w-16 h-16 rounded-full bg-emerald-100 flex items-center justify-center mb-4">
               <CheckCircle2 className="w-8 h-8 text-emerald-600" />
@@ -616,22 +645,75 @@ export default function Home() {
             <h2 className="font-heading font-semibold text-lg text-foreground mb-1">Serviço concluído!</h2>
             <p className="text-sm text-muted-foreground">{activeRequest.service_type} · {selectedLocksmith?.name}</p>
           </div>
-          <PaymentStep
-            amount={activeRequest.price}
-            description={`${activeRequest.service_type} - ${activeRequest.address}`}
-            locksmithId={selectedLocksmith?.id}
-            processing={paying}
-            onConfirm={handleServicePayment}
-            onBack={handleNewRequest}
-          />
+
+          <LocksmithMiniProfile locksmith={selectedLocksmith} />
+
+          {!activeRequest.client_confirmed ? (
+            <div className="space-y-3">
+              <p className="text-center text-sm text-muted-foreground">
+                Confirme que o chaveiro finalizou o atendimento para prosseguir com o pagamento.
+              </p>
+              <Button onClick={handleClientConfirm} size="lg" className="w-full">
+                <CheckCircle2 className="w-4 h-4 mr-2" /> Finalizar serviço
+              </Button>
+            </div>
+          ) : !activeRequest.locksmith_confirmed ? (
+            <div className="flex flex-col items-center text-center py-6">
+              <div className="w-14 h-14 rounded-full bg-amber-100 flex items-center justify-center mb-3">
+                <Loader2 className="w-7 h-7 text-amber-600 animate-spin" />
+              </div>
+              <h3 className="font-heading font-semibold text-base text-foreground mb-1">
+                Aguardando confirmação do chaveiro
+              </h3>
+              <p className="text-sm text-muted-foreground">
+                O profissional foi notificado e precisa confirmar a finalização para liberar o pagamento.
+              </p>
+            </div>
+          ) : null}
+        </div>
+      )}
+
+      {/* Step 7: Pagamento (após confirmação do chaveiro) */}
+      {step === 7 && activeRequest && activeRequest.locksmith_confirmed && (
+        <div className="space-y-3">
+          <div className="flex flex-col items-center text-center py-4">
+            <div className="w-16 h-16 rounded-full bg-emerald-100 flex items-center justify-center mb-4">
+              <CheckCircle2 className="w-8 h-8 text-emerald-600" />
+            </div>
+            <h2 className="font-heading font-semibold text-lg text-foreground mb-1">Serviço confirmado!</h2>
+            <p className="text-sm text-muted-foreground">{activeRequest.service_type} · {selectedLocksmith?.name}</p>
+          </div>
+
+          {activeRequest.payment_method === "dinheiro" && !activeRequest.cash_received ? (
+            <div className="flex flex-col items-center text-center py-6">
+              <div className="w-14 h-14 rounded-full bg-amber-100 flex items-center justify-center mb-3">
+                <Loader2 className="w-7 h-7 text-amber-600 animate-spin" />
+              </div>
+              <h3 className="font-heading font-semibold text-base text-foreground mb-1">
+                Aguardando recebimento em dinheiro
+              </h3>
+              <p className="text-sm text-muted-foreground">
+                O chaveiro irá confirmar o recebimento de <strong className="text-foreground">R$ {activeRequest.price?.toFixed(2)}</strong> em dinheiro.
+              </p>
+            </div>
+          ) : (
+            <PaymentStep
+              amount={activeRequest.price}
+              description={`${activeRequest.service_type} - ${activeRequest.address}`}
+              locksmithId={selectedLocksmith?.id}
+              processing={paying}
+              onConfirm={handleServicePayment}
+              onBack={handleNewRequest}
+            />
+          )}
           {searchError && (
             <p className="text-sm text-red-600 bg-red-50 p-3 rounded-lg">{searchError}</p>
           )}
         </div>
       )}
 
-      {/* Step 7: Avaliação final */}
-      {step === 7 && activeRequest && (
+      {/* Step 8: Avaliação final */}
+      {step === 8 && activeRequest && (
         <div className="space-y-5">
           <div className="flex flex-col items-center text-center py-4">
             <div className="w-16 h-16 rounded-full bg-emerald-100 flex items-center justify-center mb-4">
