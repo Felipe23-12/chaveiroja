@@ -4,7 +4,7 @@ import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { base44 } from "@/api/base44Client";
-import { MapPin, Loader2, MessageCircle, Star, Wrench, ZoomIn, ZoomOut, Navigation } from "lucide-react";
+import { MapPin, Loader2, MessageCircle, Star, Wrench, ZoomIn, ZoomOut, Navigation, Search, SlidersHorizontal, X } from "lucide-react";
 import { haversineKm } from "@/lib/geo";
 
 // Ícone customizado (div) para o Leaflet — pino estilo "gota"
@@ -75,6 +75,8 @@ export default function LiveLocksmithsMap({ customerLoc }) {
   const navigate = useNavigate();
   const [locksmiths, setLocksmiths] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [maxDistance, setMaxDistance] = useState(0);
 
   useEffect(() => {
     let active = true;
@@ -112,6 +114,25 @@ export default function LiveLocksmithsMap({ customerLoc }) {
 
   const center = customerLoc?.lat ? customerLoc : { lat: -23.55, lng: -46.63 };
 
+  const filtered = useMemo(() => {
+    let result = withDist;
+    if (maxDistance > 0) {
+      result = result.filter((l) => l.distance <= maxDistance);
+    }
+    if (searchQuery.trim()) {
+      const q = searchQuery.trim().toLowerCase();
+      result = result.filter(
+        (l) =>
+          l.name?.toLowerCase().includes(q) ||
+          l.specialty?.toLowerCase().includes(q) ||
+          (l.specialties || []).some((s) => s.toLowerCase().includes(q))
+      );
+    }
+    return result;
+  }, [withDist, maxDistance, searchQuery]);
+
+  const isFiltering = searchQuery.trim() !== "" || maxDistance > 0;
+
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between">
@@ -132,6 +153,53 @@ export default function LiveLocksmithsMap({ customerLoc }) {
             <span className="w-2 h-2 rounded-full bg-amber-500" />
             {loading ? "…" : withDist.filter((l) => !l.available).length} ocupados
           </span>
+        </div>
+      </div>
+
+      {/* Busca e filtro por distância */}
+      <div className="flex flex-col sm:flex-row gap-2">
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+          <input
+            type="text"
+            placeholder="Buscar por nome ou especialidade…"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full h-10 pl-10 pr-9 rounded-lg border border-input bg-card text-sm text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+          />
+          {searchQuery && (
+            <button
+              onClick={() => setSearchQuery("")}
+              className="absolute right-2.5 top-1/2 -translate-y-1/2 p-0.5 rounded text-muted-foreground hover:bg-accent"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          )}
+        </div>
+        <div className="flex items-center gap-2">
+          <SlidersHorizontal className="w-4 h-4 text-muted-foreground shrink-0" />
+          <select
+            value={maxDistance}
+            onChange={(e) => setMaxDistance(Number(e.target.value))}
+            className="h-10 px-3 rounded-lg border border-input bg-card text-sm text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+          >
+            <option value={0}>Qualquer distância</option>
+            <option value={1}>Até 1 km</option>
+            <option value={3}>Até 3 km</option>
+            <option value={5}>Até 5 km</option>
+            <option value={10}>Até 10 km</option>
+            <option value={20}>Até 20 km</option>
+            <option value={50}>Até 50 km</option>
+          </select>
+          {maxDistance > 0 && (
+            <button
+              onClick={() => setMaxDistance(0)}
+              className="p-1.5 rounded-lg text-muted-foreground hover:bg-accent"
+              title="Limpar filtro"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          )}
         </div>
       </div>
 
@@ -187,22 +255,23 @@ export default function LiveLocksmithsMap({ customerLoc }) {
         <div className="flex items-center gap-2 text-sm text-muted-foreground py-2">
           <Loader2 className="w-4 h-4 animate-spin" /> Localizando profissionais…
         </div>
-      ) : withDist.length === 0 ? (
+      ) : filtered.length === 0 ? (
         <div className="text-center py-6 rounded-xl border border-dashed border-border">
           <Wrench className="w-7 h-7 text-muted-foreground mx-auto mb-2" />
           <p className="text-sm text-muted-foreground">
-            Nenhum chaveiro disponível agora.
+            {isFiltering ? "Nenhum chaveiro encontrado com esses filtros." : "Nenhum chaveiro disponível agora."}
           </p>
           <p className="text-xs text-muted-foreground mt-1">
-            Você ainda pode solicitar um serviço — o app encontra o profissional mais próximo.
+            {isFiltering ? "Tente ampliar a distância ou limpar a busca." : "Você ainda pode solicitar um serviço — o app encontra o profissional mais próximo."}
           </p>
         </div>
       ) : (
         <div className="space-y-2">
           <p className="text-xs font-medium text-muted-foreground flex items-center gap-1.5">
-            <Navigation className="w-3.5 h-3.5" /> Mais próximos de você
+            <Navigation className="w-3.5 h-3.5" />
+            {isFiltering ? `${filtered.length} resultado(s) ordenados por distância` : "Mais próximos de você"}
           </p>
-          {withDist.slice(0, 4).map((l) => (
+          {filtered.map((l) => (
             <div
               key={l.id}
               className="flex items-center gap-3 p-2.5 rounded-xl border border-border bg-card"
