@@ -189,7 +189,45 @@ export default function LiveLocksmithsMap({ customerLoc, livreOnly = false }) {
         )}
       </div>
 
-      <LightMap center={center} markers={mapMarkers} height={360} />
+      <LightMap
+        center={center}
+        markers={mapMarkers}
+        height={360}
+        renderPopup={(m, close) => {
+          const l = filtered.find((x) => x.id === m.id);
+          if (!l) return null;
+          return (
+            <div className="w-56 rounded-xl border border-border bg-card shadow-xl p-3 space-y-2.5">
+              <div className="flex items-start justify-between gap-2">
+                <div className="min-w-0">
+                  <p className="text-sm font-semibold text-foreground truncate">{l.name}</p>
+                  <p className="text-xs text-muted-foreground">{l.specialty} · ⭐ {l.rating}</p>
+                  <p className="text-xs text-muted-foreground">{l.distance} km · {l.work_mode === "livre" ? "Livre" : "App"}</p>
+                </div>
+                <button onClick={close} className="p-1 rounded-lg text-muted-foreground hover:bg-accent shrink-0" title="Fechar">
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => navigate(`/chaveiro/${l.id}`)}
+                  className="flex-1 flex items-center justify-center gap-1.5 h-9 rounded-lg bg-muted text-foreground text-xs font-semibold hover:bg-accent"
+                >
+                  <Star className="w-3.5 h-3.5" /> Avaliações
+                </button>
+                {l.work_mode === "livre" && (
+                  <button
+                    onClick={() => navigate(`/chat/${l.id}`)}
+                    className="flex-1 flex items-center justify-center gap-1.5 h-9 rounded-lg bg-primary text-primary-foreground text-xs font-semibold hover:bg-primary/90"
+                  >
+                    <MessageCircle className="w-3.5 h-3.5" /> Mensagem
+                  </button>
+                )}
+              </div>
+            </div>
+          );
+        }}
+      />
 
       {loading ? (
         <div className="flex items-center gap-2 text-sm text-muted-foreground py-2">

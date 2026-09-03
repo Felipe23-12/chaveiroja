@@ -41,9 +41,10 @@ function fitZoom(b, w, h, pad = 0.82) {
 
 const wrap = (n, m) => ((n % m) + m) % m;
 
-export default function LightMap({ center, markers = [], route = null, routePath = null, eta = null, height = 320 }) {
+export default function LightMap({ center, markers = [], route = null, routePath = null, eta = null, height = 320, renderPopup = null }) {
   const containerRef = useRef(null);
   const [size, setSize] = useState({ w: 360, h: height });
+  const [selected, setSelected] = useState(null);
 
   // Mede o contêiner para compor a grade de tiles no tamanho exato
   useEffect(() => {
@@ -137,6 +138,7 @@ export default function LightMap({ center, markers = [], route = null, routePath
   return (
     <div
       ref={containerRef}
+      onClick={() => setSelected(null)}
       className="relative w-full rounded-2xl overflow-hidden border border-border bg-muted/40"
       style={{ height }}
     >
@@ -208,10 +210,16 @@ export default function LightMap({ center, markers = [], route = null, routePath
             );
           }
           const letter = (m.label || "C").charAt(0).toUpperCase();
+          const isSel = selected?.id === m.id;
           return (
-            <div key={m.id} className="absolute -translate-x-1/2 -translate-y-full z-10" style={p}>
+            <div
+              key={m.id}
+              className="absolute -translate-x-1/2 -translate-y-full z-20 cursor-pointer touch-manipulation"
+              style={p}
+              onClick={(e) => { e.stopPropagation(); setSelected(m); }}
+            >
               <div
-                className={`w-8 h-8 rounded-[50%_50%_50%_0] -rotate-45 border-[3px] border-white shadow-lg flex items-center justify-center ${
+                className={`w-8 h-8 rounded-[50%_50%_50%_0] -rotate-45 border-[3px] border-white shadow-lg flex items-center justify-center transition-transform active:scale-110 ${isSel ? "ring-4 ring-primary" : ""} ${
                   m.active ? "bg-amber-500" : "bg-emerald-500"
                 }`}
               >
@@ -220,6 +228,20 @@ export default function LightMap({ center, markers = [], route = null, routePath
             </div>
           );
         })}
+
+      {/* Popup do marcador selecionado (opcional, via renderPopup) */}
+      {selected && renderPopup && (() => {
+        const sp = toPct(proj(selected.lat, selected.lng));
+        return (
+          <div
+            className="absolute z-40"
+            style={{ left: sp.left, top: sp.top, transform: "translate(-50%, calc(-100% - 30px))" }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {renderPopup(selected, () => setSelected(null))}
+          </div>
+        );
+      })()}
 
       {eta != null && (
         <div className="absolute top-2 right-2 z-20 flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-sky-500 text-white shadow-lg text-xs font-bold">
