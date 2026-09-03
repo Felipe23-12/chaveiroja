@@ -107,7 +107,7 @@ export default function LocksmithChatConversations({ me }) {
   };
 
   return (
-    <div>
+    <div id="chat-conversas">
       <div className="flex items-center gap-2 mb-3">
         <MessageCircle className="w-4 h-4 text-primary" />
         <h3 className="font-heading font-semibold text-foreground">Conversas com clientes</h3>

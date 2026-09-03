@@ -1,7 +1,9 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { base44 } from "@/api/base44Client";
 import { haversineKm } from "@/lib/geo";
+import { X } from "lucide-react";
 import LightMap from "@/components/map/LightMap";
+import OpenInNavAppsButton from "@/components/map/OpenInNavAppsButton";
 
 // Raio de cobertura para exibir clientes no mapa (km)
 const RADIUS_KM = 30;
@@ -65,7 +67,30 @@ export default function LivreDashboardMap({ me }) {
         </div>
       </div>
 
-      <LightMap center={center} markers={markers} height={380} />
+      <LightMap
+        center={center}
+        markers={markers}
+        height={380}
+        renderPopup={(m, close) => {
+          if (m.id === "me" || !me?.lat) return null;
+          const r = nearby.find((x) => x.id === m.id);
+          if (!r) return null;
+          return (
+            <div className="w-60 rounded-xl border border-border bg-card shadow-xl p-3 space-y-2.5">
+              <div className="flex items-start justify-between gap-2">
+                <div className="min-w-0">
+                  <p className="text-sm font-semibold text-foreground truncate">{r.service_type}</p>
+                  <p className="text-xs text-muted-foreground truncate">{r.address}</p>
+                </div>
+                <button onClick={close} className="p-1 rounded-lg text-muted-foreground hover:bg-accent shrink-0" title="Fechar">
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+              <OpenInNavAppsButton from={{ lat: me.lat, lng: me.lng }} to={{ lat: r.customer_lat, lng: r.customer_lng }} />
+            </div>
+          );
+        }}
+      />
 
       {loading && <p className="text-xs text-muted-foreground text-center">Carregando clientes…</p>}
       {!loading && nearby.length === 0 && (

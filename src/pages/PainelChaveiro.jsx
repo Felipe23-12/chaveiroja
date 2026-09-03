@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
 import { Wrench, Bell, Check, X, Navigation, Power, Loader2, MapPin, WifiOff, CheckCircle2, Wallet } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -53,6 +53,7 @@ function playBeep() {
 
 export default function PainelChaveiro() {
   const navigate = useNavigate();
+  const location = useLocation();
   const [locksmiths, setLocksmiths] = useState([]);
   const [selectedId, setSelectedId] = useState("");
   const [me, setMe] = useState(null);
@@ -81,6 +82,16 @@ export default function PainelChaveiro() {
       window.removeEventListener("offline", goOffline);
     };
   }, []);
+
+  // Rola até a conversa de chat ao chegar no painel via alerta de mensagem
+  useEffect(() => {
+    if (location.state?.scrollToChat) {
+      const t = setTimeout(() => {
+        document.getElementById("chat-conversas")?.scrollIntoView({ behavior: "smooth", block: "start" });
+      }, 500);
+      return () => clearTimeout(t);
+    }
+  }, [location.state]);
 
   // Carrega chaveiros e assina atualizações do selecionado
   useEffect(() => {
