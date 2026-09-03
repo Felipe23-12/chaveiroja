@@ -7,6 +7,7 @@ import ServiceGallery from "@/components/locksmith/ServiceGallery";
 import SaveToCalendarButton from "@/components/locksmith/SaveToCalendarButton";
 import { saveLastService, getLastService } from "@/lib/offlineCache";
 import { WifiOff } from "lucide-react";
+import LoadingCard from "@/components/ui/LoadingCard";
 
 const statusLabels = {
   pending: { label: "Pendente", color: "bg-amber-100 text-amber-700" },
@@ -43,15 +44,15 @@ export default function History() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center py-20">
-        <div className="w-6 h-6 border-4 border-slate-200 border-t-slate-800 rounded-full animate-spin" />
+      <div className="max-w-2xl mx-auto px-4 py-6 md:py-10">
+        <LoadingCard label="Carregando seu histórico..." />
       </div>
     );
   }
 
   return (
     <div className="max-w-2xl mx-auto px-4 py-6 md:py-10">
-      <div className="flex items-center gap-2 mb-6">
+      <div className="flex items-center gap-2 mb-6 fade-in-up">
         <div className="w-10 h-10 rounded-xl bg-primary flex items-center justify-center">
           <Clock className="w-5 h-5 text-primary-foreground" />
         </div>
@@ -96,7 +97,7 @@ export default function History() {
           {filtered.map((req) => {
             const st = statusLabels[req.status] || statusLabels.pending;
             return (
-              <div key={req.id} className="p-4 rounded-2xl bg-white border border-border">
+              <div key={req.id} className="p-4 rounded-2xl bg-card border border-border fade-in-up">
                 <div className="flex items-start justify-between gap-2 mb-2">
                   <div className="flex items-center gap-2">
                     <span className="font-heading font-semibold text-foreground">{req.service_type}</span>

@@ -25,9 +25,9 @@ export default function Register() {
       <div className="space-y-3">
         <Link
           to={"/cadastro/cliente" + qs}
-          className="flex items-center gap-4 p-4 rounded-xl border-2 border-border bg-white hover:border-primary/40 transition-all"
+          className="flex items-center gap-4 p-4 rounded-xl border-2 border-border bg-card hover:border-primary/40 transition-all group"
         >
-          <div className="w-12 h-12 rounded-xl bg-blue-50 flex items-center justify-center shrink-0">
+          <div className="w-12 h-12 rounded-xl bg-blue-50 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
             <User className="w-6 h-6 text-blue-600" />
           </div>
           <div className="flex-1">
@@ -39,9 +39,9 @@ export default function Register() {
 
         <Link
           to={"/cadastro/chaveiro" + qs}
-          className="flex items-center gap-4 p-4 rounded-xl border-2 border-border bg-white hover:border-primary/40 transition-all"
+          className="flex items-center gap-4 p-4 rounded-xl border-2 border-border bg-card hover:border-primary/40 transition-all group"
         >
-          <div className="w-12 h-12 rounded-xl bg-amber-50 flex items-center justify-center shrink-0">
+          <div className="w-12 h-12 rounded-xl bg-amber-50 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
             <Wrench className="w-6 h-6 text-amber-600" />
           </div>
           <div className="flex-1">

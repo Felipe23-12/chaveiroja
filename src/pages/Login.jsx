@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { LogIn, Mail, Lock, Loader2 } from "lucide-react";
 import AuthLayout from "@/components/AuthLayout";
 import GoogleIcon from "@/components/GoogleIcon";
+import ErrorBanner from "@/components/ui/ErrorBanner";
 import { safeReturnTo } from "@/lib/authReturnTo";
 
 export default function Login() {
@@ -89,8 +90,8 @@ export default function Login() {
       </div>
 
       {error && (
-        <div className="mb-4 p-3 rounded-lg bg-destructive/10 text-destructive text-sm">
-          {error}
+        <div className="mb-4">
+          <ErrorBanner message={error} />
         </div>
       )}
 

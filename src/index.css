@@ -205,3 +205,13 @@
 .fade-in-up {
   animation: fade-in-up 0.35s ease-out;
 }
+
+/* Drawer mobile deslizando da esquerda */
+@keyframes slide-in-left {
+  from { transform: translateX(-100%); }
+  to { transform: translateX(0); }
+}
+
+.animate-slide-in-left {
+  animation: slide-in-left 0.25s ease-out;
+}

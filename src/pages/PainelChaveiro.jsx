@@ -24,6 +24,7 @@ import { haversineKm, stepToward, fetchDrivingRoute, etaMinutes } from "@/lib/ge
 import { SERVICE_CATALOG } from "@/lib/pricing";
 import { confirmCashReceived } from "@/lib/payments";
 import { saveLastService, getLastService, clearLastService, saveLocksmithProfile, getLocksmithProfile, isOnline, saveLastRoute, getLastRoute, savePendingRequests, getPendingRequests } from "@/lib/offlineCache";
+import LoadingCard from "@/components/ui/LoadingCard";
 
 // Raio de cobertura para considerar um pedido "na região" do chaveiro (km)
 const REGION_RADIUS_KM = 15;
@@ -454,7 +455,7 @@ export default function PainelChaveiro() {
         );
       })()}
 
-      <div className="flex items-center gap-2 mb-6">
+      <div className="flex items-center gap-2 mb-6 fade-in-up">
         <div className="w-10 h-10 rounded-xl bg-primary flex items-center justify-center">
           <Wrench className="w-5 h-5 text-primary-foreground" />
         </div>
@@ -486,8 +487,12 @@ export default function PainelChaveiro() {
         </Select>
       </div>
 
+      {!me && selectedId && (
+        <LoadingCard label="Carregando seu perfil..." className="mb-5" />
+      )}
+
       {me && (
-        <div className="flex items-center justify-between p-4 rounded-xl border border-border bg-card mb-5">
+        <div className="flex items-center justify-between p-4 rounded-xl border border-border bg-card mb-5 fade-in-up">
           <div>
             <p className="font-medium text-foreground">{me.name}</p>
             <p className="text-xs text-muted-foreground">
@@ -538,7 +543,7 @@ export default function PainelChaveiro() {
 
       {/* Serviço em andamento */}
       {active ? (
-        <div className="space-y-4">
+        <div className="space-y-4 fade-in-up">
           <div className="p-4 rounded-xl border border-border bg-card">
             <div className="flex items-center gap-2 text-primary mb-1">
               <Navigation className="w-4 h-4" />
