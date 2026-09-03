@@ -2,7 +2,7 @@ import React, { useMemo } from "react";
 import { Bell, BellOff, MapPin, Lock, CreditCard } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
-import RealLocksmithsMap from "@/components/map/RealLocksmithsMap";
+import LivreDashboardMap from "@/components/map/LivreDashboardMap";
 import LocksmithChatConversations from "@/components/locksmith/LocksmithChatConversations";
 
 /**
@@ -53,13 +53,13 @@ export default function LivreModeDashboard({ me, onUpdateMe }) {
         />
       </div>
 
-      {/* Mapa interativo em tempo real */}
+      {/* Mapa interativo em tempo real — clientes próximos */}
       <div>
         <div className="flex items-center gap-2 mb-2">
           <MapPin className="w-4 h-4 text-primary" />
           <h3 className="font-heading font-semibold text-foreground">Mapa em tempo real</h3>
         </div>
-        <RealLocksmithsMap me={mapMe} />
+        <LivreDashboardMap me={mapMe} />
       </div>
 
       {/* Conversas com clientes */}

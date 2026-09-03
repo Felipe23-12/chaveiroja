@@ -3,6 +3,29 @@ import { base44 } from "@/api/base44Client";
 import { Send, MessageCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { useToast } from "@/components/ui/use-toast";
+
+// Alerta sonoro curto via Web Audio (não depende de arquivos externos)
+function playBeep() {
+  try {
+    const AudioCtx = window.AudioContext || window.webkitAudioContext;
+    if (!AudioCtx) return;
+    const ctx = new AudioCtx();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.type = "sine";
+    osc.frequency.value = 760;
+    gain.gain.setValueAtTime(0.0001, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.3, ctx.currentTime + 0.02);
+    gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.45);
+    osc.start();
+    osc.stop(ctx.currentTime + 0.45);
+  } catch (e) {
+    /* silencioso */
+  }
+}
 
 /**
  * Abas de conversas com clientes + resposta, para o chaveiro no modo livre.
@@ -16,6 +39,8 @@ export default function LocksmithChatConversations({ me }) {
   const [text, setText] = useState("");
   const [sending, setSending] = useState(false);
   const scrollRef = useRef(null);
+  const lastCustomerCountRef = useRef(null);
+  const { toast } = useToast();
 
   // Carrega todas as conversas (clientes que enviaram mensagens para este chaveiro)
   useEffect(() => {
@@ -25,8 +50,10 @@ export default function LocksmithChatConversations({ me }) {
         .filter({ locksmith_id: me.id }, "created_date")
         .then((list) => {
           const groups = {};
+          let customerTotal = 0;
           list.forEach((m) => {
             if (m.sender_type !== "customer") return;
+            customerTotal++;
             const key = m.sender_name || "Cliente";
             if (!groups[key]) groups[key] = { name: key, lastDate: m.created_date, count: 0 };
             groups[key].count++;
@@ -39,6 +66,17 @@ export default function LocksmithChatConversations({ me }) {
           );
           setConversations(sorted);
           if (sorted.length > 0 && !activeTab) setActiveTab(sorted[0].name);
+
+          // Notificação em tempo real de novas mensagens de cliente
+          if (lastCustomerCountRef.current !== null && customerTotal > lastCustomerCountRef.current) {
+            playBeep();
+            if (navigator.vibrate) navigator.vibrate([120, 60, 120]);
+            toast({
+              title: "💬 Nova mensagem de cliente",
+              description: "Você recebeu uma nova mensagem. Abra as conversas para responder.",
+            });
+          }
+          lastCustomerCountRef.current = customerTotal;
         })
         .catch(() => {});
     load();
