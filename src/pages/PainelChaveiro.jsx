@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
-import { Wrench, Bell, Check, X, Navigation, Power, Loader2, MapPin, WifiOff, CheckCircle2, Wallet } from "lucide-react";
+import { Wrench, Bell, Check, X, Navigation, Power, Loader2, MapPin, WifiOff, CheckCircle2, Wallet, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import NativeSelectDrawer from "@/components/ui/NativeSelectDrawer";
@@ -68,6 +68,7 @@ export default function PainelChaveiro() {
   const moveTimer = useRef(null);
   const notifiedIds = useRef(new Set());
   const { toast } = useToast();
+  const [chatFocus, setChatFocus] = useState(false);
 
   const selected = locksmiths.find((l) => l.id === selectedId) || me;
 
@@ -83,13 +84,11 @@ export default function PainelChaveiro() {
     };
   }, []);
 
-  // Rola até a conversa de chat ao chegar no painel via alerta de mensagem
+  // Abre a conversa de chat em tela cheia ao chegar no painel via alerta de mensagem
   useEffect(() => {
-    if (location.state?.scrollToChat) {
-      const t = setTimeout(() => {
-        document.getElementById("chat-conversas")?.scrollIntoView({ behavior: "smooth", block: "start" });
-      }, 500);
-      return () => clearTimeout(t);
+    if (location.state?.openChat) {
+      setChatFocus(true);
+      window.history.replaceState({}, "");
     }
   }, [location.state]);
 
@@ -857,6 +856,21 @@ export default function PainelChaveiro() {
             <LocksmithChatConversations me={me} />
           </div>
         )
+      )}
+
+      {/* Tela cheia de chat aberta via alerta de nova mensagem */}
+      {chatFocus && me && (
+        <div className="fixed inset-0 z-[70] bg-background flex flex-col">
+          <div className="flex items-center gap-2 p-3 border-b border-border pt-safe">
+            <button onClick={() => setChatFocus(false)} className="p-2 rounded-lg hover:bg-accent" aria-label="Voltar">
+              <ArrowLeft className="w-5 h-5" />
+            </button>
+            <h2 className="font-heading font-semibold text-foreground">Conversas</h2>
+          </div>
+          <div className="flex-1 overflow-y-auto p-3">
+            <LocksmithChatConversations me={me} />
+          </div>
+        </div>
       )}
     </div>
   );

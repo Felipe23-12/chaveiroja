@@ -115,7 +115,7 @@ export default function GlobalChatAlert() {
         setUnread(0);
         setChatUnread(0);
         try { localStorage.setItem(lastSeenKey(locksmith.id), String(Date.now())); } catch (e) {}
-        navigate("/painel-chaveiro", { state: { scrollToChat: true } });
+        navigate("/painel-chaveiro", { state: { openChat: true } });
       }}
       className="fixed bottom-20 right-4 z-[60] flex items-center gap-2 pl-3 pr-4 h-12 rounded-full bg-primary text-primary-foreground font-bold text-sm shadow-2xl active:scale-95 transition-all animate-alert-slide"
     >
