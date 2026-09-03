@@ -13,6 +13,19 @@
     <link rel="manifest" href="/manifest.json" />
     <link rel="apple-touch-icon" href="https://media.base44.com/images/public/6a975d266a8000184833026a/9589e6a99_generated_image.png" />
     <title>Chaveiro Já — Serviços de Chaveiro a um Toque</title>
+    <script>
+      (function () {
+        try {
+          var stored = localStorage.getItem("theme");
+          var prefersDark = window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches;
+          if (stored === "dark" || (!stored && prefersDark)) {
+            document.documentElement.classList.add("dark");
+            var meta = document.querySelector('meta[name="theme-color"]');
+            if (meta) meta.setAttribute("content", "#0a0a0a");
+          }
+        } catch (e) {}
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>

@@ -4,6 +4,7 @@ import { Home as HomeIcon, Clock, LogOut, Briefcase, MapPin, RadioTower, Wallet,
 import { base44 } from "@/api/base44Client";
 import { useAuth } from "@/lib/AuthContext";
 import { Image } from "@/components/ui/image";
+import DarkModeToggle from "@/components/DarkModeToggle";
 
 const ALL_NAV = [
   { label: "Início", path: "/", icon: HomeIcon, roles: ["cliente"] },
@@ -76,10 +77,11 @@ function SidebarContent({ onNavigate }) {
             <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
               <User className="w-4 h-4 text-primary" />
             </div>
-            <div className="min-w-0">
+            <div className="min-w-0 flex-1">
               <p className="text-sm font-medium text-foreground truncate">{user.full_name || user.email}</p>
               <p className="text-[11px] text-muted-foreground">{roleLabel}</p>
             </div>
+            <DarkModeToggle />
           </div>
         )}
         <button
@@ -113,6 +115,7 @@ function MobileTopBar({ onMenu }) {
       </Link>
       <div className="flex items-center gap-2">
         <span className="text-sm font-medium text-muted-foreground hidden sm:inline">{current?.label || ""}</span>
+        <DarkModeToggle />
         <button
           onClick={onMenu}
           className="p-2 rounded-lg text-muted-foreground hover:bg-accent"
