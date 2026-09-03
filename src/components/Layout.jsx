@@ -41,22 +41,22 @@ function SidebarContent({ onNavigate }) {
 
   return (
     <>
-      <div className="p-5 border-b border-border">
+      <div className="p-3 border-b border-border">
         <Link to={homePath} onClick={onNavigate} className="flex items-center gap-2">
           <Image
             src="https://media.base44.com/images/public/6a975d266a8000184833026a/9589e6a99_generated_image.png"
             alt="Chaveiro Já"
             fittingType="fit"
-            className="w-10 h-10 rounded-xl"
+            className="w-8 h-8 rounded-lg"
           />
           <div className="leading-tight">
-            <p className="font-heading font-bold text-foreground">Chaveiro Já</p>
-            <p className="text-[11px] text-muted-foreground">Socorro na hora</p>
+            <p className="font-heading font-bold text-sm text-foreground">Chaveiro Já</p>
+            <p className="text-[10px] text-muted-foreground">Socorro na hora</p>
           </div>
         </Link>
       </div>
 
-      <nav className="flex-1 p-3 flex md:flex-col gap-1 overflow-x-auto md:overflow-visible">
+      <nav className="flex-1 p-2 flex md:flex-col gap-0.5 overflow-x-auto md:overflow-visible">
         {navItems.map((item) => {
           const Icon = item.icon;
           const active = location.pathname === item.path;
@@ -65,13 +65,13 @@ function SidebarContent({ onNavigate }) {
               key={item.path}
               to={item.path}
               onClick={onNavigate}
-              className={`relative flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all whitespace-nowrap flex-1 md:flex-none ${
+              className={`relative flex items-center gap-2.5 px-2.5 py-1.5 rounded-md text-xs font-medium transition-all whitespace-nowrap flex-1 md:flex-none ${
                 active
                   ? "bg-primary text-primary-foreground shadow-sm"
                   : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
               }`}
             >
-              <Icon className="w-4 h-4 shrink-0" />
+              <Icon className="w-3.5 h-3.5 shrink-0" />
               <span className="hidden md:inline">{item.label}</span>
               <span className="md:hidden">{item.label.split(" ")[0]}</span>
             </Link>
@@ -79,31 +79,31 @@ function SidebarContent({ onNavigate }) {
         })}
       </nav>
 
-      <div className="p-3 border-t border-border pb-safe">
+      <div className="p-2 border-t border-border pb-safe">
         {user && (
-          <div className="flex items-center gap-2 px-2 py-2 mb-1">
-            <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-              <User className="w-4 h-4 text-primary" />
+          <div className="flex items-center gap-2 px-1.5 py-1 mb-0.5">
+            <div className="w-7 h-7 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+              <User className="w-3.5 h-3.5 text-primary" />
             </div>
             <div className="min-w-0 flex-1">
-              <p className="text-sm font-medium text-foreground truncate">{user.full_name || user.email}</p>
-              <p className="text-[11px] text-muted-foreground">{roleLabel}</p>
+              <p className="text-xs font-medium text-foreground truncate">{user.full_name || user.email}</p>
+              <p className="text-[10px] text-muted-foreground">{roleLabel}</p>
             </div>
             <DarkModeToggle />
           </div>
         )}
         <button
           onClick={handleLogout}
-          className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-muted-foreground hover:bg-accent transition-colors min-h-[44px]"
+          className="w-full flex items-center gap-2.5 px-2.5 py-1.5 rounded-md text-xs font-medium text-muted-foreground hover:bg-accent transition-colors min-h-[40px]"
         >
-          <LogOut className="w-4 h-4" />
+          <LogOut className="w-3.5 h-3.5" />
           Sair
         </button>
         <button
           onClick={() => setDeleteOpen(true)}
-          className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-destructive hover:bg-destructive/10 transition-colors min-h-[44px]"
+          className="w-full flex items-center gap-2.5 px-2.5 py-1.5 rounded-md text-xs font-medium text-destructive hover:bg-destructive/10 transition-colors min-h-[40px]"
         >
-          <Trash2 className="w-4 h-4" />
+          <Trash2 className="w-3.5 h-3.5" />
           Excluir conta
         </button>
       </div>
