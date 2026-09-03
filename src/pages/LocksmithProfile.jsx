@@ -9,6 +9,7 @@ import LocksmithFinancialPanel from "@/components/locksmith/LocksmithFinancialPa
 import MonthlySubscriptionConfig from "@/components/locksmith/MonthlySubscriptionConfig";
 import ServiceSelector from "@/components/locksmith/ServiceSelector";
 import NativeSelectDrawer from "@/components/ui/NativeSelectDrawer";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 export default function LocksmithProfile() {
   const [me, setMe] = useState(null);
@@ -175,26 +176,31 @@ export default function LocksmithProfile() {
       )}
 
       {selected && (
-        <div className="space-y-4">
-          {/* Modos */}
-          <div className="grid grid-cols-1 gap-3">
-            <ModeCard
-              mode="livre"
-              active={selected.work_mode === "livre"}
-              onClick={() => setMode("livre")}
-              saving={saving}
-            />
-            <ModeCard
-              mode="app"
-              active={selected.work_mode === "app"}
-              onClick={() => setMode("app")}
-              saving={saving}
-            />
-          </div>
+        <Tabs defaultValue="modo" className="w-full">
+          <TabsList className="grid grid-cols-3 w-full mb-4">
+            <TabsTrigger value="modo">Modo</TabsTrigger>
+            <TabsTrigger value="financeiro">Financeiro</TabsTrigger>
+            <TabsTrigger value="historico">Histórico</TabsTrigger>
+          </TabsList>
 
-          {/* Configuração modo livre */}
-          {selected.work_mode === "livre" && (
-            <div className="space-y-3">
+          {/* Aba: Modo de Trabalho */}
+          <TabsContent value="modo" className="space-y-4 mt-0">
+            <div className="grid grid-cols-1 gap-3">
+              <ModeCard
+                mode="livre"
+                active={selected.work_mode === "livre"}
+                onClick={() => setMode("livre")}
+                saving={saving}
+              />
+              <ModeCard
+                mode="app"
+                active={selected.work_mode === "app"}
+                onClick={() => setMode("app")}
+                saving={saving}
+              />
+            </div>
+
+            {selected.work_mode === "livre" && (
               <div className="rounded-2xl border border-border bg-white p-4 space-y-3">
                 <div>
                   <label className="text-sm font-medium text-foreground mb-1.5 block">
@@ -211,70 +217,72 @@ export default function LocksmithProfile() {
                   </p>
                 </div>
               </div>
+            )}
 
-              <MonthlySubscriptionConfig locksmith={selected} onUpdate={updateLocksmith} />
-            </div>
-          )}
-
-          {/* Configuração modo app */}
-          {selected.work_mode === "app" && (
-            <div className="rounded-2xl border border-border bg-white p-4 space-y-3">
-              <p className="text-sm text-muted-foreground">
-                O app calcula o valor ofertado ao cliente conforme serviço, horário e disponibilidade.
-                Você recebe o valor do serviço descontada a comissão.
-              </p>
-              <div className="flex items-center justify-between p-3 rounded-xl bg-muted">
-                <div className="flex items-center gap-2">
-                  <Percent className="w-4 h-4 text-muted-foreground" />
-                  <span className="text-sm">Comissão do app</span>
-                </div>
-                <span className="font-semibold text-foreground">15% por serviço</span>
-              </div>
-              <div className="p-3 rounded-xl bg-emerald-50">
-                <p className="text-xs text-muted-foreground">Exemplo: serviço de R$ 150,00</p>
-                <div className="flex justify-between text-sm mt-1">
-                  <span>Comissão do app (15%)</span>
-                  <span className="font-medium text-red-600">- R$ {calculateCommission(150, "app").toFixed(2)}</span>
-                </div>
-                <div className="flex justify-between text-sm mt-1">
-                  <span className="font-medium">Você recebe</span>
-                  <span className="font-bold text-emerald-700">R$ {(150 - calculateCommission(150, "app")).toFixed(2)}</span>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Seleção de serviços atendidos */}
-          <ServiceSelector locksmith={selected} onUpdate={updateLocksmith} />
-
-          {/* Disponibilidade online/offline */}
-          <div className="flex items-center justify-between p-4 rounded-2xl border border-border bg-white">
-            <div className="flex items-center gap-2">
-              <Power className="w-4 h-4 text-muted-foreground" />
-              <div>
-                <p className="font-medium text-foreground">Disponibilidade</p>
-                <p className="text-xs text-muted-foreground">
-                  {selected.online ? "Online — recebendo solicitações" : "Offline — não recebe solicitações"}
+            {selected.work_mode === "app" && (
+              <div className="rounded-2xl border border-border bg-white p-4 space-y-3">
+                <p className="text-sm text-muted-foreground">
+                  O app calcula o valor ofertado ao cliente conforme serviço, horário e disponibilidade.
+                  Você recebe o valor do serviço descontada a comissão.
                 </p>
+                <div className="flex items-center justify-between p-3 rounded-xl bg-muted">
+                  <div className="flex items-center gap-2">
+                    <Percent className="w-4 h-4 text-muted-foreground" />
+                    <span className="text-sm">Comissão do app</span>
+                  </div>
+                  <span className="font-semibold text-foreground">15% por serviço</span>
+                </div>
+                <div className="p-3 rounded-xl bg-emerald-50">
+                  <p className="text-xs text-muted-foreground">Exemplo: serviço de R$ 150,00</p>
+                  <div className="flex justify-between text-sm mt-1">
+                    <span>Comissão do app (15%)</span>
+                    <span className="font-medium text-red-600">- R$ {calculateCommission(150, "app").toFixed(2)}</span>
+                  </div>
+                  <div className="flex justify-between text-sm mt-1">
+                    <span className="font-medium">Você recebe</span>
+                    <span className="font-bold text-emerald-700">R$ {(150 - calculateCommission(150, "app")).toFixed(2)}</span>
+                  </div>
+                </div>
               </div>
+            )}
+
+            <ServiceSelector locksmith={selected} onUpdate={updateLocksmith} />
+
+            <div className="flex items-center justify-between p-4 rounded-2xl border border-border bg-white">
+              <div className="flex items-center gap-2">
+                <Power className="w-4 h-4 text-muted-foreground" />
+                <div>
+                  <p className="font-medium text-foreground">Disponibilidade</p>
+                  <p className="text-xs text-muted-foreground">
+                    {selected.online ? "Online — recebendo solicitações" : "Offline — não recebe solicitações"}
+                  </p>
+                </div>
+              </div>
+              <Button
+                onClick={() => updateLocksmith({ online: !selected.online })}
+                variant={selected.online ? "destructive" : "default"}
+                size="sm"
+                disabled={saving}
+                className="min-h-[44px]"
+              >
+                <Power className="w-4 h-4 mr-1.5" /> {selected.online ? "Sair" : "Entrar"}
+              </Button>
             </div>
-            <Button
-              onClick={() => updateLocksmith({ online: !selected.online })}
-              variant={selected.online ? "destructive" : "default"}
-              size="sm"
-              disabled={saving}
-              className="min-h-[44px]"
-            >
-              <Power className="w-4 h-4 mr-1.5" /> {selected.online ? "Sair" : "Entrar"}
-            </Button>
-          </div>
+          </TabsContent>
 
-          {/* Painel financeiro detalhado */}
-          <LocksmithFinancialPanel locksmith={selected} />
+          {/* Aba: Financeiro */}
+          <TabsContent value="financeiro" className="space-y-4 mt-0">
+            {selected.work_mode === "livre" && (
+              <MonthlySubscriptionConfig locksmith={selected} onUpdate={updateLocksmith} />
+            )}
+            <LocksmithFinancialPanel locksmith={selected} />
+          </TabsContent>
 
-          {/* Histórico e avaliações */}
-          <LocksmithHistorySummary locksmithId={selected.id} />
-        </div>
+          {/* Aba: Histórico */}
+          <TabsContent value="historico" className="mt-0">
+            <LocksmithHistorySummary locksmithId={selected.id} />
+          </TabsContent>
+        </Tabs>
       )}
     </div>
   );
