@@ -129,3 +129,47 @@
 .route-flow {
   animation: route-flow 1s linear infinite;
 }
+
+/* Animação de desenho da rota (linha se desenha do início ao fim) */
+@keyframes route-draw {
+  from {
+    stroke-dashoffset: 100;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+.route-draw {
+  stroke-dasharray: 100;
+  animation: route-draw 1.5s ease-out forwards;
+}
+
+/* Pulso do halo da rota */
+@keyframes route-glow-pulse {
+  0%, 100% {
+    opacity: 0.15;
+  }
+  50% {
+    opacity: 0.45;
+  }
+}
+
+.route-glow {
+  animation: route-glow-pulse 2s ease-in-out infinite;
+}
+
+/* Aparecimento suave da linha de fluxo após o desenho */
+@keyframes route-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.route-fade-in {
+  opacity: 0;
+  animation: route-fade-in 0.4s ease-out 1.3s forwards;
+}

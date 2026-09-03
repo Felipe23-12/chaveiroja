@@ -97,18 +97,18 @@ export default function MapView({ center, markers = [], route = null, routePath 
         >
           {routePath && pathPoints && pathPoints.length > 1 ? (
             <>
-              {/* Halo externo (sombra/glow) */}
+              {/* Halo externo pulsante */}
               <polyline
                 points={polylinePoints}
                 fill="none"
                 stroke="#0ea5e9"
-                strokeWidth={7}
+                strokeWidth={8}
                 strokeLinecap="round"
                 strokeLinejoin="round"
-                opacity={0.25}
+                className="route-glow"
                 vectorEffect="non-scaling-stroke"
               />
-              {/* Linha base escura */}
+              {/* Linha base — desenha progressivamente */}
               <polyline
                 points={polylinePoints}
                 fill="none"
@@ -116,10 +116,11 @@ export default function MapView({ center, markers = [], route = null, routePath 
                 strokeWidth={5}
                 strokeLinecap="round"
                 strokeLinejoin="round"
-                opacity={0.9}
+                pathLength={100}
+                className="route-draw"
                 vectorEffect="non-scaling-stroke"
               />
-              {/* Linha animada de fluxo (azul claro) */}
+              {/* Linha animada de fluxo (azul claro) — aparece após o desenho */}
               <polyline
                 points={polylinePoints}
                 fill="none"
@@ -128,7 +129,7 @@ export default function MapView({ center, markers = [], route = null, routePath 
                 strokeLinecap="round"
                 strokeLinejoin="round"
                 strokeDasharray="10 8"
-                className="route-flow"
+                className="route-flow route-fade-in"
                 vectorEffect="non-scaling-stroke"
               />
             </>
@@ -141,9 +142,9 @@ export default function MapView({ center, markers = [], route = null, routePath 
                   x2={`${to.x}`}
                   y2={`${to.y}`}
                   stroke="#0ea5e9"
-                  strokeWidth={7}
+                  strokeWidth={8}
                   strokeLinecap="round"
-                  opacity={0.25}
+                  className="route-glow"
                   vectorEffect="non-scaling-stroke"
                 />
                 <line
@@ -153,9 +154,9 @@ export default function MapView({ center, markers = [], route = null, routePath 
                   y2={`${to.y}`}
                   stroke="#0f172a"
                   strokeWidth={5}
-                  strokeDasharray="10 8"
                   strokeLinecap="round"
-                  opacity={0.9}
+                  pathLength={100}
+                  className="route-draw"
                   vectorEffect="non-scaling-stroke"
                 />
                 <line
@@ -167,7 +168,7 @@ export default function MapView({ center, markers = [], route = null, routePath 
                   strokeWidth={3}
                   strokeDasharray="10 8"
                   strokeLinecap="round"
-                  className="route-flow"
+                  className="route-flow route-fade-in"
                   vectorEffect="non-scaling-stroke"
                 />
               </>
