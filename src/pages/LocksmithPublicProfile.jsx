@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { haversineKm, DEFAULT_CENTER, getCustomerLocation } from "@/lib/geo";
 import LocksmithCredentialsTabs from "@/components/locksmith/LocksmithCredentialsTabs";
 import ReviewsList from "@/components/locksmith/ReviewsList";
+import RatingSummary from "@/components/locksmith/RatingSummary";
 import { saveLocksmithProfile, getLocksmithProfile } from "@/lib/offlineCache";
 import { WifiOff } from "lucide-react";
 
@@ -53,22 +54,23 @@ export default function LocksmithPublicProfile() {
         </div>
       )}
 
-      <div className="flex items-center gap-4 mb-5">
+      <div className="flex items-center gap-4 mb-4">
         <div className="w-16 h-16 rounded-full bg-emerald-500 text-white flex items-center justify-center text-2xl font-semibold">
           {locksmith.name.charAt(0)}
         </div>
         <div className="flex-1">
           <h1 className="font-heading font-bold text-xl text-foreground">{locksmith.name}</h1>
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            <span className="flex items-center gap-1">
-              <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" /> {locksmith.rating?.toFixed(1)} ({locksmith.reviews_count || 0})
-            </span>
             <span>· {locksmith.specialty}</span>
           </div>
           <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
             <MapPin className="w-3 h-3" /> {dist} km de você
           </p>
         </div>
+      </div>
+
+      <div className="mb-5">
+        <RatingSummary rating={locksmith.rating} reviewsCount={locksmith.reviews_count} />
       </div>
 
       {locksmith.bio && <p className="text-sm text-muted-foreground mb-5">{locksmith.bio}</p>}

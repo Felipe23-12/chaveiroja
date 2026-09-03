@@ -1,6 +1,7 @@
 import React from "react";
-import { Star, MapPin, Clock, Check, BadgeCheck } from "lucide-react";
+import { MapPin, Clock, Check, BadgeCheck } from "lucide-react";
 import { Image } from "@/components/ui/image";
+import RatingSummary from "@/components/locksmith/RatingSummary";
 
 export default function LocksmithCard({ locksmith, selected, onSelect, offeredPrice }) {
   const isFree = locksmith.work_mode === "livre";
@@ -26,11 +27,9 @@ export default function LocksmithCard({ locksmith, selected, onSelect, offeredPr
           <p className="font-heading font-semibold text-foreground truncate">{locksmith.name}</p>
           {selected && <Check className="w-4 h-4 text-primary flex-shrink-0" />}
         </div>
-        <div className="flex items-center gap-1 mt-0.5 flex-wrap">
-          <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
-          <span className="text-xs font-medium text-foreground">{locksmith.rating?.toFixed(1)}</span>
-          <span className="text-xs text-muted-foreground">({locksmith.reviews_count})</span>
-          <span className="text-xs text-muted-foreground mx-1">·</span>
+        <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
+          <RatingSummary rating={locksmith.rating} reviewsCount={locksmith.reviews_count} compact />
+          <span className="text-xs text-muted-foreground">·</span>
           <span className="text-xs text-muted-foreground">{locksmith.specialty}</span>
         </div>
         <div className="flex items-center gap-3 mt-2 text-xs text-muted-foreground">
