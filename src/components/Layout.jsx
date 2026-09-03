@@ -58,7 +58,7 @@ function SidebarContent({ onNavigate }) {
         </Link>
       </div>
 
-      <nav className="flex-1 p-2 flex flex-col gap-1">
+      <nav className="flex-1 p-1.5 flex flex-col gap-0.5">
         {navItems.map((item) => {
           const Icon = item.icon;
           const active = location.pathname === item.path;
@@ -67,13 +67,13 @@ function SidebarContent({ onNavigate }) {
               key={item.path}
               to={item.path}
               onClick={onNavigate}
-              className={`relative flex items-center gap-2.5 px-2.5 py-2 rounded-md text-xs font-medium transition-all ${
+              className={`relative flex items-center gap-2 px-2.5 py-1.5 rounded-md text-xs font-medium transition-all ${
                 active
                   ? "bg-primary text-primary-foreground shadow-sm"
                   : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
               }`}
             >
-              <Icon className="w-3.5 h-3.5 shrink-0" />
+              <Icon className="w-3 h-3 shrink-0" />
               <span>{item.label}</span>
               {item.path === "/painel-chaveiro" && chatUnread > 0 && (
                 <span className="ml-auto min-w-[18px] h-[18px] px-1 rounded-full bg-red-500 text-white text-[10px] font-bold flex items-center justify-center">
@@ -88,8 +88,8 @@ function SidebarContent({ onNavigate }) {
       <div className="p-2 border-t border-border pb-safe">
         {user && (
           <div className="flex items-center gap-2 px-1.5 py-1 mb-0.5">
-            <div className="w-7 h-7 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-              <User className="w-3.5 h-3.5 text-primary" />
+            <div className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+              <User className="w-3 h-3 text-primary" />
             </div>
             <div className="min-w-0 flex-1">
               <p className="text-xs font-medium text-foreground truncate">{user.full_name || user.email}</p>
@@ -100,16 +100,16 @@ function SidebarContent({ onNavigate }) {
         )}
         <button
           onClick={handleLogout}
-          className="w-full flex items-center gap-2.5 px-2.5 py-1.5 rounded-md text-xs font-medium text-muted-foreground hover:bg-accent transition-colors min-h-[40px]"
+          className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-md text-xs font-medium text-muted-foreground hover:bg-accent transition-colors min-h-[36px]"
         >
-          <LogOut className="w-3.5 h-3.5" />
+          <LogOut className="w-3 h-3" />
           Sair
         </button>
         <button
           onClick={() => setDeleteOpen(true)}
-          className="w-full flex items-center gap-2.5 px-2.5 py-1.5 rounded-md text-xs font-medium text-destructive hover:bg-destructive/10 transition-colors min-h-[40px]"
+          className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-md text-xs font-medium text-destructive hover:bg-destructive/10 transition-colors min-h-[36px]"
         >
-          <Trash2 className="w-3.5 h-3.5" />
+          <Trash2 className="w-3 h-3" />
           Excluir conta
         </button>
       </div>
