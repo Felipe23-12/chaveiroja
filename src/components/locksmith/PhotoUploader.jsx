@@ -2,9 +2,21 @@ import React, { useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { X, Loader2, Camera, Image as ImageIcon } from "lucide-react";
 import { Image } from "@/components/ui/image";
+import CameraCapture from "@/components/locksmith/CameraCapture";
 
 export default function PhotoUploader({ photos = [], onChange, label }) {
   const [uploading, setUploading] = useState(false);
+  const [cameraOpen, setCameraOpen] = useState(false);
+
+  const uploadOne = async (file) => {
+    setUploading(true);
+    try {
+      const res = await base44.integrations.Core.UploadFile({ file });
+      if (res?.file_url) onChange([...photos, res.file_url]);
+    } finally {
+      setUploading(false);
+    }
+  };
 
   const handleFiles = async (files) => {
     if (!files || !files.length) return;
@@ -39,21 +51,17 @@ export default function PhotoUploader({ photos = [], onChange, label }) {
             </button>
           </div>
         ))}
-        <label
+        <button
+          type="button"
+          onClick={() => setCameraOpen(true)}
+          disabled={uploading}
           className={`w-20 h-20 rounded-lg border-2 border-primary/40 bg-primary/5 flex flex-col items-center justify-center cursor-pointer hover:border-primary text-primary ${
             uploading ? "opacity-50 pointer-events-none" : ""
           }`}
         >
           {uploading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Camera className="w-5 h-5" />}
           <span className="text-[10px] mt-0.5 font-medium">Tirar foto</span>
-          <input
-            type="file"
-            accept="image/*"
-            capture="environment"
-            className="hidden"
-            onChange={(e) => { handleFiles(e.target.files); e.target.value = ""; }}
-          />
-        </label>
+        </button>
         <label
           className={`w-20 h-20 rounded-lg border-2 border-dashed border-border flex flex-col items-center justify-center cursor-pointer hover:border-primary text-muted-foreground ${
             uploading ? "opacity-50 pointer-events-none" : ""
@@ -70,6 +78,16 @@ export default function PhotoUploader({ photos = [], onChange, label }) {
           />
         </label>
       </div>
+
+      {cameraOpen && (
+        <CameraCapture
+          onClose={() => setCameraOpen(false)}
+          onCapture={(file) => {
+            setCameraOpen(false);
+            uploadOne(file);
+          }}
+        />
+      )}
     </div>
   );
 }
