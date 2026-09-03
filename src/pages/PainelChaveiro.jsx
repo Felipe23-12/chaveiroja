@@ -437,6 +437,8 @@ export default function PainelChaveiro() {
     }
   };
 
+  const { pull, refreshing } = usePullToRefresh(handleRefresh);
+
   const isAppMode = me?.work_mode === "app";
   const ring = pendingRequests[0] || null;
   const pendingCount = pendingRequests.length;
@@ -469,6 +471,7 @@ export default function PainelChaveiro() {
 
   return (
     <div className={`max-w-2xl mx-auto px-4 py-6 md:py-10 ${pendingCount > 0 && isAppMode ? "pt-14 md:pt-14" : ""}`}>
+      <PullToRefreshIndicator pull={pull} refreshing={refreshing} />
       {/* Banner fixo piscante no topo quando há solicitações pendentes */}
       {pendingCount > 0 && isAppMode && (
         <div className="fixed top-0 left-0 right-0 z-50 bg-red-500 text-white text-center py-2 text-sm font-bold animate-alert-blink shadow-lg md:left-64">

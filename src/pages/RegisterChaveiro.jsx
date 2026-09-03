@@ -5,13 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import NativeSelectDrawer from "@/components/ui/NativeSelectDrawer";
 import { Wrench, Mail, Lock, Loader2, User, Phone, CreditCard } from "lucide-react";
 import AuthLayout from "@/components/AuthLayout";
 import GoogleIcon from "@/components/GoogleIcon";
@@ -205,17 +199,18 @@ export default function RegisterChaveiro() {
           <p className="text-sm font-semibold text-foreground">Dados profissionais</p>
           <div className="space-y-2">
             <Label htmlFor="specialty">Especialidade</Label>
-            <Select value={specialty} onValueChange={setSpecialty}>
-              <SelectTrigger id="specialty" className="h-12">
-                <SelectValue placeholder="Escolha sua especialidade" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="Residencial">Residencial</SelectItem>
-                <SelectItem value="Automotivo">Automotivo</SelectItem>
-                <SelectItem value="Comercial">Comercial</SelectItem>
-                <SelectItem value="Emergencial">Emergencial</SelectItem>
-              </SelectContent>
-            </Select>
+            <NativeSelectDrawer
+              value={specialty}
+              onChange={setSpecialty}
+              options={[
+                { value: "Residencial", label: "Residencial" },
+                { value: "Automotivo", label: "Automotivo" },
+                { value: "Comercial", label: "Comercial" },
+                { value: "Emergencial", label: "Emergencial" },
+              ]}
+              label="Especialidade"
+              placeholder="Escolha sua especialidade"
+            />
           </div>
           <div className="space-y-2">
             <Label htmlFor="vehicle">Veículo</Label>

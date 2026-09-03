@@ -41,6 +41,7 @@ export default function History() {
   }, []);
 
   const filtered = filterRequests(requests, filters);
+  const { pull, refreshing } = usePullToRefresh(loadRequests);
 
   if (loading) {
     return (
@@ -52,6 +53,7 @@ export default function History() {
 
   return (
     <div className="max-w-2xl mx-auto px-4 py-6 md:py-10">
+      <PullToRefreshIndicator pull={pull} refreshing={refreshing} />
       <div className="flex items-center gap-2 mb-6 fade-in-up">
         <div className="w-10 h-10 rounded-xl bg-primary flex items-center justify-center">
           <Clock className="w-5 h-5 text-primary-foreground" />

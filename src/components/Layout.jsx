@@ -7,6 +7,7 @@ import { Image } from "@/components/ui/image";
 import DarkModeToggle from "@/components/DarkModeToggle";
 import GlobalLocksmithRequestAlert from "@/components/locksmith/GlobalLocksmithRequestAlert";
 import DeleteAccountModal from "@/components/DeleteAccountModal";
+import MobileTabBar from "@/components/MobileTabBar";
 
 const ALL_NAV = [
   { label: "Início", path: "/", icon: HomeIcon, roles: ["cliente"] },
@@ -168,9 +169,10 @@ export default function Layout() {
       <aside className="hidden md:flex md:w-64 md:min-h-screen bg-card border-r border-border flex-col sticky top-0 md:h-screen">
         <SidebarContent onNavigate={() => {}} />
       </aside>
-      <main className="flex-1 md:h-screen md:overflow-y-auto">
+      <main className="flex-1 md:h-screen md:overflow-y-auto pb-[calc(4rem+env(safe-area-inset-bottom))] md:pb-0">
         <Outlet />
       </main>
+      <MobileTabBar />
     </div>
   );
 }
