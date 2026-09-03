@@ -49,7 +49,7 @@ export default function LocksmithChatConversations({ me }) {
           // Notificação em tempo real de novas mensagens de cliente
           if (lastCustomerCountRef.current !== null && customerTotal > lastCustomerCountRef.current) {
             playNotificationSound();
-            if (navigator.vibrate) navigator.vibrate([120, 60, 120]);
+            if (navigator.vibrate) navigator.vibrate([200, 100, 200, 100, 200]);
             toast({
               title: "💬 Nova mensagem de cliente",
               description: "Você recebeu uma nova mensagem. Abra as conversas para responder.",

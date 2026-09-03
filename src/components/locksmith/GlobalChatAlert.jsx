@@ -81,7 +81,7 @@ export default function GlobalChatAlert() {
               newMsgs.forEach((m) => seenIds.current.add(m.id));
               const latest = newMsgs[newMsgs.length - 1];
               playNotificationSound();
-              if (navigator.vibrate) navigator.vibrate([120, 60, 120, 60, 120]);
+              if (navigator.vibrate) navigator.vibrate([200, 100, 200, 100, 200]);
               toast({
                 title: "💬 Nova mensagem de cliente",
                 description: `${latest.sender_name || "Cliente"}: ${latest.message?.slice(0, 60) || "..."}`,
