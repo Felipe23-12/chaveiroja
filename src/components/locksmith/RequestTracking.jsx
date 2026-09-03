@@ -1,6 +1,6 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
-import { CheckCircle2, Circle, Phone, MessageCircle, Star, User } from "lucide-react";
+import { CheckCircle2, Circle, Phone, MessageCircle, Star, User, Loader2 } from "lucide-react";
 import { Image } from "@/components/ui/image";
 import { Button } from "@/components/ui/button";
 
@@ -71,10 +71,14 @@ export default function RequestTracking({ request, locksmith, onAdvance, onCall 
       </div>
 
       {/* Actions */}
-      {request.status !== "completed" ? (
+      {request.status === "accepted" ? (
         <Button onClick={onAdvance} className="w-full" size="lg">
-          {request.status === "accepted" ? "Confirmar que está a caminho" : "Marcar serviço como concluído"}
+          Confirmar que está a caminho
         </Button>
+      ) : request.status === "on_the_way" ? (
+        <div className="p-4 rounded-xl bg-blue-50 text-blue-700 text-sm flex items-center gap-2">
+          <Loader2 className="w-5 h-5 animate-spin" /> Chaveiro a caminho. Aguarde a conclusão do serviço.
+        </div>
       ) : (
         <div className="p-4 rounded-xl bg-emerald-50 text-emerald-700 text-sm flex items-center gap-2">
           <CheckCircle2 className="w-5 h-5" /> Serviço concluído! Aguarde a confirmação.

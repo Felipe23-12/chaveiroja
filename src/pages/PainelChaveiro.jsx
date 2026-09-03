@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
-import { Wrench, Bell, Check, X, Navigation, Power, Loader2, MapPin, WifiOff } from "lucide-react";
+import { Wrench, Bell, Check, X, Navigation, Power, Loader2, MapPin, WifiOff, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import {
@@ -270,7 +270,7 @@ export default function PainelChaveiro() {
           const ongoing = list.find((r) =>
             r.status === "accepted" ||
             r.status === "on_the_way" ||
-            (r.status === "completed" && (!r.locksmith_confirmed || r.payment_status !== "paid"))
+            r.status === "completed"
           );
           if (ongoing) {
             saveLastService(ongoing);
@@ -279,20 +279,8 @@ export default function PainelChaveiro() {
             clearLastService();
             setActive(null);
           }
-          // Notifica quando o cliente solicita confirmação de finalização
-          if (ongoing?.client_confirmed && !ongoing?.locksmith_confirmed) {
-            const notifyKey = `confirm_${ongoing.id}`;
-            if (!notifiedIds.current.has(notifyKey)) {
-              notifiedIds.current.add(notifyKey);
-              playBeep();
-              toast({
-                title: "🔔 Cliente solicitou confirmação",
-                description: `${ongoing.service_type} · R$ ${ongoing.price?.toFixed(2)}`,
-              });
-            }
-          }
-          // Notifica quando o cliente seleciona pagamento em dinheiro
-          if (ongoing?.payment_method === "dinheiro" && !ongoing?.cash_received && ongoing?.locksmith_confirmed) {
+          // Notifica quando o cliente seleciona pagamento em dinheiro (aguardando confirmação)
+          if (ongoing?.payment_method === "dinheiro" && !ongoing?.cash_received) {
             const notifyKey = `cash_${ongoing.id}`;
             if (!notifiedIds.current.has(notifyKey)) {
               notifiedIds.current.add(notifyKey);
@@ -300,6 +288,18 @@ export default function PainelChaveiro() {
               toast({
                 title: "💵 Pagamento em dinheiro",
                 description: "Confirme o recebimento de R$ " + ongoing.price?.toFixed(2),
+              });
+            }
+          }
+          // Notifica quando o pagamento é confirmado (libera a finalização)
+          if (ongoing?.payment_status === "paid" && ongoing?.status !== "completed") {
+            const notifyKey = `paid_${ongoing.id}`;
+            if (!notifiedIds.current.has(notifyKey)) {
+              notifiedIds.current.add(notifyKey);
+              playBeep();
+              toast({
+                title: "💰 Pagamento confirmado!",
+                description: "Você já pode finalizar o serviço.",
               });
             }
           }
@@ -410,24 +410,17 @@ export default function PainelChaveiro() {
     await base44.entities.ServiceRequest.update(active.id, { start_photos: startPhotos });
   };
 
-  const handleFinish = async () => {
+  // Registra as fotos do final do serviço — sinaliza ao cliente que o trabalho acabou
+  // e libera a etapa de pagamento. O serviço ainda NÃO é concluído aqui.
+  const handleRegisterEnd = async () => {
     if (!active || !endPhotos.length) return;
-    await base44.entities.ServiceRequest.update(active.id, {
-      end_photos: endPhotos,
-      status: "completed",
-    });
-    // O resumo por email é enviado ao cliente após o pagamento e a avaliação,
-    // garantindo que contenha valor pago e avaliação dada.
+    await base44.entities.ServiceRequest.update(active.id, { end_photos: endPhotos });
   };
 
-  // Chaveiro confirma a finalização do serviço (após solicitação do cliente)
-  const handleConfirmCompletion = async () => {
-    if (!active) return;
-    await base44.entities.ServiceRequest.update(active.id, { locksmith_confirmed: true });
-    toast({
-      title: "Finalização confirmada",
-      description: "O cliente foi liberado para selecionar a forma de pagamento.",
-    });
+  // Finaliza o serviço — só permitido após o pagamento do cliente ser confirmado.
+  const handleFinish = async () => {
+    if (!active || active.payment_status !== "paid") return;
+    await base44.entities.ServiceRequest.update(active.id, { status: "completed" });
   };
 
   // Chaveiro confirma que recebeu o pagamento em dinheiro
@@ -448,10 +441,14 @@ export default function PainelChaveiro() {
   const ring = pendingRequests[0] || null;
   const pendingCount = pendingRequests.length;
   const startDone = (active?.start_photos?.length || 0) > 0;
+  const endDone = (active?.end_photos?.length || 0) > 0;
+  const paid = active?.payment_status === "paid";
   const phase = !active
     ? "moving"
     : active.status === "completed"
     ? "completed"
+    : endDone
+    ? (paid ? "ready_to_finish" : "awaiting_payment")
     : startDone
     ? "finishing"
     : arrived
@@ -464,6 +461,10 @@ export default function PainelChaveiro() {
       ? "Chegou no local!"
       : phase === "finishing"
       ? "Em atendimento"
+      : phase === "awaiting_payment"
+      ? "Aguardando pagamento"
+      : phase === "ready_to_finish"
+      ? "Pagamento confirmado"
       : "Serviço concluído";
 
   return (
@@ -592,7 +593,7 @@ export default function PainelChaveiro() {
             <p className="text-xs text-muted-foreground">{active.address}</p>
             <p className="text-xs text-muted-foreground mt-1">
               Status: <span className="font-medium text-foreground">
-                {phase === "arrived" ? "No local" : phase === "finishing" ? "Em atendimento" : active.status === "accepted" ? "Aceito" : active.status === "on_the_way" ? "A caminho" : "Concluído"}
+                {phase === "arrived" ? "No local" : phase === "finishing" ? "Em atendimento" : phase === "awaiting_payment" ? "Aguardando pagamento" : phase === "ready_to_finish" ? "Pagamento confirmado" : active.status === "accepted" ? "Aceito" : active.status === "on_the_way" ? "A caminho" : "Concluído"}
               </span>
             </p>
           </div>
@@ -637,7 +638,38 @@ export default function PainelChaveiro() {
                 photos={endPhotos}
                 onChange={setEndPhotos}
               />
-              <Button onClick={handleFinish} disabled={!endPhotos.length} className="w-full">
+              <Button onClick={handleRegisterEnd} disabled={!endPhotos.length} className="w-full">
+                <Check className="w-4 h-4 mr-1.5" /> Registrar finalização do serviço
+              </Button>
+            </div>
+          )}
+
+          {phase === "awaiting_payment" && (
+            <div className="p-4 rounded-xl border-2 border-amber-300 bg-amber-50 space-y-3">
+              <div className="flex items-center gap-2 text-amber-700">
+                <Loader2 className="w-5 h-5 animate-spin" />
+                <p className="font-medium text-sm">Aguardando pagamento do cliente</p>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                O cliente foi notificado para efetuar o pagamento de <strong className="text-foreground">R$ {active.price?.toFixed(2)}</strong>.
+                Após a confirmação, você poderá finalizar o serviço.
+              </p>
+              {active.payment_method === "dinheiro" && !active.cash_received && (
+                <Button onClick={handleConfirmCash} className="w-full">
+                  <Check className="w-4 h-4 mr-1.5" /> Recebi em dinheiro (R$ {active.price?.toFixed(2)})
+                </Button>
+              )}
+            </div>
+          )}
+
+          {phase === "ready_to_finish" && (
+            <div className="p-4 rounded-xl border-2 border-emerald-300 bg-emerald-50 space-y-3">
+              <div className="flex items-center gap-2 text-emerald-700">
+                <Check className="w-5 h-5" />
+                <p className="font-medium text-sm">Pagamento confirmado!</p>
+              </div>
+              <p className="text-xs text-muted-foreground">Você já pode finalizar o serviço.</p>
+              <Button onClick={handleFinish} className="w-full">
                 <Check className="w-4 h-4 mr-1.5" /> Finalizar serviço
               </Button>
             </div>
@@ -645,7 +677,6 @@ export default function PainelChaveiro() {
 
           {active.status === "completed" && (
             <div className="space-y-3">
-              {/* Valor do serviço */}
               <div className="p-4 rounded-xl border border-border bg-muted/50">
                 <p className="text-xs text-muted-foreground mb-1">Valor do serviço</p>
                 <p className="font-heading font-bold text-2xl text-foreground">R$ {active.price?.toFixed(2)}</p>
@@ -660,60 +691,9 @@ export default function PainelChaveiro() {
                   </p>
                 )}
               </div>
-
-              {/* Cliente solicitou confirmação de finalização */}
-              {active.client_confirmed && !active.locksmith_confirmed && (
-                <div className="p-4 rounded-xl border-2 border-amber-300 bg-amber-50 space-y-3">
-                  <div className="flex items-center gap-2 text-amber-700">
-                    <Bell className="w-5 h-5" />
-                    <p className="font-medium text-sm">Cliente solicitou confirmação de finalização</p>
-                  </div>
-                  <p className="text-xs text-muted-foreground">
-                    O cliente confirmou que o serviço foi finalizado. Confirme para liberar o pagamento.
-                  </p>
-                  <Button onClick={handleConfirmCompletion} className="w-full">
-                    <Check className="w-4 h-4 mr-1.5" /> Confirmar finalização
-                  </Button>
-                </div>
-              )}
-
-              {/* Aguardando cliente selecionar forma de pagamento */}
-              {active.locksmith_confirmed && !active.payment_method && (
-                <div className="p-4 rounded-xl bg-blue-50 text-blue-700 text-sm flex items-center gap-2">
-                  <Loader2 className="w-4 h-4 animate-spin" /> Aguardando cliente selecionar a forma de pagamento…
-                </div>
-              )}
-
-              {/* Cliente selecionou dinheiro — chaveiro confirma recebimento */}
-              {active.locksmith_confirmed && active.payment_method === "dinheiro" && !active.cash_received && (
-                <div className="p-4 rounded-xl border-2 border-emerald-300 bg-emerald-50 space-y-3">
-                  <div className="flex items-center gap-2 text-emerald-700">
-                    <Check className="w-5 h-5" />
-                    <p className="font-medium text-sm">Cliente pagará em dinheiro</p>
-                  </div>
-                  <p className="text-xs text-muted-foreground">
-                    Confirme o recebimento de <strong className="text-foreground">R$ {active.price?.toFixed(2)}</strong> em dinheiro.
-                    A comissão de 15% será descontada do seu próximo pagamento via app.
-                  </p>
-                  <Button onClick={handleConfirmCash} className="w-full">
-                    <Check className="w-4 h-4 mr-1.5" /> Recebi em dinheiro
-                  </Button>
-                </div>
-              )}
-
-              {/* Pagamento em dinheiro confirmado */}
-              {active.cash_received && (
-                <div className="p-4 rounded-xl bg-emerald-50 text-emerald-700 text-sm flex items-center gap-2">
-                  <Check className="w-5 h-5" /> Pagamento recebido em dinheiro!
-                </div>
-              )}
-
-              {/* Pagamento via app confirmado */}
-              {active.locksmith_confirmed && active.payment_method && active.payment_method !== "dinheiro" && active.payment_status === "paid" && (
-                <div className="p-4 rounded-xl bg-emerald-50 text-emerald-700 text-sm flex items-center gap-2">
-                  <Check className="w-5 h-5" /> Pagamento confirmado via app!
-                </div>
-              )}
+              <div className="p-4 rounded-xl bg-emerald-50 text-emerald-700 text-sm flex items-center gap-2">
+                <CheckCircle2 className="w-5 h-5" /> Serviço concluído com sucesso!
+              </div>
             </div>
           )}
         </div>

@@ -59,6 +59,8 @@ export default function Home() {
   const reqRef = useRef(null);
   const notifiedMoving = useRef(false);
   const notifiedNearby = useRef(false);
+  const notifiedEnd = useRef(false);
+  const notifiedCompleted = useRef(false);
 
   const service = useMemo(() => SERVICE_CATALOG.find((s) => s.id === serviceId), [serviceId]);
 
@@ -252,14 +254,7 @@ export default function Home() {
     }
   };
 
-  // Cliente confirma que o chaveiro finalizou o serviço
-  const handleClientConfirm = async () => {
-    if (!activeRequest) return;
-    await base44.entities.ServiceRequest.update(activeRequest.id, { client_confirmed: true });
-    setActiveRequest((prev) => ({ ...prev, client_confirmed: true }));
-  };
-
-  // Pagamento confirmado via Stripe após a conclusão do serviço
+  // Pagamento confirmado via Stripe — acontece após o serviço, antes da finalização
   const handleServicePayment = async (method, stripePaymentIntentId) => {
     if (!activeRequest) return;
 
@@ -294,7 +289,6 @@ export default function Home() {
       });
       await confirmPaymentPaid(payment.id);
       setActiveRequest((prev) => ({ ...prev, payment_id: payment.id, payment_status: "paid" }));
-      setStep(8);
       base44.auth.me()
         .then((u) => getClientLoyalty(u.id))
         .then(setLoyalty)
@@ -353,14 +347,13 @@ export default function Home() {
           if (updated.status === "on_the_way" && step === 4) {
             setStep(5);
           }
-          if (updated.status === "completed" && step === 5) {
+          // Chaveiro registrou o final do serviço → cliente paga
+          if (updated.end_photos?.length > 0 && step === 5) {
             setStep(6);
           }
-          if (updated.locksmith_confirmed && step === 6) {
+          // Chaveiro finaliza o serviço (após pagamento) → avaliação
+          if (updated.status === "completed" && step === 6) {
             setStep(7);
-          }
-          if (updated.cash_received && step === 7) {
-            setStep(8);
           }
 
           // Notificação: chaveiro iniciou o deslocamento
@@ -398,6 +391,18 @@ export default function Home() {
               });
             }
           }
+
+          // Notificação: chaveiro registrou o final do serviço (hora de pagar)
+          if (updated.end_photos?.length > 0 && !notifiedEnd.current) {
+            notifiedEnd.current = true;
+            notifyClient("Serviço concluído!", "O chaveiro finalizou o atendimento. Efetue o pagamento.");
+            toast({ title: "✅ Serviço concluído!", description: "Efetue o pagamento para liberar a finalização." });
+          }
+          // Notificação: chaveiro finalizou o serviço (pagamento confirmado)
+          if (updated.status === "completed" && !notifiedCompleted.current) {
+            notifiedCompleted.current = true;
+            notifyClient("Tudo certo!", "Serviço finalizado. Avalie o atendimento.");
+          }
         });
       }
     });
@@ -422,8 +427,11 @@ export default function Home() {
 
   const handleAdvance = () => {
     if (!activeRequest) return;
-    const next = activeRequest.status === "accepted" ? "on_the_way" : "completed";
-    base44.entities.ServiceRequest.update(activeRequest.id, { status: next }).then(setActiveRequest);
+    // O cliente só confirma que o chaveiro está a caminho; a conclusão do serviço
+    // é controlada pelo chaveiro, após o pagamento.
+    if (activeRequest.status === "accepted") {
+      base44.entities.ServiceRequest.update(activeRequest.id, { status: "on_the_way" }).then(setActiveRequest);
+    }
   };
 
   const handleRate = async (n, comment = "") => {
@@ -488,6 +496,8 @@ export default function Home() {
     setRouteEta(null);
     notifiedMoving.current = false;
     notifiedNearby.current = false;
+    notifiedEnd.current = false;
+    notifiedCompleted.current = false;
   };
 
   const showAppFlow = module === "app" || step > 1 || activeRequest;
@@ -514,7 +524,7 @@ export default function Home() {
       )}
 
       {showAppFlow && (
-        <StepProgress step={step} total={8} />
+        <StepProgress step={step} total={7} />
       )}
 
       {/* Step 1: Serviço */}
@@ -756,52 +766,14 @@ export default function Home() {
         </div>
       )}
 
-      {/* Step 6: Cliente confirma que o chaveiro finalizou o serviço */}
-      {step === 6 && activeRequest && activeRequest.status === "completed" && (
-        <div className="space-y-5 step-enter">
-          <div className="flex flex-col items-center text-center py-4">
-            <div className="w-16 h-16 rounded-full bg-emerald-100 flex items-center justify-center mb-4">
-              <CheckCircle2 className="w-8 h-8 text-emerald-600" />
-            </div>
-            <h2 className="font-heading font-semibold text-lg text-foreground mb-1">Serviço concluído!</h2>
-            <p className="text-sm text-muted-foreground">{activeRequest.service_type} · {selectedLocksmith?.name}</p>
-          </div>
-
-          <LocksmithMiniProfile locksmith={selectedLocksmith} />
-
-          {!activeRequest.client_confirmed ? (
-            <div className="space-y-3">
-              <p className="text-center text-sm text-muted-foreground">
-                Confirme que o chaveiro finalizou o atendimento para prosseguir com o pagamento.
-              </p>
-              <Button onClick={handleClientConfirm} size="lg" className="w-full">
-                <CheckCircle2 className="w-4 h-4 mr-2" /> Finalizar serviço
-              </Button>
-            </div>
-          ) : !activeRequest.locksmith_confirmed ? (
-            <div className="flex flex-col items-center text-center py-6">
-              <div className="w-14 h-14 rounded-full bg-amber-100 flex items-center justify-center mb-3">
-                <Loader2 className="w-7 h-7 text-amber-600 animate-spin" />
-              </div>
-              <h3 className="font-heading font-semibold text-base text-foreground mb-1">
-                Aguardando confirmação do chaveiro
-              </h3>
-              <p className="text-sm text-muted-foreground">
-                O profissional foi notificado e precisa confirmar a finalização para liberar o pagamento.
-              </p>
-            </div>
-          ) : null}
-        </div>
-      )}
-
-      {/* Step 7: Pagamento (após confirmação do chaveiro) */}
-      {step === 7 && activeRequest && activeRequest.locksmith_confirmed && (
+      {/* Step 6: Pagamento (após o chaveiro registrar o final do serviço) */}
+      {step === 6 && activeRequest && activeRequest.end_photos?.length > 0 && activeRequest.status !== "completed" && (
         <div className="space-y-3 step-enter">
           <div className="flex flex-col items-center text-center py-4">
             <div className="w-16 h-16 rounded-full bg-emerald-100 flex items-center justify-center mb-4">
               <CheckCircle2 className="w-8 h-8 text-emerald-600" />
             </div>
-            <h2 className="font-heading font-semibold text-lg text-foreground mb-1">Serviço confirmado!</h2>
+            <h2 className="font-heading font-semibold text-lg text-foreground mb-1">Serviço concluído!</h2>
             <p className="text-sm text-muted-foreground">{activeRequest.service_type} · {selectedLocksmith?.name}</p>
           </div>
 
@@ -815,6 +787,18 @@ export default function Home() {
               </h3>
               <p className="text-sm text-muted-foreground">
                 O chaveiro irá confirmar o recebimento de <strong className="text-foreground">R$ {activeRequest.price?.toFixed(2)}</strong> em dinheiro.
+              </p>
+            </div>
+          ) : activeRequest.payment_status === "paid" ? (
+            <div className="flex flex-col items-center text-center py-6">
+              <div className="w-14 h-14 rounded-full bg-emerald-100 flex items-center justify-center mb-3">
+                <Loader2 className="w-7 h-7 text-emerald-600 animate-spin" />
+              </div>
+              <h3 className="font-heading font-semibold text-base text-foreground mb-1">
+                Pagamento confirmado!
+              </h3>
+              <p className="text-sm text-muted-foreground">
+                Aguardando o chaveiro finalizar o serviço.
               </p>
             </div>
           ) : (
@@ -831,8 +815,8 @@ export default function Home() {
         </div>
       )}
 
-      {/* Step 8: Avaliação final */}
-      {step === 8 && activeRequest && (
+      {/* Step 7: Avaliação final (após o chaveiro finalizar o serviço) */}
+      {step === 7 && activeRequest && activeRequest.status === "completed" && (
         <div className="space-y-5 step-enter">
           <div className="flex flex-col items-center text-center py-4">
             <div className="w-16 h-16 rounded-full bg-emerald-100 flex items-center justify-center mb-4">
