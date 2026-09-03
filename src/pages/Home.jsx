@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo, useRef } from "react";
+import { useNavigate } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
-import { ArrowRight, ArrowLeft, Zap, Bell, Loader2, Navigation, CheckCircle2, AlertTriangle } from "lucide-react";
+import { ArrowRight, ArrowLeft, Zap, Bell, Loader2, Navigation, CheckCircle2, AlertTriangle, MessageCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { SERVICE_CATALOG, calculateCancellationFee, CANCELLATION_THRESHOLD_MINUTES, calculateLongDistanceFee } from "@/lib/pricing";
 import { calculateDynamicPrice } from "@/lib/dynamicPricing";
@@ -30,6 +31,7 @@ import { useToast } from "@/components/ui/use-toast";
 
 export default function Home() {
   const { toast } = useToast();
+  const navigate = useNavigate();
   const [step, setStep] = useState(1);
   const [module, setModule] = useState("app");
   const [serviceId, setServiceId] = useState("");
@@ -682,9 +684,19 @@ export default function Home() {
           />
 
           <LocksmithMiniProfile locksmith={selectedLocksmith} />
-          <Button onClick={() => { handleAdvance(); setStep(5); }} size="lg" className="w-full">
-            Acompanhar no mapa <Navigation className="w-4 h-4 ml-2" />
-          </Button>
+          <div className="flex gap-2">
+            <Button onClick={() => { handleAdvance(); setStep(5); }} size="lg" className="flex-1">
+              Acompanhar no mapa <Navigation className="w-4 h-4 ml-2" />
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => navigate(`/acompanhamento/${activeRequest.id}`)}
+              size="lg"
+              className="flex-1"
+            >
+              <MessageCircle className="w-4 h-4 mr-2" /> Rota + Chat
+            </Button>
+          </div>
         </div>
       )}
 
@@ -721,6 +733,14 @@ export default function Home() {
             onRate={handleRate}
             onCall={(l) => (window.location.href = `tel:${l.phone}`)}
           />
+
+          <Button
+            variant="outline"
+            onClick={() => navigate(`/acompanhamento/${activeRequest.id}`)}
+            className="w-full"
+          >
+            <MessageCircle className="w-4 h-4 mr-2" /> Ver rota e conversar com o chaveiro
+          </Button>
 
           {activeRequest.status !== "completed" && (
             <Button onClick={handleCancel} variant="outline" className="w-full text-red-600 border-red-200 hover:bg-red-50">

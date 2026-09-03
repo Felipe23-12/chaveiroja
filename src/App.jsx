@@ -27,6 +27,7 @@ import PainelAdmin from '@/pages/PainelAdmin';
 import PainelFinanceiroAdmin from '@/pages/PainelFinanceiroAdmin';
 import GoogleComplete from '@/pages/GoogleComplete';
 import PoliticaReembolso from '@/pages/PoliticaReembolso';
+import Acompanhamento from '@/pages/Acompanhamento';
 // Add page imports here
 
 const AuthenticatedApp = () => {
@@ -71,6 +72,7 @@ const AuthenticatedApp = () => {
             <Route path="/historico" element={<History />} />
             <Route path="/chat/:locksmithId" element={<Chat />} />
             <Route path="/chaveiro/:id" element={<LocksmithPublicProfile />} />
+            <Route path="/acompanhamento/:requestId" element={<Acompanhamento />} />
           </Route>
           <Route element={<RoleGuard allow={["chaveiro"]} />}>
             <Route path="/painel-chaveiro" element={<PainelChaveiro />} />
