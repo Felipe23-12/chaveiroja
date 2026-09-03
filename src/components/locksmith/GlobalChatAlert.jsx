@@ -44,20 +44,28 @@ export default function GlobalChatAlert() {
   const accountType = user?.account_type || (user?.role === "admin" ? "admin" : "cliente");
   const isChaveiro = accountType === "chaveiro";
 
-  // Encontra o perfil do chaveiro pelo created_by_id
+  // Encontra o perfil do chaveiro: pelo created_by_id (dono) ou, como fallback,
+  // pelo nome que bate com o full_name do usuário. Cobre perfis criados em
+  // onboarding ou por admin, onde created_by_id pode não bater com o user.
   useEffect(() => {
     if (!isChaveiro || !user?.id) return;
+    let active = true;
     base44.entities.Locksmith
-      .filter({ created_by_id: user.id })
+      .list()
       .then((list) => {
-        if (list.length > 0) setLocksmith(list[0]);
+        if (!active) return;
+        const mine =
+          list.find((l) => l.created_by_id === user.id) ||
+          list.find((l) => (l.name || "").trim() === (user.full_name || "").trim());
+        if (mine) setLocksmith(mine);
       })
       .catch(() => {});
-  }, [isChaveiro, user?.id]);
+    return () => { active = false; };
+  }, [isChaveiro, user?.id, user?.full_name]);
 
-  // Assina mensagens de clientes direcionadas a este chaveiro (modo livre)
+  // Assina mensagens de clientes direcionadas a este chaveiro (qualquer modo)
   useEffect(() => {
-    if (!locksmith?.id || locksmith.work_mode !== "livre") return;
+    if (!locksmith?.id) return;
     const load = () =>
       base44.entities.ChatMessage
         .filter({ locksmith_id: locksmith.id }, "created_date")
@@ -93,7 +101,7 @@ export default function GlobalChatAlert() {
     if (location.pathname === "/painel-chaveiro") setUnread(0);
   }, [location.pathname]);
 
-  if (!isChaveiro || locksmith?.work_mode !== "livre" || unread === 0) return null;
+  if (!isChaveiro || !locksmith || unread === 0) return null;
 
   return (
     <button
