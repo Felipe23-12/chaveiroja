@@ -20,13 +20,17 @@ const meIcon = makeIcon("#0ea5e9", "Eu");
 const freeIcon = makeIcon("#10b981", "");
 const busyIcon = makeIcon("#f59e0b", "");
 
-function Recenter({ center }) {
+function FitBounds({ positions }) {
   const map = useMap();
   useEffect(() => {
-    if (center?.lat && center?.lng) {
-      map.setView([center.lat, center.lng], map.getZoom(), { animate: true });
+    if (!positions || positions.length === 0) return;
+    if (positions.length === 1) {
+      map.setView(positions[0], 13, { animate: true });
+      return;
     }
-  }, [center?.lat, center?.lng]);
+    const bounds = L.latLngBounds(positions);
+    map.fitBounds(bounds, { padding: [50, 50], maxZoom: 15, animate: true });
+  }, [positions]);
   return null;
 }
 
@@ -119,6 +123,19 @@ export default function LiveLocksmithsMap({ customerLoc, livreOnly = false }) {
   );
 
   const center = customerLoc?.lat ? customerLoc : { lat: -23.55, lng: -46.63 };
+
+  // Posições para ajustar o mapa: cliente + todos os chaveiros visíveis.
+  // Recalculado apenas quando o conjunto de chaveiros muda (não a cada update de GPS),
+  // evitando que o mapa "pule" durante o acompanhamento.
+  const markerPositions = useMemo(() => {
+    const arr = [];
+    if (center?.lat && center?.lng) arr.push([center.lat, center.lng]);
+    withDist.forEach((l) => {
+      if (l.lat && l.lng) arr.push([l.lat, l.lng]);
+    });
+    return arr;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [withDist.length, center?.lat, center?.lng, withDist.map((l) => l.id).join(",")]);
 
   const filtered = useMemo(() => {
     let result = withDist;
@@ -260,7 +277,7 @@ export default function LiveLocksmithsMap({ customerLoc, livreOnly = false }) {
             attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
             url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
           />
-          <Recenter center={center} />
+          <FitBounds positions={markerPositions} />
           <MapResizer />
           <ZoomControls />
           <Marker position={[center.lat, center.lng]} icon={meIcon}>
