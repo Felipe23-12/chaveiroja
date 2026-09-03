@@ -1,5 +1,8 @@
 import React, { useMemo, useState } from "react";
-import { TrendingUp, CheckCircle2, Clock, Wallet } from "lucide-react";
+import { TrendingUp, CheckCircle2, Clock, Wallet, Download, Loader2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { useToast } from "@/components/ui/use-toast";
+import { base44 } from "@/api/base44Client";
 import { calculateRepasse } from "@/lib/pricing";
 
 const fmtMoney = (n) =>
@@ -23,6 +26,8 @@ const monthLabel = (key) => {
 };
 
 export default function FinancialConsolidation({ requests, locksmiths }) {
+  const { toast } = useToast();
+  const [exporting, setExporting] = useState(false);
   const locksmithMap = useMemo(() => {
     const map = {};
     locksmiths.forEach((l) => { map[l.id] = l; });
@@ -100,6 +105,31 @@ export default function FinancialConsolidation({ requests, locksmiths }) {
     };
   }, [monthReq, locksmithMap]);
 
+  const currentMonthKey = () => {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+  };
+
+  const handleExport = async () => {
+    const month = selectedMonth || currentMonthKey();
+    setExporting(true);
+    try {
+      const res = await base44.functions.invoke("exportMonthlyBillingToSheets", { month });
+      toast({
+        title: "Exportação concluída!",
+        description: `${res.count} serviço(s) exportado(s) · Faturamento: R$ ${res.totalRevenue.toFixed(2)}`,
+      });
+    } catch (e) {
+      toast({
+        title: "Erro na exportação",
+        description: e.message || "Falha ao exportar para o Google Sheets",
+        variant: "destructive",
+      });
+    } finally {
+      setExporting(false);
+    }
+  };
+
   return (
     <section>
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
@@ -113,11 +143,21 @@ export default function FinancialConsolidation({ requests, locksmiths }) {
             onChange={(e) => setSelectedMonth(e.target.value)}
             className="h-9 rounded-md border border-input bg-transparent px-3 text-sm shadow-sm focus:outline-none focus:ring-1 focus:ring-ring"
           >
-            <option value="">Todos os meses</option>
+            <option value="">Mês atual</option>
             {availableMonths.map((m) => (
               <option key={m} value={m}>{monthLabel(m)}</option>
             ))}
           </select>
+          <Button
+            onClick={handleExport}
+            disabled={exporting}
+            variant="outline"
+            size="sm"
+            className="gap-2"
+          >
+            {exporting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
+            {exporting ? "Exportando..." : "Exportar para Sheets"}
+          </Button>
         </div>
       </div>
 
