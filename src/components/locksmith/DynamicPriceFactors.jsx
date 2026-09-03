@@ -1,5 +1,5 @@
 import React from "react";
-import { TrendingUp, TrendingDown, MapPin, Home, Zap, AlertTriangle, Gauge } from "lucide-react";
+import { TrendingUp, TrendingDown, MapPin, Home, Zap, AlertTriangle, Gauge, CalendarClock } from "lucide-react";
 
 // Exibe os fatores dinâmicos de precificação (oferta/demanda, região, bairro,
 // urgência) como badges informativas, além do aviso de taxa de distância.
@@ -23,8 +23,32 @@ export default function DynamicPriceFactors({ price, nearestDistance }) {
         </div>
       )}
 
+      {/* Aviso de fim de semana / feriado (valores no topo da faixa) */}
+      {factors.timeTier?.tier === "high" && (
+        <div className="flex items-start gap-2 p-3 rounded-xl bg-red-50 border border-red-300 text-red-800">
+          <CalendarClock className="w-4 h-4 shrink-0 mt-0.5" />
+          <p className="text-sm">
+            <strong>{factors.timeTier.label}.</strong> Os valores estão sendo cobrados no topo da faixa definida para o modo aplicativo.
+          </p>
+        </div>
+      )}
+
       {/* Badges dos fatores dinâmicos */}
       <div className="flex flex-wrap gap-2">
+        {factors.timeTier && (
+          <FactorBadge
+            icon={CalendarClock}
+            label="Horário"
+            value={factors.timeTier.label}
+            tone={
+              factors.timeTier.tier === "high"
+                ? "high"
+                : factors.timeTier.tier === "low"
+                ? "low"
+                : "neutral"
+            }
+          />
+        )}
         <FactorBadge
           icon={factors.supplyDemand.ratio >= 1 ? TrendingUp : TrendingDown}
           label="Oferta/Demanda"

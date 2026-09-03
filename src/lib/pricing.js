@@ -83,9 +83,26 @@ export const WORK_MODES = {
   },
 };
 
-// Lista simples de feriados nacionais (dd-mm). Pode ser ampliada.
+// Feriados nacionais e estaduais (SP) fixos (dd-mm) + móveis de 2026.
+// Em feriados e fins de semana (sábado/domingo), os valores são cobrados
+// no topo da faixa definida para cada serviço (multiplicador 0.9).
 const HOLIDAYS = new Set([
-  "01-01", "21-04", "01-05", "07-09", "12-10", "02-11", "15-11", "25-12",
+  // Feriados nacionais fixos
+  "01-01", // Confraternização Universal (Ano Novo)
+  "21-04", // Tiradentes
+  "01-05", // Dia do Trabalho
+  "07-09", // Independência do Brasil
+  "12-10", // Nossa Senhora Aparecida
+  "02-11", // Finados
+  "15-11", // Proclamação da República
+  "25-12", // Natal
+  // Feriados estaduais/municipais de SP
+  "25-01", // Aniversário de São Paulo
+  "09-07", // Revolução Constitucionalista de 1932 (SP)
+  // Feriados móveis de 2026
+  "17-02", // Carnaval (terça-feira)
+  "03-04", // Sexta-feira Santa (Paixão)
+  "04-06", // Corpus Christi
 ]);
 
 export function getTimeTier(date = new Date()) {

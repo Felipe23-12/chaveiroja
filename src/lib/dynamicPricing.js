@@ -231,6 +231,7 @@ export function calculateDynamicPrice({
       distanceOverThreshold,
       onlineLocksmiths,
       activeRequests,
+      timeTier: baseResult.timeTier,
     },
   };
 }
