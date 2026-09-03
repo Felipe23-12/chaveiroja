@@ -351,6 +351,15 @@ export default function PainelChaveiro() {
   const toggleOnline = async () => {
     if (!me) return;
     if (!me.online) {
+      // Modo livre exige mensalidade paga para ficar online
+      if (me.work_mode === "livre" && me.monthly_fee_paid !== true) {
+        toast({
+          title: "Mensalidade pendente",
+          description: "Pague a mensalidade do modo livre para ficar online e visível no mapa.",
+          variant: "destructive",
+        });
+        return;
+      }
       // Ao ficar online, captura a localização real via GPS
       const loc = await getCustomerLocation();
       await base44.entities.Locksmith.update(me.id, {
@@ -582,22 +591,36 @@ export default function PainelChaveiro() {
         <LoadingCard label="Carregando seu perfil..." className="mb-5" />
       )}
 
-      {me && (
+      {me && (() => {
+        const isLivre = me.work_mode === "livre";
+        const blockedOnline = isLivre && me.monthly_fee_paid !== true && !me.online;
+        return (
         <div className="flex items-center justify-between p-4 rounded-xl border border-border bg-card mb-5 fade-in-up">
           <div>
             <p className="font-medium text-foreground">{me.name}</p>
             <p className="text-xs text-muted-foreground">
-              Modo {me.work_mode === "livre" ? "Livre" : "Aplicativo"} ·{" "}
+              Modo {isLivre ? "Livre" : "Aplicativo"} ·{" "}
               <span className={me.online ? "text-emerald-600" : "text-muted-foreground"}>
                 {me.online ? "Online" : "Offline"}
               </span>
             </p>
+            {blockedOnline && (
+              <p className="text-xs text-amber-600 mt-1">
+                Pague a mensalidade para ficar online e visível no mapa.
+              </p>
+            )}
           </div>
-          <Button onClick={toggleOnline} variant={me.online ? "destructive" : "default"} size="sm">
+          <Button
+            onClick={toggleOnline}
+            variant={me.online ? "destructive" : "default"}
+            size="sm"
+            disabled={blockedOnline}
+          >
             <Power className="w-4 h-4 mr-1.5" /> {me.online ? "Sair" : "Entrar"}
           </Button>
         </div>
-      )}
+        );
+      })()}
 
       {/* Recebimentos automáticos via Stripe Connect */}
       {me && isAppMode && (
