@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { base44 } from "@/api/base44Client";
-import { ShieldCheck, Users, Wrench, ClipboardList, Wallet, Trash2, Power, ArrowDownToLine, CheckCircle2, Info } from "lucide-react";
+import { ShieldCheck, Users, Wrench, ClipboardList, Wallet, Trash2, Power, ArrowDownToLine, CheckCircle2, Info, Bell } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import AdminCharts from "@/components/admin/AdminCharts";
 import ServiceFilters, { filterRequests } from "@/components/admin/ServiceFilters";
@@ -8,6 +8,7 @@ import ServiceSearchBar from "@/components/admin/ServiceSearchBar";
 import ServiceGallery from "@/components/locksmith/ServiceGallery";
 import FinancialConsolidation from "@/components/admin/FinancialConsolidation";
 import { completeWithdrawal } from "@/lib/payments";
+import { useToast } from "@/components/ui/use-toast";
 
 const fmtMoney = (n) =>
   (n || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
@@ -29,6 +30,8 @@ export default function PainelAdmin() {
   const [filters, setFilters] = useState({ date: "", serviceType: "", status: "", locksmithName: "", search: "" });
   const [loading, setLoading] = useState(true);
   const [resetting, setResetting] = useState(false);
+  const { toast } = useToast();
+  const knownWithdrawalIds = useRef(new Set());
 
   const load = async () => {
     setLoading(true);
@@ -42,6 +45,10 @@ export default function PainelAdmin() {
       setUsers(u);
       setLocksmiths(l);
       setRequests(r);
+      // Registra IDs já conhecidos para detectar novos saques em tempo real
+      if (knownWithdrawalIds.current.size === 0) {
+        w.forEach((wd) => knownWithdrawalIds.current.add(wd.id));
+      }
       setWithdrawals(w);
     } finally {
       setLoading(false);
@@ -50,11 +57,30 @@ export default function PainelAdmin() {
 
   useEffect(() => {
     load();
+    // Subscrição em tempo real: notifica o admin quando um chaveiro solicita saque
+    const unsub = base44.entities.Withdrawal.subscribe((event) => {
+      if (event.type === "create" && event.data && !knownWithdrawalIds.current.has(event.data.id)) {
+        knownWithdrawalIds.current.add(event.data.id);
+        toast({
+          title: "Novo saque solicitado!",
+          description: `${event.data.locksmith_name} solicitou R$ ${(event.data.amount || 0).toFixed(2)} via Pix.`,
+        });
+        load();
+      }
+    });
+    return unsub;
   }, []);
 
   const revenue = requests
     .filter((r) => r.status === "completed")
     .reduce((s, r) => s + (r.price || 0), 0);
+
+  const pendingWithdrawals = withdrawals.filter(
+    (w) => w.status === "requested" || w.status === "processing"
+  );
+  const pendingWithdrawalsTotal = pendingWithdrawals.reduce(
+    (s, w) => s + (w.amount || 0), 0
+  );
 
   const customerNameMap = {};
   users.forEach((u) => { customerNameMap[u.id] = u.full_name || u.email || ""; });
@@ -122,6 +148,24 @@ export default function PainelAdmin() {
           <p className="text-sm text-muted-foreground">Visão geral da plataforma</p>
         </div>
       </div>
+
+      {pendingWithdrawals.length > 0 && (
+        <div className="flex items-center gap-3 p-4 rounded-xl bg-amber-50 border border-amber-200 animate-alert-slide">
+          <div className="w-10 h-10 rounded-full bg-amber-100 flex items-center justify-center shrink-0">
+            <Bell className="w-5 h-5 text-amber-600 animate-bounce" />
+          </div>
+          <div className="flex-1">
+            <p className="font-heading font-semibold text-amber-900">
+              {pendingWithdrawals.length === 1
+                ? "1 saque aguardando processamento"
+                : `${pendingWithdrawals.length} saques aguardando processamento`}
+            </p>
+            <p className="text-sm text-amber-700">
+              Total: {fmtMoney(pendingWithdrawalsTotal)} · Verifique a seção "Saques solicitados" abaixo
+            </p>
+          </div>
+        </div>
+      )}
 
       <div className="flex justify-end">
         <Button
@@ -263,10 +307,14 @@ export default function PainelAdmin() {
         </div>
       </section>
 
-      {withdrawals.length > 0 && (
-        <section>
+      <section>
           <h2 className="font-heading font-semibold text-lg text-foreground mb-3 flex items-center gap-2">
             <ArrowDownToLine className="w-5 h-5" /> Saques solicitados
+            {pendingWithdrawals.length > 0 && (
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-bold bg-amber-100 text-amber-700">
+                <Bell className="w-3 h-3" /> {pendingWithdrawals.length} pendente{pendingWithdrawals.length > 1 ? "s" : ""}
+              </span>
+            )}
           </h2>
           <div className="rounded-xl border border-border overflow-hidden bg-white">
             <div className="overflow-x-auto">
@@ -318,8 +366,12 @@ export default function PainelAdmin() {
               </table>
             </div>
           </div>
+          {withdrawals.length === 0 && (
+            <div className="rounded-xl border border-border bg-white p-6 text-center text-sm text-muted-foreground">
+              Nenhum saque solicitado ainda
+            </div>
+          )}
         </section>
-      )}
 
       <section>
         <h2 className="font-heading font-semibold text-lg text-foreground mb-3">Solicitações</h2>
@@ -386,14 +438,14 @@ export default function PainelAdmin() {
   );
 }
 
-function StatCard({ icon: Icon, label, value }) {
+function StatCard({ icon: Icon, label, value, highlight }) {
   return (
-    <div className="rounded-xl border border-border bg-white p-4">
-      <div className="flex items-center gap-2 text-muted-foreground mb-1">
+    <div className={`rounded-xl border p-4 ${highlight ? "border-amber-300 bg-amber-50" : "border-border bg-white"}`}>
+      <div className={`flex items-center gap-2 mb-1 ${highlight ? "text-amber-600" : "text-muted-foreground"}`}>
         <Icon className="w-4 h-4" />
         <span className="text-xs">{label}</span>
       </div>
-      <p className="font-heading font-bold text-xl text-foreground">{value}</p>
+      <p className={`font-heading font-bold text-xl ${highlight ? "text-amber-700" : "text-foreground"}`}>{value}</p>
     </div>
   );
 }
