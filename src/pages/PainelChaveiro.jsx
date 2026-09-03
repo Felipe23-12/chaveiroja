@@ -820,7 +820,7 @@ export default function PainelChaveiro() {
           />
         ) : (
           <div className="space-y-5">
-            <LivreModeLocked onPay={() => navigate("/modo-trabalho")} />
+            <LivreModeLocked onPay={() => navigate("/modo-trabalho")} me={me} />
             <LocksmithChatConversations me={me} />
           </div>
         )

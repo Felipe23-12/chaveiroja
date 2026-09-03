@@ -73,23 +73,46 @@ export default function LivreModeDashboard({ me, onUpdateMe }) {
  * O chat com clientes continua acessível (componente separado) — apenas o mapa
  * interativo e a visibilidade no mapa ficam bloqueados.
  */
-export function LivreModeLocked({ onPay }) {
+export function LivreModeLocked({ onPay, me }) {
+  // Estabiliza o me para o mapa — só re-renderiza quando campos relevantes mudam
+  const mapMe = useMemo(
+    () => ({
+      id: me?.id,
+      name: me?.name,
+      lat: me?.lat,
+      lng: me?.lng,
+      available: me?.available,
+      online: me?.online,
+    }),
+    [me?.id, me?.name, me?.lat, me?.lng, me?.available, me?.online]
+  );
+
   return (
     <div className="space-y-4 fade-in-up">
-      <div className="flex flex-col items-center text-center py-8 rounded-xl border-2 border-amber-300 bg-amber-50">
-        <div className="w-16 h-16 rounded-full bg-amber-100 flex items-center justify-center mb-4">
-          <Lock className="w-8 h-8 text-amber-600" />
+      {/* Aviso de mensalidade — banner compacto, não substitui o mapa */}
+      <div className="flex flex-col items-center text-center py-5 px-4 rounded-xl border-2 border-amber-300 bg-amber-50">
+        <div className="w-12 h-12 rounded-full bg-amber-100 flex items-center justify-center mb-3">
+          <Lock className="w-6 h-6 text-amber-600" />
         </div>
-        <h2 className="font-heading font-semibold text-lg text-foreground mb-1">
+        <h2 className="font-heading font-semibold text-base text-foreground mb-1">
           Mensalidade pendente
         </h2>
-        <p className="text-sm text-muted-foreground max-w-sm mb-4">
-          Pague a mensalidade do modo livre para liberar o mapa interativo em tempo real
-          e sua visibilidade no mapa para os clientes.
+        <p className="text-xs text-muted-foreground max-w-sm mb-3">
+          Pague a mensalidade do modo livre para liberar sua visibilidade no mapa para os clientes.
+          O mapa abaixo permanece visível como referência dos chamados.
         </p>
-        <Button onClick={onPay} size="lg">
+        <Button onClick={onPay} size="sm">
           <CreditCard className="w-4 h-4 mr-2" /> Pagar mensalidade
         </Button>
+      </div>
+
+      {/* Mapa visível mesmo com mensalidade pendente — referência dos chamados */}
+      <div>
+        <div className="flex items-center gap-2 mb-2">
+          <MapPin className="w-4 h-4 text-primary" />
+          <h3 className="font-heading font-semibold text-foreground">Mapa em tempo real</h3>
+        </div>
+        <LivreDashboardMap me={mapMe} />
       </div>
     </div>
   );
