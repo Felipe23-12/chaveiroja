@@ -5,39 +5,16 @@ import { useAuth } from "@/lib/AuthContext";
 import { MessageCircle } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import { setChatUnread, incrementChatUnread } from "@/lib/chatUnreadStore";
-
-// Som de notificação: 3 bipes curtos e chamativos via Web Audio (sem arquivos).
-function playNotificationSound() {
-  try {
-    const AudioCtx = window.AudioContext || window.webkitAudioContext;
-    if (!AudioCtx) return;
-    const ctx = new AudioCtx();
-    [0, 0.18, 0.36].forEach((delay) => {
-      const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
-      osc.connect(gain);
-      gain.connect(ctx.destination);
-      osc.type = "sine";
-      osc.frequency.value = 760;
-      const t = ctx.currentTime + delay;
-      gain.gain.setValueAtTime(0.0001, t);
-      gain.gain.exponentialRampToValueAtTime(0.35, t + 0.02);
-      gain.gain.exponentialRampToValueAtTime(0.0001, t + 0.16);
-      osc.start(t);
-      osc.stop(t + 0.16);
-    });
-  } catch (e) {
-    // silencioso se o navegador bloquear áudio
-  }
-}
+import { playNotificationSound } from "@/lib/notificationSound";
 
 const lastSeenKey = (id) => `chat_last_seen_${id}`;
 
 /**
- * Alerta flutuante global para o chaveiro: dispara som + toast quando chega
- * uma nova mensagem de cliente (em qualquer página) e mostra um botão com o
- * contador de não lidas. O contador é persistido (localStorage) por chaveiro,
- * então mensagens recebidas enquanto o app estava fechado continuam contando.
+ * Alerta flutuante global para o chaveiro: dispara o som de notificação +
+ * toast quando chega uma nova mensagem de cliente (em qualquer página) e
+ * mostra um botão com o contador de não lidas. O contador é persistido
+ * (localStorage) por chaveiro, então mensagens recebidas enquanto o app
+ * estava fechado continuam contando.
  */
 export default function GlobalChatAlert() {
   const { user } = useAuth();

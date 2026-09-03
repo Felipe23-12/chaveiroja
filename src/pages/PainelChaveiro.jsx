@@ -24,6 +24,7 @@ import { SERVICE_CATALOG } from "@/lib/pricing";
 import { confirmCashReceived } from "@/lib/payments";
 import { saveLastService, getLastService, clearLastService, saveLocksmithProfile, getLocksmithProfile, isOnline, saveLastRoute, getLastRoute, savePendingRequests, getPendingRequests } from "@/lib/offlineCache";
 import LoadingCard from "@/components/ui/LoadingCard";
+import { playNotificationSound } from "@/lib/notificationSound";
 
 // Raio de cobertura para considerar um pedido "na região" do chaveiro (km)
 const REGION_RADIUS_KM = 15;
@@ -183,9 +184,7 @@ export default function PainelChaveiro() {
         // Solicitação direcionada: só notifica após o pagamento (status ringing)
         if (r.status !== "ringing") return;
         notifiedIds.current.add(r.id);
-        playBeep();
-        setTimeout(playBeep, 600);
-        setTimeout(playBeep, 1200);
+        playNotificationSound();
         toast({
           title: "🔔 Nova solicitação para você!",
           description: `${r.service_type} · ${r.address}`,
@@ -217,7 +216,7 @@ export default function PainelChaveiro() {
       );
       if (dist > REGION_RADIUS_KM) return;
       notifiedIds.current.add(r.id);
-      playBeep();
+      playNotificationSound();
       toast({
         title: "🔔 Novo pedido na sua região",
         description: `${r.service_type} · ${r.address} · ${dist.toFixed(1)} km de você`,

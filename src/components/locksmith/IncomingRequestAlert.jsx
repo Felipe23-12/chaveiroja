@@ -1,33 +1,12 @@
 import React, { useState, useEffect, useRef } from "react";
 import { Bell, Check, X, MapPin, Clock, AlertCircle, Volume2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { playNotificationSound } from "@/lib/notificationSound";
 
 function formatElapsed(seconds) {
   const m = Math.floor(seconds / 60);
   const s = Math.floor(seconds % 60);
   return `${m}:${s.toString().padStart(2, "0")}`;
-}
-
-// Alerta sonoro curto via Web Audio
-function playBeep() {
-  try {
-    const AudioCtx = window.AudioContext || window.webkitAudioContext;
-    if (!AudioCtx) return;
-    const ctx = new AudioCtx();
-    const osc = ctx.createOscillator();
-    const gain = ctx.createGain();
-    osc.connect(gain);
-    gain.connect(ctx.destination);
-    osc.type = "sine";
-    osc.frequency.value = 880;
-    gain.gain.setValueAtTime(0.0001, ctx.currentTime);
-    gain.gain.exponentialRampToValueAtTime(0.3, ctx.currentTime + 0.02);
-    gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.4);
-    osc.start();
-    osc.stop(ctx.currentTime + 0.4);
-  } catch (e) {
-    // silencioso
-  }
 }
 
 export default function IncomingRequestAlert({ request, onAccept, onReject }) {
@@ -51,12 +30,10 @@ export default function IncomingRequestAlert({ request, onAccept, onReject }) {
       setElapsed((Date.now() - start) / 1000);
     }, 1000);
 
-    // Som repetitivo: 3 bipes a cada 5 segundos (fica mais rápido após 30s)
+    // Som repetitivo: áudio de notificação a cada 5 segundos enquanto pendente
     const soundTimer = setInterval(() => {
       if (mutedRef.current) return;
-      playBeep();
-      setTimeout(playBeep, 250);
-      setTimeout(playBeep, 500);
+      playNotificationSound();
     }, 5000);
 
     // Vibração no celular: padrão repetitivo

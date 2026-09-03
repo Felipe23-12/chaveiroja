@@ -4,28 +4,7 @@ import { Send, MessageCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/components/ui/use-toast";
-
-// Alerta sonoro curto via Web Audio (não depende de arquivos externos)
-function playBeep() {
-  try {
-    const AudioCtx = window.AudioContext || window.webkitAudioContext;
-    if (!AudioCtx) return;
-    const ctx = new AudioCtx();
-    const osc = ctx.createOscillator();
-    const gain = ctx.createGain();
-    osc.connect(gain);
-    gain.connect(ctx.destination);
-    osc.type = "sine";
-    osc.frequency.value = 760;
-    gain.gain.setValueAtTime(0.0001, ctx.currentTime);
-    gain.gain.exponentialRampToValueAtTime(0.3, ctx.currentTime + 0.02);
-    gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.45);
-    osc.start();
-    osc.stop(ctx.currentTime + 0.45);
-  } catch (e) {
-    /* silencioso */
-  }
-}
+import { playNotificationSound } from "@/lib/notificationSound";
 
 /**
  * Abas de conversas com clientes + resposta, para o chaveiro no modo livre.
@@ -69,7 +48,7 @@ export default function LocksmithChatConversations({ me }) {
 
           // Notificação em tempo real de novas mensagens de cliente
           if (lastCustomerCountRef.current !== null && customerTotal > lastCustomerCountRef.current) {
-            playBeep();
+            playNotificationSound();
             if (navigator.vibrate) navigator.vibrate([120, 60, 120]);
             toast({
               title: "💬 Nova mensagem de cliente",
