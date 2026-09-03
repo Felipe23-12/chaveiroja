@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
+import { useAuth } from "@/lib/AuthContext";
 import { Wrench, Bell, Check, X, Navigation, Power, Loader2, MapPin, WifiOff, CheckCircle2, Wallet, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -55,6 +56,7 @@ function playBeep() {
 export default function PainelChaveiro() {
   const navigate = useNavigate();
   const location = useLocation();
+  const { user } = useAuth();
   const [locksmiths, setLocksmiths] = useState([]);
   const [selectedId, setSelectedId] = useState("");
   const [me, setMe] = useState(null);
@@ -68,6 +70,7 @@ export default function PainelChaveiro() {
   const [online, setOnline] = useState(isOnline());
   const moveTimer = useRef(null);
   const notifiedIds = useRef(new Set());
+  const dismissedCompletedIds = useRef(new Set());
   const { toast } = useToast();
   const [chatFocus, setChatFocus] = useState(false);
 
@@ -97,9 +100,14 @@ export default function PainelChaveiro() {
   useEffect(() => {
     base44.entities.Locksmith.list().then((list) => {
       setLocksmiths(list);
-      if (list.length && !selectedId) setSelectedId(list[0].id);
+      if (list.length && !selectedId) {
+        const mine =
+          list.find((l) => l.created_by_id === user?.id) ||
+          list.find((l) => (l.name || "").trim() === (user?.full_name || "").trim());
+        setSelectedId((mine || list[0]).id);
+      }
     });
-  }, []);
+  }, [user?.id, user?.full_name]);
 
   // Onboarding: cria o perfil do chaveiro após cadastro (sem confirmação por email)
   useEffect(() => {
@@ -277,7 +285,7 @@ export default function PainelChaveiro() {
           const ongoing = list.find((r) =>
             r.status === "accepted" ||
             r.status === "on_the_way" ||
-            r.status === "completed"
+            (r.status === "completed" && !dismissedCompletedIds.current.has(r.id))
           );
           if (ongoing) {
             saveLastService(ongoing);
@@ -823,6 +831,17 @@ export default function PainelChaveiro() {
               <div className="p-4 rounded-xl bg-emerald-50 text-emerald-700 text-sm flex items-center gap-2">
                 <CheckCircle2 className="w-5 h-5" /> Serviço concluído com sucesso!
               </div>
+              <Button
+                onClick={() => {
+                  dismissedCompletedIds.current.add(active.id);
+                  clearLastService();
+                  setActive(null);
+                }}
+                variant="outline"
+                className="w-full"
+              >
+                Voltar ao painel
+              </Button>
             </div>
           )}
         </div>
