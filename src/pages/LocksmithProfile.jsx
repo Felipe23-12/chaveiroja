@@ -7,6 +7,7 @@ import { WORK_MODES, calculateCommission } from "@/lib/pricing";
 import LocksmithHistorySummary from "@/components/locksmith/LocksmithHistorySummary";
 import LocksmithFinancialPanel from "@/components/locksmith/LocksmithFinancialPanel";
 import MonthlySubscriptionConfig from "@/components/locksmith/MonthlySubscriptionConfig";
+import ServiceSelector from "@/components/locksmith/ServiceSelector";
 
 export default function LocksmithProfile() {
   const [me, setMe] = useState(null);
@@ -240,6 +241,9 @@ export default function LocksmithProfile() {
               </div>
             </div>
           )}
+
+          {/* Seleção de serviços atendidos */}
+          <ServiceSelector locksmith={selected} onUpdate={updateLocksmith} />
 
           {/* Disponibilidade online/offline */}
           <div className="flex items-center justify-between p-4 rounded-2xl border border-border bg-white">

@@ -115,12 +115,19 @@ export default function Home() {
     setSubmitting(true);
     setSearchError("");
     try {
-      const nearest = [...appLocksmiths]
+      // Filtra apenas chaveiros que atendem o serviço solicitado.
+      // Se o chaveiro não configurou serviços (array vazio), atende todos.
+      const eligible = appLocksmiths.filter((l) => {
+        if (!l.services || l.services.length === 0) return true;
+        return l.services.includes(service.id);
+      });
+
+      const nearest = [...eligible]
         .map((l) => ({ l, d: haversineKm(customerLoc, { lat: l.lat, lng: l.lng }) }))
         .sort((a, b) => a.d - b.d)[0];
 
       if (!nearest) {
-        setSearchError("Nenhum chaveiro disponível no modo aplicativo agora. Tente novamente.");
+        setSearchError(`Nenhum chaveiro disponível para "${service.label}" no modo aplicativo agora. Tente outro serviço ou novamente.`);
         setSubmitting(false);
         return;
       }

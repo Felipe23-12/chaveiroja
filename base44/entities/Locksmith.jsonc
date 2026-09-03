@@ -29,6 +29,21 @@
       "default": [],
       "description": "Especialidades t\u00e9cnicas atendidas pelo chaveiro"
     },
+    "services": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": [
+          "abertura_residencial",
+          "abertura_automotiva",
+          "abertura_tetra",
+          "abertura_eletronica",
+          "confeccao_chave_carro"
+        ]
+      },
+      "default": [],
+      "description": "Servi\u00e7os espec\u00edficos que o chaveiro atende (IDs do cat\u00e1logo). Vazio = atende todos."
+    },
     "certificates": {
       "type": "array",
       "items": {
