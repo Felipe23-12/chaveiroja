@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo } from "react";
 import { base44 } from "@/api/base44Client";
 import { Wallet, TrendingUp, Receipt, Percent, Loader2, CreditCard, QrCode, Banknote } from "lucide-react";
 import { COMMISSION_RATE } from "@/lib/payments";
+import FinanceCharts from "@/components/admin/FinanceCharts";
 
 const fmtMoney = (n) =>
   (Number(n) || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
@@ -141,6 +142,9 @@ export default function PainelFinanceiroAdmin() {
           <p className="text-sm text-muted-foreground">Pagamentos, comissões e repasses líquidos</p>
         </div>
       </div>
+
+      {/* Gráficos: serviços por mês e comissão por mês */}
+      <FinanceCharts />
 
       {/* Cards de resumo geral */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">

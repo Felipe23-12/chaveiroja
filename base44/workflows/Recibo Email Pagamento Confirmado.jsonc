@@ -1,0 +1,40 @@
+{
+  "name": "Recibo por Email Pagamento Confirmado",
+  "description": "Envia automaticamente o recibo do servi\u00e7o por email ao cliente assim que o pagamento \u00e9 confirmado (payment_status = paid)",
+  "trigger": {
+    "config": {
+      "trigger_type": "entity",
+      "entity_name": "ServiceRequest",
+      "events": [
+        "update"
+      ]
+    },
+    "condition": "${ .trigger.data.payment_status == \"paid\" and .trigger.old_data.payment_status != \"paid\" }"
+  },
+  "definition": {
+    "document": {
+      "dsl": "1.0.0",
+      "name": "recibo_email_pagamento",
+      "version": "1.0",
+      "namespace": "base44"
+    },
+    "do": [
+      {
+        "send_receipt": {
+          "call": "invoke_backend_function",
+          "with": {
+            "function_name": "sendReceiptEmailOnPayment",
+            "args": {
+              "service_request_id": "${ .trigger.entity_id }"
+            }
+          },
+          "then": "end",
+          "x-base44": {
+            "title": "Enviar recibo por email",
+            "description": "Recibo autom\u00e1tico ao cliente ap\u00f3s pagamento confirmado"
+          }
+        }
+      }
+    ]
+  }
+}
