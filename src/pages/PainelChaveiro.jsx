@@ -8,6 +8,7 @@ import NativeSelectDrawer from "@/components/ui/NativeSelectDrawer";
 import { usePullToRefresh, PullToRefreshIndicator } from "@/components/ui/PullToRefresh";
 import MapView from "@/components/map/MapView";
 import LivreModeDashboard, { LivreModeLocked } from "@/components/locksmith/LivreModeDashboard";
+import LocksmithChatConversations from "@/components/locksmith/LocksmithChatConversations";
 import PhotoUploader from "@/components/locksmith/PhotoUploader";
 import WalletCard from "@/components/locksmith/WalletCard";
 import WithdrawalSection from "@/components/locksmith/WithdrawalSection";
@@ -731,7 +732,10 @@ export default function PainelChaveiro() {
             onUpdateMe={(data) => base44.entities.Locksmith.update(me.id, data).then(setMe)}
           />
         ) : (
-          <LivreModeLocked onPay={() => navigate("/modo-trabalho")} />
+          <div className="space-y-5">
+            <LivreModeLocked onPay={() => navigate("/modo-trabalho")} />
+            <LocksmithChatConversations me={me} />
+          </div>
         )
       )}
     </div>
