@@ -46,7 +46,7 @@ function SidebarContent({ onNavigate }) {
       <div className="p-3 border-b border-border">
         <Link to={homePath} onClick={onNavigate} className="flex items-center gap-2">
           <Image
-            src="https://media.base44.com/images/public/6a975d266a8000184833026a/9589e6a99_generated_image.png"
+            src="https://media.base44.com/images/public/6a975d266a8000184833026a/dd1b4ee70_ChatGPTImage3desetde202614_01_55.png"
             alt="Chaveiro Já"
             fittingType="fit"
             className="w-8 h-8 rounded-lg"
@@ -129,7 +129,7 @@ function MobileTopBar({ onMenu }) {
     <div className="md:hidden sticky top-0 z-40 flex items-center justify-between px-4 h-14 bg-card border-b border-border pt-safe">
       <Link to={accountType === "chaveiro" ? "/painel-chaveiro" : accountType === "admin" ? "/painel-admin" : "/"} className="flex items-center gap-2">
         <Image
-          src="https://media.base44.com/images/public/6a975d266a8000184833026a/9589e6a99_generated_image.png"
+          src="https://media.base44.com/images/public/6a975d266a8000184833026a/dd1b4ee70_ChatGPTImage3desetde202614_01_55.png"
           alt="Chaveiro Já"
           fittingType="fit"
           className="w-8 h-8 rounded-lg"

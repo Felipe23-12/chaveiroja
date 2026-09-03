@@ -588,7 +588,7 @@ export default function Home() {
       <div className="mb-8 fade-in-up">
         <div className="flex items-center gap-2 mb-2">
           <Image
-            src="https://media.base44.com/images/public/6a975d266a8000184833026a/9589e6a99_generated_image.png"
+            src="https://media.base44.com/images/public/6a975d266a8000184833026a/dd1b4ee70_ChatGPTImage3desetde202614_01_55.png"
             alt="Chaveiro Já"
             fittingType="fit"
             className="w-11 h-11 rounded-xl"

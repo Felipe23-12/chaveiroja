@@ -22,8 +22,8 @@ export function notifyClient(title, body) {
     try {
       new Notification(title, {
         body,
-        icon: "https://media.base44.com/images/public/6a975d266a8000184833026a/9589e6a99_generated_image.png",
-        badge: "https://media.base44.com/images/public/6a975d266a8000184833026a/9589e6a99_generated_image.png",
+        icon: "https://media.base44.com/images/public/6a975d266a8000184833026a/dd1b4ee70_ChatGPTImage3desetde202614_01_55.png",
+        badge: "https://media.base44.com/images/public/6a975d266a8000184833026a/dd1b4ee70_ChatGPTImage3desetde202614_01_55.png",
         tag: "chaveiro-status",
         renotify: true,
       });
