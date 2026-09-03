@@ -108,12 +108,14 @@ export default function LightMap({ center, markers = [], route = null, routePath
     const startTY = Math.floor(topLeftY / TILE);
     const endTY = Math.floor((topLeftY + fh) / TILE);
     const maxTile = Math.pow(2, z);
+    const subs = ["a", "b", "c"];
     const list = [];
     for (let ty = startTY; ty <= endTY; ty++) {
       for (let tx = startTX; tx <= endTX; tx++) {
+        const sub = subs[((tx + ty) % 3 + 3) % 3];
         list.push({
           key: `${z}/${tx}/${ty}`,
-          url: `https://tile.openstreetmap.org/${z}/${wrap(tx, maxTile)}/${wrap(ty, maxTile)}.png`,
+          url: `https://${sub}.basemaps.cartocdn.com/rastertiles/voyager/${z}/${wrap(tx, maxTile)}/${wrap(ty, maxTile)}.png`,
           left: tx * TILE - topLeftX,
           top: ty * TILE - topLeftY,
         });
@@ -255,7 +257,7 @@ export default function LightMap({ center, markers = [], route = null, routePath
         rel="noreferrer"
         className="absolute bottom-1 right-1 z-20 px-1.5 py-0.5 rounded bg-black/45 text-white text-[9px] font-medium hover:bg-black/60"
       >
-        © OpenStreetMap
+        © OpenStreetMap · © CARTO
       </a>
     </div>
   );
