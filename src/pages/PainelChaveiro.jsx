@@ -6,7 +6,8 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import NativeSelectDrawer from "@/components/ui/NativeSelectDrawer";
 import { usePullToRefresh, PullToRefreshIndicator } from "@/components/ui/PullToRefresh";
-import MapView from "@/components/map/MapView";
+import RouteLeafletMap from "@/components/map/RouteLeafletMap";
+import OpenInNavAppsButton from "@/components/map/OpenInNavAppsButton";
 import LivreModeDashboard, { LivreModeLocked } from "@/components/locksmith/LivreModeDashboard";
 import LocksmithChatConversations from "@/components/locksmith/LocksmithChatConversations";
 import PhotoUploader from "@/components/locksmith/PhotoUploader";
@@ -613,21 +614,28 @@ export default function PainelChaveiro() {
           </div>
 
           {phase === "moving" && (
-            <MapView
-              center={{ lat: active.customer_lat, lng: active.customer_lng }}
-              height={320}
-              markers={[
-                { id: "c", lat: active.customer_lat, lng: active.customer_lng, type: "customer", label: "Cliente" },
-                { id: "l", lat: active.locksmith_lat, lng: active.locksmith_lng, type: "locksmith", label: "Você", active: active.status === "on_the_way" },
-              ]}
-              route={
-                active.status !== "completed"
-                  ? { from: { lat: active.locksmith_lat, lng: active.locksmith_lng }, to: { lat: active.customer_lat, lng: active.customer_lng } }
-                  : null
-              }
-              routePath={routePath}
-              eta={routeEta}
-            />
+            <>
+              <RouteLeafletMap
+                center={{ lat: active.customer_lat, lng: active.customer_lng }}
+                height={320}
+                markers={[
+                  { id: "c", lat: active.customer_lat, lng: active.customer_lng, type: "customer", label: "Cliente" },
+                  { id: "l", lat: active.locksmith_lat, lng: active.locksmith_lng, type: "locksmith", label: "Você", active: active.status === "on_the_way" },
+                ]}
+                route={
+                  active.status !== "completed"
+                    ? { from: { lat: active.locksmith_lat, lng: active.locksmith_lng }, to: { lat: active.customer_lat, lng: active.customer_lng } }
+                    : null
+                }
+                routePath={routePath}
+                eta={routeEta}
+              />
+              <OpenInNavAppsButton
+                from={{ lat: active.locksmith_lat, lng: active.locksmith_lng }}
+                to={{ lat: active.customer_lat, lng: active.customer_lng }}
+                className="mt-3"
+              />
+            </>
           )}
 
           {phase === "arrived" && (

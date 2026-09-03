@@ -15,7 +15,7 @@ import LiveLocksmithsMap from "@/components/locksmith/LiveLocksmithsMap";
 import ModuleSelector from "@/components/locksmith/ModuleSelector";
 import LocksmithMiniProfile from "@/components/locksmith/LocksmithMiniProfile";
 import ReviewForm from "@/components/locksmith/ReviewForm";
-import MapView from "@/components/map/MapView";
+import RouteLeafletMap from "@/components/map/RouteLeafletMap";
 import { DEFAULT_CENTER, getCustomerLocation, haversineKm, fetchDrivingRoute, etaMinutes } from "@/lib/geo";
 import { getClientLoyalty, applyLoyaltyDiscount } from "@/lib/loyalty";
 import PointsProgressCard from "@/components/locksmith/PointsProgressCard";
@@ -128,6 +128,43 @@ export default function Home() {
       .then((u) => getClientLoyalty(u.id))
       .then(setLoyalty)
       .catch(() => setLoyalty(null));
+  }, []);
+
+  // Restaura um serviço em andamento ao reentrar na Home — garante que o
+  // cliente consiga retomar o fluxo, finalizar e pagar mesmo após navegar
+  // para outras abas ou sair da tela de solicitação.
+  useEffect(() => {
+    let cancelled = false;
+    base44.auth.me().then(async (u) => {
+      if (!u?.id || cancelled) return;
+      try {
+        const list = await base44.entities.ServiceRequest.filter({ created_by_id: u.id }, "-created_date", 20);
+        if (cancelled) return;
+        const active = list.find((r) => {
+          if (r.status === "ringing" || r.status === "accepted" || r.status === "on_the_way") return true;
+          if (r.end_photos?.length > 0 && r.status !== "completed") return true;
+          if (r.status === "completed" && !r.rating) return true;
+          return false;
+        });
+        if (!active) return;
+        setActiveRequest(active);
+        reqRef.current = active.id;
+        if (active.locksmith_id) {
+          base44.entities.Locksmith.get(active.locksmith_id).then(setSelectedLocksmith).catch(() => {});
+        }
+        let s = 5;
+        if (active.status === "ringing") s = 3;
+        else if (active.status === "accepted") s = 4;
+        else if (active.status === "on_the_way") s = 5;
+        else if (active.end_photos?.length > 0 && active.status !== "completed") s = 6;
+        else if (active.status === "completed") s = 7;
+        goToStep(s);
+      } catch (e) {
+        /* silencioso */
+      }
+    });
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Demanda ativa: conta solicitações em andamento (searching + ringing)
@@ -703,7 +740,7 @@ export default function Home() {
             </span>
           </div>
 
-          <MapView
+          <RouteLeafletMap
             center={{ lat: activeRequest.customer_lat, lng: activeRequest.customer_lng }}
             height={300}
             markers={[
@@ -742,7 +779,7 @@ export default function Home() {
             <p className="text-sm text-muted-foreground">{activeRequest.service_type} · {activeRequest.address}</p>
           </div>
 
-          <MapView
+          <RouteLeafletMap
             center={{ lat: activeRequest.customer_lat, lng: activeRequest.customer_lng }}
             height={320}
             markers={[

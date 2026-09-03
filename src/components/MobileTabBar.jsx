@@ -78,11 +78,11 @@ export default function MobileTabBar() {
               key={t.path}
               to={t.path}
               onClick={() => handleTabClick(t.path)}
-              className={`flex-1 flex flex-col items-center justify-center gap-0.5 py-2 min-h-[56px] text-[11px] font-medium transition-colors select-none touch-manipulation ${
+              className={`flex-1 flex flex-col items-center justify-center gap-0.5 py-1.5 min-h-[50px] text-[10px] font-medium transition-colors select-none touch-manipulation ${
                 active ? "text-primary" : "text-muted-foreground"
               }`}
             >
-              <Icon className="w-5 h-5" />
+              <Icon className="w-4 h-4" />
               <span>{t.label}</span>
             </Link>
           );
