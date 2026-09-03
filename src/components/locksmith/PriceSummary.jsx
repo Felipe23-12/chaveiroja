@@ -14,7 +14,13 @@ export default function PriceSummary({ price }) {
       {price.breakdown.map((item, i) => (
         <div key={i} className="flex justify-between text-sm">
           <span className="text-muted-foreground">{item.label}</span>
-          <span className="font-medium text-foreground">R$ {item.value.toFixed(2)}</span>
+          {item.isAdjustment ? (
+            <span className={`font-medium ${item.value >= 0 ? "text-emerald-600" : "text-red-500"}`}>
+              {item.value >= 0 ? "+" : "-"}R$ {Math.abs(item.value).toFixed(2)}
+            </span>
+          ) : (
+            <span className="font-medium text-foreground">R$ {item.value.toFixed(2)}</span>
+          )}
         </div>
       ))}
       <div className="border-t border-border pt-2 flex justify-between items-center">

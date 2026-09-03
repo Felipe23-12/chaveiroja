@@ -2,8 +2,10 @@ import React, { useState, useEffect, useMemo, useRef } from "react";
 import { base44 } from "@/api/base44Client";
 import { ArrowRight, ArrowLeft, Zap, Bell, Loader2, Navigation, CheckCircle2, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { SERVICE_CATALOG, calculatePrice, calculateCarKeyPrice, CAR_KEY_LABOR, CAR_KEY_COST_PER_KM, calculateCancellationFee, CANCELLATION_THRESHOLD_MINUTES, calculateLongDistanceFee } from "@/lib/pricing";
+import { SERVICE_CATALOG, calculateCancellationFee, CANCELLATION_THRESHOLD_MINUTES, calculateLongDistanceFee } from "@/lib/pricing";
+import { calculateDynamicPrice } from "@/lib/dynamicPricing";
 import { searchCarKeyValue } from "@/lib/carKey";
+import DynamicPriceFactors from "@/components/locksmith/DynamicPriceFactors";
 import ServiceCard from "@/components/locksmith/ServiceCard";
 import ServiceConfig from "@/components/locksmith/ServiceConfig";
 import CarKeyConfig from "@/components/locksmith/CarKeyConfig";
@@ -39,6 +41,7 @@ export default function Home() {
 
   const [customerLoc, setCustomerLoc] = useState(DEFAULT_CENTER);
   const [appLocksmiths, setAppLocksmiths] = useState([]);
+  const [activeRequestsCount, setActiveRequestsCount] = useState(0);
   const [activeRequest, setActiveRequest] = useState(null);
   const [selectedLocksmith, setSelectedLocksmith] = useState(null);
   const [submitting, setSubmitting] = useState(false);
@@ -65,29 +68,27 @@ export default function Home() {
     return Math.min(...eligible.map((l) => haversineKm(customerLoc, { lat: l.lat, lng: l.lng })));
   }, [service, appLocksmiths, customerLoc]);
 
+  // Supply: chaveiros online no modo app
+  const onlineLocksmithsCount = appLocksmiths.filter((l) => l.online).length;
+
+  // Preço dinâmico (modo aplicativo): oferta/demanda + urgência + região + bairro + distância
   const price = useMemo(() => {
     if (!service) return null;
-    const kmFee = nearestDistance != null ? calculateLongDistanceFee(nearestDistance) : 0;
-    if (service.isCarKey) {
-      return calculateCarKeyPrice({ keyValue: keyValue || 0, distanceKm: 0, extraCost: 0 });
-    }
-    const basePrice = calculatePrice({
+    return calculateDynamicPrice({
       service,
       selectedOptions,
       customAddons,
       vehicleInfo,
-      locksmithsAvailable: appLocksmiths.length || 5,
+      onlineLocksmiths: onlineLocksmithsCount,
+      activeRequests: activeRequestsCount,
       urgency,
+      customerLat: customerLoc.lat,
+      customerLng: customerLoc.lng,
+      address,
+      nearestDistanceKm: nearestDistance,
+      keyValue,
     });
-    if (basePrice && kmFee > 0) {
-      basePrice.breakdown.push({
-        label: `Taxa de distância (${nearestDistance.toFixed(1)} km × R$ 0,90)`,
-        value: kmFee,
-      });
-      basePrice.total = Math.round((basePrice.total + kmFee) * 100) / 100;
-    }
-    return basePrice;
-  }, [service, selectedOptions, customAddons, vehicleInfo, appLocksmiths.length, urgency, keyValue, nearestDistance]);
+  }, [service, selectedOptions, customAddons, vehicleInfo, onlineLocksmithsCount, activeRequestsCount, urgency, customerLoc, address, nearestDistance, keyValue]);
 
   useEffect(() => {
     getCustomerLocation().then(setCustomerLoc);
@@ -96,6 +97,25 @@ export default function Home() {
       .then((u) => getClientLoyalty(u.id))
       .then(setLoyalty)
       .catch(() => setLoyalty(null));
+  }, []);
+
+  // Demanda ativa: conta solicitações em andamento (searching + ringing)
+  // para alimentar o cálculo dinâmico de oferta vs. demanda.
+  useEffect(() => {
+    const fetchDemand = async () => {
+      try {
+        const [searching, ringing] = await Promise.all([
+          base44.entities.ServiceRequest.filter({ status: "searching" }),
+          base44.entities.ServiceRequest.filter({ status: "ringing" }),
+        ]);
+        setActiveRequestsCount((searching?.length || 0) + (ringing?.length || 0));
+      } catch (e) {
+        /* silencioso — não bloqueia o fluxo */
+      }
+    };
+    fetchDemand();
+    const unsub = base44.entities.ServiceRequest.subscribe(() => fetchDemand());
+    return unsub;
   }, []);
 
   const toggleOption = (optId) => {
@@ -182,21 +202,24 @@ export default function Home() {
 
       let req;
       if (service.isCarKey) {
-        const carPrice = calculateCarKeyPrice({ keyValue: keyValue || 0, distanceKm: nearest.d, extraCost: 0 });
-        const basePrice = carPrice.total;
+        // Preço dinâmico: valor da chave (fixo) + mão de obra (ajustada por oferta/demanda/região/bairro)
+        const basePrice = price?.total || 0;
+        const adjustedLabor = price ? Math.round((price.base - (keyValue || 0)) * 100) / 100 : 0;
+        const kmFee = calculateLongDistanceFee(nearest.d);
         const disc = useDiscount ? applyLoyaltyDiscount(basePrice) : { amount: 0, final: basePrice };
         req = await base44.entities.ServiceRequest.create({
           ...base,
           price: disc.final,
-          key_value: carPrice.keyValue,
-          labor_cost: carPrice.laborCost,
-          locomotion_cost: carPrice.locomotion,
-          distance_km: carPrice.distanceKm,
+          key_value: keyValue,
+          labor_cost: adjustedLabor,
+          locomotion_cost: kmFee,
+          distance_km: Math.round(nearest.d * 100) / 100,
           extra_cost: 0,
           discount_applied: useDiscount,
           discount_amount: disc.amount,
         });
       } else {
+        // Preço dinâmico já inclui ajustes de oferta/demanda, região, bairro e taxa de distância
         const basePrice = price?.total || 0;
         const kmFee = calculateLongDistanceFee(nearest.d);
         const disc = useDiscount ? applyLoyaltyDiscount(basePrice) : { amount: 0, final: basePrice };
@@ -521,6 +544,11 @@ export default function Home() {
               setVehicleInfo={setVehicleInfo}
               price={price}
             />
+          )}
+
+          {/* Fatores dinâmicos de precificação (oferta/demanda, região, bairro, distância) */}
+          {price && nearestDistance != null && (
+            <DynamicPriceFactors price={price} nearestDistance={nearestDistance} />
           )}
 
           <div>
