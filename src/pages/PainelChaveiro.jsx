@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
-import { Wrench, Bell, Check, X, Navigation, Power, Loader2, MapPin, WifiOff, CheckCircle2 } from "lucide-react";
+import { Wrench, Bell, Check, X, Navigation, Power, Loader2, MapPin, WifiOff, CheckCircle2, Wallet } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import NativeSelectDrawer from "@/components/ui/NativeSelectDrawer";
@@ -464,6 +464,7 @@ export default function PainelChaveiro() {
   const locksmithArrived = active?.locksmith_arrived === true;
   const clientArrivedConfirmed = active?.client_arrived_confirmed === true;
   const clientConfirmed = active?.client_confirmed === true;
+  const cashPending = active?.payment_method === "dinheiro" && !active?.cash_received && endDone;
   const phase = !active
     ? "moving"
     : active.status === "completed"
@@ -503,13 +504,21 @@ export default function PainelChaveiro() {
       : "Serviço concluído";
 
   return (
-    <div className={`max-w-2xl mx-auto px-4 py-6 md:py-10 ${pendingCount > 0 && isAppMode ? "pt-14 md:pt-14" : ""}`}>
+    <div className={`max-w-2xl mx-auto px-4 py-6 md:py-10 ${pendingCount > 0 && isAppMode ? "pt-14 md:pt-14" : ""} ${cashPending ? "pt-14 md:pt-14" : ""}`}>
       <PullToRefreshIndicator pull={pull} refreshing={refreshing} />
       {/* Banner fixo piscante no topo quando há solicitações pendentes */}
       {pendingCount > 0 && isAppMode && (
         <div className="fixed top-0 left-0 right-0 z-50 bg-red-500 text-white text-center py-2 pt-safe text-sm font-bold animate-alert-blink shadow-lg md:left-64">
           <Bell className="w-4 h-4 inline mr-2 animate-bounce" />
           {pendingCount === 1 ? "1 solicitação aguardando resposta!" : `${pendingCount} solicitações aguardando resposta!`}
+        </div>
+      )}
+
+      {/* Banner fixo de pagamento em dinheiro aguardando confirmação */}
+      {cashPending && (
+        <div className="fixed top-0 left-0 right-0 z-50 bg-emerald-600 text-white text-center py-2 pt-safe text-sm font-bold animate-alert-blink shadow-lg md:left-64">
+          <Wallet className="w-4 h-4 inline mr-2 animate-bounce" />
+          Pagamento em dinheiro aguardando confirmação — R$ {active.price?.toFixed(2)}
         </div>
       )}
 
@@ -636,6 +645,22 @@ export default function PainelChaveiro() {
             </p>
           </div>
 
+          {/* Alerta persistente: cliente pagará em dinheiro — confirme o recebimento */}
+          {cashPending && (
+            <div className="p-4 rounded-2xl border-2 border-emerald-500 bg-emerald-50 space-y-3 animate-alert-slide">
+              <div className="flex items-center gap-2 text-emerald-700">
+                <Wallet className="w-5 h-5" />
+                <p className="font-bold text-sm">Pagamento em dinheiro</p>
+              </div>
+              <p className="text-sm text-foreground">
+                O cliente selecionou pagamento em dinheiro. Confirme o recebimento de <strong>R$ {active.price?.toFixed(2)}</strong> para liberar a finalização do serviço.
+              </p>
+              <Button onClick={handleConfirmCash} className="w-full bg-emerald-600 hover:bg-emerald-700">
+                <Check className="w-4 h-4 mr-1.5" /> Confirmar recebimento de R$ {active.price?.toFixed(2)}
+              </Button>
+            </div>
+          )}
+
           {phase === "moving" && (
             <>
               <LightMap
@@ -716,7 +741,7 @@ export default function PainelChaveiro() {
             </div>
           )}
 
-          {phase === "awaiting_payment" && (
+          {phase === "awaiting_payment" && !cashPending && (
             <div className="p-4 rounded-xl border-2 border-amber-300 bg-amber-50 space-y-3">
               <div className="flex items-center gap-2 text-amber-700">
                 <Loader2 className="w-5 h-5 animate-spin" />
