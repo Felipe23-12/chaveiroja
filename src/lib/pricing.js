@@ -33,7 +33,7 @@ export const SERVICE_CATALOG = [
     label: "Abertura Automotiva",
     description: "Abrir veículo (carro ou moto)",
     specialty: "Automotivo",
-    baseRange: [100, 1000],
+    baseRange: [120, 350],
     needsVehicleInfo: true,
   },
   {
@@ -41,7 +41,7 @@ export const SERVICE_CATALOG = [
     label: "Abertura Fechadura Tetra",
     description: "Fechadura tetra / tetrachave",
     specialty: "Residencial",
-    baseRange: [140, 300],
+    baseRange: [100, 300],
     options: [
       { id: "troca_miolo", label: "Troca de miolo", price: 90 },
       { id: "troca_fechadura", label: "Troca de fechadura completa", price: "custom" },
@@ -52,7 +52,7 @@ export const SERVICE_CATALOG = [
     label: "Abertura Fechadura Eletrônica",
     description: "Fechadura eletrônica / digital",
     specialty: "Residencial",
-    baseRange: [350, 500],
+    baseRange: [350, 450],
   },
   {
     id: "confeccao_chave_carro",
@@ -96,7 +96,7 @@ export function getTimeTier(date = new Date()) {
   const isWeekend = day === 0 || day === 6;
 
   if (isHoliday || isWeekend) {
-    return { tier: "high", label: "Fim de semana / feriado", multiplier: 0.85 };
+    return { tier: "high", label: "Fim de semana / feriado (valores altos)", multiplier: 0.9 };
   }
   if (hour >= 8 && hour < 17) {
     return { tier: "low", label: "Horário comercial (08h-17h)", multiplier: 0.2 };
