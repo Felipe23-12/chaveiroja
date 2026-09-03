@@ -5,11 +5,11 @@ import { Navigation } from "lucide-react";
  * Mapa leve otimizado para WebView do Android.
  *
  * Em vez de uma biblioteca interativa (Leaflet) que carrega dezenas de tiles
- * e trava o gesto no mobile, este componente carrega UMA imagem estática do
- * OpenStreetMap cobrindo a área da rota e desenha a rota e os marcadores como
- * sobreposição SVG/HTML. A imagem é buscada apenas quando a área muda; durante
- * o acompanhamento da rota só os marcadores se movem (CSS), sem recarregar
- * nada — zero travamento.
+ * e trava o gesto no mobile, este componente compõe o fundo a partir de uma
+ * grade mínima de tiles raster do OpenStreetMap (fonte confiável) e desenha a
+ * rota e os marcadores como sobreposição SVG/HTML. A grade é recalculada apenas
+ * quando a área muda; durante o acompanhamento da rota só os marcadores se
+ * movem (CSS), sem recarregar nada — zero travamento.
  *
  * API compatível com o antigo RouteLeafletMap:
  *   { center, markers, route, routePath, eta, height }
@@ -17,7 +17,6 @@ import { Navigation } from "lucide-react";
  * markers: [{ id, lat, lng, type: "customer"|"me"|"locksmith", label, active }]
  */
 const TILE = 256;
-const STATIC_BASE = "https://staticmap.openstreetmap.de/staticmap.php";
 
 function lngToX(lng, z) {
   return ((lng + 180) / 360) * TILE * Math.pow(2, z);
@@ -40,12 +39,13 @@ function fitZoom(b, w, h, pad = 0.82) {
   return Math.max(1, Math.min(17, Math.floor(Math.min(zLng, zLat))));
 }
 
+const wrap = (n, m) => ((n % m) + m) % m;
+
 export default function LightMap({ center, markers = [], route = null, routePath = null, eta = null, height = 320 }) {
   const containerRef = useRef(null);
   const [size, setSize] = useState({ w: 360, h: height });
-  const [imgError, setImgError] = useState(false);
 
-  // Mede o contêiner para buscar a imagem no tamanho exato (alinhamento perfeito)
+  // Mede o contêiner para compor a grade de tiles no tamanho exato
   useEffect(() => {
     const el = containerRef.current;
     if (!el) return;
@@ -56,7 +56,7 @@ export default function LightMap({ center, markers = [], route = null, routePath
     return () => ro.disconnect();
   }, [height]);
 
-  // Dimensões da imagem (limitadas para não estourar o serviço estático)
+  // Dimensões da área renderizada
   const fw = Math.min(size.w, 1024);
   const fh = Math.min(size.h, 1024);
 
@@ -77,8 +77,7 @@ export default function LightMap({ center, markers = [], route = null, routePath
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [JSON.stringify(markers), JSON.stringify(route), JSON.stringify(routePath)]);
 
-  // Centraliza e calcula zoom com base na área da rota (estável: só muda quando
-  // o conjunto de pontos muda, não a cada atualização de coordenada).
+  // Centraliza e calcula zoom com base na área da rota (estável)
   const view = useMemo(() => {
     if (allPoints.length === 0) {
       const c = center && center.lat ? center : { lat: -23.55, lng: -46.63 };
@@ -98,7 +97,30 @@ export default function LightMap({ center, markers = [], route = null, routePath
   }, [allPoints, fw, fh]);
 
   const { c, z } = view;
-  const imgUrl = `${STATIC_BASE}?center=${c.lat.toFixed(5)},${c.lng.toFixed(5)}&zoom=${z}&size=${fw}x${fh}`;
+
+  // Grade de tiles que cobre a área visível
+  const tiles = useMemo(() => {
+    const topLeftX = lngToX(c.lng, z) - fw / 2;
+    const topLeftY = latToY(c.lat, z) - fh / 2;
+    const startTX = Math.floor(topLeftX / TILE);
+    const endTX = Math.floor((topLeftX + fw) / TILE);
+    const startTY = Math.floor(topLeftY / TILE);
+    const endTY = Math.floor((topLeftY + fh) / TILE);
+    const maxTile = Math.pow(2, z);
+    const list = [];
+    for (let ty = startTY; ty <= endTY; ty++) {
+      for (let tx = startTX; tx <= endTX; tx++) {
+        list.push({
+          key: `${z}/${tx}/${ty}`,
+          url: `https://tile.openstreetmap.org/${z}/${wrap(tx, maxTile)}/${wrap(ty, maxTile)}.png`,
+          left: tx * TILE - topLeftX,
+          top: ty * TILE - topLeftY,
+        });
+      }
+    }
+    return list;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [c.lat, c.lng, z, fw, fh]);
 
   const proj = (lat, lng) => project(lat, lng, c, z, fw, fh);
   const toPct = (p) => ({ left: `${(p.x / fw) * 100}%`, top: `${(p.y / fh) * 100}%` });
@@ -118,20 +140,21 @@ export default function LightMap({ center, markers = [], route = null, routePath
       className="relative w-full rounded-2xl overflow-hidden border border-border bg-muted/40"
       style={{ height }}
     >
-      {!imgError ? (
-        <img
-          src={imgUrl}
-          alt="Mapa da rota"
-          className="absolute inset-0 w-full h-full"
-          style={{ objectFit: "fill" }}
-          onError={() => setImgError(true)}
-          loading="lazy"
-        />
-      ) : (
-        <div className="absolute inset-0 bg-gradient-to-br from-slate-100 to-slate-200 dark:from-slate-800 dark:to-slate-900" />
-      )}
+      {/* Fundo: grade mínima de tiles do OpenStreetMap */}
+      <div className="absolute inset-0">
+        {tiles.map((t) => (
+          <img
+            key={t.key}
+            src={t.url}
+            alt=""
+            loading="lazy"
+            className="absolute select-none"
+            style={{ left: t.left, top: t.top, width: TILE, height: TILE }}
+          />
+        ))}
+      </div>
 
-      {/* Sobreposição da rota (SVG esticado junto com a imagem) */}
+      {/* Sobreposição da rota (SVG esticado junto com o fundo) */}
       <svg
         className="absolute inset-0 w-full h-full pointer-events-none"
         viewBox={`0 0 ${fw} ${fh}`}
@@ -152,7 +175,7 @@ export default function LightMap({ center, markers = [], route = null, routePath
         )}
       </svg>
 
-      {/* Marcadores posicionados em % (alinhados à imagem esticada) */}
+      {/* Marcadores posicionados em % (alinhados ao fundo esticado) */}
       {markers
         .filter((m) => m.lat && m.lng)
         .map((m) => {
@@ -203,6 +226,15 @@ export default function LightMap({ center, markers = [], route = null, routePath
           <Navigation className="w-3.5 h-3.5" /> {eta} min · chegada
         </div>
       )}
+
+      <a
+        href="https://www.openstreetmap.org/copyright"
+        target="_blank"
+        rel="noreferrer"
+        className="absolute bottom-1 right-1 z-20 px-1.5 py-0.5 rounded bg-black/45 text-white text-[9px] font-medium hover:bg-black/60"
+      >
+        © OpenStreetMap
+      </a>
     </div>
   );
 }
