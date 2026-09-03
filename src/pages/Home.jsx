@@ -379,6 +379,7 @@ export default function Home() {
       {step === 1 && showAppFlow && (
         <div className="space-y-5">
           <PointsProgressCard loyalty={loyalty} />
+          <LiveLocksmithsMap customerLoc={customerLoc} />
           <div>
             <h2 className="font-heading font-semibold text-lg text-foreground">Qual serviço você precisa?</h2>
             <p className="text-sm text-muted-foreground">Selecione o tipo de atendimento</p>

@@ -1,13 +1,74 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
+import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet";
+import L from "leaflet";
+import "leaflet/dist/leaflet.css";
 import { base44 } from "@/api/base44Client";
-import { MapPin, Loader2, MessageCircle, Star, Wrench } from "lucide-react";
-import MapView from "@/components/map/MapView";
+import { MapPin, Loader2, MessageCircle, Star, Wrench, ZoomIn, ZoomOut, Navigation } from "lucide-react";
 import { haversineKm } from "@/lib/geo";
 
+// Ícone customizado (div) para o Leaflet — pino estilo "gota"
+const makeIcon = (color, label = "") =>
+  L.divIcon({
+    className: "locksmith-marker",
+    html: `<div style="background:${color};width:30px;height:30px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);border:2px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,.3);display:flex;align-items:center;justify-content:center;"><span style="transform:rotate(45deg);color:#fff;font-size:11px;font-weight:700;">${label}</span></div>`,
+    iconSize: [30, 30],
+    iconAnchor: [15, 30],
+  });
+
+const meIcon = makeIcon("#0ea5e9", "Eu");
+const freeIcon = makeIcon("#10b981", "");
+const busyIcon = makeIcon("#f59e0b", "");
+
+function Recenter({ center }) {
+  const map = useMap();
+  useEffect(() => {
+    if (center?.lat && center?.lng) {
+      map.setView([center.lat, center.lng], map.getZoom(), { animate: true });
+    }
+  }, [center?.lat, center?.lng]);
+  return null;
+}
+
+function MapResizer() {
+  const map = useMap();
+  useEffect(() => {
+    const t = setTimeout(() => map.invalidateSize(), 200);
+    return () => clearTimeout(t);
+  }, [map]);
+  return null;
+}
+
+function ZoomControls() {
+  const map = useMap();
+  return (
+    <div
+      className="leaflet-control-zoom leaflet-bar leaflet-control"
+      style={{ position: "absolute", right: 12, bottom: 24, zIndex: 1000 }}
+    >
+      <button
+        type="button"
+        aria-label="Aproximar"
+        onClick={() => map.zoomIn()}
+        className="flex items-center justify-center w-9 h-9 bg-white border-b border-border text-foreground hover:bg-accent transition-colors"
+      >
+        <ZoomIn className="w-4 h-4" />
+      </button>
+      <button
+        type="button"
+        aria-label="Afastar"
+        onClick={() => map.zoomOut()}
+        className="flex items-center justify-center w-9 h-9 bg-white border-t border-border text-foreground hover:bg-accent transition-colors"
+      >
+        <ZoomOut className="w-4 h-4" />
+      </button>
+    </div>
+  );
+}
+
 /**
- * Mapa ao vivo da tela principal do cliente.
- * Mostra apenas chaveiros do Modo Livre (work_mode="livre") que estão online,
+ * Mapa interativo real (OpenStreetMap) da tela principal do cliente.
+ * Mostra TODOS os chaveiros disponíveis (Modo Livre online + Modo App disponíveis)
  * em tempo real, ao redor da localização atual do cliente.
  */
 export default function LiveLocksmithsMap({ customerLoc }) {
@@ -18,12 +79,19 @@ export default function LiveLocksmithsMap({ customerLoc }) {
   useEffect(() => {
     let active = true;
     const load = () =>
-      base44.entities.Locksmith.filter({ work_mode: "livre", online: true }).then((list) => {
-        if (active) setLocksmiths(list);
+      base44.entities.Locksmith.list().then((list) => {
+        if (active) {
+          // Disponíveis: Modo Livre online OU Modo App disponível
+          setLocksmiths(
+            list.filter(
+              (l) =>
+                (l.work_mode === "livre" && l.online) ||
+                (l.work_mode === "app" && l.available)
+            )
+          );
+        }
       });
     load().finally(() => active && setLoading(false));
-
-    // Atualização em tempo real: chaveiros entrando/saindo/online
     const unsub = base44.entities.Locksmith.subscribe(() => load());
     return () => {
       active = false;
@@ -31,32 +99,28 @@ export default function LiveLocksmithsMap({ customerLoc }) {
     };
   }, []);
 
-  const withDist = locksmiths
-    .map((l) => ({ ...l, distance: haversineKm(customerLoc, { lat: l.lat, lng: l.lng }) }))
-    .sort((a, b) => a.distance - b.distance);
+  const withDist = useMemo(
+    () =>
+      locksmiths
+        .map((l) => ({
+          ...l,
+          distance: haversineKm(customerLoc, { lat: l.lat, lng: l.lng }),
+        }))
+        .sort((a, b) => a.distance - b.distance),
+    [locksmiths, customerLoc]
+  );
 
-  const markers = [
-    { id: "me", lat: customerLoc.lat, lng: customerLoc.lng, type: "customer", label: "Você" },
-    ...withDist.map((l) => ({
-      id: l.id,
-      lat: l.lat,
-      lng: l.lng,
-      type: "locksmith",
-      busy: !l.available,
-      label: l.name?.split(" ")[0],
-      onClick: () => navigate(`/chat/${l.id}`),
-    })),
-  ];
+  const center = customerLoc?.lat ? customerLoc : { lat: -23.55, lng: -46.63 };
 
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between">
         <div>
           <h3 className="font-heading font-semibold text-foreground flex items-center gap-2">
-            <MapPin className="w-4 h-4 text-primary" /> Chaveiros online perto de você
+            <MapPin className="w-4 h-4 text-primary" /> Chaveiros disponíveis perto de você
           </h3>
           <p className="text-xs text-muted-foreground">
-            Profissionais do <strong>Modo Livre</strong> visíveis no mapa · toque para conversar
+            Profissionais online em tempo real · toque no pino para detalhes
           </p>
         </div>
         <div className="flex items-center gap-3 text-xs">
@@ -66,12 +130,58 @@ export default function LiveLocksmithsMap({ customerLoc }) {
           </span>
           <span className="flex items-center gap-1.5 text-amber-600 font-medium">
             <span className="w-2 h-2 rounded-full bg-amber-500" />
-            {loading ? "…" : withDist.filter((l) => !l.available).length} em atendimento
+            {loading ? "…" : withDist.filter((l) => !l.available).length} ocupados
           </span>
         </div>
       </div>
 
-      <MapView center={customerLoc} markers={markers} height={300} />
+      <div className="rounded-xl overflow-hidden border border-border" style={{ height: 360 }}>
+        <MapContainer
+          center={[center.lat, center.lng]}
+          zoom={13}
+          style={{ height: "100%", width: "100%" }}
+          scrollWheelZoom
+          zoomControl={false}
+        >
+          <TileLayer
+            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+          />
+          <Recenter center={center} />
+          <MapResizer />
+          <ZoomControls />
+          <Marker position={[center.lat, center.lng]} icon={meIcon}>
+            <Popup>
+              <strong>Você</strong>
+            </Popup>
+          </Marker>
+          {withDist.map((l) => (
+            <Marker
+              key={l.id}
+              position={[l.lat, l.lng]}
+              icon={l.available ? freeIcon : busyIcon}
+            >
+              <Popup>
+                <div style={{ minWidth: 150 }}>
+                  <strong>{l.name}</strong>
+                  <div style={{ fontSize: 12, color: "#666", marginTop: 2 }}>
+                    {l.specialty} · ⭐ {l.rating}
+                  </div>
+                  <div style={{ fontSize: 12, marginTop: 4 }}>
+                    {l.distance} km de você
+                  </div>
+                  <div style={{ fontSize: 12, marginTop: 2, fontWeight: 600 }}>
+                    {l.available ? "🟢 Disponível" : "🟡 Em atendimento"}
+                  </div>
+                  <div style={{ fontSize: 12, marginTop: 4, color: "#0ea5e9" }}>
+                    {l.work_mode === "livre" ? "Modo Livre" : "Modo App"}
+                  </div>
+                </div>
+              </Popup>
+            </Marker>
+          ))}
+        </MapContainer>
+      </div>
 
       {loading ? (
         <div className="flex items-center gap-2 text-sm text-muted-foreground py-2">
@@ -81,7 +191,7 @@ export default function LiveLocksmithsMap({ customerLoc }) {
         <div className="text-center py-6 rounded-xl border border-dashed border-border">
           <Wrench className="w-7 h-7 text-muted-foreground mx-auto mb-2" />
           <p className="text-sm text-muted-foreground">
-            Nenhum chaveiro do Modo Livre online agora.
+            Nenhum chaveiro disponível agora.
           </p>
           <p className="text-xs text-muted-foreground mt-1">
             Você ainda pode solicitar um serviço — o app encontra o profissional mais próximo.
@@ -89,7 +199,10 @@ export default function LiveLocksmithsMap({ customerLoc }) {
         </div>
       ) : (
         <div className="space-y-2">
-          {withDist.slice(0, 3).map((l) => (
+          <p className="text-xs font-medium text-muted-foreground flex items-center gap-1.5">
+            <Navigation className="w-3.5 h-3.5" /> Mais próximos de você
+          </p>
+          {withDist.slice(0, 4).map((l) => (
             <div
               key={l.id}
               className="flex items-center gap-3 p-2.5 rounded-xl border border-border bg-card"
@@ -101,7 +214,10 @@ export default function LiveLocksmithsMap({ customerLoc }) {
                 <div className="flex items-center gap-2">
                   <p className="text-sm font-medium text-foreground truncate">{l.name}</p>
                   <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded-full ${l.available ? "bg-emerald-100 text-emerald-700" : "bg-amber-100 text-amber-700"}`}>
-                    {l.available ? "Livre" : "Em atendimento"}
+                    {l.available ? "Disponível" : "Em atendimento"}
+                  </span>
+                  <span className="text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-muted text-muted-foreground">
+                    {l.work_mode === "livre" ? "Livre" : "App"}
                   </span>
                 </div>
                 <p className="text-xs text-muted-foreground">
@@ -115,13 +231,15 @@ export default function LiveLocksmithsMap({ customerLoc }) {
               >
                 <Star className="w-4 h-4" />
               </button>
-              <button
-                onClick={() => navigate(`/chat/${l.id}`)}
-                className="p-2 rounded-lg text-primary hover:bg-accent"
-                title="Conversar"
-              >
-                <MessageCircle className="w-4 h-4" />
-              </button>
+              {l.work_mode === "livre" && (
+                <button
+                  onClick={() => navigate(`/chat/${l.id}`)}
+                  className="p-2 rounded-lg text-primary hover:bg-accent"
+                  title="Conversar"
+                >
+                  <MessageCircle className="w-4 h-4" />
+                </button>
+              )}
             </div>
           ))}
         </div>
