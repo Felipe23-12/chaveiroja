@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
-import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet";
+import { MapContainer, TileLayer, Marker, Popup, Circle, useMap } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { base44 } from "@/api/base44Client";
@@ -286,11 +286,22 @@ export default function LiveLocksmithsMap({ customerLoc, livreOnly = false }) {
             </Popup>
           </Marker>
           {withDist.map((l) => (
-            <Marker
-              key={l.id}
-              position={[l.lat, l.lng]}
-              icon={l.available ? freeIcon : busyIcon}
-            >
+            <React.Fragment key={l.id}>
+              <Circle
+                center={[l.lat, l.lng]}
+                radius={10000}
+                pathOptions={{
+                  color: l.available ? "#10b981" : "#f59e0b",
+                  fillColor: l.available ? "#10b981" : "#f59e0b",
+                  fillOpacity: 0.08,
+                  weight: 1,
+                  dashArray: "6 6",
+                }}
+              />
+              <Marker
+                position={[l.lat, l.lng]}
+                icon={l.available ? freeIcon : busyIcon}
+              >
               <Popup>
                 <div style={{ minWidth: 180 }}>
                   <strong>{l.name}</strong>
@@ -344,6 +355,7 @@ export default function LiveLocksmithsMap({ customerLoc, livreOnly = false }) {
                 </div>
               </Popup>
             </Marker>
+            </React.Fragment>
           ))}
         </MapContainer>
       </div>
