@@ -1,0 +1,40 @@
+{
+  "name": "Alerta Novo Pedido Sheets",
+  "description": "Registra automaticamente cada novo pedido de servi\u00e7o em uma aba do Google Sheets assim que o cliente o cria, para alerta em tempo real",
+  "trigger": {
+    "config": {
+      "trigger_type": "entity",
+      "entity_name": "ServiceRequest",
+      "events": [
+        "create"
+      ]
+    },
+    "condition": "${ true }"
+  },
+  "definition": {
+    "document": {
+      "dsl": "1.0.0",
+      "name": "alerta_novo_pedido_sheets",
+      "version": "1",
+      "namespace": "base44"
+    },
+    "do": [
+      {
+        "export_new_order": {
+          "call": "invoke_backend_function",
+          "with": {
+            "function_name": "exportNewOrderToSheets",
+            "args": {
+              "service_request_id": "${ .trigger.entity_id }"
+            }
+          },
+          "then": "end",
+          "x-base44": {
+            "title": "Salvar novo pedido na planilha",
+            "description": "Exporta os dados do pedido rec\u00e9m-criado para a aba Novos Pedidos no Google Sheets"
+          }
+        }
+      }
+    ]
+  }
+}
