@@ -78,7 +78,7 @@ export default function MobileTabBar() {
               key={t.path}
               to={t.path}
               onClick={() => handleTabClick(t.path)}
-              className={`flex-1 flex flex-col items-center justify-center gap-0.5 py-1.5 min-h-[50px] text-[10px] font-medium transition-colors select-none touch-manipulation ${
+              className={`flex-1 flex flex-col items-center justify-center gap-0.5 py-1.5 min-h-[50px] text-[11px] font-heading font-semibold transition-colors select-none touch-manipulation ${
                 active ? "text-primary" : "text-muted-foreground"
               }`}
             >

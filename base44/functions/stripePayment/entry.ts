@@ -37,9 +37,10 @@ export default async function(req) {
       if (locksmith_id) {
         const records = await base44.asServiceRole.entities.StripeConnectAccount.filter({ locksmith_id });
         destinationAccountId = records?.[0]?.stripe_account_id || "";
-        if (!destinationAccountId) {
-          return Response.json({ error: "Este chaveiro ainda não configurou o recebimento pelo Stripe." }, { status: 400 });
-        }
+        // Sem conta Stripe Connect ativa: cria um PaymentIntent direto na conta
+        // da plataforma. O repasse ao chaveiro é feito via carteira interna ao
+        // confirmar o pagamento (confirmPaymentPaid), permitindo cartão mesmo
+        // antes da configuração do Stripe Connect.
       }
 
       const applicationFee = Math.round(cents * 0.15);

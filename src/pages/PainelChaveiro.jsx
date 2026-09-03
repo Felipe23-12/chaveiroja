@@ -318,31 +318,29 @@ export default function PainelChaveiro() {
     setEndPhotos(active?.end_photos || []);
   }, [active?.id]);
 
-  // Simula o deslocamento do chaveiro até o cliente
+  // Rastreia a posição real do chaveiro via GPS enquanto está a caminho,
+  // atualizando o ServiceRequest em tempo real — o cliente acompanha o
+  // deslocamento ao vivo, mesmo que o chaveiro navegue com Waze/Maps.
   useEffect(() => {
-    if (!active || active.status === "completed") {
-      if (moveTimer.current) clearInterval(moveTimer.current);
-      return;
-    }
-    moveTimer.current = setInterval(async () => {
-      const fresh = await base44.entities.ServiceRequest.get(active.id);
-      const dest = { lat: fresh.customer_lat, lng: fresh.customer_lng };
-      const cur = { lat: fresh.locksmith_lat, lng: fresh.locksmith_lng };
-      const dist = haversineKm(cur, dest);
-      if (dist < 0.05) {
-        setArrived(true);
-        if (moveTimer.current) clearInterval(moveTimer.current);
-        return;
-      }
-      const next = stepToward(cur, dest, 0.12);
-      await base44.entities.ServiceRequest.update(active.id, {
-        status: "on_the_way",
-        locksmith_lat: next.lat,
-        locksmith_lng: next.lng,
-      });
-    }, 1500);
-    return () => moveTimer.current && clearInterval(moveTimer.current);
-  }, [active?.id]);
+    if (!active || active.status === "completed" || !navigator.geolocation) return;
+    const dest = { lat: active.customer_lat, lng: active.customer_lng };
+    const watchId = navigator.geolocation.watchPosition(
+      async (pos) => {
+        const newLat = pos.coords.latitude;
+        const newLng = pos.coords.longitude;
+        const dist = haversineKm({ lat: newLat, lng: newLng }, dest);
+        await base44.entities.ServiceRequest.update(active.id, {
+          status: "on_the_way",
+          locksmith_lat: newLat,
+          locksmith_lng: newLng,
+        });
+        if (dist < 0.05) setArrived(true);
+      },
+      () => {},
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 5000 }
+    );
+    return () => navigator.geolocation.clearWatch(watchId);
+  }, [active?.id, active?.status]);
 
   const toggleOnline = async () => {
     if (!me) return;
@@ -661,7 +659,7 @@ export default function PainelChaveiro() {
             </div>
           )}
 
-          {phase === "moving" && (
+          {(phase === "moving" || phase === "arrived_detected" || phase === "arrived_pending") && (
             <>
               <LightMap
                 center={{ lat: active.customer_lat, lng: active.customer_lng }}

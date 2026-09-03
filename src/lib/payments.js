@@ -18,14 +18,22 @@ export function calculatePaymentBreakdown(amount) {
 // Cria um PaymentIntent no Stripe via backend function.
 // Retorna { payment_intent_id, client_secret, publishable_key, pix_data? }
 export async function createStripePaymentIntent({ amount, method, description, locksmithId }) {
-  const res = await base44.functions.invoke("stripePayment", {
-    action: "create_intent",
-    amount,
-    method,
-    description,
-    locksmith_id: locksmithId,
-  });
-  return res.data;
+  try {
+    const res = await base44.functions.invoke("stripePayment", {
+      action: "create_intent",
+      amount,
+      method,
+      description,
+      locksmith_id: locksmithId,
+    });
+    return res.data;
+  } catch (e) {
+    // O SDK lança um erro genérico ("Request failed with status code 400");
+    // extraímos a mensagem real retornada pelo backend/Stripe para o usuário.
+    const data = e?.response?.data || e?.data || e;
+    const msg = typeof data === "string" ? data : data?.error || data?.message || e?.message;
+    throw new Error(msg || "Falha ao iniciar pagamento");
+  }
 }
 
 // Consulta o status de um PaymentIntent no Stripe
