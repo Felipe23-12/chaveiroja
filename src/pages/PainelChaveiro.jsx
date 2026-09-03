@@ -25,6 +25,7 @@ import { confirmCashReceived } from "@/lib/payments";
 import { saveLastService, getLastService, clearLastService, saveLocksmithProfile, getLocksmithProfile, isOnline, saveLastRoute, getLastRoute, savePendingRequests, getPendingRequests } from "@/lib/offlineCache";
 import LoadingCard from "@/components/ui/LoadingCard";
 import { playNotificationSound } from "@/lib/notificationSound";
+import ServiceStatusBadge, { PHASE_BORDER } from "@/components/locksmith/ServiceStatusBadge";
 
 // Raio de cobertura para considerar um pedido "na região" do chaveiro (km)
 const REGION_RADIUS_KM = 15;
@@ -667,18 +668,13 @@ export default function PainelChaveiro() {
       {/* Serviço em andamento */}
       {active ? (
         <div className="space-y-4 fade-in-up">
-          <div className="p-4 rounded-xl border border-border bg-card">
-            <div className="flex items-center gap-2 text-primary mb-1">
-              <Navigation className="w-4 h-4" />
-              <p className="font-medium">{phaseLabel}</p>
+          <div className={`p-4 rounded-xl border border-border bg-card border-l-4 ${PHASE_BORDER[phase] || "border-l-blue-500"}`}>
+            <div className="flex items-center justify-between gap-2 mb-2">
+              <ServiceStatusBadge phase={phase} />
+              <span className="text-[10px] text-muted-foreground uppercase tracking-wide truncate">{active.service_type}</span>
             </div>
-            <p className="text-sm text-foreground">{active.service_type}</p>
-            <p className="text-xs text-muted-foreground">{active.address}</p>
-            <p className="text-xs text-muted-foreground mt-1">
-              Status: <span className="font-medium text-foreground">
-                {phase === "arrived_detected" ? "No local" : phase === "arrived_pending" ? "Aguardando cliente" : phase === "arrived_confirmed" ? "Iniciar atendimento" : phase === "finishing" ? "Em atendimento" : phase === "awaiting_client" ? "Aguardando cliente" : phase === "awaiting_payment" ? "Aguardando pagamento" : phase === "ready_to_finish" ? "Pagamento confirmado" : active.status === "accepted" ? "Aceito" : active.status === "on_the_way" ? "A caminho" : "Concluído"}
-              </span>
-            </p>
+            <p className="text-sm font-medium text-foreground">{phaseLabel}</p>
+            <p className="text-xs text-muted-foreground mt-0.5">{active.address}</p>
           </div>
 
           {/* Alerta persistente: cliente pagará em dinheiro — confirme o recebimento */}
