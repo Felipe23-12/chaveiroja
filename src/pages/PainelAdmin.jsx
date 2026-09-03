@@ -3,6 +3,7 @@ import { base44 } from "@/api/base44Client";
 import { ShieldCheck, Users, Wrench, ClipboardList, Wallet, Trash2, Power, ArrowDownToLine, CheckCircle2, Info, Bell } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import AdminCharts from "@/components/admin/AdminCharts";
+import RevenueCommissionChart from "@/components/admin/RevenueCommissionChart";
 import ServiceFilters, { filterRequests } from "@/components/admin/ServiceFilters";
 import ServiceSearchBar from "@/components/admin/ServiceSearchBar";
 import ServiceGallery from "@/components/locksmith/ServiceGallery";
@@ -187,6 +188,8 @@ export default function PainelAdmin() {
       </div>
 
       <AdminCharts requests={requests} />
+
+      <RevenueCommissionChart requests={requests} />
 
       <FinancialConsolidation requests={requests} locksmiths={locksmiths} />
 
