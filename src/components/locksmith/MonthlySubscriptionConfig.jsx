@@ -3,6 +3,7 @@ import { Calendar, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { WORK_MODES } from "@/lib/pricing";
 import PaymentStep from "@/components/payment/PaymentStep";
+import NativeSelectDrawer from "@/components/ui/NativeSelectDrawer";
 
 export default function MonthlySubscriptionConfig({ locksmith, onUpdate }) {
   const [dueDay, setDueDay] = useState(locksmith.monthly_fee_due_day || 1);
@@ -70,19 +71,19 @@ export default function MonthlySubscriptionConfig({ locksmith, onUpdate }) {
           Dia de vencimento
         </label>
         <div className="flex items-center gap-2">
-          <select
+          <NativeSelectDrawer
             value={dueDay}
-            onChange={(e) => {
-              const v = Number(e.target.value);
+            onChange={(v) => {
               setDueDay(v);
               saveConfig("monthly_fee_due_day", v);
             }}
-            className="h-9 rounded-md border border-input bg-transparent px-3 text-sm shadow-sm focus:outline-none focus:ring-1 focus:ring-ring"
-          >
-            {Array.from({ length: 28 }, (_, i) => i + 1).map((d) => (
-              <option key={d} value={d}>{d}</option>
-            ))}
-          </select>
+            label="Dia de vencimento"
+            placeholder="1"
+            options={Array.from({ length: 28 }, (_, i) => i + 1).map((d) => ({
+              value: d,
+              label: String(d),
+            }))}
+          />
           <span className="text-sm text-muted-foreground">de cada mês</span>
         </div>
         <p className="text-xs text-muted-foreground mt-1">

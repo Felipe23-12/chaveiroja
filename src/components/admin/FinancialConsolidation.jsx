@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/use-toast";
 import { base44 } from "@/api/base44Client";
 import { calculateRepasse } from "@/lib/pricing";
+import NativeSelectDrawer from "@/components/ui/NativeSelectDrawer";
 
 const fmtMoney = (n) =>
   (n || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
@@ -138,16 +139,16 @@ export default function FinancialConsolidation({ requests, locksmiths }) {
         </h2>
         <div className="flex items-center gap-2">
           <label className="text-sm text-muted-foreground">Mês:</label>
-          <select
+          <NativeSelectDrawer
             value={selectedMonth}
-            onChange={(e) => setSelectedMonth(e.target.value)}
-            className="h-9 rounded-md border border-input bg-transparent px-3 text-sm shadow-sm focus:outline-none focus:ring-1 focus:ring-ring"
-          >
-            <option value="">Mês atual</option>
-            {availableMonths.map((m) => (
-              <option key={m} value={m}>{monthLabel(m)}</option>
-            ))}
-          </select>
+            onChange={setSelectedMonth}
+            label="Mês"
+            placeholder="Mês atual"
+            options={[
+              { value: "", label: "Mês atual" },
+              ...availableMonths.map((m) => ({ value: m, label: monthLabel(m) })),
+            ]}
+          />
           <Button
             onClick={handleExport}
             disabled={exporting}

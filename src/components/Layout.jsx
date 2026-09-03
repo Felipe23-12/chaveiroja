@@ -8,6 +8,8 @@ import DarkModeToggle from "@/components/DarkModeToggle";
 import GlobalLocksmithRequestAlert from "@/components/locksmith/GlobalLocksmithRequestAlert";
 import DeleteAccountModal from "@/components/DeleteAccountModal";
 import MobileTabBar from "@/components/MobileTabBar";
+import { AnimatePresence } from "framer-motion";
+import PageTransition from "@/components/PageTransition";
 
 const ALL_NAV = [
   { label: "Início", path: "/", icon: HomeIcon, roles: ["cliente"] },
@@ -161,6 +163,7 @@ function MobileDrawer({ open, onClose }) {
 
 export default function Layout() {
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const location = useLocation();
   return (
     <div className="flex flex-col md:flex-row min-h-screen bg-background">
       <GlobalLocksmithRequestAlert />
@@ -170,7 +173,11 @@ export default function Layout() {
         <SidebarContent onNavigate={() => {}} />
       </aside>
       <main className="flex-1 md:h-screen md:overflow-y-auto pb-[calc(4rem+env(safe-area-inset-bottom))] md:pb-0">
-        <Outlet />
+        <AnimatePresence mode="wait">
+          <PageTransition key={location.pathname}>
+            <Outlet />
+          </PageTransition>
+        </AnimatePresence>
       </main>
       <MobileTabBar />
     </div>
