@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { base44 } from "@/api/base44Client";
-import { Wrench, Bell, Check, X, Navigation, Power, Loader2, MapPin } from "lucide-react";
+import { Wrench, Bell, Check, X, Navigation, Power, Loader2, MapPin, WifiOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import {
@@ -23,6 +23,7 @@ import DarkModeToggle from "@/components/DarkModeToggle";
 import { haversineKm, stepToward, fetchDrivingRoute, etaMinutes } from "@/lib/geo";
 import { SERVICE_CATALOG } from "@/lib/pricing";
 import { confirmCashReceived } from "@/lib/payments";
+import { saveLastService, getLastService, clearLastService, saveLocksmithProfile, getLocksmithProfile, isOnline } from "@/lib/offlineCache";
 
 // Raio de cobertura para considerar um pedido "na região" do chaveiro (km)
 const REGION_RADIUS_KM = 15;
@@ -60,11 +61,24 @@ export default function PainelChaveiro() {
   const [endPhotos, setEndPhotos] = useState([]);
   const [routePath, setRoutePath] = useState(null);
   const [routeEta, setRouteEta] = useState(null);
+  const [online, setOnline] = useState(isOnline());
   const moveTimer = useRef(null);
   const notifiedIds = useRef(new Set());
   const { toast } = useToast();
 
   const selected = locksmiths.find((l) => l.id === selectedId) || me;
+
+  // Monitora status da conexão (online/offline)
+  useEffect(() => {
+    const goOnline = () => setOnline(true);
+    const goOffline = () => setOnline(false);
+    window.addEventListener("online", goOnline);
+    window.addEventListener("offline", goOffline);
+    return () => {
+      window.removeEventListener("online", goOnline);
+      window.removeEventListener("offline", goOffline);
+    };
+  }, []);
 
   // Carrega chaveiros e assina atualizações do selecionado
   useEffect(() => {
@@ -114,9 +128,24 @@ export default function PainelChaveiro() {
 
   useEffect(() => {
     if (!selectedId) return;
-    base44.entities.Locksmith.get(selectedId).then(setMe);
+    base44.entities.Locksmith.get(selectedId)
+      .then((data) => {
+        setMe(data);
+        saveLocksmithProfile(data);
+      })
+      .catch(() => {
+        // Offline: usa perfil em cache
+        const cached = getLocksmithProfile(selectedId);
+        if (cached) setMe(cached);
+      });
     const unsub = base44.entities.Locksmith.subscribe((event) => {
-      if (event.data?.id === selectedId) base44.entities.Locksmith.get(selectedId).then(setMe);
+      if (event.data?.id === selectedId)
+        base44.entities.Locksmith.get(selectedId)
+          .then((data) => {
+            setMe(data);
+            saveLocksmithProfile(data);
+          })
+          .catch(() => {});
     });
     return unsub;
   }, [selectedId]);
@@ -217,7 +246,13 @@ export default function PainelChaveiro() {
             r.status === "on_the_way" ||
             (r.status === "completed" && (!r.locksmith_confirmed || r.payment_status !== "paid"))
           );
-          setActive(ongoing || null);
+          if (ongoing) {
+            saveLastService(ongoing);
+            setActive(ongoing);
+          } else {
+            clearLastService();
+            setActive(null);
+          }
           // Notifica quando o cliente solicita confirmação de finalização
           if (ongoing?.client_confirmed && !ongoing?.locksmith_confirmed) {
             const notifyKey = `confirm_${ongoing.id}`;
@@ -242,6 +277,11 @@ export default function PainelChaveiro() {
               });
             }
           }
+        })
+        .catch(() => {
+          // Offline: mantém o último serviço em cache para visualização
+          const cached = getLastService();
+          if (cached) setActive(cached);
         });
     load();
     const unsub = base44.entities.ServiceRequest.subscribe(() => load());
@@ -380,6 +420,16 @@ export default function PainelChaveiro() {
         <div className="fixed top-0 left-0 right-0 z-50 bg-red-500 text-white text-center py-2 text-sm font-bold animate-alert-blink shadow-lg md:left-64">
           <Bell className="w-4 h-4 inline mr-2 animate-bounce" />
           {pendingCount === 1 ? "1 solicitação aguardando resposta!" : `${pendingCount} solicitações aguardando resposta!`}
+        </div>
+      )}
+
+      {/* Aviso de modo offline — dados do serviço permanecem visíveis */}
+      {!online && (
+        <div className="flex items-center gap-2 mb-4 p-3 rounded-xl bg-amber-50 border border-amber-300 text-amber-800">
+          <WifiOff className="w-4 h-4 shrink-0" />
+          <p className="text-sm font-medium">
+            Sem conexão — exibindo dados do último serviço em cache. As atualizações serão sincronizadas quando a internet voltar.
+          </p>
         </div>
       )}
 

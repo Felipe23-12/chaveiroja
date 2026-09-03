@@ -20,6 +20,14 @@ export function getLastService() {
   }
 }
 
+export function clearLastService() {
+  try {
+    localStorage.removeItem(SERVICE_KEY);
+  } catch (e) {
+    /* storage indisponível */
+  }
+}
+
 export function saveLocksmithProfile(locksmith) {
   if (!locksmith?.id) return;
   try {
