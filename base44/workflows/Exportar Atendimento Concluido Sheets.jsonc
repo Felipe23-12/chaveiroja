@@ -1,0 +1,40 @@
+{
+  "name": "Exportar Atendimento Concluido Sheets",
+  "description": "Exporta automaticamente os dados de cada servi\u00e7o conclu\u00eddo para a aba 'Atendimentos' no Google Sheets, consolidando todos os atendimentos do time em um \u00fanico lugar",
+  "trigger": {
+    "config": {
+      "trigger_type": "entity",
+      "entity_name": "ServiceRequest",
+      "events": [
+        "update"
+      ]
+    },
+    "condition": "${ .trigger.data.status == \"completed\" and .trigger.old_data.status != \"completed\" }"
+  },
+  "definition": {
+    "document": {
+      "dsl": "1.0.0",
+      "name": "exportar_atendimento_concluido_sheets",
+      "version": "1.0",
+      "namespace": "base44"
+    },
+    "do": [
+      {
+        "export_service": {
+          "call": "invoke_backend_function",
+          "with": {
+            "function_name": "exportCompletedServiceToSheets",
+            "args": {
+              "service_request_id": "${ .trigger.entity_id }"
+            }
+          },
+          "then": "end",
+          "x-base44": {
+            "title": "Salvar atendimento na planilha",
+            "description": "Exporta os dados completos do servi\u00e7o conclu\u00eddo para a aba Atendimentos no Google Sheets"
+          }
+        }
+      }
+    ]
+  }
+}
