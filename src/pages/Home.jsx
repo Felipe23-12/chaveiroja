@@ -116,10 +116,16 @@ export default function Home() {
     setSearchError("");
     try {
       // Filtra apenas chaveiros que atendem o serviço solicitado.
-      // Se o chaveiro não configurou serviços (array vazio), atende todos.
+      // 1. Se o chaveiro configurou serviços específicos, exige o ID do serviço.
+      // 2. Se não configurou serviços, usa a especialidade como filtro:
+      //    o serviço só vai para chaveiros cuja especialidade inclui a do serviço.
       const eligible = appLocksmiths.filter((l) => {
-        if (!l.services || l.services.length === 0) return true;
-        return l.services.includes(service.id);
+        if (l.services && l.services.length > 0) {
+          return l.services.includes(service.id);
+        }
+        const locksmithSpecialties =
+          l.specialties && l.specialties.length > 0 ? l.specialties : [l.specialty];
+        return locksmithSpecialties.includes(service.specialty);
       });
 
       const nearest = [...eligible]

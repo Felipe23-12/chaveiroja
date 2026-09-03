@@ -21,6 +21,7 @@ import PendingRequestsList from "@/components/locksmith/PendingRequestsList";
 import { useToast } from "@/components/ui/use-toast";
 import DarkModeToggle from "@/components/DarkModeToggle";
 import { haversineKm, stepToward } from "@/lib/geo";
+import { SERVICE_CATALOG } from "@/lib/pricing";
 
 // Raio de cobertura para considerar um pedido "na região" do chaveiro (km)
 const REGION_RADIUS_KM = 15;
@@ -155,6 +156,18 @@ export default function PainelChaveiro() {
       // Alerta de proximidade: apenas novos pedidos com status searching
       if (event.type !== "create") return;
       if (r.status !== "searching") return;
+
+      // Filtra por especialidade: só alerta se o chaveiro atende o serviço
+      const svc = SERVICE_CATALOG.find((s) => s.label === r.service_type);
+      if (svc) {
+        if (me.services && me.services.length > 0) {
+          if (!me.services.includes(svc.id)) return;
+        } else {
+          const mySpecialties = me.specialties && me.specialties.length > 0 ? me.specialties : [me.specialty];
+          if (!mySpecialties.includes(svc.specialty)) return;
+        }
+      }
+
       const dist = haversineKm(
         { lat: me.lat, lng: me.lng },
         { lat: r.customer_lat, lng: r.customer_lng }

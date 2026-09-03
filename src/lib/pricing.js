@@ -11,6 +11,7 @@ export const SERVICE_CATALOG = [
     id: "abertura_residencial",
     label: "Abertura Residencial",
     description: "Abrir fechadura de casa ou apartamento",
+    specialty: "Residencial",
     baseRange: [80, 250],
     options: [
       { id: "troca_miolo", label: "Troca de miolo + 2 chaves", price: 90 },
@@ -20,6 +21,7 @@ export const SERVICE_CATALOG = [
     id: "abertura_automotiva",
     label: "Abertura Automotiva",
     description: "Abrir veículo (carro ou moto)",
+    specialty: "Automotivo",
     baseRange: [100, 1000],
     needsVehicleInfo: true,
   },
@@ -27,6 +29,7 @@ export const SERVICE_CATALOG = [
     id: "abertura_tetra",
     label: "Abertura Fechadura Tetra",
     description: "Fechadura tetra / tetrachave",
+    specialty: "Residencial",
     baseRange: [140, 300],
     options: [
       { id: "troca_miolo", label: "Troca de miolo", price: 90 },
@@ -37,12 +40,14 @@ export const SERVICE_CATALOG = [
     id: "abertura_eletronica",
     label: "Abertura Fechadura Eletrônica",
     description: "Fechadura eletrônica / digital",
+    specialty: "Residencial",
     baseRange: [350, 500],
   },
   {
     id: "confeccao_chave_carro",
     label: "Confecção de Chave de Carro",
     description: "Cópia/original de chave do veículo (modo aplicativo)",
+    specialty: "Automotivo",
     needsVehicleInfo: true,
     isCarKey: true,
     laborCost: CAR_KEY_LABOR,
