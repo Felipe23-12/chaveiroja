@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
 import { ArrowRight, ArrowLeft, Zap, Bell, Loader2, Navigation, CheckCircle2, AlertTriangle, MessageCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -33,8 +33,24 @@ import { useToast } from "@/components/ui/use-toast";
 export default function Home() {
   const { toast } = useToast();
   const navigate = useNavigate();
-  const [step, setStep] = useState(1);
+  const [step, setStepState] = useState(1);
   const [module, setModule] = useState("app");
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  // Sincroniza o step com a URL (?step=N) para que o botão de voltar do
+  // Android/navegador retroceda uma etapa em vez de sair da página.
+  const goToStep = (n) => {
+    setStepState(n);
+    setSearchParams({ step: String(n) });
+  };
+
+  useEffect(() => {
+    const urlStep = parseInt(searchParams.get("step"), 10);
+    if (!isNaN(urlStep) && urlStep >= 1 && urlStep <= 7 && urlStep !== step) {
+      setStepState(urlStep);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams]);
   const [serviceId, setServiceId] = useState("");
   const [address, setAddress] = useState("");
   const [description, setDescription] = useState("");
@@ -254,7 +270,7 @@ export default function Home() {
       setSelectedLocksmith(nearest.l);
       setActiveRequest(req);
       reqRef.current = req.id;
-      setStep(3);
+      goToStep(3);
     } finally {
       setSubmitting(false);
     }
@@ -348,18 +364,18 @@ export default function Home() {
         base44.entities.ServiceRequest.get(activeRequest.id).then((updated) => {
           setActiveRequest(updated);
           if (updated.status === "accepted" && step === 3) {
-            setStep(4);
+            goToStep(4);
           }
           if (updated.status === "on_the_way" && step === 4) {
-            setStep(5);
+            goToStep(5);
           }
           // Chaveiro registrou o final do serviço → cliente paga
           if (updated.end_photos?.length > 0 && step === 5) {
-            setStep(6);
+            goToStep(6);
           }
           // Chaveiro finaliza o serviço (após pagamento) → avaliação
           if (updated.status === "completed" && step === 6) {
-            setStep(7);
+            goToStep(7);
           }
 
           // Notificação: chaveiro iniciou o deslocamento
@@ -482,7 +498,7 @@ export default function Home() {
   };
 
   const handleNewRequest = () => {
-    setStep(1);
+    goToStep(1);
     setServiceId("");
     setAddress("");
     setDescription("");
@@ -546,7 +562,7 @@ export default function Home() {
               <ServiceCard key={s.id} service={s} selected={serviceId === s.id} onClick={() => setServiceId(s.id)} />
             ))}
           </div>
-          <Button onClick={() => setStep(2)} disabled={!serviceId} size="lg" className="w-full">
+          <Button onClick={() => goToStep(2)} disabled={!serviceId} size="lg" className="w-full">
             Continuar <ArrowRight className="w-4 h-4 ml-2" />
           </Button>
         </div>
@@ -635,7 +651,7 @@ export default function Home() {
           <ErrorBanner message={searchError} />
 
           <div className="flex gap-3">
-            <Button variant="outline" onClick={() => setStep(1)} className="flex-1">
+            <Button variant="outline" onClick={() => goToStep(1)} className="flex-1">
               <ArrowLeft className="w-4 h-4 mr-2" /> Voltar
             </Button>
             <Button onClick={handleConfirmConfig} disabled={!address || submitting || (service?.isCarKey && !keyValue)} className="flex-1">
@@ -701,7 +717,7 @@ export default function Home() {
 
           <LocksmithMiniProfile locksmith={selectedLocksmith} />
           <div className="flex gap-2">
-            <Button onClick={() => { handleAdvance(); setStep(5); }} size="lg" className="flex-1">
+            <Button onClick={() => { handleAdvance(); goToStep(5); }} size="lg" className="flex-1">
               Acompanhar no mapa <Navigation className="w-4 h-4 ml-2" />
             </Button>
             <Button

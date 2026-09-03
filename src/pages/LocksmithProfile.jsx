@@ -8,6 +8,7 @@ import LocksmithHistorySummary from "@/components/locksmith/LocksmithHistorySumm
 import LocksmithFinancialPanel from "@/components/locksmith/LocksmithFinancialPanel";
 import MonthlySubscriptionConfig from "@/components/locksmith/MonthlySubscriptionConfig";
 import ServiceSelector from "@/components/locksmith/ServiceSelector";
+import NativeSelectDrawer from "@/components/ui/NativeSelectDrawer";
 
 export default function LocksmithProfile() {
   const [me, setMe] = useState(null);
@@ -135,16 +136,17 @@ export default function LocksmithProfile() {
           <div className="space-y-3">
             <div>
               <label className="text-sm font-medium text-foreground mb-1.5 block">Especialidade</label>
-              <select
+              <NativeSelectDrawer
                 value={newProfile.specialty}
-                onChange={(e) => setNewProfile({ ...newProfile, specialty: e.target.value })}
-                className="w-full px-3 py-2 rounded-lg border border-input bg-background text-sm"
-              >
-                <option value="Residencial">Residencial</option>
-                <option value="Automotivo">Automotivo</option>
-                <option value="Comercial">Comercial</option>
-                <option value="Emergencial">Emergencial</option>
-              </select>
+                onChange={(v) => setNewProfile({ ...newProfile, specialty: v })}
+                options={[
+                  { value: "Residencial", label: "Residencial" },
+                  { value: "Automotivo", label: "Automotivo" },
+                  { value: "Comercial", label: "Comercial" },
+                  { value: "Emergencial", label: "Emergencial" },
+                ]}
+                label="Especialidade"
+              />
             </div>
             <div>
               <label className="text-sm font-medium text-foreground mb-1.5 block">Veículo</label>
@@ -261,6 +263,7 @@ export default function LocksmithProfile() {
               variant={selected.online ? "destructive" : "default"}
               size="sm"
               disabled={saving}
+              className="min-h-[44px]"
             >
               <Power className="w-4 h-4 mr-1.5" /> {selected.online ? "Sair" : "Entrar"}
             </Button>

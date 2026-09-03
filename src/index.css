@@ -215,3 +215,51 @@
 .animate-slide-in-left {
   animation: slide-in-left 0.25s ease-out;
 }
+
+/* === Compatibilidade nativa Android / WebView === */
+
+/* Evita bounce/overscroll no body e em containers roláveis */
+html, body {
+  overscroll-behavior-y: contain;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.overflow-y-auto,
+.overflow-auto,
+.overflow-x-auto {
+  overscroll-behavior-y: contain;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Desabilita seleção de texto em elementos interativos (toque nativo) */
+button,
+a,
+nav,
+[role="button"],
+.select-none {
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+
+/* Permite seleção em campos de entrada */
+input,
+textarea,
+[contenteditable="true"] {
+  -webkit-user-select: text;
+  user-select: text;
+}
+
+/* Utilitários de safe-area (notch/status bar) */
+.pt-safe {
+  padding-top: env(safe-area-inset-top);
+}
+.pb-safe {
+  padding-bottom: env(safe-area-inset-bottom);
+}
+.pl-safe {
+  padding-left: env(safe-area-inset-left);
+}
+.pr-safe {
+  padding-right: env(safe-area-inset-right);
+}

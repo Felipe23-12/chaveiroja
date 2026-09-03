@@ -1,11 +1,12 @@
 import React, { useState } from "react";
 import { Link, useLocation, Outlet } from "react-router-dom";
-import { Home as HomeIcon, Clock, LogOut, Briefcase, MapPin, RadioTower, Wallet, User, ShieldCheck, Menu, X } from "lucide-react";
+import { Home as HomeIcon, Clock, LogOut, Briefcase, MapPin, RadioTower, Wallet, User, ShieldCheck, Menu, X, Trash2 } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { useAuth } from "@/lib/AuthContext";
 import { Image } from "@/components/ui/image";
 import DarkModeToggle from "@/components/DarkModeToggle";
 import GlobalLocksmithRequestAlert from "@/components/locksmith/GlobalLocksmithRequestAlert";
+import DeleteAccountModal from "@/components/DeleteAccountModal";
 
 const ALL_NAV = [
   { label: "Início", path: "/", icon: HomeIcon, roles: ["cliente"] },
@@ -31,6 +32,7 @@ function SidebarContent({ onNavigate }) {
   };
 
   const roleLabel = accountType === "chaveiro" ? "Chaveiro" : accountType === "admin" ? "Admin" : "Cliente";
+  const [deleteOpen, setDeleteOpen] = useState(false);
 
   return (
     <>
@@ -72,7 +74,7 @@ function SidebarContent({ onNavigate }) {
         })}
       </nav>
 
-      <div className="p-3 border-t border-border">
+      <div className="p-3 border-t border-border pb-safe">
         {user && (
           <div className="flex items-center gap-2 px-2 py-2 mb-1">
             <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
@@ -87,12 +89,21 @@ function SidebarContent({ onNavigate }) {
         )}
         <button
           onClick={handleLogout}
-          className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-muted-foreground hover:bg-accent transition-colors"
+          className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-muted-foreground hover:bg-accent transition-colors min-h-[44px]"
         >
           <LogOut className="w-4 h-4" />
           Sair
         </button>
+        <button
+          onClick={() => setDeleteOpen(true)}
+          className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-destructive hover:bg-destructive/10 transition-colors min-h-[44px]"
+        >
+          <Trash2 className="w-4 h-4" />
+          Excluir conta
+        </button>
       </div>
+
+      <DeleteAccountModal open={deleteOpen} onOpenChange={setDeleteOpen} />
     </>
   );
 }
@@ -104,7 +115,7 @@ function MobileTopBar({ onMenu }) {
   const navItems = ALL_NAV.filter((i) => accountType === "admin" || i.roles.includes(accountType));
   const current = navItems.find((i) => i.path === location.pathname);
   return (
-    <div className="md:hidden sticky top-0 z-40 flex items-center justify-between px-4 h-14 bg-card border-b border-border">
+    <div className="md:hidden sticky top-0 z-40 flex items-center justify-between px-4 h-14 bg-card border-b border-border pt-safe">
       <Link to={accountType === "chaveiro" ? "/painel-chaveiro" : accountType === "admin" ? "/painel-admin" : "/"} className="flex items-center gap-2">
         <Image
           src="https://media.base44.com/images/public/6a975d266a8000184833026a/9589e6a99_generated_image.png"

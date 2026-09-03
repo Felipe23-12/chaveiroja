@@ -15,6 +15,7 @@ export default function Chat() {
   const [messages, setMessages] = useState([]);
   const [text, setText] = useState("");
   const [sending, setSending] = useState(false);
+  const [pendingMessages, setPendingMessages] = useState([]);
   const [customerName, setCustomerName] = useState("");
   const [reviewOpen, setReviewOpen] = useState(false);
   const scrollRef = useRef(null);
@@ -43,6 +44,12 @@ export default function Chat() {
     setSending(true);
     const msg = text.trim();
     setText("");
+    const tempId = `temp-${Date.now()}`;
+    // Atualização otimista: exibe a mensagem imediatamente
+    setPendingMessages((prev) => [
+      ...prev,
+      { id: tempId, message: msg, sender_type: "customer", _pending: true },
+    ]);
     try {
       await base44.entities.ChatMessage.create({
         locksmith_id: locksmithId,
@@ -51,6 +58,11 @@ export default function Chat() {
         sender_name: customerName,
         message: msg,
       });
+      setPendingMessages((prev) => prev.filter((m) => m.id !== tempId));
+    } catch (err) {
+      setPendingMessages((prev) =>
+        prev.map((m) => (m.id === tempId ? { ...m, _pending: false, _error: true } : m))
+      );
     } finally {
       setSending(false);
     }
@@ -59,6 +71,11 @@ export default function Chat() {
   const handleQuickSend = async (msg) => {
     if (sending) return;
     setSending(true);
+    const tempId = `temp-${Date.now()}`;
+    setPendingMessages((prev) => [
+      ...prev,
+      { id: tempId, message: msg, sender_type: "customer", _pending: true },
+    ]);
     try {
       await base44.entities.ChatMessage.create({
         locksmith_id: locksmithId,
@@ -67,6 +84,11 @@ export default function Chat() {
         sender_name: customerName,
         message: msg,
       });
+      setPendingMessages((prev) => prev.filter((m) => m.id !== tempId));
+    } catch (err) {
+      setPendingMessages((prev) =>
+        prev.map((m) => (m.id === tempId ? { ...m, _pending: false, _error: true } : m))
+      );
     } finally {
       setSending(false);
     }
@@ -113,16 +135,21 @@ export default function Chat() {
             <p className="text-sm text-muted-foreground">Inicie a conversa e negocie o serviço.</p>
           </div>
         )}
-        {messages.map((m) => {
+        {[...messages, ...pendingMessages].map((m) => {
           const mine = m.sender_type === "customer";
           return (
             <div key={m.id} className={`flex ${mine ? "justify-end" : "justify-start"}`}>
               <div
                 className={`max-w-[78%] px-3.5 py-2 rounded-2xl text-sm ${
-                  mine ? "bg-primary text-primary-foreground rounded-br-sm" : "bg-secondary text-secondary-foreground rounded-bl-sm"
-                }`}
+                  m._error
+                    ? "bg-destructive/20 text-destructive rounded-br-sm"
+                    : mine
+                    ? "bg-primary text-primary-foreground rounded-br-sm"
+                    : "bg-secondary text-secondary-foreground rounded-bl-sm"
+                } ${m._pending ? "opacity-60" : ""}`}
               >
                 {m.message}
+                {m._error && <div className="text-[10px] mt-0.5">Falha ao enviar</div>}
               </div>
             </div>
           );
