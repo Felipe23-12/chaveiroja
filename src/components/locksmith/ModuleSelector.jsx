@@ -12,7 +12,7 @@ const OPTIONS = [
     id: "livre",
     icon: MapPin,
     title: "Modo Livre",
-    desc: "Mapa interativo com chaveiros online ou em atendimento perto de você",
+    desc: "Encontre chaveiros online no mapa e converse direto com o profissional para combinar o serviço",
   },
 ];
 

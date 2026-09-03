@@ -455,7 +455,6 @@ export default function Home() {
       {step === 1 && showAppFlow && (
         <div className="space-y-5 step-enter">
           <PointsProgressCard loyalty={loyalty} />
-          <LiveLocksmithsMap customerLoc={customerLoc} />
           <div>
             <h2 className="font-heading font-semibold text-lg text-foreground">Qual serviço você precisa?</h2>
             <p className="text-sm text-muted-foreground">Selecione o tipo de atendimento</p>
@@ -472,7 +471,20 @@ export default function Home() {
       )}
 
       {/* Modo Livre: mapa interativo com chaveiros online */}
-      {!showAppFlow && <LiveLocksmithsMap customerLoc={customerLoc} />}
+      {!showAppFlow && (
+        <div className="space-y-4 fade-in-up">
+          <div className="p-4 rounded-2xl border border-emerald-200 bg-emerald-50">
+            <div className="flex items-center gap-2 mb-1">
+              <Navigation className="w-5 h-5 text-emerald-600" />
+              <h2 className="font-heading font-semibold text-lg text-foreground">Modo Livre</h2>
+            </div>
+            <p className="text-sm text-muted-foreground">
+              Navegue pelo mapa, encontre chaveiros online perto de você e converse diretamente com o profissional para combinar o serviço.
+            </p>
+          </div>
+          <LiveLocksmithsMap customerLoc={customerLoc} livreOnly />
+        </div>
+      )}
 
       {/* Step 2: Configuração + preço */}
       {step === 2 && service && (

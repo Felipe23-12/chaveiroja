@@ -71,7 +71,7 @@ function ZoomControls() {
  * Mostra TODOS os chaveiros disponíveis (Modo Livre online + Modo App disponíveis)
  * em tempo real, ao redor da localização atual do cliente.
  */
-export default function LiveLocksmithsMap({ customerLoc }) {
+export default function LiveLocksmithsMap({ customerLoc, livreOnly = false }) {
   const navigate = useNavigate();
   const [locksmiths, setLocksmiths] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -84,11 +84,14 @@ export default function LiveLocksmithsMap({ customerLoc }) {
       base44.entities.Locksmith.list().then((list) => {
         if (active) {
           // Disponíveis: Modo Livre online OU Modo App disponível
+          // livroOnly = exibe apenas chaveiros independentes (modo livre) para contato direto
           setLocksmiths(
             list.filter(
               (l) =>
-                (l.work_mode === "livre" && l.online) ||
-                (l.work_mode === "app" && l.available)
+                livreOnly
+                  ? (l.work_mode === "livre" && l.online)
+                  : (l.work_mode === "livre" && l.online) ||
+                    (l.work_mode === "app" && l.available)
             )
           );
         }
@@ -99,7 +102,7 @@ export default function LiveLocksmithsMap({ customerLoc }) {
       active = false;
       unsub();
     };
-  }, []);
+  }, [livreOnly]);
 
   const withDist = useMemo(
     () =>
@@ -259,10 +262,14 @@ export default function LiveLocksmithsMap({ customerLoc }) {
         <div className="text-center py-6 rounded-xl border border-dashed border-border">
           <Wrench className="w-7 h-7 text-muted-foreground mx-auto mb-2" />
           <p className="text-sm text-muted-foreground">
-            {isFiltering ? "Nenhum chaveiro encontrado com esses filtros." : "Nenhum chaveiro disponível agora."}
+            {isFiltering ? "Nenhum chaveiro encontrado com esses filtros." : "Nenhum chaveiro online agora."}
           </p>
           <p className="text-xs text-muted-foreground mt-1">
-            {isFiltering ? "Tente ampliar a distância ou limpar a busca." : "Você ainda pode solicitar um serviço — o app encontra o profissional mais próximo."}
+            {isFiltering
+              ? "Tente ampliar a distância ou limpar a busca."
+              : livreOnly
+              ? "Volte mais tarde ou mude para o Modo Aplicativo para solicitar um serviço."
+              : "Você ainda pode solicitar um serviço — o app encontra o profissional mais próximo."}
           </p>
         </div>
       ) : (
