@@ -5,6 +5,7 @@ import { ArrowLeft, Star, MessageCircle, MapPin, Wrench } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { haversineKm, DEFAULT_CENTER, getCustomerLocation } from "@/lib/geo";
 import LocksmithCredentialsTabs from "@/components/locksmith/LocksmithCredentialsTabs";
+import ReviewsList from "@/components/locksmith/ReviewsList";
 import { saveLocksmithProfile, getLocksmithProfile } from "@/lib/offlineCache";
 import { WifiOff } from "lucide-react";
 
@@ -94,6 +95,15 @@ export default function LocksmithPublicProfile() {
       )}
 
       <LocksmithCredentialsTabs locksmith={locksmith} />
+
+      <div className="mt-6">
+        <div className="flex items-center gap-2 mb-3">
+          <Star className="w-4 h-4 fill-amber-400 text-amber-400" />
+          <h2 className="font-heading font-semibold text-foreground">Avaliações de clientes</h2>
+          <span className="text-xs text-muted-foreground">({locksmith.reviews_count || 0})</span>
+        </div>
+        <ReviewsList locksmithId={locksmith.id} />
+      </div>
     </div>
   );
 }
