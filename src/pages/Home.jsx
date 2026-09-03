@@ -20,13 +20,16 @@ import { getClientLoyalty, applyLoyaltyDiscount } from "@/lib/loyalty";
 import PointsProgressCard from "@/components/locksmith/PointsProgressCard";
 import PaymentStep from "@/components/payment/PaymentStep";
 import { createPaymentRecord, confirmPaymentPaid } from "@/lib/payments";
+import { ensureNotificationPermission, notifyClient } from "@/lib/clientNotifications";
 import { Image } from "@/components/ui/image";
 import StepTransition from "@/components/ui/StepTransition";
 import StepProgress from "@/components/ui/StepProgress";
 import ErrorBanner from "@/components/ui/ErrorBanner";
 import LoadingCard from "@/components/ui/LoadingCard";
+import { useToast } from "@/components/ui/use-toast";
 
 export default function Home() {
+  const { toast } = useToast();
   const [step, setStep] = useState(1);
   const [module, setModule] = useState("app");
   const [serviceId, setServiceId] = useState("");
@@ -52,6 +55,8 @@ export default function Home() {
   const [routeEta, setRouteEta] = useState(null);
   const [cancelFeeData, setCancelFeeData] = useState(null);
   const reqRef = useRef(null);
+  const notifiedMoving = useRef(false);
+  const notifiedNearby = useRef(false);
 
   const service = useMemo(() => SERVICE_CATALOG.find((s) => s.id === serviceId), [serviceId]);
 
@@ -334,6 +339,8 @@ export default function Home() {
   // Assina a solicitação para reagir quando o chaveiro aceitar / se mover
   useEffect(() => {
     if (!activeRequest) return;
+    // Solicita permissão de notificação nativa ao iniciar o acompanhamento
+    ensureNotificationPermission();
     const unsub = base44.entities.ServiceRequest.subscribe((event) => {
       if (event.data?.id === activeRequest.id) {
         base44.entities.ServiceRequest.get(activeRequest.id).then((updated) => {
@@ -353,11 +360,47 @@ export default function Home() {
           if (updated.cash_received && step === 7) {
             setStep(8);
           }
+
+          // Notificação: chaveiro iniciou o deslocamento
+          if (updated.status === "on_the_way" && !notifiedMoving.current) {
+            notifiedMoving.current = true;
+            notifyClient(
+              "Chaveiro a caminho!",
+              `${selectedLocksmith?.name || "O chaveiro"} iniciou o deslocamento até você.`
+            );
+            toast({
+              title: "🚗 Chaveiro a caminho!",
+              description: `${selectedLocksmith?.name || "O chaveiro"} saiu em direção ao seu endereço.`,
+            });
+          }
+
+          // Notificação: chaveiro a menos de 1 km de distância
+          if (
+            updated.locksmith_lat &&
+            updated.customer_lat &&
+            !notifiedNearby.current
+          ) {
+            const dist = haversineKm(
+              { lat: updated.locksmith_lat, lng: updated.locksmith_lng },
+              { lat: updated.customer_lat, lng: updated.customer_lng }
+            );
+            if (dist <= 1 && dist >= 0) {
+              notifiedNearby.current = true;
+              notifyClient(
+                "Seu chaveiro está chegando!",
+                `Ele está a menos de 1 km do seu endereço.`
+              );
+              toast({
+                title: "📍 Seu chaveiro está chegando!",
+                description: "A menos de 1 km de distância. Prepare-se para recebê-lo.",
+              });
+            }
+          }
         });
       }
     });
     return unsub;
-  }, [activeRequest?.id, step]);
+  }, [activeRequest?.id, step, selectedLocksmith]);
 
   // Busca a rota real de carro entre o chaveiro e o cliente (OSRM)
   useEffect(() => {
@@ -441,6 +484,8 @@ export default function Home() {
     setCancelFeeData(null);
     setRoutePath(null);
     setRouteEta(null);
+    notifiedMoving.current = false;
+    notifiedNearby.current = false;
   };
 
   const showAppFlow = module === "app" || step > 1 || activeRequest;
