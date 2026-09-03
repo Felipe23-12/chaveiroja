@@ -77,6 +77,9 @@ export default function LiveLocksmithsMap({ customerLoc, livreOnly = false }) {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [maxDistance, setMaxDistance] = useState(0);
+  const [specialtyFilter, setSpecialtyFilter] = useState("");
+
+  const SPECIALTY_OPTIONS = ["Residencial", "Automotivo", "Comercial", "Emergencial"];
 
   useEffect(() => {
     let active = true;
@@ -131,10 +134,16 @@ export default function LiveLocksmithsMap({ customerLoc, livreOnly = false }) {
           (l.specialties || []).some((s) => s.toLowerCase().includes(q))
       );
     }
+    if (specialtyFilter) {
+      result = result.filter((l) => {
+        const mySpecialties = l.specialties && l.specialties.length > 0 ? l.specialties : [l.specialty];
+        return mySpecialties.includes(specialtyFilter);
+      });
+    }
     return result;
-  }, [withDist, maxDistance, searchQuery]);
+  }, [withDist, maxDistance, searchQuery, specialtyFilter]);
 
-  const isFiltering = searchQuery.trim() !== "" || maxDistance > 0;
+  const isFiltering = searchQuery.trim() !== "" || maxDistance > 0 || specialtyFilter !== "";
 
   return (
     <div className="space-y-3">
@@ -204,6 +213,39 @@ export default function LiveLocksmithsMap({ customerLoc, livreOnly = false }) {
             </button>
           )}
         </div>
+      </div>
+
+      {/* Filtro por tipo de serviço / especialidade */}
+      <div className="flex flex-wrap items-center gap-2">
+        <span className="text-xs font-medium text-muted-foreground shrink-0">Tipo:</span>
+        <button
+          onClick={() => setSpecialtyFilter("")}
+          className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+            specialtyFilter === "" ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground hover:bg-accent"
+          }`}
+        >
+          Todos
+        </button>
+        {SPECIALTY_OPTIONS.map((s) => (
+          <button
+            key={s}
+            onClick={() => setSpecialtyFilter(specialtyFilter === s ? "" : s)}
+            className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+              specialtyFilter === s ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground hover:bg-accent"
+            }`}
+          >
+            {s}
+          </button>
+        ))}
+        {specialtyFilter && (
+          <button
+            onClick={() => setSpecialtyFilter("")}
+            className="p-1 rounded-lg text-muted-foreground hover:bg-accent"
+            title="Limpar filtro de tipo"
+          >
+            <X className="w-3.5 h-3.5" />
+          </button>
+        )}
       </div>
 
       <div className="rounded-xl overflow-hidden border border-border" style={{ height: 360 }}>
