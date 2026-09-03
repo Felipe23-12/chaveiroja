@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo, useRef } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
-import { ArrowRight, ArrowLeft, Zap, Bell, Loader2, Navigation, CheckCircle2, AlertTriangle, MessageCircle } from "lucide-react";
+import { ArrowRight, ArrowLeft, Zap, Bell, Loader2, Navigation, CheckCircle2, AlertTriangle, MessageCircle, MapPin } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { SERVICE_CATALOG, calculateCancellationFee, CANCELLATION_THRESHOLD_MINUTES, calculateLongDistanceFee } from "@/lib/pricing";
 import { calculateDynamicPrice } from "@/lib/dynamicPricing";
@@ -79,6 +79,7 @@ export default function Home() {
   const notifiedNearby = useRef(false);
   const notifiedEnd = useRef(false);
   const notifiedCompleted = useRef(false);
+  const notifiedArrived = useRef(false);
 
   const service = useMemo(() => SERVICE_CATALOG.find((s) => s.id === serviceId), [serviceId]);
 
@@ -451,11 +452,18 @@ export default function Home() {
             }
           }
 
-          // Notificação: chaveiro registrou o final do serviço (hora de pagar)
+          // Notificação: chaveiro chegou ao local
+          if (updated.locksmith_arrived && !notifiedArrived.current) {
+            notifiedArrived.current = true;
+            notifyClient("Chaveiro chegou!", `${selectedLocksmith?.name || "O chaveiro"} chegou ao seu endereço. Confirme a chegada.`);
+            toast({ title: "📍 Chaveiro chegou!", description: "Confirme a chegada para liberar o início do serviço." });
+          }
+
+          // Notificação: chaveiro registrou o final do serviço (hora de confirmar e pagar)
           if (updated.end_photos?.length > 0 && !notifiedEnd.current) {
             notifiedEnd.current = true;
-            notifyClient("Serviço concluído!", "O chaveiro finalizou o atendimento. Efetue o pagamento.");
-            toast({ title: "✅ Serviço concluído!", description: "Efetue o pagamento para liberar a finalização." });
+            notifyClient("Serviço concluído!", "O chaveiro finalizou o atendimento. Confirme e efetue o pagamento.");
+            toast({ title: "✅ Serviço concluído!", description: "Confirme o serviço e efetue o pagamento." });
           }
           // Notificação: chaveiro finalizou o serviço (pagamento confirmado)
           if (updated.status === "completed" && !notifiedCompleted.current) {
@@ -509,27 +517,41 @@ export default function Home() {
     }
   };
 
+  // Cliente confirma que o chaveiro chegou ao local
+  const handleConfirmArrival = async () => {
+    if (!activeRequest) return;
+    await base44.entities.ServiceRequest.update(activeRequest.id, { client_arrived_confirmed: true });
+    setActiveRequest((prev) => ({ ...prev, client_arrived_confirmed: true }));
+  };
+
+  // Cliente confirma que o serviço foi finalizado (libera o pagamento)
+  const handleConfirmService = async () => {
+    if (!activeRequest) return;
+    await base44.entities.ServiceRequest.update(activeRequest.id, { client_confirmed: true });
+    setActiveRequest((prev) => ({ ...prev, client_confirmed: true }));
+  };
+
   const handleCancel = async () => {
     if (!activeRequest) return;
-    const isApp = selectedLocksmith?.work_mode === "app";
-
-    // A taxa de 25% só é cobrada após o chaveiro chegar ao local e iniciar o
-    // atendimento (fotos de início registradas). Antes disso, o cliente pode
-    // cancelar livremente, sem custo.
-    const locksmithArrived = isApp && (activeRequest.start_photos?.length > 0);
-
-    if (locksmithArrived) {
+    // Não permite cancelar após o chaveiro chegar ou iniciar o atendimento
+    const arrived = activeRequest.locksmith_arrived || (activeRequest.start_photos?.length > 0);
+    if (arrived) {
+      toast({ title: "Não é possível cancelar", description: "O chaveiro já chegou no local. Aguarde a finalização do serviço.", variant: "destructive" });
+      return;
+    }
+    // Se o chaveiro já aceitou (saiu a caminho), cobra taxa de cancelamento online
+    const started = activeRequest.status === "accepted" || activeRequest.status === "on_the_way";
+    if (started) {
       const c = calculateCancellationFee(activeRequest.price);
       const ok = window.confirm(
-        `O chaveiro já está no local e iniciou o atendimento.\n\n` +
-        `Será cobrada uma taxa de 25% sobre o valor do serviço (R$ ${c.fee.toFixed(2)}).\n\nDeseja continuar?`
+        `O chaveiro já aceitou seu pedido e está a caminho.\n\n` +
+        `Será cobrada uma taxa de cancelamento de 25% (R$ ${c.fee.toFixed(2)}), paga apenas online (cartão).\n\nDeseja continuar?`
       );
       if (!ok) return;
       setCancelFeeData(c);
       return;
     }
-
-    // Sem taxa: cancela livremente antes do chaveiro chegar
+    // Antes do aceite: cancela livremente
     await base44.entities.ServiceRequest.update(activeRequest.id, { status: "cancelled" });
     handleNewRequest();
   };
@@ -779,6 +801,19 @@ export default function Home() {
             <p className="text-sm text-muted-foreground">{activeRequest.service_type} · {activeRequest.address}</p>
           </div>
 
+          {activeRequest.locksmith_arrived && !activeRequest.client_arrived_confirmed && (
+            <div className="p-4 rounded-2xl border-2 border-primary bg-primary/5 space-y-3">
+              <div className="flex items-center gap-2 text-primary">
+                <MapPin className="w-5 h-5" />
+                <p className="font-medium text-sm">O chaveiro chegou ao local!</p>
+              </div>
+              <p className="text-xs text-muted-foreground">Confirme a chegada para que o chaveiro inicie o atendimento.</p>
+              <Button onClick={handleConfirmArrival} className="w-full">
+                <CheckCircle2 className="w-4 h-4 mr-1.5" /> Confirmar chegada do chaveiro
+              </Button>
+            </div>
+          )}
+
           <RouteLeafletMap
             center={{ lat: activeRequest.customer_lat, lng: activeRequest.customer_lng }}
             height={320}
@@ -811,7 +846,7 @@ export default function Home() {
             <MessageCircle className="w-4 h-4 mr-2" /> Ver rota e conversar com o chaveiro
           </Button>
 
-          {activeRequest.status !== "completed" && (
+          {activeRequest.status !== "completed" && !activeRequest.locksmith_arrived && !activeRequest.start_photos?.length && (
             <Button onClick={handleCancel} variant="outline" className="w-full text-red-600 border-red-200 hover:bg-red-50">
               Cancelar serviço
             </Button>
@@ -836,7 +871,19 @@ export default function Home() {
             <p className="text-sm text-muted-foreground">{activeRequest.service_type} · {selectedLocksmith?.name}</p>
           </div>
 
-          {activeRequest.payment_method === "dinheiro" && !activeRequest.cash_received ? (
+          {!activeRequest.client_confirmed ? (
+            <div className="p-4 rounded-2xl border-2 border-primary bg-primary/5 space-y-3">
+              <p className="text-sm font-medium text-foreground text-center">O chaveiro registrou a finalização do serviço. Confirme para prosseguir ao pagamento.</p>
+              <div className="flex gap-2">
+                <Button onClick={handleConfirmService} className="flex-1">
+                  <CheckCircle2 className="w-4 h-4 mr-1.5" /> Confirmar serviço
+                </Button>
+                <Button variant="outline" onClick={() => navigate(`/acompanhamento/${activeRequest.id}`)} className="flex-1">
+                  <MessageCircle className="w-4 h-4 mr-1.5" /> Falar com chaveiro
+                </Button>
+              </div>
+            </div>
+          ) : activeRequest.payment_method === "dinheiro" && !activeRequest.cash_received ? (
             <div className="flex flex-col items-center text-center py-6">
               <div className="w-14 h-14 rounded-full bg-amber-100 flex items-center justify-center mb-3">
                 <Loader2 className="w-7 h-7 text-amber-600 animate-spin" />
@@ -938,6 +985,7 @@ export default function Home() {
             processing={paying}
             onConfirm={handleCancelFeePayment}
             onBack={handleNewRequest}
+            onlineOnly
           />
           <ErrorBanner message={searchError} />
         </div>

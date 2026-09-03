@@ -407,6 +407,12 @@ export default function PainelChaveiro() {
     await base44.entities.ServiceRequest.update(active.id, { start_photos: startPhotos });
   };
 
+  // Chaveiro confirma que chegou ao local do cliente
+  const handleConfirmArrival = async () => {
+    if (!active) return;
+    await base44.entities.ServiceRequest.update(active.id, { locksmith_arrived: true });
+  };
+
   // Registra as fotos do final do serviço — sinaliza ao cliente que o trabalho acabou
   // e libera a etapa de pagamento. O serviço ainda NÃO é concluído aqui.
   const handleRegisterEnd = async () => {
@@ -416,8 +422,8 @@ export default function PainelChaveiro() {
 
   // Finaliza o serviço — só permitido após o pagamento do cliente ser confirmado.
   const handleFinish = async () => {
-    if (!active || active.payment_status !== "paid") return;
-    await base44.entities.ServiceRequest.update(active.id, { status: "completed" });
+    if (!active || active.payment_status !== "paid" || active.client_confirmed !== true) return;
+    await base44.entities.ServiceRequest.update(active.id, { status: "completed", locksmith_confirmed: true });
   };
 
   // Chaveiro confirma que recebeu o pagamento em dinheiro
@@ -455,24 +461,41 @@ export default function PainelChaveiro() {
   const startDone = (active?.start_photos?.length || 0) > 0;
   const endDone = (active?.end_photos?.length || 0) > 0;
   const paid = active?.payment_status === "paid";
+  const locksmithArrived = active?.locksmith_arrived === true;
+  const clientArrivedConfirmed = active?.client_arrived_confirmed === true;
+  const clientConfirmed = active?.client_confirmed === true;
   const phase = !active
     ? "moving"
     : active.status === "completed"
     ? "completed"
     : endDone
-    ? (paid ? "ready_to_finish" : "awaiting_payment")
+    ? (!clientConfirmed
+      ? "awaiting_client"
+      : paid
+      ? "ready_to_finish"
+      : "awaiting_payment")
     : startDone
     ? "finishing"
+    : clientArrivedConfirmed
+    ? "arrived_confirmed"
+    : locksmithArrived
+    ? "arrived_pending"
     : arrived
-    ? "arrived"
+    ? "arrived_detected"
     : "moving";
   const phaseLabel =
     phase === "moving"
       ? "A caminho do cliente"
-      : phase === "arrived"
-      ? "Chegou no local!"
+      : phase === "arrived_detected"
+      ? "Você chegou no local"
+      : phase === "arrived_pending"
+      ? "Aguardando cliente confirmar chegada"
+      : phase === "arrived_confirmed"
+      ? "Iniciar atendimento"
       : phase === "finishing"
       ? "Em atendimento"
+      : phase === "awaiting_client"
+      ? "Aguardando confirmação do cliente"
       : phase === "awaiting_payment"
       ? "Aguardando pagamento"
       : phase === "ready_to_finish"
@@ -608,7 +631,7 @@ export default function PainelChaveiro() {
             <p className="text-xs text-muted-foreground">{active.address}</p>
             <p className="text-xs text-muted-foreground mt-1">
               Status: <span className="font-medium text-foreground">
-                {phase === "arrived" ? "No local" : phase === "finishing" ? "Em atendimento" : phase === "awaiting_payment" ? "Aguardando pagamento" : phase === "ready_to_finish" ? "Pagamento confirmado" : active.status === "accepted" ? "Aceito" : active.status === "on_the_way" ? "A caminho" : "Concluído"}
+                {phase === "arrived_detected" ? "No local" : phase === "arrived_pending" ? "Aguardando cliente" : phase === "arrived_confirmed" ? "Iniciar atendimento" : phase === "finishing" ? "Em atendimento" : phase === "awaiting_client" ? "Aguardando cliente" : phase === "awaiting_payment" ? "Aguardando pagamento" : phase === "ready_to_finish" ? "Pagamento confirmado" : active.status === "accepted" ? "Aceito" : active.status === "on_the_way" ? "A caminho" : "Concluído"}
               </span>
             </p>
           </div>
@@ -638,7 +661,26 @@ export default function PainelChaveiro() {
             </>
           )}
 
-          {phase === "arrived" && (
+          {phase === "arrived_detected" && (
+            <div className="p-4 rounded-xl border-2 border-primary bg-primary/5 space-y-3 text-center">
+              <MapPin className="w-8 h-8 text-primary mx-auto" />
+              <p className="text-sm font-medium text-foreground">Você chegou no local do cliente?</p>
+              <p className="text-xs text-muted-foreground">Confirme sua chegada para que o cliente libere o início do serviço.</p>
+              <Button onClick={handleConfirmArrival} className="w-full">
+                <Check className="w-4 h-4 mr-1.5" /> Confirmar chegada
+              </Button>
+            </div>
+          )}
+
+          {phase === "arrived_pending" && (
+            <div className="p-4 rounded-xl border border-border bg-card space-y-2 text-center">
+              <Loader2 className="w-6 h-6 text-primary animate-spin mx-auto" />
+              <p className="text-sm font-medium text-foreground">Aguardando o cliente confirmar sua chegada</p>
+              <p className="text-xs text-muted-foreground">Você poderá iniciar o atendimento assim que o cliente confirmar.</p>
+            </div>
+          )}
+
+          {phase === "arrived_confirmed" && (
             <div className="p-4 rounded-xl border border-border bg-card space-y-3">
               <p className="text-sm font-medium text-foreground">Registre as fotos do início do serviço</p>
               <PhotoUploader
@@ -663,6 +705,14 @@ export default function PainelChaveiro() {
               <Button onClick={handleRegisterEnd} disabled={!endPhotos.length} className="w-full">
                 <Check className="w-4 h-4 mr-1.5" /> Registrar finalização do serviço
               </Button>
+            </div>
+          )}
+
+          {phase === "awaiting_client" && (
+            <div className="p-4 rounded-xl border border-border bg-card space-y-2 text-center">
+              <Loader2 className="w-6 h-6 text-primary animate-spin mx-auto" />
+              <p className="text-sm font-medium text-foreground">Aguardando o cliente confirmar o serviço</p>
+              <p className="text-xs text-muted-foreground">O cliente foi notificado da finalização. O pagamento será liberado após a confirmação.</p>
             </div>
           )}
 

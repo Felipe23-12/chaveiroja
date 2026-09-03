@@ -117,6 +117,16 @@
       "default": 0,
       "description": "Parte da taxa de cancelamento destinada ao aplicativo (5% do valor total)"
     },
+    "locksmith_arrived": {
+      "type": "boolean",
+      "default": false,
+      "description": "Chaveiro confirmou que chegou ao local do cliente"
+    },
+    "client_arrived_confirmed": {
+      "type": "boolean",
+      "default": false,
+      "description": "Cliente confirmou que o chaveiro chegou ao local"
+    },
     "start_photos": {
       "type": "array",
       "items": {
