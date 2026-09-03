@@ -1,7 +1,9 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.44';
 import { secrets } from 'base44:runtime';
 
-const STRIPE_API = 'https://api.stripe.com/v1';
+const STRIPE_API_V1 = 'https://api.stripe.com/v1';
+const STRIPE_API_V2 = 'https://api.stripe.com/v2';
+const STRIPE_VERSION_V2 = '2026-08-26.dahlia';
 const APP_URL = 'https://woodoo-quick-lock-link.base44.app';
 
 function stripeForm(data: Record<string, string | number | boolean>) {
@@ -10,8 +12,9 @@ function stripeForm(data: Record<string, string | number | boolean>) {
   return form.toString();
 }
 
+// Requisições v1 (form-encoded) — account_links, login_links e capabilities são interoperáveis com contas v2
 async function stripeRequest(path: string, stripeKey: string, options: RequestInit = {}) {
-  const res = await fetch(`${STRIPE_API}${path}`, {
+  const res = await fetch(`${STRIPE_API_V1}${path}`, {
     ...options,
     headers: {
       Authorization: `Bearer ${stripeKey}`,
@@ -29,20 +32,68 @@ async function stripeRequest(path: string, stripeKey: string, options: RequestIn
   return data;
 }
 
+// Requisições v2 (JSON + Stripe-Version) — criação e consulta de contas em /v2/core/accounts
+async function stripeRequestV2(path: string, stripeKey: string, options: RequestInit = {}) {
+  const res = await fetch(`${STRIPE_API_V2}${path}`, {
+    ...options,
+    headers: {
+      Authorization: `Bearer ${stripeKey}`,
+      'Content-Type': 'application/json',
+      'Stripe-Version': STRIPE_VERSION_V2,
+      ...(options.headers || {}),
+    },
+  });
+  const data = await res.json();
+  if (!res.ok) {
+    const message = data?.error?.message || 'Erro ao comunicar com o Stripe (v2)';
+    const error = new Error(message);
+    (error as any).stripe = data?.error;
+    throw error;
+  }
+  return data;
+}
+
 function capabilityStatus(account: any, capability: string) {
+  // v2: configuration.merchant.capabilities.{capability}.status
+  const v2Status = account?.configuration?.merchant?.capabilities?.[capability]?.status;
+  if (v2Status) return v2Status;
+  // v1 fallback: capabilities.{capability}
   return account?.capabilities?.[capability] || 'unknown';
+}
+
+function isChargesEnabled(account: any) {
+  const v2Card = account?.configuration?.merchant?.capabilities?.card_payments?.status;
+  if (v2Card) return v2Card === 'active';
+  return !!account?.charges_enabled;
+}
+
+function isPayoutsEnabled(account: any) {
+  const v2Payouts = account?.configuration?.merchant?.capabilities?.stripe_balance?.payouts?.status;
+  if (v2Payouts) return v2Payouts === 'active';
+  return !!account?.payouts_enabled;
+}
+
+function isDetailsSubmitted(account: any) {
+  if (account?.requirements) {
+    const due = account.requirements.currently_due;
+    return Array.isArray(due) ? due.length === 0 : !due;
+  }
+  return !!account?.details_submitted;
 }
 
 async function saveConnectRecord(base44: any, locksmithId: string, account: any) {
   const now = new Date().toISOString();
+  const chargesEnabled = isChargesEnabled(account);
+  const payoutsEnabled = isPayoutsEnabled(account);
+  const detailsSubmitted = isDetailsSubmitted(account);
   const record = {
     locksmith_id: locksmithId,
     stripe_account_id: account.id,
-    status: account.disabled ? 'disabled' : account.charges_enabled && account.payouts_enabled ? 'active' : account.details_submitted ? 'restricted' : 'onboarding',
-    charges_enabled: !!account.charges_enabled,
-    payouts_enabled: !!account.payouts_enabled,
+    status: account.disabled ? 'disabled' : chargesEnabled && payoutsEnabled ? 'active' : detailsSubmitted ? 'restricted' : 'onboarding',
+    charges_enabled: chargesEnabled,
+    payouts_enabled: payoutsEnabled,
     pix_payments_status: capabilityStatus(account, 'pix_payments'),
-    details_submitted: !!account.details_submitted,
+    details_submitted: detailsSubmitted,
     updated_at: now,
   };
 
@@ -76,20 +127,40 @@ Deno.serve(async (req) => {
     if (action === 'create_account') {
       const existing = await base44.asServiceRole.entities.StripeConnectAccount.filter({ locksmith_id: locksmithId });
       if (existing?.[0]?.stripe_account_id) {
-        const account = await stripeRequest(`/accounts/${existing[0].stripe_account_id}`, stripeKey, { method: 'GET' });
+        const account = await stripeRequestV2(
+          `/core/accounts/${existing[0].stripe_account_id}?include=configuration.merchant&include=configuration.recipient&include=identity&include=requirements`,
+          stripeKey,
+          { method: 'GET' }
+        );
         await saveConnectRecord(base44, locksmithId, account);
         return Response.json({ success: true, account_id: account.id, account });
       }
 
-      const account = await stripeRequest('/accounts', stripeKey, {
+      // Accounts v2: POST /v2/core/accounts (JSON body)
+      // merchant → card_payments | recipient → stripe_balance.stripe_transfers (substitui v1 transfers)
+      const payload: any = {
+        dashboard: 'express',
+        identity: { country: 'br' },
+        configuration: {
+          merchant: {
+            capabilities: {
+              card_payments: { requested: true },
+            },
+          },
+        },
+        defaults: {
+          responsibilities: {
+            fees_collector: 'application',
+            losses_collector: 'application',
+          },
+        },
+        include: ['configuration.merchant', 'identity', 'requirements'],
+      };
+      if (user.email) payload.contact_email = user.email;
+
+      const account = await stripeRequestV2('/core/accounts', stripeKey, {
         method: 'POST',
-        body: stripeForm({
-          country: 'BR',
-          type: 'express',
-          'capabilities[card_payments][requested]': true,
-          'capabilities[transfers][requested]': true,
-          ...(user.email ? { email: user.email } : {}),
-        }),
+        body: JSON.stringify(payload),
       });
 
       await saveConnectRecord(base44, locksmithId, account);
@@ -156,16 +227,20 @@ Deno.serve(async (req) => {
         return Response.json({ connected: false, status: 'not_created' });
       }
 
-      const account = await stripeRequest(`/accounts/${record.stripe_account_id}`, stripeKey, { method: 'GET' });
+      const account = await stripeRequestV2(
+        `/core/accounts/${record.stripe_account_id}?include=configuration.merchant&include=configuration.recipient&include=identity&include=requirements`,
+        stripeKey,
+        { method: 'GET' }
+      );
       const saved = await saveConnectRecord(base44, locksmithId, account);
       return Response.json({
         connected: true,
         account_id: account.id,
         status: saved.status,
-        charges_enabled: !!account.charges_enabled,
-        payouts_enabled: !!account.payouts_enabled,
-        details_submitted: !!account.details_submitted,
-        pix_payments_status: capabilityStatus(account, 'pix_payments'),
+        charges_enabled: saved.charges_enabled,
+        payouts_enabled: saved.payouts_enabled,
+        details_submitted: saved.details_submitted,
+        pix_payments_status: saved.pix_payments_status,
         requirements: account.requirements || null,
       });
     }
