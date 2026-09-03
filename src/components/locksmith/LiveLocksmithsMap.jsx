@@ -292,7 +292,7 @@ export default function LiveLocksmithsMap({ customerLoc, livreOnly = false }) {
               icon={l.available ? freeIcon : busyIcon}
             >
               <Popup>
-                <div style={{ minWidth: 150 }}>
+                <div style={{ minWidth: 180 }}>
                   <strong>{l.name}</strong>
                   <div style={{ fontSize: 12, color: "#666", marginTop: 2 }}>
                     {l.specialty} · ⭐ {l.rating}
@@ -305,6 +305,41 @@ export default function LiveLocksmithsMap({ customerLoc, livreOnly = false }) {
                   </div>
                   <div style={{ fontSize: 12, marginTop: 4, color: "#0ea5e9" }}>
                     {l.work_mode === "livre" ? "Modo Livre" : "Modo App"}
+                  </div>
+                  <div style={{ display: "flex", gap: 6, marginTop: 8 }}>
+                    <button
+                      onClick={() => navigate(`/chaveiro/${l.id}`)}
+                      style={{
+                        flex: 1,
+                        padding: "6px 8px",
+                        fontSize: 12,
+                        fontWeight: 600,
+                        borderRadius: 8,
+                        border: "1px solid #e5e7eb",
+                        background: "#fff",
+                        cursor: "pointer",
+                      }}
+                    >
+                      Ver perfil
+                    </button>
+                    {l.work_mode === "livre" && (
+                      <button
+                        onClick={() => navigate(`/chat/${l.id}`)}
+                        style={{
+                          flex: 1,
+                          padding: "6px 8px",
+                          fontSize: 12,
+                          fontWeight: 600,
+                          borderRadius: 8,
+                          background: "#f59e0b",
+                          color: "#1f2937",
+                          cursor: "pointer",
+                          border: "none",
+                        }}
+                      >
+                        💬 Conversar
+                      </button>
+                    )}
                   </div>
                 </div>
               </Popup>
