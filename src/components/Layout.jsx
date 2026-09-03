@@ -10,6 +10,7 @@ import GlobalChatAlert from "@/components/locksmith/GlobalChatAlert";
 import ServiceFinishAlert from "@/components/client/ServiceFinishAlert";
 import DeleteAccountModal from "@/components/DeleteAccountModal";
 import MobileTabBar from "@/components/MobileTabBar";
+import { useChatUnread } from "@/lib/chatUnreadStore";
 import { AnimatePresence } from "framer-motion";
 import PageTransition from "@/components/PageTransition";
 
@@ -37,6 +38,7 @@ function SidebarContent({ onNavigate }) {
   };
 
   const roleLabel = accountType === "chaveiro" ? "Chaveiro" : accountType === "admin" ? "Admin" : "Cliente";
+  const chatUnread = useChatUnread();
   const [deleteOpen, setDeleteOpen] = useState(false);
 
   return (
@@ -74,6 +76,11 @@ function SidebarContent({ onNavigate }) {
               <Icon className="w-3.5 h-3.5 shrink-0" />
               <span className="hidden md:inline">{item.label}</span>
               <span className="md:hidden">{item.label.split(" ")[0]}</span>
+              {item.path === "/painel-chaveiro" && chatUnread > 0 && (
+                <span className="ml-auto min-w-[18px] h-[18px] px-1 rounded-full bg-red-500 text-white text-[10px] font-bold flex items-center justify-center">
+                  {chatUnread > 9 ? "9+" : chatUnread}
+                </span>
+              )}
             </Link>
           );
         })}

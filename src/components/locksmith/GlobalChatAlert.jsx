@@ -4,32 +4,40 @@ import { base44 } from "@/api/base44Client";
 import { useAuth } from "@/lib/AuthContext";
 import { MessageCircle } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
+import { setChatUnread, incrementChatUnread } from "@/lib/chatUnreadStore";
 
-function playBeep() {
+// Som de notificação: 3 bipes curtos e chamativos via Web Audio (sem arquivos).
+function playNotificationSound() {
   try {
     const AudioCtx = window.AudioContext || window.webkitAudioContext;
     if (!AudioCtx) return;
     const ctx = new AudioCtx();
-    const osc = ctx.createOscillator();
-    const gain = ctx.createGain();
-    osc.connect(gain);
-    gain.connect(ctx.destination);
-    osc.type = "sine";
-    osc.frequency.value = 740;
-    gain.gain.setValueAtTime(0.0001, ctx.currentTime);
-    gain.gain.exponentialRampToValueAtTime(0.3, ctx.currentTime + 0.02);
-    gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.4);
-    osc.start();
-    osc.stop(ctx.currentTime + 0.4);
+    [0, 0.18, 0.36].forEach((delay) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.type = "sine";
+      osc.frequency.value = 760;
+      const t = ctx.currentTime + delay;
+      gain.gain.setValueAtTime(0.0001, t);
+      gain.gain.exponentialRampToValueAtTime(0.35, t + 0.02);
+      gain.gain.exponentialRampToValueAtTime(0.0001, t + 0.16);
+      osc.start(t);
+      osc.stop(t + 0.16);
+    });
   } catch (e) {
-    // silencioso
+    // silencioso se o navegador bloquear áudio
   }
 }
 
+const lastSeenKey = (id) => `chat_last_seen_${id}`;
+
 /**
- * Alerta flutuante global para o chaveiro no modo livre: dispara som + toast
- * quando chega uma nova mensagem de cliente (independente da página atual) e
- * mostra um botão com o contador de não lidas que leva ao chat.
+ * Alerta flutuante global para o chaveiro: dispara som + toast quando chega
+ * uma nova mensagem de cliente (em qualquer página) e mostra um botão com o
+ * contador de não lidas. O contador é persistido (localStorage) por chaveiro,
+ * então mensagens recebidas enquanto o app estava fechado continuam contando.
  */
 export default function GlobalChatAlert() {
   const { user } = useAuth();
@@ -66,27 +74,43 @@ export default function GlobalChatAlert() {
   // Assina mensagens de clientes direcionadas a este chaveiro (qualquer modo)
   useEffect(() => {
     if (!locksmith?.id) return;
+    const key = lastSeenKey(locksmith.id);
+    let lastSeen = 0;
+    try { lastSeen = parseInt(localStorage.getItem(key) || "0", 10) || 0; } catch (e) {}
+
     const load = () =>
       base44.entities.ChatMessage
         .filter({ locksmith_id: locksmith.id }, "created_date")
         .then((list) => {
           const customerMsgs = list.filter((m) => m.sender_type === "customer");
           if (!initialized.current) {
-            // Primeira carga: marca tudo como já visto (não notifica o histórico)
-            customerMsgs.forEach((m) => seenIds.current.add(m.id));
+            // Primeira carga: conta mensagens recebidas enquanto o chaveiro
+            // estava fora (created_date > lastSeen) como não lidas, e marca
+            // todas como vistas para a detecção em tempo real das próximas.
+            let initialUnread = 0;
+            customerMsgs.forEach((m) => {
+              seenIds.current.add(m.id);
+              const ts = new Date(m.created_date).getTime();
+              if (ts > lastSeen) initialUnread++;
+            });
             initialized.current = true;
+            if (initialUnread > 0) {
+              setUnread(initialUnread);
+              setChatUnread(initialUnread);
+            }
           } else {
             const newMsgs = customerMsgs.filter((m) => !seenIds.current.has(m.id));
             if (newMsgs.length > 0) {
               newMsgs.forEach((m) => seenIds.current.add(m.id));
               const latest = newMsgs[newMsgs.length - 1];
-              playBeep();
-              if (navigator.vibrate) navigator.vibrate(200);
+              playNotificationSound();
+              if (navigator.vibrate) navigator.vibrate([120, 60, 120, 60, 120]);
               toast({
                 title: "💬 Nova mensagem de cliente",
                 description: `${latest.sender_name || "Cliente"}: ${latest.message?.slice(0, 60) || "..."}`,
               });
               setUnread((prev) => prev + newMsgs.length);
+              incrementChatUnread(newMsgs.length);
             }
           }
         })
@@ -94,12 +118,17 @@ export default function GlobalChatAlert() {
     load();
     const unsub = base44.entities.ChatMessage.subscribe(() => load());
     return unsub;
-  }, [locksmith?.id, locksmith?.work_mode]);
+  }, [locksmith?.id]);
 
-  // Zera o contador quando o chaveiro está visualizando o painel (chat visível)
+  // Zera o contador e persiste lastSeen quando o chaveiro está no painel
   useEffect(() => {
-    if (location.pathname === "/painel-chaveiro") setUnread(0);
-  }, [location.pathname]);
+    if (!locksmith?.id) return;
+    if (location.pathname === "/painel-chaveiro") {
+      setUnread(0);
+      setChatUnread(0);
+      try { localStorage.setItem(lastSeenKey(locksmith.id), String(Date.now())); } catch (e) {}
+    }
+  }, [location.pathname, locksmith?.id]);
 
   if (!isChaveiro || !locksmith || unread === 0) return null;
 
@@ -107,13 +136,15 @@ export default function GlobalChatAlert() {
     <button
       onClick={() => {
         setUnread(0);
+        setChatUnread(0);
+        try { localStorage.setItem(lastSeenKey(locksmith.id), String(Date.now())); } catch (e) {}
         navigate("/painel-chaveiro");
       }}
-      className="fixed bottom-20 right-4 z-[60] flex items-center gap-2 pl-3 pr-4 h-12 rounded-full bg-primary text-primary-foreground font-bold text-sm shadow-2xl active:scale-95 transition-all"
+      className="fixed bottom-20 right-4 z-[60] flex items-center gap-2 pl-3 pr-4 h-12 rounded-full bg-primary text-primary-foreground font-bold text-sm shadow-2xl active:scale-95 transition-all animate-alert-slide"
     >
       <div className="relative">
         <MessageCircle className="w-5 h-5" />
-        <span className="absolute -top-2 -right-2 w-5 h-5 rounded-full bg-red-500 text-white text-[10px] font-bold flex items-center justify-center">
+        <span className="absolute -top-2 -right-2 w-5 h-5 rounded-full bg-red-500 text-white text-[10px] font-bold flex items-center justify-center animate-alert-blink">
           {unread > 9 ? "9+" : unread}
         </span>
       </div>

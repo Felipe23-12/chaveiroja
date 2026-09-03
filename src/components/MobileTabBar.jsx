@@ -10,6 +10,7 @@ import {
   ShieldCheck,
 } from "lucide-react";
 import { useAuth } from "@/lib/AuthContext";
+import { useChatUnread } from "@/lib/chatUnreadStore";
 
 // Abas fixas na parte inferior, visíveis apenas no mobile (< 768px).
 // As abas se adaptam ao tipo de conta do usuário.
@@ -43,6 +44,7 @@ export default function MobileTabBar() {
   const tabs = TABS_BY_ROLE[accountType] || TABS_BY_ROLE.cliente;
   const currentPath = location.pathname;
   const lastPath = useRef(currentPath);
+  const chatUnread = useChatUnread();
 
   // Ao trocar de rota: salva a rolagem da rota anterior e restaura a da nova.
   // O rAF cobre a renderização inicial; o timeout curto cobre conteúdo
@@ -82,7 +84,14 @@ export default function MobileTabBar() {
                 active ? "text-primary" : "text-muted-foreground"
               }`}
             >
-              <Icon className="w-4 h-4" />
+              <div className="relative">
+                <Icon className="w-4 h-4" />
+                {t.path === "/painel-chaveiro" && chatUnread > 0 && (
+                  <span className="absolute -top-1.5 -right-2 min-w-[16px] h-4 px-1 rounded-full bg-red-500 text-white text-[9px] font-bold flex items-center justify-center">
+                    {chatUnread > 9 ? "9+" : chatUnread}
+                  </span>
+                )}
+              </div>
               <span>{t.label}</span>
             </Link>
           );
