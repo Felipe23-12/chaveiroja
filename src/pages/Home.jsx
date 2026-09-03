@@ -20,6 +20,7 @@ import { DEFAULT_CENTER, getCustomerLocation, haversineKm, fetchDrivingRoute, et
 import { getClientLoyalty, applyLoyaltyDiscount } from "@/lib/loyalty";
 import PointsProgressCard from "@/components/locksmith/PointsProgressCard";
 import PaymentStep from "@/components/payment/PaymentStep";
+import ReceiptButton from "@/components/payment/ReceiptButton";
 import { createPaymentRecord, confirmPaymentPaid } from "@/lib/payments";
 import { ensureNotificationPermission, notifyClient } from "@/lib/clientNotifications";
 import { Image } from "@/components/ui/image";
@@ -56,6 +57,7 @@ export default function Home() {
   const [routePath, setRoutePath] = useState(null);
   const [routeEta, setRouteEta] = useState(null);
   const [cancelFeeData, setCancelFeeData] = useState(null);
+  const [customerName, setCustomerName] = useState("");
   const reqRef = useRef(null);
   const notifiedMoving = useRef(false);
   const notifiedNearby = useRef(false);
@@ -63,6 +65,10 @@ export default function Home() {
   const notifiedCompleted = useRef(false);
 
   const service = useMemo(() => SERVICE_CATALOG.find((s) => s.id === serviceId), [serviceId]);
+
+  useEffect(() => {
+    base44.auth.me().then((u) => setCustomerName(u?.full_name || "")).catch(() => {});
+  }, []);
 
   // Distância do chaveiro elegível mais próximo (para estimativa de preço)
   const nearestDistance = useMemo(() => {
@@ -790,16 +796,25 @@ export default function Home() {
               </p>
             </div>
           ) : activeRequest.payment_status === "paid" ? (
-            <div className="flex flex-col items-center text-center py-6">
-              <div className="w-14 h-14 rounded-full bg-emerald-100 flex items-center justify-center mb-3">
+            <div className="flex flex-col items-center text-center py-6 space-y-4">
+              <div className="w-14 h-14 rounded-full bg-emerald-100 flex items-center justify-center mb-1">
                 <Loader2 className="w-7 h-7 text-emerald-600 animate-spin" />
               </div>
-              <h3 className="font-heading font-semibold text-base text-foreground mb-1">
-                Pagamento confirmado!
-              </h3>
-              <p className="text-sm text-muted-foreground">
-                Aguardando o chaveiro finalizar o serviço.
-              </p>
+              <div>
+                <h3 className="font-heading font-semibold text-base text-foreground mb-1">
+                  Pagamento confirmado!
+                </h3>
+                <p className="text-sm text-muted-foreground">
+                  Aguardando o chaveiro finalizar o serviço.
+                </p>
+              </div>
+              <div className="w-full max-w-xs">
+                <ReceiptButton
+                  serviceRequest={activeRequest}
+                  locksmith={selectedLocksmith}
+                  customerName={customerName}
+                />
+              </div>
             </div>
           ) : (
             <PaymentStep
@@ -838,6 +853,12 @@ export default function Home() {
               onSubmitted={(r) => handleRate(r)}
             />
           </div>
+
+          <ReceiptButton
+            serviceRequest={activeRequest}
+            locksmith={selectedLocksmith}
+            customerName={customerName}
+          />
 
           <Button onClick={handleNewRequest} variant="outline" className="w-full">
             Solicitar novo serviço
