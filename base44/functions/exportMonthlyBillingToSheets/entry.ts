@@ -24,6 +24,11 @@ export default async function(req) {
       return k === targetMonth;
     });
 
+    // Busca todos os usuários para mapear dados de contato do cliente
+    const users = await base44.asServiceRole.entities.User.list();
+    const userMap = {};
+    users.forEach((u) => { userMap[u.id] = u; });
+
     const { accessToken } = await base44.asServiceRole.connectors.getConnection("googlesheets");
 
     // Garante que a aba existe (ignora erro se já existir)
@@ -42,6 +47,7 @@ export default async function(req) {
     // Cabeçalho
     const headers = [
       "Data", "ID do Pedido", "Tipo de Serviço", "Endereço", "Chaveiro", "Cliente",
+      "Email", "Telefone", "CPF",
       "Valor Total", "Método de Pagamento", "Comissão (15%)", "Valor Líquido",
       "Distância (km)", "Custo Locomoção", "Desconto Aplicado", "Valor Desconto",
     ];
@@ -51,13 +57,17 @@ export default async function(req) {
       const price = r.price || 0;
       const commission = Math.round(price * COMMISSION_RATE * 100) / 100;
       const net = Math.round((price - commission) * 100) / 100;
+      const user = userMap[r.created_by_id];
       return [
         new Date(r.created_date).toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" }),
         r.id,
         r.service_type || "",
         r.address || "",
         r.locksmith_name || "",
-        "",
+        user?.full_name || "",
+        user?.email || "",
+        user?.phone || "",
+        user?.cpf || "",
         price,
         r.payment_method || "",
         commission,

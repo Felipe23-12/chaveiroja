@@ -21,10 +21,24 @@ export default async function(req) {
       payment = await base44.asServiceRole.entities.Payment.get(sr.payment_id).catch(() => null);
     }
 
+    // Busca dados de contato do cliente
+    const userId = sr.created_by_id || payment?.client_id;
+    let customerEmail = "";
+    let customerPhone = "";
+    let customerCpf = "";
+    if (userId) {
+      const user = await base44.asServiceRole.entities.User.get(userId).catch(() => null);
+      if (user) {
+        customerEmail = user.email || "";
+        customerPhone = user.phone || "";
+        customerCpf = user.cpf || "";
+      }
+    }
+
     // Token do conector Google Sheets (conta do builder)
     const { accessToken } = await base44.asServiceRole.connectors.getConnection("googlesheets");
 
-    // Monta a linha com os dados do pagamento
+    // Monta a linha com os dados do pagamento e contato do cliente
     const now = new Date().toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" });
     const row = [
       now,
@@ -33,6 +47,9 @@ export default async function(req) {
       sr.address || "",
       sr.locksmith_name || "",
       payment?.client_name || "",
+      customerEmail,
+      customerPhone,
+      customerCpf,
       sr.price || 0,
       sr.payment_method || payment?.method || "",
       sr.payment_status || payment?.status || "",
