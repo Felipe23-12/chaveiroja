@@ -23,7 +23,7 @@ import DarkModeToggle from "@/components/DarkModeToggle";
 import { haversineKm, stepToward, fetchDrivingRoute, etaMinutes } from "@/lib/geo";
 import { SERVICE_CATALOG } from "@/lib/pricing";
 import { confirmCashReceived } from "@/lib/payments";
-import { saveLastService, getLastService, clearLastService, saveLocksmithProfile, getLocksmithProfile, isOnline } from "@/lib/offlineCache";
+import { saveLastService, getLastService, clearLastService, saveLocksmithProfile, getLocksmithProfile, isOnline, saveLastRoute, getLastRoute, savePendingRequests, getPendingRequests } from "@/lib/offlineCache";
 
 // Raio de cobertura para considerar um pedido "na região" do chaveiro (km)
 const REGION_RADIUS_KM = 15;
@@ -154,9 +154,16 @@ export default function PainelChaveiro() {
   useEffect(() => {
     if (!selectedId) return;
     const load = () =>
-      base44.entities.ServiceRequest.filter({ locksmith_id: selectedId, status: "ringing" }, "-created_date").then(
-        (list) => setPendingRequests(list)
-      );
+      base44.entities.ServiceRequest
+        .filter({ locksmith_id: selectedId, status: "ringing" }, "-created_date")
+        .then((list) => {
+          setPendingRequests(list);
+          savePendingRequests(list);
+        })
+        .catch(() => {
+          // Offline: exibe fila em cache
+          if (!isOnline()) setPendingRequests(getPendingRequests());
+        });
     load();
     const unsub = base44.entities.ServiceRequest.subscribe(() => load());
     return unsub;
@@ -215,7 +222,7 @@ export default function PainelChaveiro() {
     return unsub;
   }, [selectedId, me]);
 
-  // Busca a rota de carro entre o chaveiro e o cliente (OSRM)
+  // Busca a rota de carro entre o chaveiro e o cliente (OSRM) — com cache offline
   useEffect(() => {
     if (!active || !active.locksmith_lat || !active.customer_lat) {
       setRoutePath(null);
@@ -226,12 +233,24 @@ export default function PainelChaveiro() {
     const to = { lat: active.customer_lat, lng: active.customer_lng };
     setRoutePath(null);
     setRouteEta(null);
-    fetchDrivingRoute(from, to).then((r) => {
-      if (r) {
-        setRoutePath(r.coordinates);
-        setRouteEta(etaMinutes(r.duration));
-      }
-    });
+    fetchDrivingRoute(from, to)
+      .then((r) => {
+        if (r) {
+          setRoutePath(r.coordinates);
+          setRouteEta(etaMinutes(r.duration));
+          saveLastRoute(r.coordinates, etaMinutes(r.duration));
+        }
+      })
+      .catch(() => {
+        // Offline: usa a última rota em cache para navegação
+        if (!isOnline()) {
+          const cached = getLastRoute();
+          if (cached?.routePath) {
+            setRoutePath(cached.routePath);
+            setRouteEta(cached.eta);
+          }
+        }
+      });
   }, [active?.id, active?.locksmith_lat, active?.locksmith_lng, active?.customer_lat, active?.customer_lng]);
 
   // Assina o serviço em andamento deste chaveiro (aceito / a caminho)
@@ -424,14 +443,22 @@ export default function PainelChaveiro() {
       )}
 
       {/* Aviso de modo offline — dados do serviço permanecem visíveis */}
-      {!online && (
-        <div className="flex items-center gap-2 mb-4 p-3 rounded-xl bg-amber-50 border border-amber-300 text-amber-800">
-          <WifiOff className="w-4 h-4 shrink-0" />
-          <p className="text-sm font-medium">
-            Sem conexão — exibindo dados do último serviço em cache. As atualizações serão sincronizadas quando a internet voltar.
-          </p>
-        </div>
-      )}
+      {!online && (() => {
+        const cached = getLastService();
+        const syncedAt = cached?._cached_at
+          ? new Date(cached._cached_at).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })
+          : null;
+        return (
+          <div className="flex items-center gap-2 mb-4 p-3 rounded-xl bg-amber-50 border border-amber-300 text-amber-800">
+            <WifiOff className="w-4 h-4 shrink-0" />
+            <p className="text-sm font-medium">
+              Sem conexão — exibindo dados do último serviço em cache
+              {syncedAt && ` (atualizado às ${syncedAt})`}.
+              As atualizações serão sincronizadas quando a internet voltar.
+            </p>
+          </div>
+        );
+      })()}
 
       <div className="flex items-center gap-2 mb-6">
         <div className="w-10 h-10 rounded-xl bg-primary flex items-center justify-center">
