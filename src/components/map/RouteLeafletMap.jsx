@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo } from "react";
+import React, { useEffect, useMemo, useRef } from "react";
 import { MapContainer, TileLayer, Marker, Popup, Polyline, useMap } from "react-leaflet";
 import L from "leaflet";
 import { Navigation } from "lucide-react";
@@ -22,9 +22,25 @@ function makeLocksmithIcon(active, label) {
   });
 }
 
-// Ajusta a janela do mapa para enquadrar todos os pontos e corrige o
-// dimensionamento dos tiles após o mount (sem isso o mapa fica cinza).
-function FitBounds({ points, center }) {
+// Corrige o dimensionamento dos tiles sempre que o contêiner muda de tamanho
+// (essencial no mobile, onde o layout se ajusta depois do mount). Sem isso o
+// mapa fica cinza / sem ruas.
+function MapResizer() {
+  const map = useMap();
+  useEffect(() => {
+    const container = map.getContainer();
+    const ro = new ResizeObserver(() => map.invalidateSize());
+    ro.observe(container);
+    const t = setTimeout(() => map.invalidateSize(), 250);
+    return () => { ro.disconnect(); clearTimeout(t); };
+  }, [map]);
+  return null;
+}
+
+// Ajusta a janela do mapa APENAS quando o conjunto de pontos muda (novos
+// marcadores ou rota), e não a cada atualização de coordenada. Re-enquadrar
+// a cada movimento do chaveiro "trava" o mapa no celular, roubando o toque.
+function FitBounds({ points, center, signature }) {
   const map = useMap();
   useEffect(() => {
     if (points && points.length > 0) {
@@ -34,11 +50,7 @@ function FitBounds({ points, center }) {
       map.setView([center.lat, center.lng], 15, { animate: true });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [points]);
-  useEffect(() => {
-    const t = setTimeout(() => map.invalidateSize(), 200);
-    return () => clearTimeout(t);
-  }, [map]);
+  }, [signature]);
   return null;
 }
 
@@ -67,6 +79,10 @@ export default function RouteLeafletMap({ center, markers = [], route = null, ro
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [JSON.stringify(markers), JSON.stringify(route), JSON.stringify(routePath)]);
 
+  // Assinatura estável: só muda quando o conjunto de marcadores/rota muda,
+  // não a cada atualização de coordenada do chaveiro.
+  const signature = `${markers.map((m) => m.id).join(",")}|${!!(routePath && routePath.length > 1)}|${!!(route && route.from?.lat)}`;
+
   const polyline = routePath && routePath.length > 1
     ? routePath.map((p) => [p.lat, p.lng])
     : null;
@@ -81,6 +97,7 @@ export default function RouteLeafletMap({ center, markers = [], route = null, ro
       <MapContainer
         center={fallback}
         zoom={14}
+        preferCanvas
         style={{ height: "100%", width: "100%" }}
         zoomControl={false}
         attributionControl={false}
@@ -108,7 +125,8 @@ export default function RouteLeafletMap({ center, markers = [], route = null, ro
             {m.label && <Popup>{m.label}</Popup>}
           </Marker>
         ))}
-        <FitBounds points={allPoints} center={center} />
+        <MapResizer />
+        <FitBounds points={allPoints} center={center} signature={signature} />
       </MapContainer>
       {eta != null && (
         <div className="absolute top-2 right-2 z-[1000] flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-sky-500 text-white shadow-lg text-xs font-bold">

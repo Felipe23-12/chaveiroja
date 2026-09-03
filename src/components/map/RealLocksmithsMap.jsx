@@ -28,13 +28,16 @@ function Recenter({ center }) {
   return null;
 }
 
-// Corrige o dimensionamento do mapa após o mount — sem isso os tiles
-// não carregam corretamente (mapa cinza / sem nomes de ruas e bairros).
+// Corrige o dimensionamento dos tiles sempre que o contêiner muda de tamanho
+// (essencial no mobile, onde o layout se ajusta depois do mount).
 function MapResizer() {
   const map = useMap();
   useEffect(() => {
-    const t = setTimeout(() => map.invalidateSize(), 200);
-    return () => clearTimeout(t);
+    const container = map.getContainer();
+    const ro = new ResizeObserver(() => map.invalidateSize());
+    ro.observe(container);
+    const t = setTimeout(() => map.invalidateSize(), 250);
+    return () => { ro.disconnect(); clearTimeout(t); };
   }, [map]);
   return null;
 }
@@ -113,6 +116,7 @@ export default function RealLocksmithsMap({ me }) {
         <MapContainer
           center={[center.lat, center.lng]}
           zoom={13}
+          preferCanvas
           style={{ height: "100%", width: "100%" }}
           scrollWheelZoom
           zoomControl={false}
