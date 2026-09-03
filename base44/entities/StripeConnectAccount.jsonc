@@ -54,5 +54,17 @@
   "required": [
     "locksmith_id",
     "stripe_account_id"
-  ]
+  ],
+  "rls": {
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
 }
