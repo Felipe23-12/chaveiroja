@@ -110,11 +110,28 @@ export default function History() {
                 {req.locksmith_name && (
                   <div className="flex items-center justify-between">
                     <span className="text-sm text-muted-foreground">{req.locksmith_name}</span>
-                    {req.rating && (
-                      <span className="flex items-center gap-1">
-                        <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
-                        <span className="text-xs font-medium">{req.rating}</span>
-                      </span>
+                  </div>
+                )}
+                {req.status === "completed" && req.rating && (
+                  <div className="mt-3 pt-3 border-t border-border">
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="text-xs font-medium text-muted-foreground">Sua avaliação:</span>
+                      <div className="flex items-center gap-0.5">
+                        {[1, 2, 3, 4, 5].map((n) => (
+                          <Star
+                            key={n}
+                            className={`w-4 h-4 ${
+                              n <= req.rating
+                                ? "fill-amber-400 text-amber-400"
+                                : "fill-muted text-muted"
+                            }`}
+                          />
+                        ))}
+                      </div>
+                      <span className="text-sm font-heading font-semibold text-foreground">{req.rating.toFixed(1)}</span>
+                    </div>
+                    {req.review && (
+                      <p className="text-sm text-muted-foreground italic mt-1">"{req.review}"</p>
                     )}
                   </div>
                 )}
