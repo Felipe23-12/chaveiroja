@@ -1,5 +1,5 @@
 import React from "react";
-import { Clock } from "lucide-react";
+import { Clock, Info } from "lucide-react";
 
 export default function PriceSummary({ price }) {
   if (!price) return null;
@@ -18,8 +18,12 @@ export default function PriceSummary({ price }) {
         </div>
       ))}
       <div className="border-t border-border pt-2 flex justify-between items-center">
-        <span className="font-heading font-semibold text-foreground">Total ofertado</span>
+        <span className="font-heading font-semibold text-foreground">Total estimado</span>
         <span className="font-heading font-bold text-lg text-primary">R$ {price.total.toFixed(2)}</span>
+      </div>
+      <div className="flex items-start gap-1.5 text-xs text-muted-foreground pt-1">
+        <Info className="w-3.5 h-3.5 shrink-0 mt-0.5" />
+        <span>Valor estimado. O valor final pode variar conforme a distância até o chaveiro e condições do serviço.</span>
       </div>
     </div>
   );

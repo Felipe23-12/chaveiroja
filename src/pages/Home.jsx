@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo, useRef } from "react";
 import { base44 } from "@/api/base44Client";
 import { ArrowRight, ArrowLeft, Zap, Bell, Loader2, Navigation, CheckCircle2, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { SERVICE_CATALOG, calculatePrice, calculateCarKeyPrice, CAR_KEY_LABOR, CAR_KEY_COST_PER_KM, calculateCancellationFee, CANCELLATION_THRESHOLD_MINUTES } from "@/lib/pricing";
+import { SERVICE_CATALOG, calculatePrice, calculateCarKeyPrice, CAR_KEY_LABOR, CAR_KEY_COST_PER_KM, calculateCancellationFee, CANCELLATION_THRESHOLD_MINUTES, calculateLongDistanceFee } from "@/lib/pricing";
 import { searchCarKeyValue } from "@/lib/carKey";
 import ServiceCard from "@/components/locksmith/ServiceCard";
 import ServiceConfig from "@/components/locksmith/ServiceConfig";
@@ -48,12 +48,26 @@ export default function Home() {
 
   const service = useMemo(() => SERVICE_CATALOG.find((s) => s.id === serviceId), [serviceId]);
 
+  // Distância do chaveiro elegível mais próximo (para estimativa de preço)
+  const nearestDistance = useMemo(() => {
+    if (!service || appLocksmiths.length === 0) return null;
+    const eligible = appLocksmiths.filter((l) => {
+      if (l.services && l.services.length > 0) return l.services.includes(service.id);
+      const locksmithSpecialties =
+        l.specialties && l.specialties.length > 0 ? l.specialties : [l.specialty];
+      return locksmithSpecialties.includes(service.specialty);
+    });
+    if (eligible.length === 0) return null;
+    return Math.min(...eligible.map((l) => haversineKm(customerLoc, { lat: l.lat, lng: l.lng })));
+  }, [service, appLocksmiths, customerLoc]);
+
   const price = useMemo(() => {
     if (!service) return null;
+    const kmFee = nearestDistance != null ? calculateLongDistanceFee(nearestDistance) : 0;
     if (service.isCarKey) {
       return calculateCarKeyPrice({ keyValue: keyValue || 0, distanceKm: 0, extraCost: 0 });
     }
-    return calculatePrice({
+    const basePrice = calculatePrice({
       service,
       selectedOptions,
       customAddons,
@@ -61,7 +75,15 @@ export default function Home() {
       locksmithsAvailable: appLocksmiths.length || 5,
       urgency,
     });
-  }, [service, selectedOptions, customAddons, vehicleInfo, appLocksmiths.length, keyValue]);
+    if (basePrice && kmFee > 0) {
+      basePrice.breakdown.push({
+        label: `Taxa de distância (${nearestDistance.toFixed(1)} km × R$ 0,90)`,
+        value: kmFee,
+      });
+      basePrice.total = Math.round((basePrice.total + kmFee) * 100) / 100;
+    }
+    return basePrice;
+  }, [service, selectedOptions, customAddons, vehicleInfo, appLocksmiths.length, urgency, keyValue, nearestDistance]);
 
   useEffect(() => {
     getCustomerLocation().then(setCustomerLoc);
@@ -172,10 +194,13 @@ export default function Home() {
         });
       } else {
         const basePrice = price?.total || 0;
+        const kmFee = calculateLongDistanceFee(nearest.d);
         const disc = useDiscount ? applyLoyaltyDiscount(basePrice) : { amount: 0, final: basePrice };
         req = await base44.entities.ServiceRequest.create({
           ...base,
           price: disc.final,
+          distance_km: Math.round(nearest.d * 100) / 100,
+          locomotion_cost: kmFee,
           discount_applied: useDiscount,
           discount_amount: disc.amount,
         });
@@ -444,7 +469,7 @@ export default function Home() {
               setCustomAddon={setCustomAddon}
               vehicleInfo={vehicleInfo}
               setVehicleInfo={setVehicleInfo}
-              price={null}
+              price={price}
             />
           )}
 

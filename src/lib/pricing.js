@@ -3,6 +3,17 @@
 export const CAR_KEY_LABOR = 350;
 export const CAR_KEY_COST_PER_KM = 1.5;
 
+// Taxa de longa distância: quando o chaveiro está a mais de 20 km do cliente,
+// cobra-se R$ 0,90 por km adicional (serviços que não têm locomoção embutida).
+export const LONG_DISTANCE_THRESHOLD_KM = 20;
+export const LONG_DISTANCE_KM_FEE = 0.90;
+
+export function calculateLongDistanceFee(distanceKm) {
+  const dist = Number(distanceKm) || 0;
+  if (dist <= LONG_DISTANCE_THRESHOLD_KM) return 0;
+  return Math.round(LONG_DISTANCE_KM_FEE * dist * 100) / 100;
+}
+
 // Limiar do valor "médio" usado no ajuste por urgência
 export const TIER_MEDIUM = 0.6;
 
