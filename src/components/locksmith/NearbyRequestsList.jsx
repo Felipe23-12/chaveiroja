@@ -1,0 +1,155 @@
+import React, { useState, useEffect } from "react";
+import { base44 } from "@/api/base44Client";
+import { MapPin, Navigation, Filter, Loader2, Inbox } from "lucide-react";
+import { haversineKm } from "@/lib/geo";
+import { SERVICE_CATALOG } from "@/lib/pricing";
+
+const DEFAULT_RADIUS_KM = 10;
+
+/**
+ * Lista solicitações abertas (status "searching") próximas ao chaveiro.
+ * Inclui um filtro toggle para mostrar apenas solicitações dentro de um
+   raio configurável (padrão 10km) do local atual do chaveiro.
+ */
+export default function NearbyRequestsList({ locksmith }) {
+  const [allRequests, setAllRequests] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [filterEnabled, setFilterEnabled] = useState(true);
+  const [radius, setRadius] = useState(DEFAULT_RADIUS_KM);
+
+  // Busca solicitações abertas (searching) e assina atualizações
+  useEffect(() => {
+    const load = () =>
+      base44.entities.ServiceRequest
+        .filter({ status: "searching" }, "-created_date")
+        .then((list) => {
+          setAllRequests(list);
+          setLoading(false);
+        })
+        .catch(() => setLoading(false));
+    load();
+    const unsub = base44.entities.ServiceRequest.subscribe(() => load());
+    return unsub;
+  }, []);
+
+  if (!locksmith || !locksmith.online) return null;
+
+  // Filtra por especialidade do chaveiro
+  const matchesSpecialty = (req) => {
+    const svc = SERVICE_CATALOG.find((s) => s.label === req.service_type);
+    if (!svc) return true;
+    if (locksmith.services && locksmith.services.length > 0) {
+      return locksmith.services.includes(svc.id);
+    }
+    const mySpecialties = locksmith.specialties && locksmith.specialties.length > 0
+      ? locksmith.specialties
+      : [locksmith.specialty];
+    return mySpecialties.includes(svc.specialty);
+  };
+
+  // Calcula distância e filtra
+  const withDistance = allRequests
+    .filter(matchesSpecialty)
+    .filter((r) => r.customer_lat && r.customer_lng)
+    .map((r) => ({
+      ...r,
+      distance: haversineKm(
+        { lat: locksmith.lat, lng: locksmith.lng },
+        { lat: r.customer_lat, lng: r.customer_lng }
+      ),
+    }));
+
+  const filtered = filterEnabled
+    ? withDistance.filter((r) => r.distance <= radius)
+    : withDistance;
+
+  // Ordena por distância
+  filtered.sort((a, b) => a.distance - b.distance);
+
+  return (
+    <div className="mb-5 rounded-xl border border-border bg-card overflow-hidden fade-in-up">
+      {/* Cabeçalho com filtro */}
+      <div className="flex items-center justify-between px-4 py-3 bg-muted/50 border-b border-border">
+        <div className="flex items-center gap-2">
+          <Navigation className="w-4 h-4 text-primary" />
+          <p className="font-medium text-sm text-foreground">Solicitações na região</p>
+        </div>
+        <button
+          onClick={() => setFilterEnabled((f) => !f)}
+          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+            filterEnabled
+              ? "bg-primary text-primary-foreground"
+              : "bg-muted text-muted-foreground hover:bg-accent"
+          }`}
+        >
+          <Filter className="w-3.5 h-3.5" />
+          {filterEnabled ? `${radius} km` : "Sem filtro"}
+        </button>
+      </div>
+
+      {/* Controle de raio quando filtro ativo */}
+      {filterEnabled && (
+        <div className="px-4 py-2.5 border-b border-border bg-muted/30">
+          <div className="flex items-center gap-3">
+            <span className="text-xs text-muted-foreground shrink-0">Raio:</span>
+            <input
+              type="range"
+              min="1"
+              max="30"
+              step="1"
+              value={radius}
+              onChange={(e) => setRadius(Number(e.target.value))}
+              className="flex-1 accent-primary"
+            />
+            <span className="text-xs font-medium text-foreground shrink-0 w-12 text-right">{radius} km</span>
+          </div>
+        </div>
+      )}
+
+      {/* Conteúdo */}
+      <div className="p-3">
+        {loading ? (
+          <div className="flex items-center justify-center py-6">
+            <Loader2 className="w-5 h-5 text-muted-foreground animate-spin" />
+          </div>
+        ) : filtered.length === 0 ? (
+          <div className="text-center py-6">
+            <Inbox className="w-7 h-7 text-muted-foreground mx-auto mb-1.5" />
+            <p className="text-sm text-muted-foreground">
+              {filterEnabled
+                ? `Nenhuma solicitação dentro de ${radius} km`
+                : "Nenhuma solicitação aberta no momento"}
+            </p>
+          </div>
+        ) : (
+          <div className="space-y-2">
+            <p className="text-xs text-muted-foreground px-1">
+              {filtered.length} {filtered.length === 1 ? "solicitação" : "solicitações"}
+              {filterEnabled && ` dentro de ${radius} km`}
+            </p>
+            {filtered.map((req) => (
+              <div
+                key={req.id}
+                className="flex items-start gap-3 p-3 rounded-lg border border-border bg-background hover:border-primary/40 transition-colors"
+              >
+                <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+                  <MapPin className="w-4 h-4 text-primary" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="font-medium text-sm text-foreground truncate">{req.service_type}</p>
+                  <p className="text-xs text-muted-foreground truncate">{req.address}</p>
+                </div>
+                <div className="text-right shrink-0">
+                  <p className="text-xs font-bold text-primary">{req.distance.toFixed(1)} km</p>
+                  {req.urgency === "urgent" && (
+                    <p className="text-[10px] text-red-500 font-medium">Urgente</p>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}

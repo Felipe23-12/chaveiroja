@@ -19,6 +19,7 @@ import WithdrawalSection from "@/components/locksmith/WithdrawalSection";
 import StripeConnectSetup from "@/components/locksmith/StripeConnectSetup";
 import IncomingRequestAlert from "@/components/locksmith/IncomingRequestAlert";
 import PendingRequestsList from "@/components/locksmith/PendingRequestsList";
+import NearbyRequestsList from "@/components/locksmith/NearbyRequestsList";
 import { useToast } from "@/components/ui/use-toast";
 import DarkModeToggle from "@/components/DarkModeToggle";
 import { haversineKm, stepToward, fetchDrivingRoute, etaMinutes, getCustomerLocation } from "@/lib/geo";
@@ -718,14 +719,19 @@ export default function PainelChaveiro() {
         </div>
       ) : (
         isAppMode ? (
-          pendingCount === 0 && (
-            <div className="text-center py-12 rounded-xl border border-dashed border-border">
-              <Bell className="w-8 h-8 text-muted-foreground mx-auto mb-2" />
-              <p className="text-sm text-muted-foreground">
-                {me?.online ? "Aguardando solicitações..." : "Fique online para receber solicitações."}
-              </p>
-            </div>
-          )
+          <>
+            {me?.online && (
+              <NearbyRequestsList locksmith={me} />
+            )}
+            {pendingCount === 0 && (
+              <div className="text-center py-12 rounded-xl border border-dashed border-border">
+                <Bell className="w-8 h-8 text-muted-foreground mx-auto mb-2" />
+                <p className="text-sm text-muted-foreground">
+                  {me?.online ? "Aguardando solicitações..." : "Fique online para receber solicitações."}
+                </p>
+              </div>
+            )}
+          </>
         ) : me?.monthly_fee_paid ? (
           <LivreModeDashboard
             me={me}
