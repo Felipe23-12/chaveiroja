@@ -1,0 +1,49 @@
+{
+  "name": "Cadastro Cliente Leads Sheets",
+  "description": "Registra automaticamente os dados de contato de cada novo cliente em uma aba Leads no Google Sheets quando o cadastro \u00e9 finalizado",
+  "trigger": {
+    "config": {
+      "trigger_type": "app_user_auth",
+      "events": [
+        "signup"
+      ]
+    },
+    "condition": "${ true }"
+  },
+  "definition": {
+    "document": {
+      "dsl": "1.0.0",
+      "name": "cadastro_cliente_leads_sheets",
+      "version": "1",
+      "namespace": "base44"
+    },
+    "do": [
+      {
+        "aguardar_perfil": {
+          "wait": "PT30S",
+          "then": "exportar_lead",
+          "x-base44": {
+            "title": "Aguardar preenchimento do perfil",
+            "description": "Espera 30s para o cliente concluir o cadastro (telefone, CPF)"
+          }
+        }
+      },
+      {
+        "exportar_lead": {
+          "call": "invoke_backend_function",
+          "with": {
+            "function_name": "exportNewClientToSheets",
+            "args": {
+              "user_id": "${ .trigger.user_id }"
+            }
+          },
+          "then": "end",
+          "x-base44": {
+            "title": "Salvar lead na planilha",
+            "description": "Exporta os dados de contato do novo cliente para a aba Leads"
+          }
+        }
+      }
+    ]
+  }
+}
