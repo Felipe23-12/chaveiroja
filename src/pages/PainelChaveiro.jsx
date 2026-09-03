@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
+import { useNavigate } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
 import { Wrench, Bell, Check, X, Navigation, Power, Loader2, MapPin, WifiOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -11,7 +12,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import MapView from "@/components/map/MapView";
-import RealLocksmithsMap from "@/components/map/RealLocksmithsMap";
+import LivreModeDashboard, { LivreModeLocked } from "@/components/locksmith/LivreModeDashboard";
 import PhotoUploader from "@/components/locksmith/PhotoUploader";
 import WalletCard from "@/components/locksmith/WalletCard";
 import WithdrawalSection from "@/components/locksmith/WithdrawalSection";
@@ -52,6 +53,7 @@ function playBeep() {
 }
 
 export default function PainelChaveiro() {
+  const navigate = useNavigate();
   const [locksmiths, setLocksmiths] = useState([]);
   const [selectedId, setSelectedId] = useState("");
   const [me, setMe] = useState(null);
@@ -192,6 +194,9 @@ export default function PainelChaveiro() {
         });
         return;
       }
+
+      // Se o chaveiro desativou solicitações do modo app, ignora alertas de proximidade
+      if (me.receive_app_requests === false) return;
 
       // Alerta de proximidade: apenas novos pedidos com status searching
       if (event.type !== "create") return;
@@ -712,17 +717,22 @@ export default function PainelChaveiro() {
           )}
         </div>
       ) : (
-        pendingCount === 0 && (
-          isAppMode ? (
+        isAppMode ? (
+          pendingCount === 0 && (
             <div className="text-center py-12 rounded-xl border border-dashed border-border">
               <Bell className="w-8 h-8 text-muted-foreground mx-auto mb-2" />
               <p className="text-sm text-muted-foreground">
                 {me?.online ? "Aguardando solicitações..." : "Fique online para receber solicitações."}
               </p>
             </div>
-          ) : (
-            <RealLocksmithsMap me={me} />
           )
+        ) : me?.monthly_fee_paid ? (
+          <LivreModeDashboard
+            me={me}
+            onUpdateMe={(data) => base44.entities.Locksmith.update(me.id, data).then(setMe)}
+          />
+        ) : (
+          <LivreModeLocked onPay={() => navigate("/modo-trabalho")} />
         )
       )}
     </div>

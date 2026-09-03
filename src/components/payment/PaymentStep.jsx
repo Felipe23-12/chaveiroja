@@ -6,7 +6,7 @@ import { calculatePaymentBreakdown, createStripePaymentIntent } from "@/lib/paym
 import StripeCardForm from "@/components/payment/StripeCardForm";
 import StripePixForm from "@/components/payment/StripePixForm";
 
-export default function PaymentStep({ amount, description, locksmithId, onConfirm, onBack, processing }) {
+export default function PaymentStep({ amount, description, locksmithId, onConfirm, onBack, processing, onlineOnly = false }) {
   const [method, setMethod] = useState("");
   const [stripeData, setStripeData] = useState(null);
   const [creating, setCreating] = useState(false);
@@ -48,7 +48,7 @@ export default function PaymentStep({ amount, description, locksmithId, onConfir
         <p className="text-sm text-muted-foreground">Pague pelo serviço agora</p>
       </div>
 
-      <PaymentMethodSelector selected={method} onSelect={handleSelectMethod} />
+      <PaymentMethodSelector selected={method} onSelect={handleSelectMethod} onlineOnly={onlineOnly} />
 
       {creating && (
         <div className="flex items-center justify-center py-4">

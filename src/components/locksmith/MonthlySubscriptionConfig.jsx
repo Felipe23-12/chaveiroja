@@ -49,6 +49,7 @@ export default function MonthlySubscriptionConfig({ locksmith, onUpdate }) {
           processing={paying}
           onConfirm={handlePaymentConfirm}
           onBack={() => setShowPayment(false)}
+          onlineOnly
         />
       </div>
     );

@@ -12,10 +12,11 @@ const METHODS = [
   { id: "dinheiro", label: "Dinheiro", icon: "Banknote", description: "Pagar em espécie ao chaveiro" },
 ];
 
-export default function PaymentMethodSelector({ selected, onSelect }) {
+export default function PaymentMethodSelector({ selected, onSelect, onlineOnly = false }) {
+  const methods = onlineOnly ? METHODS.filter((m) => m.id !== "dinheiro") : METHODS;
   return (
     <div className="space-y-2.5">
-      {METHODS.map((m) => {
+      {methods.map((m) => {
         const Icon = ICONS[m.icon];
         const isSel = selected === m.id;
         return (

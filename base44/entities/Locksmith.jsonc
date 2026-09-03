@@ -140,6 +140,11 @@
       "format": "date",
       "description": "Data do \u00faltimo pagamento da mensalidade"
     },
+    "receive_app_requests": {
+      "type": "boolean",
+      "default": true,
+      "description": "Se o chaveiro no modo livre aceita receber solicita\u00e7\u00f5es do modo aplicativo"
+    },
     "lat": {
       "type": "number",
       "default": -23.55
