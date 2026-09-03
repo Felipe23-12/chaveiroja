@@ -4,13 +4,8 @@ import { base44 } from "@/api/base44Client";
 import { Wrench, Bell, Check, X, Navigation, Power, Loader2, MapPin, WifiOff, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import NativeSelectDrawer from "@/components/ui/NativeSelectDrawer";
+import { usePullToRefresh, PullToRefreshIndicator } from "@/components/ui/PullToRefresh";
 import MapView from "@/components/map/MapView";
 import LivreModeDashboard, { LivreModeLocked } from "@/components/locksmith/LivreModeDashboard";
 import PhotoUploader from "@/components/locksmith/PhotoUploader";
@@ -437,6 +432,19 @@ export default function PainelChaveiro() {
     }
   };
 
+  const handleRefresh = async () => {
+    try {
+      const list = await base44.entities.Locksmith.list();
+      setLocksmiths(list);
+      if (selectedId) {
+        await base44.entities.ServiceRequest
+          .filter({ locksmith_id: selectedId, status: "ringing" }, "-created_date")
+          .then(setPendingRequests)
+          .catch(() => {});
+      }
+    } catch (e) { /* ignora */ }
+  };
+
   const { pull, refreshing } = usePullToRefresh(handleRefresh);
 
   const isAppMode = me?.work_mode === "app";
@@ -474,7 +482,7 @@ export default function PainelChaveiro() {
       <PullToRefreshIndicator pull={pull} refreshing={refreshing} />
       {/* Banner fixo piscante no topo quando há solicitações pendentes */}
       {pendingCount > 0 && isAppMode && (
-        <div className="fixed top-0 left-0 right-0 z-50 bg-red-500 text-white text-center py-2 text-sm font-bold animate-alert-blink shadow-lg md:left-64">
+        <div className="fixed top-0 left-0 right-0 z-50 bg-red-500 text-white text-center py-2 pt-safe text-sm font-bold animate-alert-blink shadow-lg md:left-64">
           <Bell className="w-4 h-4 inline mr-2 animate-bounce" />
           {pendingCount === 1 ? "1 solicitação aguardando resposta!" : `${pendingCount} solicitações aguardando resposta!`}
         </div>
@@ -520,14 +528,16 @@ export default function PainelChaveiro() {
       {/* Seleção de perfil */}
       <div className="space-y-1.5 mb-5">
         <Label>Selecione seu perfil</Label>
-        <Select value={selectedId} onValueChange={setSelectedId}>
-          <SelectTrigger><SelectValue placeholder="Escolha um chaveiro" /></SelectTrigger>
-          <SelectContent>
-            {locksmiths.map((l) => (
-              <SelectItem key={l.id} value={l.id}>{l.name} · {l.work_mode === "livre" ? "Livre" : "App"}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        <NativeSelectDrawer
+          value={selectedId}
+          onChange={setSelectedId}
+          options={locksmiths.map((l) => ({
+            value: l.id,
+            label: `${l.name} · ${l.work_mode === "livre" ? "Livre" : "App"}`,
+          }))}
+          label="Selecione seu perfil"
+          placeholder="Escolha um chaveiro"
+        />
       </div>
 
       {!me && selectedId && (

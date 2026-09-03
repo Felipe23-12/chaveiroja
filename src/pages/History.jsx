@@ -8,6 +8,7 @@ import SaveToCalendarButton from "@/components/locksmith/SaveToCalendarButton";
 import { saveLastService, getLastService } from "@/lib/offlineCache";
 import { WifiOff } from "lucide-react";
 import LoadingCard from "@/components/ui/LoadingCard";
+import { usePullToRefresh, PullToRefreshIndicator } from "@/components/ui/PullToRefresh";
 
 const statusLabels = {
   pending: { label: "Pendente", color: "bg-amber-100 text-amber-700" },
@@ -23,21 +24,24 @@ export default function History() {
   const [offline, setOffline] = useState(false);
   const [filters, setFilters] = useState({ date: "", serviceType: "", status: "", locksmithName: "", search: "" });
 
+  const loadRequests = async () => {
+    try {
+      const data = await base44.entities.ServiceRequest.list("-created_date", 50);
+      setRequests(data);
+      if (data.length > 0) saveLastService(data[0]);
+      setOffline(false);
+    } catch {
+      // Sem conexão — usa o último atendimento armazenado
+      const cached = getLastService();
+      if (cached) {
+        setRequests([cached]);
+        setOffline(true);
+      }
+    }
+  };
+
   useEffect(() => {
-    base44.entities.ServiceRequest.list("-created_date", 50)
-      .then((data) => {
-        setRequests(data);
-        if (data.length > 0) saveLastService(data[0]);
-      })
-      .catch(() => {
-        // Sem conexão — usa o último atendimento armazenado
-        const cached = getLastService();
-        if (cached) {
-          setRequests([cached]);
-          setOffline(true);
-        }
-      })
-      .finally(() => setLoading(false));
+    loadRequests().finally(() => setLoading(false));
   }, []);
 
   const filtered = filterRequests(requests, filters);
