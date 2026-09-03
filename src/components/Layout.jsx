@@ -58,7 +58,7 @@ function SidebarContent({ onNavigate }) {
         </Link>
       </div>
 
-      <nav className="flex-1 p-2 flex md:flex-col gap-0.5 overflow-x-auto md:overflow-visible">
+      <nav className="flex-1 p-2 flex flex-col gap-1">
         {navItems.map((item) => {
           const Icon = item.icon;
           const active = location.pathname === item.path;
@@ -67,15 +67,14 @@ function SidebarContent({ onNavigate }) {
               key={item.path}
               to={item.path}
               onClick={onNavigate}
-              className={`relative flex items-center gap-2.5 px-2.5 py-1.5 rounded-md text-xs font-medium transition-all whitespace-nowrap flex-1 md:flex-none ${
+              className={`relative flex items-center gap-2.5 px-2.5 py-2 rounded-md text-xs font-medium transition-all ${
                 active
                   ? "bg-primary text-primary-foreground shadow-sm"
                   : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
               }`}
             >
               <Icon className="w-3.5 h-3.5 shrink-0" />
-              <span className="hidden md:inline">{item.label}</span>
-              <span className="md:hidden">{item.label.split(" ")[0]}</span>
+              <span>{item.label}</span>
               {item.path === "/painel-chaveiro" && chatUnread > 0 && (
                 <span className="ml-auto min-w-[18px] h-[18px] px-1 rounded-full bg-red-500 text-white text-[10px] font-bold flex items-center justify-center">
                   {chatUnread > 9 ? "9+" : chatUnread}
