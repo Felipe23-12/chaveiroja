@@ -1,0 +1,40 @@
+{
+  "name": "Backup Pagamento Sheets",
+  "description": "Salva automaticamente os dados de pagamento em uma planilha do Google Sheets quando um servi\u00e7o \u00e9 finalizado e pago",
+  "trigger": {
+    "config": {
+      "trigger_type": "entity",
+      "entity_name": "ServiceRequest",
+      "events": [
+        "update"
+      ]
+    },
+    "condition": "${ .trigger.data.payment_status == \"paid\" and .trigger.old_data.payment_status != \"paid\" }"
+  },
+  "definition": {
+    "document": {
+      "dsl": "1.0.0",
+      "name": "backup_pagamento_sheets",
+      "version": "1.0",
+      "namespace": "base44"
+    },
+    "do": [
+      {
+        "export_payment": {
+          "call": "invoke_backend_function",
+          "with": {
+            "function_name": "exportPaymentToSheets",
+            "args": {
+              "service_request_id": "${ .trigger.entity_id }"
+            }
+          },
+          "then": "end",
+          "x-base44": {
+            "title": "Salvar pagamento na planilha",
+            "description": "Exporta os dados do pedido pago para o Google Sheets"
+          }
+        }
+      }
+    ]
+  }
+}
