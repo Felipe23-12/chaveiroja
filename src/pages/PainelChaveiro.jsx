@@ -20,7 +20,7 @@ import IncomingRequestAlert from "@/components/locksmith/IncomingRequestAlert";
 import PendingRequestsList from "@/components/locksmith/PendingRequestsList";
 import { useToast } from "@/components/ui/use-toast";
 import DarkModeToggle from "@/components/DarkModeToggle";
-import { haversineKm, stepToward, fetchDrivingRoute, etaMinutes } from "@/lib/geo";
+import { haversineKm, stepToward, fetchDrivingRoute, etaMinutes, getCustomerLocation } from "@/lib/geo";
 import { SERVICE_CATALOG } from "@/lib/pricing";
 import { confirmCashReceived } from "@/lib/payments";
 import { saveLastService, getLastService, clearLastService, saveLocksmithProfile, getLocksmithProfile, isOnline, saveLastRoute, getLastRoute, savePendingRequests, getPendingRequests } from "@/lib/offlineCache";
@@ -343,8 +343,41 @@ export default function PainelChaveiro() {
 
   const toggleOnline = async () => {
     if (!me) return;
-    await base44.entities.Locksmith.update(me.id, { online: !me.online });
+    if (!me.online) {
+      // Ao ficar online, captura a localização real via GPS
+      const loc = await getCustomerLocation();
+      await base44.entities.Locksmith.update(me.id, {
+        online: true,
+        lat: loc.lat,
+        lng: loc.lng,
+      });
+      toast({
+        title: "Você está online",
+        description: "Localização atualizada via GPS.",
+      });
+    } else {
+      await base44.entities.Locksmith.update(me.id, { online: false });
+    }
   };
+
+  // Rastreia a localização real do chaveiro enquanto online (GPS contínuo)
+  useEffect(() => {
+    if (!me || !me.online || !navigator.geolocation) return;
+    const watchId = navigator.geolocation.watchPosition(
+      (pos) => {
+        const newLat = pos.coords.latitude;
+        const newLng = pos.coords.longitude;
+        const dist = haversineKm({ lat: me.lat, lng: me.lng }, { lat: newLat, lng: newLng });
+        // Só atualiza no banco se moveu mais de 50 metros
+        if (dist > 0.05) {
+          base44.entities.Locksmith.update(me.id, { lat: newLat, lng: newLng });
+        }
+      },
+      () => { /* silencioso */ },
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 30000 }
+    );
+    return () => navigator.geolocation.clearWatch(watchId);
+  }, [me?.id, me?.online]);
 
   const handleAccept = async (reqId, extra = 0) => {
     const req = pendingRequests.find((r) => r.id === reqId);

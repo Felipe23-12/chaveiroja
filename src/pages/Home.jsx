@@ -400,28 +400,24 @@ export default function Home() {
   const handleCancel = async () => {
     if (!activeRequest) return;
     const isApp = selectedLocksmith?.work_mode === "app";
-    const postConfirmation =
-      isApp &&
-      activeRequest.accepted_at &&
-      (activeRequest.status === "accepted" || activeRequest.status === "on_the_way");
 
-    // Se o chaveiro já aceitou e passou do tempo limite, cobra taxa de cancelamento
-    if (postConfirmation) {
-      const elapsedMin = (Date.now() - new Date(activeRequest.accepted_at).getTime()) / 60000;
-      if (elapsedMin >= CANCELLATION_THRESHOLD_MINUTES) {
-        const c = calculateCancellationFee(activeRequest.price);
-        const ok = window.confirm(
-          `Cancelamento após ${CANCELLATION_THRESHOLD_MINUTES} minutos da confirmação do chaveiro.\n\n` +
-          `Será cobrada uma taxa de 25% sobre o valor do serviço (R$ ${c.fee.toFixed(2)}).\n\nDeseja continuar?`
-        );
-        if (!ok) return;
-        // Mostra a tela de pagamento da taxa de cancelamento
-        setCancelFeeData(c);
-        return;
-      }
+    // A taxa de 25% só é cobrada após o chaveiro chegar ao local e iniciar o
+    // atendimento (fotos de início registradas). Antes disso, o cliente pode
+    // cancelar livremente, sem custo.
+    const locksmithArrived = isApp && (activeRequest.start_photos?.length > 0);
+
+    if (locksmithArrived) {
+      const c = calculateCancellationFee(activeRequest.price);
+      const ok = window.confirm(
+        `O chaveiro já está no local e iniciou o atendimento.\n\n` +
+        `Será cobrada uma taxa de 25% sobre o valor do serviço (R$ ${c.fee.toFixed(2)}).\n\nDeseja continuar?`
+      );
+      if (!ok) return;
+      setCancelFeeData(c);
+      return;
     }
 
-    // Sem taxa: apenas cancela
+    // Sem taxa: cancela livremente antes do chaveiro chegar
     await base44.entities.ServiceRequest.update(activeRequest.id, { status: "cancelled" });
     handleNewRequest();
   };
