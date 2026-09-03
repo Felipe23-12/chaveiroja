@@ -354,8 +354,20 @@ export default function Home() {
     base44.entities.ServiceRequest.update(activeRequest.id, { status: next }).then(setActiveRequest);
   };
 
-  const handleRate = (n) => {
-    base44.entities.ServiceRequest.update(activeRequest.id, { rating: n }).then(setActiveRequest);
+  const handleRate = async (n, comment = "") => {
+    const updated = await base44.entities.ServiceRequest.update(activeRequest.id, {
+      rating: n,
+      review: comment,
+    });
+    setActiveRequest(updated);
+    // Envia o resumo do serviço por email ao cliente (após pagamento e avaliação)
+    try {
+      await base44.functions.invoke("sendServiceCompletionEmail", {
+        service_request_id: activeRequest.id,
+      });
+    } catch (e) {
+      /* não bloqueia o fluxo se o email falhar */
+    }
   };
 
   const handleCancel = async () => {

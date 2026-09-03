@@ -376,14 +376,8 @@ export default function PainelChaveiro() {
       end_photos: endPhotos,
       status: "completed",
     });
-    // Envia email automático de conclusão ao cliente
-    try {
-      await base44.functions.invoke("sendServiceCompletionEmail", {
-        service_request_id: active.id,
-      });
-    } catch (e) {
-      /* não bloqueia o fluxo se o email falhar */
-    }
+    // O resumo por email é enviado ao cliente após o pagamento e a avaliação,
+    // garantindo que contenha valor pago e avaliação dada.
   };
 
   // Chaveiro confirma a finalização do serviço (após solicitação do cliente)

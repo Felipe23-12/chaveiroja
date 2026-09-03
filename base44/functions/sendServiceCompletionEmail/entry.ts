@@ -43,18 +43,31 @@ export default async function(req) {
       day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit'
     });
 
-    const subject = `Serviço concluído · ${serviceType}`;
+    // Avaliação dada pelo cliente
+    const rating = request.rating || 0;
+    const reviewComment = request.review || '';
+    const stars = rating > 0 ? '⭐'.repeat(rating) : 'Não avaliado';
+    const ratingBlock = rating > 0
+      ? `<tr><td style="padding: 8px 0; color: #666;">Sua avaliação</td><td style="padding: 8px 0;">${stars} (${rating}/5)</td></tr>`
+      : '';
+    const reviewBlock = reviewComment
+      ? `<tr><td style="padding: 8px 0; color: #666;">Comentário</td><td style="padding: 8px 0; font-style: italic;">"${reviewComment}"</td></tr>`
+      : '';
+
+    const subject = `Resumo do serviço · ${serviceType}`;
     const html = `<div style="font-family: sans-serif; max-width: 500px; margin: 0 auto; color: #1a1a1a;">
       <div style="text-align: center; margin-bottom: 24px;">
-        <h1 style="font-size: 24px; margin: 0;">🔑 Serviço concluído!</h1>
+        <h1 style="font-size: 24px; margin: 0;">🔑 Resumo do serviço</h1>
       </div>
       <p>Olá <strong>${customerName}</strong>,</p>
-      <p>Seu serviço foi concluído com sucesso. Segue o resumo do atendimento:</p>
+      <p>Seu serviço foi concluído com sucesso. Segue o resumo completo do atendimento para sua transparência:</p>
       <table style="width: 100%; border-collapse: collapse; margin: 16px 0;">
         <tr><td style="padding: 8px 0; color: #666;">Tipo de serviço</td><td style="padding: 8px 0;">${serviceType}</td></tr>
         <tr><td style="padding: 8px 0; color: #666;">Chaveiro</td><td style="padding: 8px 0;">${locksmithName}</td></tr>
         <tr><td style="padding: 8px 0; color: #666;">Endereço</td><td style="padding: 8px 0;">${address}</td></tr>
         <tr><td style="padding: 8px 0; color: #666;">Data</td><td style="padding: 8px 0;">${date}</td></tr>
+        ${ratingBlock}
+        ${reviewBlock}
       </table>
       <div style="background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px; padding: 16px; margin: 16px 0;">
         <p style="margin: 0; color: #666; font-size: 14px;">Valor total pago</p>

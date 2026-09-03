@@ -32,7 +32,7 @@ export default function ReviewForm({ locksmithId, locksmithName, serviceType, wo
         customerName,
       });
       setDone(true);
-      onSubmitted?.(rating);
+      onSubmitted?.(rating, comment);
     } finally {
       setSubmitting(false);
     }
