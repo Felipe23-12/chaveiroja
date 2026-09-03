@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { base44 } from "@/api/base44Client";
-import { X, Loader2, Camera } from "lucide-react";
+import { X, Loader2, Camera, Image as ImageIcon } from "lucide-react";
 import { Image } from "@/components/ui/image";
 
 export default function PhotoUploader({ photos = [], onChange, label }) {
@@ -40,18 +40,33 @@ export default function PhotoUploader({ photos = [], onChange, label }) {
           </div>
         ))}
         <label
-          className={`w-20 h-20 rounded-lg border-2 border-dashed border-border flex flex-col items-center justify-center cursor-pointer hover:border-primary text-muted-foreground ${
+          className={`w-20 h-20 rounded-lg border-2 border-primary/40 bg-primary/5 flex flex-col items-center justify-center cursor-pointer hover:border-primary text-primary ${
             uploading ? "opacity-50 pointer-events-none" : ""
           }`}
         >
           {uploading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Camera className="w-5 h-5" />}
-          <span className="text-[10px] mt-0.5">Adicionar</span>
+          <span className="text-[10px] mt-0.5 font-medium">Tirar foto</span>
+          <input
+            type="file"
+            accept="image/*"
+            capture="environment"
+            className="hidden"
+            onChange={(e) => { handleFiles(e.target.files); e.target.value = ""; }}
+          />
+        </label>
+        <label
+          className={`w-20 h-20 rounded-lg border-2 border-dashed border-border flex flex-col items-center justify-center cursor-pointer hover:border-primary text-muted-foreground ${
+            uploading ? "opacity-50 pointer-events-none" : ""
+          }`}
+        >
+          {uploading ? <Loader2 className="w-5 h-5 animate-spin" /> : <ImageIcon className="w-5 h-5" />}
+          <span className="text-[10px] mt-0.5">Galeria</span>
           <input
             type="file"
             accept="image/*"
             multiple
             className="hidden"
-            onChange={(e) => handleFiles(e.target.files)}
+            onChange={(e) => { handleFiles(e.target.files); e.target.value = ""; }}
           />
         </label>
       </div>
