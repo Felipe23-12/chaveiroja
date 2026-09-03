@@ -1,4 +1,5 @@
 import React from "react";
+import { Check, X } from "lucide-react";
 import IncomingRequestAlert from "@/components/locksmith/IncomingRequestAlert";
 
 // Renderiza a fila de solicitações pendentes. A primeira (mais recente)
@@ -108,15 +109,15 @@ function CompactRequestCard({ request, onAccept, onReject }) {
       <div className="flex gap-2 mt-2">
         <button
           onClick={handleAccept}
-          className="flex-1 py-1.5 rounded-lg bg-primary text-primary-foreground text-xs font-medium hover:bg-primary/90 transition-colors"
+          className="flex-1 h-10 rounded-lg bg-emerald-500 text-white text-xs font-bold flex items-center justify-center gap-1 hover:bg-emerald-600 active:scale-95 transition-all shadow-sm shadow-emerald-500/30"
         >
-          Aceitar
+          <Check className="w-4 h-4" /> Aceitar
         </button>
         <button
           onClick={() => onReject(request.id)}
-          className="flex-1 py-1.5 rounded-lg border border-border bg-white text-foreground text-xs font-medium hover:bg-accent transition-colors"
+          className="flex-1 h-10 rounded-lg border border-border bg-white text-foreground text-xs font-bold flex items-center justify-center gap-1 hover:bg-accent active:scale-95 transition-all"
         >
-          Recusar
+          <X className="w-4 h-4" /> Recusar
         </button>
       </div>
     </div>

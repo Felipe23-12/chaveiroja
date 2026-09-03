@@ -187,12 +187,18 @@ export default function IncomingRequestAlert({ request, onAccept, onReject }) {
 
         {/* Ações */}
         <div className="flex gap-2">
-          <Button onClick={handleAccept} className="flex-1" size="lg">
-            <Check className="w-4 h-4 mr-1.5" /> Aceitar
-          </Button>
-          <Button onClick={onReject} variant="outline" className="flex-1" size="lg">
-            <X className="w-4 h-4 mr-1.5" /> Recusar
-          </Button>
+          <button
+            onClick={handleAccept}
+            className="flex-1 h-12 rounded-xl bg-emerald-500 text-white font-bold text-sm flex items-center justify-center gap-1.5 hover:bg-emerald-600 active:scale-95 transition-all shadow-lg shadow-emerald-500/30"
+          >
+            <Check className="w-5 h-5" /> Aceitar
+          </button>
+          <button
+            onClick={onReject}
+            className="flex-1 h-12 rounded-xl border-2 border-border bg-card text-foreground font-bold text-sm flex items-center justify-center gap-1.5 hover:bg-accent active:scale-95 transition-all"
+          >
+            <X className="w-5 h-5" /> Recusar
+          </button>
         </div>
       </div>
     </div>

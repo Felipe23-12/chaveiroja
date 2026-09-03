@@ -5,6 +5,7 @@ import { base44 } from "@/api/base44Client";
 import { useAuth } from "@/lib/AuthContext";
 import { Image } from "@/components/ui/image";
 import DarkModeToggle from "@/components/DarkModeToggle";
+import GlobalLocksmithRequestAlert from "@/components/locksmith/GlobalLocksmithRequestAlert";
 
 const ALL_NAV = [
   { label: "Início", path: "/", icon: HomeIcon, roles: ["cliente"] },
@@ -150,6 +151,7 @@ export default function Layout() {
   const [drawerOpen, setDrawerOpen] = useState(false);
   return (
     <div className="flex flex-col md:flex-row min-h-screen bg-background">
+      <GlobalLocksmithRequestAlert />
       <MobileTopBar onMenu={() => setDrawerOpen(true)} />
       <MobileDrawer open={drawerOpen} onClose={() => setDrawerOpen(false)} />
       <aside className="hidden md:flex md:w-64 md:min-h-screen bg-card border-r border-border flex-col sticky top-0 md:h-screen">
