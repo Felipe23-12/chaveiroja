@@ -4,7 +4,7 @@ import { base44 } from "@/api/base44Client";
 import { ArrowLeft, Send, MessageCircle, Navigation, MapPin, Clock, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import RouteLeafletMap from "@/components/map/RouteLeafletMap";
+import LightMap from "@/components/map/LightMap";
 import QuickMessages from "@/components/chat/QuickMessages";
 import { fetchDrivingRoute, etaMinutes, haversineKm } from "@/lib/geo";
 
@@ -170,7 +170,7 @@ export default function Acompanhamento() {
       <div className="grid lg:grid-cols-2 gap-4">
         {/* Mapa de rastreamento */}
         <div className="space-y-3">
-          <RouteLeafletMap
+          <LightMap
             center={{ lat: request.customer_lat, lng: request.customer_lng }}
             height={320}
             markers={[

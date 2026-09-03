@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import NativeSelectDrawer from "@/components/ui/NativeSelectDrawer";
 import { usePullToRefresh, PullToRefreshIndicator } from "@/components/ui/PullToRefresh";
-import RouteLeafletMap from "@/components/map/RouteLeafletMap";
+import LightMap from "@/components/map/LightMap";
 import OpenInNavAppsButton from "@/components/map/OpenInNavAppsButton";
 import LivreModeDashboard, { LivreModeLocked } from "@/components/locksmith/LivreModeDashboard";
 import LocksmithChatConversations from "@/components/locksmith/LocksmithChatConversations";
@@ -638,7 +638,7 @@ export default function PainelChaveiro() {
 
           {phase === "moving" && (
             <>
-              <RouteLeafletMap
+              <LightMap
                 center={{ lat: active.customer_lat, lng: active.customer_lng }}
                 height={320}
                 markers={[

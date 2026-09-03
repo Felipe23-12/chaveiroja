@@ -15,7 +15,7 @@ import LiveLocksmithsMap from "@/components/locksmith/LiveLocksmithsMap";
 import ModuleSelector from "@/components/locksmith/ModuleSelector";
 import LocksmithMiniProfile from "@/components/locksmith/LocksmithMiniProfile";
 import ReviewForm from "@/components/locksmith/ReviewForm";
-import RouteLeafletMap from "@/components/map/RouteLeafletMap";
+import LightMap from "@/components/map/LightMap";
 import { DEFAULT_CENTER, getCustomerLocation, haversineKm, fetchDrivingRoute, etaMinutes } from "@/lib/geo";
 import { getClientLoyalty, applyLoyaltyDiscount } from "@/lib/loyalty";
 import PointsProgressCard from "@/components/locksmith/PointsProgressCard";
@@ -762,7 +762,7 @@ export default function Home() {
             </span>
           </div>
 
-          <RouteLeafletMap
+          <LightMap
             center={{ lat: activeRequest.customer_lat, lng: activeRequest.customer_lng }}
             height={300}
             markers={[
@@ -814,7 +814,7 @@ export default function Home() {
             </div>
           )}
 
-          <RouteLeafletMap
+          <LightMap
             center={{ lat: activeRequest.customer_lat, lng: activeRequest.customer_lng }}
             height={320}
             markers={[

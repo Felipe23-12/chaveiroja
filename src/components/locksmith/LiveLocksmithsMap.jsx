@@ -1,79 +1,15 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
-import { MapContainer, TileLayer, Marker, Popup, Circle, useMap } from "react-leaflet";
-import L from "leaflet";
-import "leaflet/dist/leaflet.css";
 import { base44 } from "@/api/base44Client";
-import { MapPin, Loader2, MessageCircle, Star, Wrench, ZoomIn, ZoomOut, Navigation, Search, SlidersHorizontal, X } from "lucide-react";
+import { MapPin, Loader2, MessageCircle, Star, Wrench, Navigation, Search, SlidersHorizontal, X } from "lucide-react";
 import { haversineKm } from "@/lib/geo";
-
-// Ícone customizado (div) para o Leaflet — pino estilo "gota"
-const makeIcon = (color, label = "") =>
-  L.divIcon({
-    className: "locksmith-marker",
-    html: `<div style="background:${color};width:30px;height:30px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);border:2px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,.3);display:flex;align-items:center;justify-content:center;"><span style="transform:rotate(45deg);color:#fff;font-size:11px;font-weight:700;">${label}</span></div>`,
-    iconSize: [30, 30],
-    iconAnchor: [15, 30],
-  });
-
-const meIcon = makeIcon("#0ea5e9", "Eu");
-const freeIcon = makeIcon("#10b981", "");
-const busyIcon = makeIcon("#f59e0b", "");
-
-function FitBounds({ positions }) {
-  const map = useMap();
-  useEffect(() => {
-    if (!positions || positions.length === 0) return;
-    if (positions.length === 1) {
-      map.setView(positions[0], 13, { animate: true });
-      return;
-    }
-    const bounds = L.latLngBounds(positions);
-    map.fitBounds(bounds, { padding: [50, 50], maxZoom: 15, animate: true });
-  }, [positions]);
-  return null;
-}
-
-function MapResizer() {
-  const map = useMap();
-  useEffect(() => {
-    const t = setTimeout(() => map.invalidateSize(), 200);
-    return () => clearTimeout(t);
-  }, [map]);
-  return null;
-}
-
-function ZoomControls() {
-  const map = useMap();
-  return (
-    <div
-      className="leaflet-control-zoom leaflet-bar leaflet-control"
-      style={{ position: "absolute", right: 12, bottom: 24, zIndex: 1000 }}
-    >
-      <button
-        type="button"
-        aria-label="Aproximar"
-        onClick={() => map.zoomIn()}
-        className="flex items-center justify-center w-9 h-9 bg-white border-b border-border text-foreground hover:bg-accent transition-colors"
-      >
-        <ZoomIn className="w-4 h-4" />
-      </button>
-      <button
-        type="button"
-        aria-label="Afastar"
-        onClick={() => map.zoomOut()}
-        className="flex items-center justify-center w-9 h-9 bg-white border-t border-border text-foreground hover:bg-accent transition-colors"
-      >
-        <ZoomOut className="w-4 h-4" />
-      </button>
-    </div>
-  );
-}
+import LightMap from "@/components/map/LightMap";
 
 /**
- * Mapa interativo real (OpenStreetMap) da tela principal do cliente.
- * Mostra TODOS os chaveiros disponíveis (Modo Livre online + Modo App disponíveis)
- * em tempo real, ao redor da localização atual do cliente.
+ * Tela principal do cliente: mostra TODOS os chaveiros disponíveis
+ * (Modo Livre online + Modo App disponíveis) em tempo real, ao redor da
+ * localização atual do cliente. Usa o LightMap (imagem estática + sobreposição),
+ * leve para WebView do Android — sem travamentos.
  */
 export default function LiveLocksmithsMap({ customerLoc, livreOnly = false }) {
   const navigate = useNavigate();
@@ -90,15 +26,11 @@ export default function LiveLocksmithsMap({ customerLoc, livreOnly = false }) {
     const load = () =>
       base44.entities.Locksmith.list().then((list) => {
         if (active) {
-          // Disponíveis: Modo Livre online OU Modo App disponível
-          // livroOnly = exibe apenas chaveiros independentes (modo livre) para contato direto
           setLocksmiths(
-            list.filter(
-              (l) =>
-                livreOnly
-                  ? (l.work_mode === "livre" && l.online)
-                  : (l.work_mode === "livre" && l.online) ||
-                    (l.work_mode === "app" && l.available)
+            list.filter((l) =>
+              livreOnly
+                ? l.work_mode === "livre" && l.online
+                : (l.work_mode === "livre" && l.online) || (l.work_mode === "app" && l.available)
             )
           );
         }
@@ -114,34 +46,16 @@ export default function LiveLocksmithsMap({ customerLoc, livreOnly = false }) {
   const withDist = useMemo(
     () =>
       locksmiths
-        .map((l) => ({
-          ...l,
-          distance: haversineKm(customerLoc, { lat: l.lat, lng: l.lng }),
-        }))
+        .map((l) => ({ ...l, distance: haversineKm(customerLoc, { lat: l.lat, lng: l.lng }) }))
         .sort((a, b) => a.distance - b.distance),
     [locksmiths, customerLoc]
   );
 
   const center = customerLoc?.lat ? customerLoc : { lat: -23.55, lng: -46.63 };
 
-  // Posições para ajustar o mapa: cliente + todos os chaveiros visíveis.
-  // Recalculado apenas quando o conjunto de chaveiros muda (não a cada update de GPS),
-  // evitando que o mapa "pule" durante o acompanhamento.
-  const markerPositions = useMemo(() => {
-    const arr = [];
-    if (center?.lat && center?.lng) arr.push([center.lat, center.lng]);
-    withDist.forEach((l) => {
-      if (l.lat && l.lng) arr.push([l.lat, l.lng]);
-    });
-    return arr;
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [withDist.length, center?.lat, center?.lng, withDist.map((l) => l.id).join(",")]);
-
   const filtered = useMemo(() => {
     let result = withDist;
-    if (maxDistance > 0) {
-      result = result.filter((l) => l.distance <= maxDistance);
-    }
+    if (maxDistance > 0) result = result.filter((l) => l.distance <= maxDistance);
     if (searchQuery.trim()) {
       const q = searchQuery.trim().toLowerCase();
       result = result.filter(
@@ -162,6 +76,16 @@ export default function LiveLocksmithsMap({ customerLoc, livreOnly = false }) {
 
   const isFiltering = searchQuery.trim() !== "" || maxDistance > 0 || specialtyFilter !== "";
 
+  const mapMarkers = useMemo(() => {
+    const arr = [];
+    if (center?.lat && center?.lng) arr.push({ id: "me", lat: center.lat, lng: center.lng, type: "customer", label: "Você" });
+    filtered.forEach((l) => {
+      if (l.lat && l.lng) arr.push({ id: l.id, lat: l.lat, lng: l.lng, type: "locksmith", label: l.name, active: !l.available });
+    });
+    return arr;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filtered, center?.lat, center?.lng]);
+
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between">
@@ -170,7 +94,7 @@ export default function LiveLocksmithsMap({ customerLoc, livreOnly = false }) {
             <MapPin className="w-4 h-4 text-primary" /> Chaveiros disponíveis perto de você
           </h3>
           <p className="text-xs text-muted-foreground">
-            Profissionais online em tempo real · toque no pino para detalhes
+            Profissionais online em tempo real · veja a lista abaixo para detalhes
           </p>
         </div>
         <div className="flex items-center gap-3 text-xs">
@@ -265,100 +189,7 @@ export default function LiveLocksmithsMap({ customerLoc, livreOnly = false }) {
         )}
       </div>
 
-      <div className="rounded-xl overflow-hidden border border-border" style={{ height: 360 }}>
-        <MapContainer
-          center={[center.lat, center.lng]}
-          zoom={13}
-          style={{ height: "100%", width: "100%" }}
-          scrollWheelZoom
-          zoomControl={false}
-        >
-          <TileLayer
-            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-          />
-          <FitBounds positions={markerPositions} />
-          <MapResizer />
-          <ZoomControls />
-          <Marker position={[center.lat, center.lng]} icon={meIcon}>
-            <Popup>
-              <strong>Você</strong>
-            </Popup>
-          </Marker>
-          {withDist.map((l) => (
-            <React.Fragment key={l.id}>
-              <Circle
-                center={[l.lat, l.lng]}
-                radius={10000}
-                pathOptions={{
-                  color: l.available ? "#10b981" : "#f59e0b",
-                  fillColor: l.available ? "#10b981" : "#f59e0b",
-                  fillOpacity: 0.08,
-                  weight: 1,
-                  dashArray: "6 6",
-                }}
-              />
-              <Marker
-                position={[l.lat, l.lng]}
-                icon={l.available ? freeIcon : busyIcon}
-              >
-              <Popup>
-                <div style={{ minWidth: 180 }}>
-                  <strong>{l.name}</strong>
-                  <div style={{ fontSize: 12, color: "#666", marginTop: 2 }}>
-                    {l.specialty} · ⭐ {l.rating}
-                  </div>
-                  <div style={{ fontSize: 12, marginTop: 4 }}>
-                    {l.distance} km de você
-                  </div>
-                  <div style={{ fontSize: 12, marginTop: 2, fontWeight: 600 }}>
-                    {l.available ? "🟢 Disponível" : "🟡 Em atendimento"}
-                  </div>
-                  <div style={{ fontSize: 12, marginTop: 4, color: "#0ea5e9" }}>
-                    {l.work_mode === "livre" ? "Modo Livre" : "Modo App"}
-                  </div>
-                  <div style={{ display: "flex", gap: 6, marginTop: 8 }}>
-                    <button
-                      onClick={() => navigate(`/chaveiro/${l.id}`)}
-                      style={{
-                        flex: 1,
-                        padding: "6px 8px",
-                        fontSize: 12,
-                        fontWeight: 600,
-                        borderRadius: 8,
-                        border: "1px solid #e5e7eb",
-                        background: "#fff",
-                        cursor: "pointer",
-                      }}
-                    >
-                      Ver perfil
-                    </button>
-                    {l.work_mode === "livre" && (
-                      <button
-                        onClick={() => navigate(`/chat/${l.id}`)}
-                        style={{
-                          flex: 1,
-                          padding: "6px 8px",
-                          fontSize: 12,
-                          fontWeight: 600,
-                          borderRadius: 8,
-                          background: "#f59e0b",
-                          color: "#1f2937",
-                          cursor: "pointer",
-                          border: "none",
-                        }}
-                      >
-                        💬 Conversar
-                      </button>
-                    )}
-                  </div>
-                </div>
-              </Popup>
-            </Marker>
-            </React.Fragment>
-          ))}
-        </MapContainer>
-      </div>
+      <LightMap center={center} markers={mapMarkers} height={360} />
 
       {loading ? (
         <div className="flex items-center gap-2 text-sm text-muted-foreground py-2">
