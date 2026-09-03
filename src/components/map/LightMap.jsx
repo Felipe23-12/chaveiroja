@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { Navigation } from "lucide-react";
+import { Navigation, Plus, Minus, Locate } from "lucide-react";
 
 /**
  * Mapa leve otimizado para WebView do Android.
@@ -45,6 +45,8 @@ export default function LightMap({ center, markers = [], route = null, routePath
   const containerRef = useRef(null);
   const [size, setSize] = useState({ w: 360, h: height });
   const [selected, setSelected] = useState(null);
+  const [userZoom, setUserZoom] = useState(null); // null = zoom automático
+  const [userCenter, setUserCenter] = useState(null); // null = centro automático
 
   // Mede o contêiner para compor a grade de tiles no tamanho exato
   useEffect(() => {
@@ -97,23 +99,38 @@ export default function LightMap({ center, markers = [], route = null, routePath
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [allPoints, fw, fh]);
 
-  const { c, z } = view;
+  // Reseta zoom/centro manuais quando o conjunto de pontos muda (nova rota/marcadores)
+  useEffect(() => {
+    setUserZoom(null);
+    setUserCenter(null);
+  }, [allPoints]);
+
+  const { c: autoC, z } = view;
+  const c = userCenter || autoC;
+  const ez = userZoom ?? z;
+
+  const zoomIn = () => setUserZoom((v) => Math.min(19, (v ?? ez) + 1));
+  const zoomOut = () => setUserZoom((v) => Math.max(1, (v ?? ez) - 1));
+  const recenter = () => {
+    setUserZoom(null);
+    setUserCenter(null);
+  };
 
   // Grade de tiles que cobre a área visível
   const tiles = useMemo(() => {
-    const topLeftX = lngToX(c.lng, z) - fw / 2;
-    const topLeftY = latToY(c.lat, z) - fh / 2;
+    const topLeftX = lngToX(c.lng, ez) - fw / 2;
+    const topLeftY = latToY(c.lat, ez) - fh / 2;
     const startTX = Math.floor(topLeftX / TILE);
     const endTX = Math.floor((topLeftX + fw) / TILE);
     const startTY = Math.floor(topLeftY / TILE);
     const endTY = Math.floor((topLeftY + fh) / TILE);
-    const maxTile = Math.pow(2, z);
+    const maxTile = Math.pow(2, ez);
     const list = [];
     for (let ty = startTY; ty <= endTY; ty++) {
       for (let tx = startTX; tx <= endTX; tx++) {
         list.push({
-          key: `${z}/${tx}/${ty}`,
-          url: `https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/${z}/${ty}/${wrap(tx, maxTile)}`,
+          key: `${ez}/${tx}/${ty}`,
+          url: `https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/${ez}/${ty}/${wrap(tx, maxTile)}`,
           left: tx * TILE - topLeftX,
           top: ty * TILE - topLeftY,
         });
@@ -121,9 +138,9 @@ export default function LightMap({ center, markers = [], route = null, routePath
     }
     return list;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [c.lat, c.lng, z, fw, fh]);
+  }, [c.lat, c.lng, ez, fw, fh]);
 
-  const proj = (lat, lng) => project(lat, lng, c, z, fw, fh);
+  const proj = (lat, lng) => project(lat, lng, c, ez, fw, fh);
   const toPct = (p) => ({ left: `${(p.x / fw) * 100}%`, top: `${(p.y / fh) * 100}%` });
 
   const polyline =
@@ -248,6 +265,32 @@ export default function LightMap({ center, markers = [], route = null, routePath
           <Navigation className="w-3.5 h-3.5" /> {eta} min · chegada
         </div>
       )}
+
+      {/* Controles de zoom */}
+      <div className="absolute right-2 bottom-8 z-30 flex flex-col gap-1.5">
+        <button
+          onClick={(e) => { e.stopPropagation(); zoomIn(); }}
+          className="w-9 h-9 min-h-[44px] min-w-[44px] md:min-h-0 md:min-w-0 rounded-lg bg-white/95 hover:bg-white shadow-lg border border-border flex items-center justify-center text-foreground"
+          aria-label="Aproximar"
+        >
+          <Plus className="w-5 h-5" />
+        </button>
+        <button
+          onClick={(e) => { e.stopPropagation(); zoomOut(); }}
+          className="w-9 h-9 min-h-[44px] min-w-[44px] md:min-h-0 md:min-w-0 rounded-lg bg-white/95 hover:bg-white shadow-lg border border-border flex items-center justify-center text-foreground"
+          aria-label="Afastar"
+        >
+          <Minus className="w-5 h-5" />
+        </button>
+        <button
+          onClick={(e) => { e.stopPropagation(); recenter(); }}
+          className="w-9 h-9 min-h-[44px] min-w-[44px] md:min-h-0 md:min-w-0 rounded-lg bg-white/95 hover:bg-white shadow-lg border border-border flex items-center justify-center text-primary"
+          aria-label="Centralizar"
+          title="Ajustar à rota"
+        >
+          <Locate className="w-5 h-5" />
+        </button>
+      </div>
 
       <a
         href="https://www.esri.com/legal/software-license"
