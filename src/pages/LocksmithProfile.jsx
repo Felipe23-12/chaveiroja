@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { WORK_MODES, calculateCommission } from "@/lib/pricing";
 import LocksmithHistorySummary from "@/components/locksmith/LocksmithHistorySummary";
+import LocksmithFinancialPanel from "@/components/locksmith/LocksmithFinancialPanel";
 import MonthlySubscriptionConfig from "@/components/locksmith/MonthlySubscriptionConfig";
 
 export default function LocksmithProfile() {
@@ -260,6 +261,9 @@ export default function LocksmithProfile() {
               <Power className="w-4 h-4 mr-1.5" /> {selected.online ? "Sair" : "Entrar"}
             </Button>
           </div>
+
+          {/* Painel financeiro detalhado */}
+          <LocksmithFinancialPanel locksmith={selected} />
 
           {/* Histórico e avaliações */}
           <LocksmithHistorySummary locksmithId={selected.id} />
