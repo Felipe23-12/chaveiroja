@@ -302,9 +302,15 @@ export default function PainelChaveiro() {
           }
         })
         .catch(() => {
-          // Offline: mantém o último serviço em cache para visualização
+          // Offline: só restaura do cache se for um serviço realmente em
+          // andamento (accepted/on_the_way) e recente (últimas 3h). Isso evita
+          // que um serviço antigo concluído/cancelado seja restaurado e faça o
+          // mapa do painel piscar e sumir ao recarregar a rede.
           const cached = getLastService();
-          if (cached) setActive(cached);
+          if (cached && (cached.status === "accepted" || cached.status === "on_the_way")) {
+            const updated = cached.updated_date ? new Date(cached.updated_date).getTime() : 0;
+            if (updated && Date.now() - updated < 3 * 60 * 60 * 1000) setActive(cached);
+          }
         });
     load();
     const unsub = base44.entities.ServiceRequest.subscribe(() => load());
@@ -792,7 +798,7 @@ export default function PainelChaveiro() {
             </div>
           )}
         </div>
-      ) : (
+      ) : !me ? null : (
         isAppMode ? (
           <>
             {me?.online && (
