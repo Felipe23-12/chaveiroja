@@ -7,6 +7,7 @@ import { Image } from "@/components/ui/image";
 import DarkModeToggle from "@/components/DarkModeToggle";
 import GlobalLocksmithRequestAlert from "@/components/locksmith/GlobalLocksmithRequestAlert";
 import GlobalChatAlert from "@/components/locksmith/GlobalChatAlert";
+import ServiceFinishAlert from "@/components/client/ServiceFinishAlert";
 import DeleteAccountModal from "@/components/DeleteAccountModal";
 import MobileTabBar from "@/components/MobileTabBar";
 import { AnimatePresence } from "framer-motion";
@@ -169,6 +170,7 @@ export default function Layout() {
     <div className="flex flex-col md:flex-row min-h-screen bg-background">
       <GlobalLocksmithRequestAlert />
       <GlobalChatAlert />
+      <ServiceFinishAlert />
       <MobileTopBar onMenu={() => setDrawerOpen(true)} />
       <MobileDrawer open={drawerOpen} onClose={() => setDrawerOpen(false)} />
       <aside className="hidden md:flex md:w-64 md:min-h-screen bg-card border-r border-border flex-col sticky top-0 md:h-screen">
