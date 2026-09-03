@@ -1,30 +1,71 @@
 import React from "react";
 import { MapPin, Navigation, Wrench, Clock } from "lucide-react";
 
-// Janela de visualização do mapa em graus (cobertura ao redor do centro)
-const VIEW_SPAN = 0.03;
-
-function project(lat, lng, center) {
-  const x = ((lng - (center.lng - VIEW_SPAN / 2)) / VIEW_SPAN) * 100;
-  const y = (((center.lat + VIEW_SPAN / 2) - lat) / VIEW_SPAN) * 100;
-  return { x, y };
-}
-
 /**
  * Mapa estilizado (sem dependência de tiles) que posiciona marcadores por
- * lat/lng em relação a um centro. Suporta uma rota entre dois pontos.
+ * lat/lng. A janela de visualização é calculada automaticamente para enquadrar
+ * todos os marcadores e a rota, garantindo que nada fique fora da tela.
  *
- * markers: [{ id, lat, lng, type: "customer"|"locksmith", label, active }]
+ * markers: [{ id, lat, lng, type: "customer"|"locksmith", label, active, busy }]
  * route: { from: {lat,lng}, to: {lat,lng} } | null
+ * routePath: [{lat,lng}...] | null  (polilinha da rota de carro)
  */
 export default function MapView({ center, markers = [], route = null, routePath = null, eta = null, height = 360, onMarkerClick }) {
-  const c = center || { lat: -23.55, lng: -46.63 };
+  // Coleta todos os pontos válidos para calcular a bounding box
+  const allPoints = [];
+  markers.forEach((m) => {
+    if (m.lat && m.lng) allPoints.push({ lat: m.lat, lng: m.lng });
+  });
+  if (route) {
+    if (route.from?.lat && route.from?.lng) allPoints.push(route.from);
+    if (route.to?.lat && route.to?.lng) allPoints.push(route.to);
+  }
+  if (routePath) {
+    routePath.forEach((p) => {
+      if (p.lat && p.lng) allPoints.push(p);
+    });
+  }
 
-  const from = route ? project(route.from.lat, route.from.lng, c) : null;
-  const to = route ? project(route.to.lat, route.to.lng, c) : null;
+  // Calcula bounds ou usa o centro fornecido / padrão
+  let minLat, maxLat, minLng, maxLng;
+  if (allPoints.length > 0) {
+    const lats = allPoints.map((p) => p.lat);
+    const lngs = allPoints.map((p) => p.lng);
+    minLat = Math.min(...lats);
+    maxLat = Math.max(...lats);
+    minLng = Math.min(...lngs);
+    maxLng = Math.max(...lngs);
+  } else {
+    const c = center || { lat: -23.55, lng: -46.63 };
+    minLat = c.lat - 0.015;
+    maxLat = c.lat + 0.015;
+    minLng = c.lng - 0.015;
+    maxLng = c.lng + 0.015;
+  }
+
+  // Garante um span mínimo e adiciona padding (25%)
+  const latSpan = Math.max(maxLat - minLat, 0.004);
+  const lngSpan = Math.max(maxLng - minLng, 0.004);
+  const padLat = latSpan * 0.3;
+  const padLng = lngSpan * 0.3;
+  const viewMinLat = minLat - padLat;
+  const viewMaxLat = maxLat + padLat;
+  const viewMinLng = minLng - padLng;
+  const viewMaxLng = maxLng + padLng;
+  const viewLatSpan = viewMaxLat - viewMinLat;
+  const viewLngSpan = viewMaxLng - viewMinLng;
+
+  function project(lat, lng) {
+    const x = ((lng - viewMinLng) / viewLngSpan) * 100;
+    const y = ((viewMaxLat - lat) / viewLatSpan) * 100;
+    return { x, y };
+  }
+
+  const from = route ? project(route.from.lat, route.from.lng) : null;
+  const to = route ? project(route.to.lat, route.to.lng) : null;
 
   const pathPoints = routePath && routePath.length > 1
-    ? routePath.map((p) => project(p.lat, p.lng, c))
+    ? routePath.map((p) => project(p.lat, p.lng))
     : null;
   const polylinePoints = pathPoints ? pathPoints.map((p) => `${p.x},${p.y}`).join(" ") : null;
 
@@ -33,8 +74,7 @@ export default function MapView({ center, markers = [], route = null, routePath 
       className="relative w-full rounded-2xl overflow-hidden border border-border"
       style={{
         height,
-        background:
-          "linear-gradient(135deg, #e8eef3 0%, #dce7f0 100%)",
+        background: "linear-gradient(135deg, #e8eef3 0%, #dce7f0 100%)",
         backgroundImage:
           "linear-gradient(rgba(148,163,184,0.18) 1px, transparent 1px), linear-gradient(90deg, rgba(148,163,184,0.18) 1px, transparent 1px)",
         backgroundSize: "44px 44px",
@@ -50,7 +90,7 @@ export default function MapView({ center, markers = [], route = null, routePath 
 
       {/* Rota */}
       {(routePath || (route && from && to)) && (
-        <svg className="absolute inset-0 w-full h-full pointer-events-none">
+        <svg className="absolute inset-0 w-full h-full pointer-events-none" preserveAspectRatio="none">
           {routePath && pathPoints && pathPoints.length > 1 ? (
             <>
               <polyline
@@ -73,23 +113,26 @@ export default function MapView({ center, markers = [], route = null, routePath 
               />
             </>
           ) : (
-            <line
-              x1={`${from.x}%`}
-              y1={`${from.y}%`}
-              x2={`${to.x}%`}
-              y2={`${to.y}%`}
-              stroke="#0f172a"
-              strokeWidth={3}
-              strokeDasharray="6 6"
-              strokeLinecap="round"
-            />
+            from && to && (
+              <line
+                x1={`${from.x}%`}
+                y1={`${from.y}%`}
+                x2={`${to.x}%`}
+                y2={`${to.y}%`}
+                stroke="#0f172a"
+                strokeWidth={3}
+                strokeDasharray="6 6"
+                strokeLinecap="round"
+              />
+            )
           )}
         </svg>
       )}
 
       {/* Marcadores */}
       {markers.map((m) => {
-        const p = project(m.lat, m.lng, c);
+        if (!m.lat || !m.lng) return null;
+        const p = project(m.lat, m.lng);
         const isCustomer = m.type === "customer";
         const isBusy = m.type === "locksmith" && m.busy;
         return (

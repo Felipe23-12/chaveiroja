@@ -20,7 +20,7 @@ import IncomingRequestAlert from "@/components/locksmith/IncomingRequestAlert";
 import PendingRequestsList from "@/components/locksmith/PendingRequestsList";
 import { useToast } from "@/components/ui/use-toast";
 import DarkModeToggle from "@/components/DarkModeToggle";
-import { haversineKm, stepToward } from "@/lib/geo";
+import { haversineKm, stepToward, fetchDrivingRoute, etaMinutes } from "@/lib/geo";
 import { SERVICE_CATALOG } from "@/lib/pricing";
 import { confirmCashReceived } from "@/lib/payments";
 
@@ -58,6 +58,8 @@ export default function PainelChaveiro() {
   const [arrived, setArrived] = useState(false);
   const [startPhotos, setStartPhotos] = useState([]);
   const [endPhotos, setEndPhotos] = useState([]);
+  const [routePath, setRoutePath] = useState(null);
+  const [routeEta, setRouteEta] = useState(null);
   const moveTimer = useRef(null);
   const notifiedIds = useRef(new Set());
   const { toast } = useToast();
@@ -183,6 +185,25 @@ export default function PainelChaveiro() {
     });
     return unsub;
   }, [selectedId, me]);
+
+  // Busca a rota de carro entre o chaveiro e o cliente (OSRM)
+  useEffect(() => {
+    if (!active || !active.locksmith_lat || !active.customer_lat) {
+      setRoutePath(null);
+      setRouteEta(null);
+      return;
+    }
+    const from = { lat: active.locksmith_lat, lng: active.locksmith_lng };
+    const to = { lat: active.customer_lat, lng: active.customer_lng };
+    setRoutePath(null);
+    setRouteEta(null);
+    fetchDrivingRoute(from, to).then((r) => {
+      if (r) {
+        setRoutePath(r.coordinates);
+        setRouteEta(etaMinutes(r.duration));
+      }
+    });
+  }, [active?.id, active?.locksmith_lat, active?.locksmith_lng, active?.customer_lat, active?.customer_lng]);
 
   // Assina o serviço em andamento deste chaveiro (aceito / a caminho)
   useEffect(() => {
@@ -474,6 +495,8 @@ export default function PainelChaveiro() {
                   ? { from: { lat: active.locksmith_lat, lng: active.locksmith_lng }, to: { lat: active.customer_lat, lng: active.customer_lng } }
                   : null
               }
+              routePath={routePath}
+              eta={routeEta}
             />
           )}
 

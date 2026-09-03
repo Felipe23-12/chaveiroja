@@ -334,7 +334,7 @@ export default function Home() {
 
   // Busca a rota real de carro entre o chaveiro e o cliente (OSRM)
   useEffect(() => {
-    if (step !== 5 || !activeRequest) return;
+    if (step < 4 || !activeRequest) return;
     const from = { lat: activeRequest.locksmith_lat, lng: activeRequest.locksmith_lng };
     const to = { lat: activeRequest.customer_lat, lng: activeRequest.customer_lng };
     if (!from.lat || !to.lat) return;
@@ -565,21 +565,34 @@ export default function Home() {
 
       {/* Step 4: Pedido em andamento (chaveiro aceitou) */}
       {step === 4 && activeRequest && activeRequest.status === "accepted" && (
-        <div className="space-y-5 text-center">
-          <div className="flex flex-col items-center py-8">
+        <div className="space-y-5">
+          <div className="flex flex-col items-center text-center">
             <div className="w-16 h-16 rounded-full bg-emerald-100 flex items-center justify-center mb-4">
               <CheckCircle2 className="w-8 h-8 text-emerald-600" />
             </div>
             <h2 className="font-heading font-semibold text-lg text-foreground mb-1">
               Chaveiro aceitou seu pedido!
             </h2>
-            <p className="text-sm text-muted-foreground mb-4">
+            <p className="text-sm text-muted-foreground mb-3">
               {selectedLocksmith?.name} · {service?.label}
             </p>
             <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-100 text-emerald-700 text-xs font-medium">
               <CheckCircle2 className="w-3.5 h-3.5" /> Status: Em Andamento
             </span>
           </div>
+
+          <MapView
+            center={{ lat: activeRequest.customer_lat, lng: activeRequest.customer_lng }}
+            height={300}
+            markers={[
+              { id: "c", lat: activeRequest.customer_lat, lng: activeRequest.customer_lng, type: "customer", label: "Você" },
+              { id: "l", lat: activeRequest.locksmith_lat, lng: activeRequest.locksmith_lng, type: "locksmith", label: selectedLocksmith?.name?.split(" ")[0] },
+            ]}
+            route={{ from: { lat: activeRequest.locksmith_lat, lng: activeRequest.locksmith_lng }, to: { lat: activeRequest.customer_lat, lng: activeRequest.customer_lng } }}
+            routePath={routePath}
+            eta={routeEta}
+          />
+
           <LocksmithMiniProfile locksmith={selectedLocksmith} />
           <Button onClick={() => { handleAdvance(); setStep(5); }} size="lg" className="w-full">
             Acompanhar no mapa <Navigation className="w-4 h-4 ml-2" />
