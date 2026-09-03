@@ -118,3 +118,14 @@
 .animate-alert-slide {
   animation: alert-slide-in 0.3s ease-out;
 }
+
+/* Animação de fluxo da rota no mapa (linha pontilhada se move) */
+@keyframes route-flow {
+  to {
+    stroke-dashoffset: -36;
+  }
+}
+
+.route-flow {
+  animation: route-flow 1s linear infinite;
+}

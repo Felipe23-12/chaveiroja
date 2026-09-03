@@ -88,46 +88,114 @@ export default function MapView({ center, markers = [], route = null, routePath 
         <div className="absolute top-0 bottom-0 left-3/4 w-3 bg-slate-200/60" />
       </div>
 
-      {/* Rota */}
+      {/* Rota traçada */}
       {(routePath || (route && from && to)) && (
-        <svg className="absolute inset-0 w-full h-full pointer-events-none" preserveAspectRatio="none">
+        <svg
+          className="absolute inset-0 w-full h-full pointer-events-none"
+          viewBox="0 0 100 100"
+          preserveAspectRatio="none"
+        >
           {routePath && pathPoints && pathPoints.length > 1 ? (
             <>
+              {/* Halo externo (sombra/glow) */}
+              <polyline
+                points={polylinePoints}
+                fill="none"
+                stroke="#0ea5e9"
+                strokeWidth={7}
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                opacity={0.25}
+                vectorEffect="non-scaling-stroke"
+              />
+              {/* Linha base escura */}
               <polyline
                 points={polylinePoints}
                 fill="none"
                 stroke="#0f172a"
-                strokeWidth={4}
+                strokeWidth={5}
                 strokeLinecap="round"
                 strokeLinejoin="round"
-                opacity={0.85}
+                opacity={0.9}
+                vectorEffect="non-scaling-stroke"
               />
+              {/* Linha animada de fluxo (azul claro) */}
               <polyline
                 points={polylinePoints}
                 fill="none"
                 stroke="#38bdf8"
-                strokeWidth={2}
+                strokeWidth={3}
                 strokeLinecap="round"
                 strokeLinejoin="round"
-                strokeDasharray="5 5"
+                strokeDasharray="10 8"
+                className="route-flow"
+                vectorEffect="non-scaling-stroke"
               />
             </>
           ) : (
             from && to && (
-              <line
-                x1={`${from.x}%`}
-                y1={`${from.y}%`}
-                x2={`${to.x}%`}
-                y2={`${to.y}%`}
-                stroke="#0f172a"
-                strokeWidth={3}
-                strokeDasharray="6 6"
-                strokeLinecap="round"
-              />
+              <>
+                <line
+                  x1={`${from.x}`}
+                  y1={`${from.y}`}
+                  x2={`${to.x}`}
+                  y2={`${to.y}`}
+                  stroke="#0ea5e9"
+                  strokeWidth={7}
+                  strokeLinecap="round"
+                  opacity={0.25}
+                  vectorEffect="non-scaling-stroke"
+                />
+                <line
+                  x1={`${from.x}`}
+                  y1={`${from.y}`}
+                  x2={`${to.x}`}
+                  y2={`${to.y}`}
+                  stroke="#0f172a"
+                  strokeWidth={5}
+                  strokeDasharray="10 8"
+                  strokeLinecap="round"
+                  opacity={0.9}
+                  vectorEffect="non-scaling-stroke"
+                />
+                <line
+                  x1={`${from.x}`}
+                  y1={`${from.y}`}
+                  x2={`${to.x}`}
+                  y2={`${to.y}`}
+                  stroke="#38bdf8"
+                  strokeWidth={3}
+                  strokeDasharray="10 8"
+                  strokeLinecap="round"
+                  className="route-flow"
+                  vectorEffect="non-scaling-stroke"
+                />
+              </>
             )
           )}
         </svg>
       )}
+
+      {/* Seta de direção no meio da rota */}
+      {route && from && to && (() => {
+        const midX = (from.x + to.x) / 2;
+        const midY = (from.y + to.y) / 2;
+        const angle = (Math.atan2(to.y - from.y, to.x - from.x) * 180) / Math.PI;
+        return (
+          <div
+            className="absolute z-20 pointer-events-none"
+            style={{
+              left: `${midX}%`,
+              top: `${midY}%`,
+              transform: `translate(-50%, -50%) rotate(${angle}deg)`,
+            }}
+          >
+            <div className="w-7 h-7 rounded-full bg-sky-500 border-2 border-white shadow-lg flex items-center justify-center">
+              <Navigation className="w-4 h-4 text-white" />
+            </div>
+          </div>
+        );
+      })()}
 
       {/* Marcadores */}
       {markers.map((m) => {
@@ -179,8 +247,9 @@ export default function MapView({ center, markers = [], route = null, routePath 
       </div>
 
       {route && (
-        <div className="absolute top-2 right-2 flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-white/90 shadow text-[11px] font-medium text-slate-700">
-          <Navigation className="w-3.5 h-3.5 text-primary" /> {eta ? `${eta} min · chegada` : "Rota até você"}
+        <div className="absolute top-2 right-2 flex items-center gap-2 px-3 py-2 rounded-xl bg-sky-500 text-white shadow-lg text-xs font-bold">
+          <Navigation className="w-4 h-4" />
+          {eta ? `${eta} min · chegada` : "Rota traçada"}
         </div>
       )}
     </div>
