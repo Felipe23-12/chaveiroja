@@ -19,6 +19,10 @@ import PointsProgressCard from "@/components/locksmith/PointsProgressCard";
 import PaymentStep from "@/components/payment/PaymentStep";
 import { createPaymentRecord, confirmPaymentPaid } from "@/lib/payments";
 import { Image } from "@/components/ui/image";
+import StepTransition from "@/components/ui/StepTransition";
+import StepProgress from "@/components/ui/StepProgress";
+import ErrorBanner from "@/components/ui/ErrorBanner";
+import LoadingCard from "@/components/ui/LoadingCard";
 
 export default function Home() {
   const [step, setStep] = useState(1);
@@ -424,7 +428,7 @@ export default function Home() {
 
   return (
     <div className="max-w-2xl mx-auto px-4 py-6 md:py-10">
-      <div className="mb-8">
+      <div className="mb-8 fade-in-up">
         <div className="flex items-center gap-2 mb-2">
           <Image
             src="https://media.base44.com/images/public/6a975d266a8000184833026a/9589e6a99_generated_image.png"
@@ -444,19 +448,12 @@ export default function Home() {
       )}
 
       {showAppFlow && (
-        <div className="flex items-center gap-2 mb-6">
-          {[1, 2, 3, 4, 5, 6, 7, 8].map((n) => (
-            <div
-              key={n}
-              className={`h-1.5 flex-1 rounded-full transition-colors ${step >= n ? "bg-primary" : "bg-border"}`}
-            />
-          ))}
-        </div>
+        <StepProgress step={step} total={8} />
       )}
 
       {/* Step 1: Serviço */}
       {step === 1 && showAppFlow && (
-        <div className="space-y-5">
+        <div className="space-y-5 step-enter">
           <PointsProgressCard loyalty={loyalty} />
           <LiveLocksmithsMap customerLoc={customerLoc} />
           <div>
@@ -479,7 +476,7 @@ export default function Home() {
 
       {/* Step 2: Configuração + preço */}
       {step === 2 && service && (
-        <div className="space-y-5">
+        <div className="space-y-5 step-enter">
           {service.isCarKey ? (
             <CarKeyConfig
               service={service}
@@ -536,9 +533,7 @@ export default function Home() {
             </div>
           </div>
 
-          {searchError && (
-            <p className="text-sm text-red-600 bg-red-50 p-3 rounded-lg">{searchError}</p>
-          )}
+          <ErrorBanner message={searchError} />
 
           <div className="flex gap-3">
             <Button variant="outline" onClick={() => setStep(1)} className="flex-1">
@@ -554,7 +549,7 @@ export default function Home() {
 
       {/* Step 3: Procurando / tocando no chaveiro */}
       {step === 3 && activeRequest && (
-        <div className="space-y-5 text-center">
+        <div className="space-y-5 text-center step-enter">
           <div className="flex flex-col items-center py-8">
             <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mb-4">
               <Bell className="w-8 h-8 text-primary animate-bounce" />
@@ -577,7 +572,7 @@ export default function Home() {
 
       {/* Step 4: Pedido em andamento (chaveiro aceitou) */}
       {step === 4 && activeRequest && activeRequest.status === "accepted" && (
-        <div className="space-y-5">
+        <div className="space-y-5 step-enter">
           <div className="flex flex-col items-center text-center">
             <div className="w-16 h-16 rounded-full bg-emerald-100 flex items-center justify-center mb-4">
               <CheckCircle2 className="w-8 h-8 text-emerald-600" />
@@ -614,7 +609,7 @@ export default function Home() {
 
       {/* Step 5: Acompanhamento em tempo real */}
       {step === 5 && activeRequest && (
-        <div className="space-y-5">
+        <div className="space-y-5 step-enter">
           <div>
             <h2 className="font-heading font-semibold text-lg text-foreground flex items-center gap-2">
               <Navigation className="w-5 h-5 text-primary" /> Acompanhando serviço
@@ -662,7 +657,7 @@ export default function Home() {
 
       {/* Step 6: Cliente confirma que o chaveiro finalizou o serviço */}
       {step === 6 && activeRequest && activeRequest.status === "completed" && (
-        <div className="space-y-5">
+        <div className="space-y-5 step-enter">
           <div className="flex flex-col items-center text-center py-4">
             <div className="w-16 h-16 rounded-full bg-emerald-100 flex items-center justify-center mb-4">
               <CheckCircle2 className="w-8 h-8 text-emerald-600" />
@@ -700,7 +695,7 @@ export default function Home() {
 
       {/* Step 7: Pagamento (após confirmação do chaveiro) */}
       {step === 7 && activeRequest && activeRequest.locksmith_confirmed && (
-        <div className="space-y-3">
+        <div className="space-y-3 step-enter">
           <div className="flex flex-col items-center text-center py-4">
             <div className="w-16 h-16 rounded-full bg-emerald-100 flex items-center justify-center mb-4">
               <CheckCircle2 className="w-8 h-8 text-emerald-600" />
@@ -731,15 +726,13 @@ export default function Home() {
               onBack={handleNewRequest}
             />
           )}
-          {searchError && (
-            <p className="text-sm text-red-600 bg-red-50 p-3 rounded-lg">{searchError}</p>
-          )}
+          <ErrorBanner message={searchError} />
         </div>
       )}
 
       {/* Step 8: Avaliação final */}
       {step === 8 && activeRequest && (
-        <div className="space-y-5">
+        <div className="space-y-5 step-enter">
           <div className="flex flex-col items-center text-center py-4">
             <div className="w-16 h-16 rounded-full bg-emerald-100 flex items-center justify-center mb-4">
               <CheckCircle2 className="w-8 h-8 text-emerald-600" />
@@ -769,7 +762,7 @@ export default function Home() {
 
       {/* Tela de pagamento da taxa de cancelamento */}
       {cancelFeeData && activeRequest && (
-        <div className="space-y-3">
+        <div className="space-y-3 step-enter">
           <div className="flex flex-col items-center text-center py-4">
             <div className="w-16 h-16 rounded-full bg-amber-100 flex items-center justify-center mb-4">
               <AlertTriangle className="w-8 h-8 text-amber-600" />
@@ -787,9 +780,7 @@ export default function Home() {
             onConfirm={handleCancelFeePayment}
             onBack={handleNewRequest}
           />
-          {searchError && (
-            <p className="text-sm text-red-600 bg-red-50 p-3 rounded-lg">{searchError}</p>
-          )}
+          <ErrorBanner message={searchError} />
         </div>
       )}
     </div>
