@@ -735,12 +735,8 @@ export default function Home() {
 
   const handleCancel = async () => {
     if (!activeRequest) return;
-    // Não permite cancelar após o chaveiro chegar ou iniciar o atendimento
-    const arrived = activeRequest.locksmith_arrived || (activeRequest.start_photos?.length > 0);
-    if (arrived) {
-      toast({ title: "Não é possível cancelar", description: "O chaveiro já chegou no local. Aguarde a finalização do serviço.", variant: "destructive" });
-      return;
-    }
+    // O cliente pode cancelar a qualquer momento — inclusive após a chegada do
+    // chaveiro. As regras de taxa de cancelamento continuam valendo.
     const started = activeRequest.status === "accepted" || activeRequest.status === "on_the_way";
     if (started) {
       // Janela grátis: cancelamento sem custo nos primeiros 5 min após o aceite
@@ -1127,7 +1123,7 @@ export default function Home() {
             <UpgradeToUrgentButton request={activeRequest} onUpdated={setActiveRequest} />
           )}
 
-          {activeRequest.status !== "completed" && !activeRequest.locksmith_arrived && !activeRequest.start_photos?.length && (
+          {activeRequest.status !== "completed" && (
             <Button onClick={handleCancel} variant="outline" className="w-full text-red-600 border-red-200 hover:bg-red-50">
               Cancelar serviço
             </Button>
