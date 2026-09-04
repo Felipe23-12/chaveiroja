@@ -8,6 +8,7 @@ import { calculateDynamicPrice } from "@/lib/dynamicPricing";
 import { searchFipeAndKeyValue } from "@/lib/carKey";
 import { detectCarKeyProgramming } from "@/lib/carKeyProgramming";
 import { getKeyCancelBlock } from "@/lib/keyCancelBlock";
+import KeyBlockBanner from "@/components/locksmith/KeyBlockBanner";
 import { getMotoKeyRange, getMotoModel, MOTO_BRANDS } from "@/lib/motoKey";
 import MotoKeyConfig from "@/components/locksmith/MotoKeyConfig";
 import DynamicPriceFactors from "@/components/locksmith/DynamicPriceFactors";
@@ -94,6 +95,7 @@ export default function Home() {
   const [routeEta, setRouteEta] = useState(null);
   const [cancelFeeData, setCancelFeeData] = useState(null);
   const [cancelConfirmOpen, setCancelConfirmOpen] = useState(false);
+  const [keyBlock, setKeyBlock] = useState(null);
   const [customerName, setCustomerName] = useState("");
   const reqRef = useRef(null);
   const notifiedMoving = useRef(false);
@@ -126,6 +128,15 @@ export default function Home() {
   useEffect(() => {
     base44.auth.me().then((u) => setCustomerName(u?.full_name || "")).catch(() => {});
   }, []);
+
+  // Verificação no início da solicitação: bloqueio de 3 horas após 3 cancelamentos
+  useEffect(() => {
+    base44.auth
+      .me()
+      .then((u) => getKeyCancelBlock(u?.id))
+      .then(setKeyBlock)
+      .catch(() => setKeyBlock(null));
+  }, [activeRequest?.status]);
 
   // Distância do chaveiro elegível mais próximo (para estimativa de preço)
   const nearestDistance = useMemo(() => {
@@ -748,6 +759,7 @@ export default function Home() {
       {/* Step 1: Serviço */}
       {step === 1 && showAppFlow && (
         <div className="space-y-5 step-enter">
+          <KeyBlockBanner block={keyBlock} />
           <PointsProgressCard loyalty={loyalty} />
           <div>
             <h2 className="font-heading font-semibold text-lg text-foreground">Qual serviço você precisa?</h2>
@@ -758,7 +770,7 @@ export default function Home() {
               <ServiceCard key={s.id} service={s} selected={serviceId === s.id} onClick={() => setServiceId(s.id)} />
             ))}
           </div>
-          <Button onClick={() => goToStep(2)} disabled={!serviceId} size="lg" className="w-full">
+          <Button onClick={() => goToStep(2)} disabled={!serviceId || keyBlock?.blocked} size="lg" className="w-full">
             Continuar <ArrowRight className="w-4 h-4 ml-2" />
           </Button>
         </div>
