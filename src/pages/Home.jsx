@@ -16,6 +16,7 @@ import ModuleSelector from "@/components/locksmith/ModuleSelector";
 import LocksmithMiniProfile from "@/components/locksmith/LocksmithMiniProfile";
 import ReviewForm from "@/components/locksmith/ReviewForm";
 import LightMap from "@/components/map/LightMap";
+import UrgentArrivalCountdown from "@/components/locksmith/UrgentArrivalCountdown";
 import { DEFAULT_CENTER, getCustomerLocation, haversineKm, fetchDrivingRoute, etaMinutes } from "@/lib/geo";
 import { getClientLoyalty, applyLoyaltyDiscount } from "@/lib/loyalty";
 import PointsProgressCard from "@/components/locksmith/PointsProgressCard";
@@ -805,6 +806,8 @@ export default function Home() {
             </span>
           </div>
 
+          <UrgentArrivalCountdown request={activeRequest} />
+
           <LightMap
             center={{ lat: activeRequest.customer_lat, lng: activeRequest.customer_lng }}
             height={300}
@@ -843,6 +846,8 @@ export default function Home() {
             </h2>
             <p className="text-sm text-muted-foreground">{activeRequest.service_type} · {activeRequest.address}</p>
           </div>
+
+          <UrgentArrivalCountdown request={activeRequest} />
 
           {activeRequest.locksmith_arrived && !activeRequest.client_arrived_confirmed && (
             <div className="p-4 rounded-2xl border-2 border-primary bg-primary/5 space-y-3">
