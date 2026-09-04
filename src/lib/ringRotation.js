@@ -23,6 +23,8 @@ export function buildEligibleQueue(locksmiths, service, customerLoc, radiusKm = 
       return specs.includes(service.specialty);
     })
     .map((l) => ({ l, d: haversineKm(customerLoc, { lat: l.lat, lng: l.lng }) }))
+    // Respeita o raio de atendimento configurado por cada chaveiro
+    .filter((q) => q.d <= (q.l.service_radius_km || 15))
     .sort((a, b) => a.d - b.d);
 
   // Respeita o raio de busca escolhido pelo cliente
