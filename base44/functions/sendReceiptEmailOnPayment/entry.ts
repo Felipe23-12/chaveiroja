@@ -6,8 +6,10 @@ import { verifyInternalCall } from '../../shared/internalCall.ts';
 export default async function(req) {
   try {
     const base44 = createClientFromRequest(req);
-    const body = await req.json();
-    if (!verifyInternalCall(body)) return Response.json({ error: 'Unauthorized' }, { status: 401 });
+    const body = await req.json().catch(() => ({}));
+    const internalCall = verifyInternalCall(body);
+    const user = internalCall ? null : await base44.auth.me().catch(() => null);
+    if (!internalCall && !user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
     const { service_request_id } = body;
     if (!service_request_id) {
       return Response.json({ error: 'service_request_id é obrigatório' }, { status: 400 });
@@ -16,6 +18,9 @@ export default async function(req) {
     const request = await base44.asServiceRole.entities.ServiceRequest.get(service_request_id);
     if (!request) {
       return Response.json({ error: 'Solicitação não encontrada' }, { status: 404 });
+    }
+    if (!internalCall && user.role !== 'admin' && request.created_by_id !== user.id) {
+      return Response.json({ error: 'Forbidden' }, { status: 403 });
     }
 
     // Só envia se o pagamento estiver confirmado
@@ -95,7 +100,7 @@ export default async function(req) {
       body: html,
     });
 
-    return Response.json({ success: true, sentTo: customerEmail });
+    return Response.json({ success: true });
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });
   }
