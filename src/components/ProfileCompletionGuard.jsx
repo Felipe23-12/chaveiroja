@@ -9,7 +9,7 @@ export default function ProfileCompletionGuard() {
   if (!user) return <Outlet />;
 
   const cpfOk = isValidCpf(user.cpf);
-  const phoneOk = String(user.phone || "").trim().length >= 8;
+  const phoneOk = String(user.phone || "").replace(/\D/g, "").length >= 10;
 
   if (cpfOk && phoneOk) return <Outlet />;
 

@@ -49,8 +49,8 @@ export default function GoogleComplete() {
       setError("Crie um nome de usuário");
       return;
     }
-    if (!phone.trim()) {
-      setError("Informe seu telefone");
+    if (onlyDigits(phone).length < 10) {
+      setError("Informe um telefone válido com DDD");
       return;
     }
     const cpfDigits = onlyDigits(cpf);
