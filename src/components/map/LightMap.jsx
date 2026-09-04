@@ -219,7 +219,10 @@ export default function LightMap({ center, markers = [], route = null, routePath
           }
           if (m.type === "client") {
             return (
-              <div key={m.id} className="absolute -translate-x-1/2 -translate-y-full z-10" style={p}>
+              <div key={m.id} className="absolute -translate-x-1/2 -translate-y-full z-10 flex flex-col items-center" style={p}>
+                <span className="mb-1 px-2 py-0.5 rounded-md bg-amber-500 text-white text-[10px] font-bold shadow whitespace-nowrap">
+                  {m.label || "Cliente"}
+                </span>
                 <div className="w-7 h-7 rounded-[50%_50%_50%_0] -rotate-45 border-[3px] border-white shadow-lg flex items-center justify-center bg-amber-500">
                   <span className="rotate-45 text-white text-[12px] font-bold">!</span>
                 </div>
