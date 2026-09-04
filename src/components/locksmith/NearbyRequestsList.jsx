@@ -20,7 +20,18 @@ const RADIUS_OPTIONS = [1, 3, 5, 10, 15, 20, 30, 40, 50].map((km) => ({
 export default function NearbyRequestsList({ locksmith }) {
   const [allRequests, setAllRequests] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [filterEnabled, setFilterEnabled] = useState(true);
+  // O estado do filtro fica guardado no aparelho — ao fechar e reabrir o app
+  // o chaveiro encontra a mesma configuração ativa.
+  const [filterEnabled, setFilterEnabled] = useState(
+    () => localStorage.getItem("nearby_radius_filter") !== "off"
+  );
+
+  const toggleFilter = () => {
+    setFilterEnabled((f) => {
+      localStorage.setItem("nearby_radius_filter", f ? "off" : "on");
+      return !f;
+    });
+  };
   // Usa o raio de atendimento salvo no perfil do chaveiro
   const savedRadius = locksmith?.service_radius_km || DEFAULT_SERVICE_RADIUS_KM;
   const [radius, setRadius] = useState(savedRadius);
@@ -96,7 +107,7 @@ export default function NearbyRequestsList({ locksmith }) {
           <p className="font-medium text-sm text-foreground">Solicitações na região</p>
         </div>
         <button
-          onClick={() => setFilterEnabled((f) => !f)}
+          onClick={toggleFilter}
           className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
             filterEnabled
               ? "bg-primary text-primary-foreground"
