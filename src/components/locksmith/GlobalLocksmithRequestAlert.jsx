@@ -299,6 +299,13 @@ function RequestCard({ request, onAccept, onReject, accepting, showDivider }) {
         </div>
       </div>
 
+      {hasCarKey && request.vehicle_info && (
+        <div className="rounded-lg border border-primary/30 bg-primary/5 p-2.5 mb-2">
+          <p className="text-[11px] font-medium text-muted-foreground mb-0.5">Veículo</p>
+          <p className="text-xs font-semibold text-foreground">{request.vehicle_info}</p>
+        </div>
+      )}
+
       {/* Resumo financeiro */}
       <div className="bg-muted/50 rounded-lg p-2.5 border border-border mb-2">
         {hasCarKey ? (

@@ -40,19 +40,59 @@ export default function CarKeyConfig({
       {/* Dados do veículo + pesquisa do valor da chave */}
       <div className="space-y-3">
         <label className="text-sm font-medium text-foreground block">Dados do veículo</label>
-        <div className="grid grid-cols-2 gap-3">
-          <Input
-            placeholder="Modelo (ex: Honda Civic)"
-            value={vehicleInfo.model || ""}
-            onChange={(e) => updateVehicle("model", e.target.value)}
-          />
-          <Input
-            type="number"
-            placeholder="Ano"
-            value={vehicleInfo.year || ""}
-            onChange={(e) => updateVehicle("year", e.target.value)}
-          />
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label className="text-xs text-muted-foreground mb-1 block">Montadora</label>
+            <Input
+              placeholder="Ex: Honda"
+              value={vehicleInfo.make || ""}
+              onChange={(e) => updateVehicle("make", e.target.value)}
+            />
+          </div>
+          <div>
+            <label className="text-xs text-muted-foreground mb-1 block">Modelo</label>
+            <Input
+              placeholder="Ex: Civic"
+              value={vehicleInfo.model || ""}
+              onChange={(e) => updateVehicle("model", e.target.value)}
+            />
+          </div>
+          <div>
+            <label className="text-xs text-muted-foreground mb-1 block">Ano do veículo</label>
+            <Input
+              type="number"
+              inputMode="numeric"
+              placeholder="Ex: 2020"
+              value={vehicleInfo.year || ""}
+              onChange={(e) => updateVehicle("year", e.target.value)}
+            />
+          </div>
         </div>
+
+        <div>
+          <label className="text-sm font-medium text-foreground mb-1.5 block">A porta do carro está</label>
+          <div className="grid grid-cols-2 gap-3">
+            <button
+              type="button"
+              onClick={() => updateVehicle("doorStatus", "aberta")}
+              className={`min-h-[44px] rounded-xl border-2 text-sm font-medium transition-colors ${
+                vehicleInfo.doorStatus === "aberta" ? "border-primary bg-primary/5 text-foreground" : "border-border text-muted-foreground"
+              }`}
+            >
+              Aberta
+            </button>
+            <button
+              type="button"
+              onClick={() => updateVehicle("doorStatus", "fechada")}
+              className={`min-h-[44px] rounded-xl border-2 text-sm font-medium transition-colors ${
+                vehicleInfo.doorStatus === "fechada" ? "border-primary bg-primary/5 text-foreground" : "border-border text-muted-foreground"
+              }`}
+            >
+              Fechada
+            </button>
+          </div>
+        </div>
+
         <Button type="button" variant="outline" onClick={onSearch} disabled={searching} className="w-full">
           {searching ? (
             <>

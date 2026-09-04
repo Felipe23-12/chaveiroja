@@ -82,7 +82,7 @@ export default function Home() {
   const [urgency, setUrgency] = useState("normal");
   const [selectedOptions, setSelectedOptions] = useState([]);
   const [customAddons, setCustomAddons] = useState({});
-  const [vehicleInfo, setVehicleInfo] = useState({ model: "", year: "", complexity: "simples" });
+  const [vehicleInfo, setVehicleInfo] = useState({ make: "", model: "", year: "", doorStatus: "", complexity: "simples" });
   const [locks, setLocks] = useState([createLock()]);
   const [searchRadius, setSearchRadius] = useState(DEFAULT_RADIUS_KM);
   const [currentRadius, setCurrentRadius] = useState(DEFAULT_RADIUS_KM);
@@ -127,8 +127,8 @@ export default function Home() {
 
   // Regras de programação (acesso online pago / somente concessionária)
   const programming = useMemo(
-    () => (service?.isCarKey ? detectCarKeyProgramming(vehicleInfo.model, vehicleInfo.year) : null),
-    [service, vehicleInfo.model, vehicleInfo.year]
+    () => (service?.isCarKey ? detectCarKeyProgramming(`${vehicleInfo.make} ${vehicleInfo.model}`.trim(), vehicleInfo.year) : null),
+    [service, vehicleInfo.make, vehicleInfo.model, vehicleInfo.year]
   );
 
   // Serviço usado no cálculo: para moto, a faixa vem da tabela de regras
@@ -297,14 +297,15 @@ export default function Home() {
   };
 
   const handleSearchKey = async () => {
-    if (!vehicleInfo.model.trim() || !vehicleInfo.year.trim()) {
-      setSearchError("Informe modelo e ano do veículo");
+    if (!vehicleInfo.make.trim() || !vehicleInfo.model.trim() || !vehicleInfo.year.trim()) {
+      setSearchError("Informe montadora, modelo e ano do veículo");
       return;
     }
     setSearching(true);
     setSearchError("");
     try {
-      const res = await searchFipeAndKeyValue(vehicleInfo.model, vehicleInfo.year);
+      const vehicleName = `${vehicleInfo.make} ${vehicleInfo.model}`.trim();
+      const res = await searchFipeAndKeyValue(vehicleName, vehicleInfo.year);
       setFipeValue(res.fipeValue);
       setKeyValue(res.keyValue);
       setHasCodedKey(res.hasCodedKey);
@@ -413,7 +414,7 @@ export default function Home() {
           key_value: effectiveKeyValue,
           fipe_value: fipeValue,
           key_type: carKeyType,
-          vehicle_info: `${vehicleInfo.model} ${vehicleInfo.year}`.trim(),
+          vehicle_info: `${vehicleInfo.make} ${vehicleInfo.model} · Ano ${vehicleInfo.year} · Porta ${vehicleInfo.doorStatus}`.trim(),
           labor_cost: adjustedLabor,
           locomotion_cost: kmFee,
           distance_km: initialDistanceKm,
@@ -767,7 +768,7 @@ export default function Home() {
     setUrgency("normal");
     setSelectedOptions([]);
     setCustomAddons({});
-    setVehicleInfo({ model: "", year: "", complexity: "simples" });
+    setVehicleInfo({ make: "", model: "", year: "", doorStatus: "", complexity: "simples" });
     setLocks([createLock()]);
     setSearchRadius(DEFAULT_RADIUS_KM);
     setCurrentRadius(DEFAULT_RADIUS_KM);
@@ -957,7 +958,7 @@ export default function Home() {
                 !address ||
                 submitting ||
                 programming?.dealerOnly ||
-                (service?.isCarKey && !fipeValue) ||
+                (service?.isCarKey && (!fipeValue || !vehicleInfo.doorStatus)) ||
                 (service?.isMotoKey && !motoRule?.range)
               }
               className="flex-1"

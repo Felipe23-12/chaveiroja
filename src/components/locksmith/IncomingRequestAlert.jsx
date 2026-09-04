@@ -76,6 +76,13 @@ export default function IncomingRequestAlert({ request, onAccept, onReject }) {
           </p>
         </div>
 
+        {hasCarKey && request.vehicle_info && (
+          <div className="rounded-lg border border-primary/30 bg-primary/5 p-3">
+            <p className="text-xs font-medium text-muted-foreground mb-1">Veículo</p>
+            <p className="text-sm font-semibold text-foreground">{request.vehicle_info}</p>
+          </div>
+        )}
+
         {/* Resumo financeiro */}
         {hasCarKey ? (
           <div className="space-y-1 text-sm bg-card rounded-lg p-3 border border-border">
