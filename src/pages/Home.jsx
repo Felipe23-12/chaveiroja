@@ -18,6 +18,7 @@ import ModuleSelector from "@/components/locksmith/ModuleSelector";
 import LocksmithMiniProfile from "@/components/locksmith/LocksmithMiniProfile";
 import ReviewForm from "@/components/locksmith/ReviewForm";
 import LightMap from "@/components/map/LightMap";
+import UpgradeToUrgentButton from "@/components/locksmith/UpgradeToUrgentButton";
 import UrgentArrivalCountdown from "@/components/locksmith/UrgentArrivalCountdown";
 import { DEFAULT_CENTER, getCustomerLocation, haversineKm, fetchDrivingRoute, etaMinutes } from "@/lib/geo";
 import { getClientLoyalty, applyLoyaltyDiscount } from "@/lib/loyalty";
@@ -903,6 +904,7 @@ export default function Home() {
           />
 
           <LocksmithMiniProfile locksmith={selectedLocksmith} />
+          <UpgradeToUrgentButton request={activeRequest} onUpdated={setActiveRequest} />
           <div className="flex gap-2">
             <Button onClick={() => { handleAdvance(); goToStep(5); }} size="lg" className="flex-1">
               Acompanhar no mapa <Navigation className="w-4 h-4 ml-2" />
@@ -975,6 +977,10 @@ export default function Home() {
           >
             <MessageCircle className="w-4 h-4 mr-2" /> Ver rota e conversar com o chaveiro
           </Button>
+
+          {!activeRequest.start_photos?.length && (
+            <UpgradeToUrgentButton request={activeRequest} onUpdated={setActiveRequest} />
+          )}
 
           {activeRequest.status !== "completed" && !activeRequest.locksmith_arrived && !activeRequest.start_photos?.length && (
             <Button onClick={handleCancel} variant="outline" className="w-full text-red-600 border-red-200 hover:bg-red-50">
