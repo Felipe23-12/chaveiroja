@@ -230,6 +230,14 @@
       "format": "date-time",
       "description": "Data/hora em que o chamado recusado deve tocar novamente para o mesmo chaveiro (2 minutos ap\u00f3s a recusa)"
     },
+    "client_push_sent": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "default": [],
+      "description": "Avisos push j\u00e1 enviados ao cliente (evita repeti\u00e7\u00e3o do mesmo alerta)"
+    },
     "urgency_upgrade_status": {
       "type": "string",
       "enum": [
