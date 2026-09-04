@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Loader2, User, UserPlus, Wrench, Phone, CreditCard, AtSign } from "lucide-react";
 import AuthLayout from "@/components/AuthLayout";
+import { cpfError, onlyDigits, formatCpf } from "@/lib/cpf";
 
 export default function GoogleComplete() {
   const [searchParams] = useSearchParams();
@@ -52,9 +53,10 @@ export default function GoogleComplete() {
       setError("Informe seu telefone");
       return;
     }
-    const cpfDigits = cpf.replace(/\D/g, "");
-    if (cpfDigits.length !== 11) {
-      setError("Informe um CPF válido (11 dígitos)");
+    const cpfDigits = onlyDigits(cpf);
+    const cpfMsg = cpfError(cpf);
+    if (cpfMsg) {
+      setError(cpfMsg);
       return;
     }
     setSaving(true);
@@ -154,7 +156,7 @@ export default function GoogleComplete() {
               inputMode="numeric"
               placeholder="000.000.000-00"
               value={cpf}
-              onChange={(e) => setCpf(e.target.value)}
+              onChange={(e) => setCpf(formatCpf(e.target.value))}
               className="pl-10 h-12"
               required
             />

@@ -9,6 +9,7 @@ import AuthLayout from "@/components/AuthLayout";
 import GoogleIcon from "@/components/GoogleIcon";
 import { safeReturnTo } from "@/lib/authReturnTo";
 import InlineOtpInput from "@/components/auth/InlineOtpInput";
+import { cpfError, formatCpf } from "@/lib/cpf";
 
 export default function RegisterCliente() {
   const [fullName, setFullName] = useState("");
@@ -35,9 +36,9 @@ export default function RegisterCliente() {
       setError("As senhas não coincidem");
       return;
     }
-    const cpfDigits = cpf.replace(/\D/g, "");
-    if (cpfDigits.length !== 11) {
-      setError("Informe um CPF válido (11 dígitos)");
+    const cpfMsg = cpfError(cpf);
+    if (cpfMsg) {
+      setError(cpfMsg);
       return;
     }
     setLoading(true);
@@ -166,7 +167,7 @@ export default function RegisterCliente() {
               inputMode="numeric"
               placeholder="000.000.000-00"
               value={cpf}
-              onChange={(e) => setCpf(e.target.value)}
+              onChange={(e) => setCpf(formatCpf(e.target.value))}
               className="pl-10 h-12"
               required
             />
