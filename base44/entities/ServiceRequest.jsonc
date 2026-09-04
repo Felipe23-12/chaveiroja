@@ -54,6 +54,40 @@
       "type": "string",
       "description": "ID do usu\u00e1rio (User) dono do perfil do chaveiro designado \u2014 usado no RLS para isolar o acesso"
     },
+    "ringing_locksmith_ids": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "default": [],
+      "description": "IDs dos perfis de chaveiro para os quais o chamado est\u00e1 tocando simultaneamente"
+    },
+    "ringing_locksmith_user_ids": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "default": [],
+      "description": "IDs dos usu\u00e1rios (User) dos chaveiros para os quais o chamado est\u00e1 tocando \u2014 usado no RLS"
+    },
+    "rejections": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "locksmith_id": {
+            "type": "string"
+          },
+          "rering_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Momento em que o chamado volta a tocar para este chaveiro"
+          }
+        }
+      },
+      "default": [],
+      "description": "Recusas por chaveiro \u2014 cada uma com o hor\u00e1rio em que o chamado volta a tocar para ele"
+    },
     "rating": {
       "type": "number"
     },
@@ -228,7 +262,7 @@
     "rering_at": {
       "type": "string",
       "format": "date-time",
-      "description": "Data/hora em que o chamado recusado deve tocar novamente para o mesmo chaveiro (2 minutos ap\u00f3s a recusa)"
+      "description": "Data/hora em que o chamado recusado deve tocar novamente (legado \u2014 ver rejections)"
     },
     "client_push_sent": {
       "type": "array",
@@ -271,6 +305,9 @@
           "data.locksmith_user_id": "{{user.id}}"
         },
         {
+          "data.ringing_locksmith_user_ids": "{{user.id}}"
+        },
+        {
           "data.status": "searching"
         },
         {
@@ -287,6 +324,13 @@
         },
         {
           "data.locksmith_user_id": "{{user.id}}"
+        },
+        {
+          "data.ringing_locksmith_user_ids": {
+            "$in": [
+              "{{user.id}}"
+            ]
+          }
         },
         {
           "user_condition": {
