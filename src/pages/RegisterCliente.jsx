@@ -11,6 +11,7 @@ import { safeReturnTo } from "@/lib/authReturnTo";
 import InlineOtpInput from "@/components/auth/InlineOtpInput";
 import { cpfError } from "@/lib/cpf";
 import CpfInput from "@/components/auth/CpfInput";
+import TermsAcceptance from "@/components/auth/TermsAcceptance";
 
 export default function RegisterCliente() {
   const [fullName, setFullName] = useState("");
@@ -22,6 +23,7 @@ export default function RegisterCliente() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [showOtp, setShowOtp] = useState(false);
+  const [acceptedTerms, setAcceptedTerms] = useState(false);
 
   const returnTo = safeReturnTo();
   const qs = returnTo !== "/" ? "?returnTo=" + encodeURIComponent(returnTo) : "";
@@ -40,6 +42,10 @@ export default function RegisterCliente() {
     const cpfMsg = cpfError(cpf);
     if (cpfMsg) {
       setError(cpfMsg);
+      return;
+    }
+    if (!acceptedTerms) {
+      setError("É necessário aceitar as regras e os termos de uso para criar a conta");
       return;
     }
     setLoading(true);
@@ -71,7 +77,12 @@ export default function RegisterCliente() {
 
   const finishClientRegistration = async () => {
     try {
-      await base44.auth.updateMe({ phone, cpf, account_type: "cliente" });
+      await base44.auth.updateMe({
+        phone,
+        cpf,
+        account_type: "cliente",
+        terms_accepted_at: new Date().toISOString(),
+      });
     } catch (e) {
       /* não bloqueia o cadastro se um campo opcional não puder ser salvo */
     }
@@ -211,7 +222,9 @@ export default function RegisterCliente() {
           </div>
         </div>
 
-        <Button type="submit" className="w-full h-12 font-medium" disabled={loading}>
+        <TermsAcceptance accountType="cliente" checked={acceptedTerms} onChange={setAcceptedTerms} />
+
+        <Button type="submit" className="w-full h-12 font-medium" disabled={loading || !acceptedTerms}>
           {loading ? (
             <>
               <Loader2 className="w-4 h-4 mr-2 animate-spin" />

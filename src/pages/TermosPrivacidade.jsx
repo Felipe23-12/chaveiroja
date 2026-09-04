@@ -17,6 +17,16 @@ export default function TermosPrivacidade() {
         </div>
       </div>
 
+      <div className="rounded-2xl border-2 border-primary bg-primary/5 p-4">
+        <p className="text-sm text-foreground leading-relaxed">
+          <strong>O Chaveiro Já é uma plataforma de intermediação.</strong> Apenas conectamos clientes a
+          chaveiros profissionais autônomos. Não prestamos o serviço de chaveiro, não somos empregadores dos
+          profissionais e não integramos a relação técnica do atendimento: a execução, a qualidade e a
+          responsabilidade técnica são do chaveiro escolhido. Nosso papel é oferecer a tecnologia de
+          aproximação, cálculo de preço, acompanhamento, comunicação e intermediação do pagamento.
+        </p>
+      </div>
+
       <LegalSection icon={FileText} title="1. Sobre o aplicativo e aceite dos termos">
         <p>
           O Chaveiro Já é uma plataforma digital que conecta clientes a chaveiros profissionais autônomos.

@@ -13,6 +13,7 @@ import { safeReturnTo } from "@/lib/authReturnTo";
 import InlineOtpInput from "@/components/auth/InlineOtpInput";
 import { cpfError } from "@/lib/cpf";
 import CpfInput from "@/components/auth/CpfInput";
+import TermsAcceptance from "@/components/auth/TermsAcceptance";
 
 export default function RegisterChaveiro() {
   const [fullName, setFullName] = useState("");
@@ -27,6 +28,7 @@ export default function RegisterChaveiro() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [showOtp, setShowOtp] = useState(false);
+  const [acceptedTerms, setAcceptedTerms] = useState(false);
 
   const returnTo = safeReturnTo();
   const qs = returnTo !== "/" ? "?returnTo=" + encodeURIComponent(returnTo) : "";
@@ -51,6 +53,10 @@ export default function RegisterChaveiro() {
       setError(cpfMsg);
       return;
     }
+    if (!acceptedTerms) {
+      setError("É necessário aceitar as regras e os termos de uso para criar a conta");
+      return;
+    }
     setLoading(true);
     try {
       const registration = await base44.auth.register({ email, password });
@@ -69,6 +75,7 @@ export default function RegisterChaveiro() {
           cpf,
           full_name: fullName,
           account_type: "chaveiro",
+          terms_accepted_at: new Date().toISOString(),
         });
         const dest = returnTo !== "/" ? returnTo : "/painel-chaveiro";
         window.location.assign(dest);
@@ -100,9 +107,13 @@ export default function RegisterChaveiro() {
         cpf: data.cpf,
         full_name: data.fullName,
         account_type: "chaveiro",
+        terms_accepted_at: new Date().toISOString(),
       });
     } else {
-      await base44.auth.updateMe({ account_type: "chaveiro" });
+      await base44.auth.updateMe({
+        account_type: "chaveiro",
+        terms_accepted_at: new Date().toISOString(),
+      });
     }
     const dest = returnTo !== "/" ? returnTo : "/painel-chaveiro";
     window.location.assign(dest);
@@ -274,7 +285,9 @@ export default function RegisterChaveiro() {
           </div>
         </div>
 
-        <Button type="submit" className="w-full h-12 font-medium" disabled={loading}>
+        <TermsAcceptance accountType="chaveiro" checked={acceptedTerms} onChange={setAcceptedTerms} />
+
+        <Button type="submit" className="w-full h-12 font-medium" disabled={loading || !acceptedTerms}>
           {loading ? (
             <>
               <Loader2 className="w-4 h-4 mr-2 animate-spin" />
