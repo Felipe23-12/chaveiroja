@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
 import { useAuth } from "@/lib/AuthContext";
 import { Bell, Check, X, MapPin, Clock, AlertCircle, Volume2, VolumeX, Wrench, ChevronUp } from "lucide-react";
+import { isRingingFor, rejectRing, acceptRing } from "@/lib/ringBroadcast";
 
 function formatElapsed(seconds) {
   const m = Math.floor(seconds / 60);
@@ -39,7 +40,8 @@ function playBeep() {
 export default function GlobalLocksmithRequestAlert() {
   const { user } = useAuth();
   const navigate = useNavigate();
-  const [locksmithId, setLocksmithId] = useState(null);
+  const [locksmith, setLocksmith] = useState(null);
+  const locksmithId = locksmith?.id || null;
   const [requests, setRequests] = useState([]);
   const [muted, setMuted] = useState(false);
   const [open, setOpen] = useState(false);
@@ -59,7 +61,7 @@ export default function GlobalLocksmithRequestAlert() {
     base44.entities.Locksmith
       .filter({ created_by_id: user.id })
       .then((list) => {
-        if (list.length > 0) setLocksmithId(list[0].id);
+        if (list.length > 0) setLocksmith(list[0]);
       })
       .catch(() => {});
   }, [isChaveiro, user?.id]);
@@ -69,12 +71,16 @@ export default function GlobalLocksmithRequestAlert() {
     if (!locksmithId) return;
     const load = () =>
       base44.entities.ServiceRequest
-        .filter({ locksmith_id: locksmithId, status: "ringing" }, "-created_date")
-        .then((list) => setRequests(list))
+        .filter({ ringing_locksmith_ids: locksmithId, status: "ringing" }, "-created_date")
+        .then((list) => setRequests(list.filter((r) => isRingingFor(r, locksmithId))))
         .catch(() => {});
     load();
+    const timer = setInterval(load, 15000);
     const unsub = base44.entities.ServiceRequest.subscribe(() => load());
-    return unsub;
+    return () => {
+      clearInterval(timer);
+      unsub();
+    };
   }, [locksmithId]);
 
   // Abre automaticamente quando chega a primeira solicitação
@@ -113,17 +119,11 @@ export default function GlobalLocksmithRequestAlert() {
   const handleAccept = async (reqId, extra = 0) => {
     setAccepting(reqId);
     try {
-      const req = requests.find((r) => r.id === reqId);
-      if (!req) return;
-      const newPrice = Math.round(((req.price || 0) + extra) * 100) / 100;
-      await base44.entities.ServiceRequest.update(reqId, {
-        status: "accepted",
-        accepted_at: new Date().toISOString(),
-        price: newPrice,
-        extra_cost: extra,
-      });
+      if (!locksmith) return;
+      // O chamado toca para vários chaveiros — o primeiro que aceitar atende
+      const won = await acceptRing(reqId, locksmith, extra);
       setRequests((prev) => prev.filter((r) => r.id !== reqId));
-      navigate("/painel-chaveiro");
+      if (won) navigate("/painel-chaveiro");
     } catch (e) {
       // erro silencioso
     } finally {
@@ -134,7 +134,9 @@ export default function GlobalLocksmithRequestAlert() {
   const handleReject = async (reqId) => {
     setAccepting(reqId);
     try {
-      await base44.entities.ServiceRequest.update(reqId, { status: "cancelled" });
+      const req = requests.find((r) => r.id === reqId);
+      // Recusa apenas para este chaveiro — volta a tocar para ele em 2 minutos
+      if (req) await rejectRing(req, locksmithId);
       setRequests((prev) => prev.filter((r) => r.id !== reqId));
     } catch (e) {
       // erro silencioso

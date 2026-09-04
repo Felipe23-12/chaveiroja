@@ -26,7 +26,8 @@ import UpgradeToUrgentButton from "@/components/locksmith/UpgradeToUrgentButton"
 import UrgentArrivalCountdown from "@/components/locksmith/UrgentArrivalCountdown";
 import { DEFAULT_CENTER, getCustomerLocation, haversineKm, fetchDrivingRoute, etaMinutes } from "@/lib/geo";
 import { getClientLoyalty, applyLoyaltyDiscount } from "@/lib/loyalty";
-import { buildEligibleQueue, useRingRotation } from "@/lib/ringRotation";
+import { buildEligibleQueue } from "@/lib/ringRotation";
+import { BROADCAST_SIZE } from "@/lib/ringBroadcast";
 import PointsProgressCard from "@/components/locksmith/PointsProgressCard";
 import PaymentStep from "@/components/payment/PaymentStep";
 import ReceiptButton from "@/components/payment/ReceiptButton";
@@ -317,6 +318,8 @@ export default function Home() {
       const queue = buildEligibleQueue(appLocksmiths, service, customerLoc);
       queueRef.current = queue;
       const nearest = queue[0];
+      // O chamado toca ao mesmo tempo para os chaveiros mais próximos
+      const broadcast = queue.slice(0, BROADCAST_SIZE);
 
       if (!nearest) {
         setSearchError(`Nenhum chaveiro disponível para "${service.label}" no modo aplicativo agora. Tente outro serviço ou novamente.`);
@@ -333,6 +336,8 @@ export default function Home() {
         locksmith_id: nearest.l.id,
         locksmith_name: nearest.l.name,
         locksmith_user_id: nearest.l.created_by_id,
+        ringing_locksmith_ids: broadcast.map((q) => q.l.id),
+        ringing_locksmith_user_ids: broadcast.map((q) => q.l.created_by_id),
         customer_lat: customerLoc.lat,
         customer_lng: customerLoc.lng,
         locksmith_lat: nearest.l.lat,
@@ -420,19 +425,6 @@ export default function Home() {
       setSubmitting(false);
     }
   };
-
-  // Repassa o chamado ao próximo chaveiro mais próximo a cada minuto sem resposta
-  useRingRotation({
-    request: activeRequest,
-    queueRef,
-    onRotate: (l) => {
-      setSelectedLocksmith(l);
-      toast({
-        title: "Sem resposta — repassando chamado",
-        description: `Tocando agora em ${l.name}, o próximo chaveiro mais próximo.`,
-      });
-    },
-  });
 
   // Reconstrói a fila de chaveiros ao retomar um chamado em andamento
   useEffect(() => {
@@ -534,6 +526,10 @@ export default function Home() {
       if (event.data?.id === activeRequest.id) {
         base44.entities.ServiceRequest.get(activeRequest.id).then((updated) => {
           setActiveRequest(updated);
+          // O chamado toca para vários chaveiros — carrega quem realmente aceitou
+          if (updated.locksmith_id && updated.locksmith_id !== selectedLocksmith?.id) {
+            base44.entities.Locksmith.get(updated.locksmith_id).then(setSelectedLocksmith).catch(() => {});
+          }
           if (updated.status === "accepted" && step === 3) {
             goToStep(4);
           }
@@ -919,10 +915,10 @@ export default function Home() {
               <Bell className="w-8 h-8 text-primary animate-bounce" />
             </div>
             <h2 className="font-heading font-semibold text-lg text-foreground mb-1">
-              Tocando no chaveiro mais próximo...
+              Tocando nos chaveiros mais próximos...
             </h2>
             <p className="text-sm text-muted-foreground mb-4">
-              {selectedLocksmith?.name} · {service?.label}
+              {service?.label} · o primeiro que aceitar atende você
             </p>
             <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
               <Loader2 className="w-4 h-4 animate-spin" /> Aguardando o profissional aceitar

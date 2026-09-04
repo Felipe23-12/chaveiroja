@@ -39,7 +39,7 @@ import ServiceStatusBadge, { PHASE_BORDER } from "@/components/locksmith/Service
 import ArrivalDeadlineCountdown from "@/components/locksmith/ArrivalDeadlineCountdown";
 import UrgencyUpgradeAlert from "@/components/locksmith/UrgencyUpgradeAlert";
 import { registerRejection, getRejectBlock, rejectionsToday, DAILY_REJECT_LIMIT } from "@/lib/rejectLimit";
-import { useRejectRering, RERING_DELAY_MS } from "@/hooks/useRejectRering";
+import { isRingingFor, rejectRing, acceptRing } from "@/lib/ringBroadcast";
 import UrgentNearbyAlert from "@/components/locksmith/UrgentNearbyAlert";
 import GmailConnectCard from "@/components/gmail/GmailConnectCard";
 import { notifyStatusByGmail } from "@/lib/gmailStatusEmail";
@@ -94,9 +94,6 @@ export default function PainelChaveiro() {
   const emailedStatus = useRef(new Set());
 
   const selected = locksmiths.find((l) => l.id === selectedId) || me;
-
-  // Chamados recusados voltam a tocar para este chaveiro depois de 2 minutos
-  useRejectRering(selectedId);
 
   // Monitora status da conexão (online/offline)
   useEffect(() => {
@@ -191,20 +188,28 @@ export default function PainelChaveiro() {
   // Escuta "toques" (status ringing) direcionados a este chaveiro (modo app)
   useEffect(() => {
     if (!selectedId) return;
+    // O mesmo chamado toca para vários chaveiros próximos ao mesmo tempo;
+    // quem recusou volta a receber depois de 2 minutos (regra de rering).
     const load = () =>
       base44.entities.ServiceRequest
-        .filter({ locksmith_id: selectedId, status: "ringing" }, "-created_date")
+        .filter({ ringing_locksmith_ids: selectedId, status: "ringing" }, "-created_date")
         .then((list) => {
-          setPendingRequests(list);
-          savePendingRequests(list);
+          const ringing = list.filter((r) => isRingingFor(r, selectedId));
+          setPendingRequests(ringing);
+          savePendingRequests(ringing);
         })
         .catch(() => {
           // Offline: exibe fila em cache
           if (!isOnline()) setPendingRequests(getPendingRequests());
         });
     load();
+    // Reavalia periodicamente para o chamado recusado voltar a tocar no prazo
+    const timer = setInterval(load, 15000);
     const unsub = base44.entities.ServiceRequest.subscribe(() => load());
-    return unsub;
+    return () => {
+      clearInterval(timer);
+      unsub();
+    };
   }, [selectedId]);
 
   // Notificação imediata de novos pedidos: prioritária para solicitações
@@ -216,9 +221,9 @@ export default function PainelChaveiro() {
       const r = event.data;
       if (!r || notifiedIds.current.has(r.id)) return;
 
-      if (r.locksmith_id === selectedId) {
-        // Solicitação direcionada: só notifica após o pagamento (status ringing)
-        if (r.status !== "ringing") return;
+      if ((r.ringing_locksmith_ids || []).includes(selectedId)) {
+        // Chamado tocando para este chaveiro (junto com outros próximos)
+        if (!isRingingFor(r, selectedId)) return;
         notifiedIds.current.add(r.id);
         playNotificationSound();
         toast({
@@ -464,28 +469,26 @@ export default function PainelChaveiro() {
   }, [me?.id, me?.online]);
 
   const handleAccept = async (reqId, extra = 0) => {
-    const req = pendingRequests.find((r) => r.id === reqId);
-    if (!req || !me) return;
-    const newPrice = Math.round(((req.price || 0) + extra) * 100) / 100;
-    await base44.entities.ServiceRequest.update(reqId, {
-      status: "accepted",
-      accepted_at: new Date().toISOString(),
-      locksmith_lat: me.lat,
-      locksmith_lng: me.lng,
-      price: newPrice,
-      extra_cost: extra,
-    });
+    if (!me) return;
+    // Corrida entre os chaveiros: o primeiro que aceitar fica com o chamado
+    const won = await acceptRing(reqId, me, extra);
+    if (!won) {
+      toast({
+        title: "Chamado já aceito",
+        description: "Outro chaveiro assumiu este atendimento primeiro.",
+        variant: "destructive",
+      });
+      setPendingRequests((prev) => prev.filter((r) => r.id !== reqId));
+    }
   };
 
   const handleReject = async (reqId) => {
     const req = pendingRequests.find((r) => r.id === reqId);
     if (!req) return;
-    // Não cancela o chamado: ele volta a tocar para este chaveiro em 2 minutos,
-    // caso nenhum outro chaveiro assuma nesse intervalo.
-    await base44.entities.ServiceRequest.update(reqId, {
-      status: "searching",
-      rering_at: new Date(Date.now() + RERING_DELAY_MS).toISOString(),
-    });
+    // Não cancela o chamado: ele para de tocar para este chaveiro e volta em
+    // 2 minutos, caso nenhum outro chaveiro assuma nesse intervalo.
+    await rejectRing(req, selectedId);
+    setPendingRequests((prev) => prev.filter((r) => r.id !== reqId));
     if (me) {
       const { count, blocked } = await registerRejection(me);
       const fresh = await base44.entities.Locksmith.get(me.id);
@@ -569,8 +572,8 @@ export default function PainelChaveiro() {
       setLocksmiths(list);
       if (selectedId) {
         await base44.entities.ServiceRequest
-          .filter({ locksmith_id: selectedId, status: "ringing" }, "-created_date")
-          .then(setPendingRequests)
+          .filter({ ringing_locksmith_ids: selectedId, status: "ringing" }, "-created_date")
+          .then((list) => setPendingRequests(list.filter((r) => isRingingFor(r, selectedId))))
           .catch(() => {});
       }
     } catch (e) { /* ignora */ }
