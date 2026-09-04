@@ -195,6 +195,20 @@
     "bank_name": {
       "type": "string",
       "description": "Nome do banco do chaveiro"
+    },
+    "rejections_today": {
+      "type": "number",
+      "default": 0,
+      "description": "Quantidade de chamados recusados no dia corrente"
+    },
+    "rejections_date": {
+      "type": "string",
+      "description": "Data (YYYY-MM-DD) referente \u00e0 contagem de recusas do dia"
+    },
+    "blocked_until": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Data/hora at\u00e9 quando o chaveiro est\u00e1 bloqueado por exceder o limite de recusas di\u00e1rias"
     }
   },
   "required": [

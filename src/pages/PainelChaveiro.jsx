@@ -36,7 +36,9 @@ import {
 } from "@/components/ui/alert-dialog";
 import { playNotificationSound } from "@/lib/notificationSound";
 import ServiceStatusBadge, { PHASE_BORDER } from "@/components/locksmith/ServiceStatusBadge";
-import UrgentArrivalCountdown from "@/components/locksmith/UrgentArrivalCountdown";
+import ArrivalDeadlineCountdown from "@/components/locksmith/ArrivalDeadlineCountdown";
+import UrgencyUpgradeAlert from "@/components/locksmith/UrgencyUpgradeAlert";
+import { registerRejection, getRejectBlock, rejectionsToday, DAILY_REJECT_LIMIT } from "@/lib/rejectLimit";
 import UrgentNearbyAlert from "@/components/locksmith/UrgentNearbyAlert";
 import GmailConnectCard from "@/components/gmail/GmailConnectCard";
 import { notifyStatusByGmail } from "@/lib/gmailStatusEmail";
@@ -404,6 +406,15 @@ export default function PainelChaveiro() {
   const toggleOnline = async () => {
     if (!me) return;
     if (!me.online) {
+      const block = getRejectBlock(me);
+      if (block.blocked) {
+        toast({
+          title: "Bloqueado temporariamente",
+          description: `Você excedeu o limite de ${DAILY_REJECT_LIMIT} recusas por dia. Aguarde ${block.minutesLeft} min.`,
+          variant: "destructive",
+        });
+        return;
+      }
       // Modo livre exige mensalidade paga para ficar online
       if (me.work_mode === "livre" && me.monthly_fee_paid !== true) {
         toast({
@@ -467,6 +478,23 @@ export default function PainelChaveiro() {
     if (!req) return;
     await base44.entities.ServiceRequest.update(reqId, { status: "cancelled", cancelled_by: "chaveiro" });
     notifyStatusByGmail(reqId, "cancelled");
+    if (me) {
+      const { count, blocked } = await registerRejection(me);
+      const fresh = await base44.entities.Locksmith.get(me.id);
+      setMe(fresh);
+      if (blocked) {
+        toast({
+          title: "Você foi bloqueado por 1 hora",
+          description: `Limite de ${DAILY_REJECT_LIMIT} recusas por dia excedido.`,
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "Chamado recusado",
+          description: `${count} de ${DAILY_REJECT_LIMIT} recusas usadas hoje.`,
+        });
+      }
+    }
   };
 
   // Chaveiro cancela o serviço em andamento a qualquer momento (modo app)
@@ -543,6 +571,7 @@ export default function PainelChaveiro() {
   const { pull, refreshing } = usePullToRefresh(handleRefresh);
 
   const isAppMode = me?.work_mode === "app";
+  const rejectBlock = getRejectBlock(me);
   const ring = pendingRequests[0] || null;
   const pendingCount = pendingRequests.length;
   const startDone = (active?.start_photos?.length || 0) > 0;
@@ -690,6 +719,23 @@ export default function PainelChaveiro() {
         );
       })()}
 
+      {/* Bloqueio temporário por excesso de recusas */}
+      {me && rejectBlock.blocked && (
+        <div className="p-4 rounded-xl border-2 border-red-400 bg-red-50 text-red-700 mb-5">
+          <p className="font-bold text-sm">Bloqueado por {rejectBlock.minutesLeft} min</p>
+          <p className="text-sm mt-1">
+            Você excedeu o limite de {DAILY_REJECT_LIMIT} recusas por dia e não receberá novos chamados
+            durante 1 hora.
+          </p>
+        </div>
+      )}
+
+      {me && !rejectBlock.blocked && isAppMode && rejectionsToday(me) > 0 && (
+        <p className="text-xs text-muted-foreground mb-5">
+          Recusas hoje: {rejectionsToday(me)} de {DAILY_REJECT_LIMIT}
+        </p>
+      )}
+
       {/* Alerta automático de chamados urgentes na região */}
       {me && !active && <UrgentNearbyAlert locksmith={me} />}
 
@@ -725,7 +771,7 @@ export default function PainelChaveiro() {
       )}
 
       {/* Fila de solicitações pendentes — modo app */}
-      {pendingCount > 0 && isAppMode && (
+      {pendingCount > 0 && isAppMode && !rejectBlock.blocked && (
         <PendingRequestsList
           requests={pendingRequests}
           onAccept={handleAccept}
@@ -745,7 +791,9 @@ export default function PainelChaveiro() {
             <p className="text-xs text-muted-foreground mt-0.5">{active.address}</p>
           </div>
 
-          <UrgentArrivalCountdown request={active} />
+          <ArrivalDeadlineCountdown request={active} />
+
+          <UrgencyUpgradeAlert request={active} onResolved={setActive} />
 
           {/* Alerta persistente: cliente pagará em dinheiro — confirme o recebimento */}
           {cashPending && (

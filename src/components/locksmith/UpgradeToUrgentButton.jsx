@@ -27,6 +27,21 @@ export default function UpgradeToUrgentButton({ request, onUpdated }) {
   if (!request || request.urgency === "urgent") return null;
   if (["completed", "cancelled"].includes(request.status)) return null;
 
+  if (request.urgency_upgrade_status === "pending") {
+    return (
+      <div className="p-3 rounded-xl border border-amber-300 bg-amber-50 text-amber-800 text-sm font-medium text-center">
+        Aguardando o chaveiro responder ao pedido de atendimento urgente (até 1 minuto)...
+      </div>
+    );
+  }
+  if (request.urgency_upgrade_status === "declined") {
+    return (
+      <div className="p-3 rounded-xl border border-border bg-muted/50 text-muted-foreground text-sm text-center">
+        O chaveiro manteve este chamado no modo normal.
+      </div>
+    );
+  }
+
   const current = request.price || 0;
   const newPrice = Math.round(current * URGENCY_MULTIPLIER * 100) / 100;
   const diff = Math.round((newPrice - current) * 100) / 100;
@@ -35,8 +50,9 @@ export default function UpgradeToUrgentButton({ request, onUpdated }) {
     setSaving(true);
     try {
       const updated = await base44.entities.ServiceRequest.update(request.id, {
-        urgency: "urgent",
-        price: newPrice,
+        urgency_upgrade_status: "pending",
+        urgency_upgrade_requested_at: new Date().toISOString(),
+        urgency_upgrade_price: newPrice,
       });
       try {
         const user = await base44.auth.me();
@@ -49,16 +65,17 @@ export default function UpgradeToUrgentButton({ request, onUpdated }) {
           sender_type: "system",
           sender_name: "Chaveiro Já",
           message:
-            "⚠️ O cliente alterou este chamado para URGENTE: o chaveiro tem até 35 minutos para chegar ao local. Novo valor: R$ " +
-            newPrice.toFixed(2),
+            "⚠️ O cliente solicitou mudar este chamado para URGENTE (chegada em até 35 minutos). Novo valor: R$ " +
+            newPrice.toFixed(2) +
+            ". O chaveiro tem 1 minuto para aceitar ou recusar — sem resposta, o pedido é aceito automaticamente.",
         });
       } catch (e) {
         /* não bloqueia a alteração */
       }
       onUpdated?.(updated);
       toast({
-        title: "Chamado alterado para urgente",
-        description: `Novo valor: R$ ${newPrice.toFixed(2)}`,
+        title: "Pedido enviado ao chaveiro",
+        description: `Ele tem 1 minuto para responder. Novo valor: R$ ${newPrice.toFixed(2)}`,
       });
       setOpen(false);
     } catch (e) {

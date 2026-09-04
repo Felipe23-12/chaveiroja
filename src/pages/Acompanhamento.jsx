@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import LightMap from "@/components/map/LightMap";
 import QuickMessages from "@/components/chat/QuickMessages";
-import UrgentArrivalCountdown from "@/components/locksmith/UrgentArrivalCountdown";
+import ArrivalDeadlineCountdown from "@/components/locksmith/ArrivalDeadlineCountdown";
 import { fetchDrivingRoute, etaMinutes, haversineKm } from "@/lib/geo";
 
 export default function Acompanhamento() {
@@ -168,7 +168,7 @@ export default function Acompanhamento() {
       </div>
 
       <div className="mb-4">
-        <UrgentArrivalCountdown request={request} />
+        <ArrivalDeadlineCountdown request={request} />
       </div>
 
       {/* Layout: mapa em cima, chat embaixo (mobile) | lado a lado (desktop) */}

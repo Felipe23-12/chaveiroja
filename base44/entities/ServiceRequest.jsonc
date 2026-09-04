@@ -143,6 +143,10 @@
       "default": 0,
       "description": "Parte da taxa de cancelamento destinada ao aplicativo (5% do valor total)"
     },
+    "cancellation_reason": {
+      "type": "string",
+      "description": "Motivo do cancelamento (ex.: prazo de chegada expirado)"
+    },
     "locksmith_arrived": {
       "type": "boolean",
       "default": false,
@@ -220,6 +224,24 @@
       "type": "boolean",
       "default": false,
       "description": "Chaveiro confirmou ter recebido o pagamento em dinheiro do cliente"
+    },
+    "urgency_upgrade_status": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "accepted",
+        "declined"
+      ],
+      "description": "Status do pedido de mudan\u00e7a para atendimento urgente feito pelo cliente"
+    },
+    "urgency_upgrade_requested_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Data/hora do pedido de mudan\u00e7a para urgente \u2014 o chaveiro tem 1 minuto para responder"
+    },
+    "urgency_upgrade_price": {
+      "type": "number",
+      "description": "Novo valor do servi\u00e7o caso a mudan\u00e7a para urgente seja aplicada"
     }
   },
   "required": [
