@@ -7,6 +7,7 @@ import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
 import ScrollToTop from './components/ScrollToTop';
 import ProtectedRoute from '@/components/ProtectedRoute';
+import ProfileCompletionGuard from '@/components/ProfileCompletionGuard';
 import RoleGuard from '@/components/RoleGuard';
 import Layout from '@/components/Layout';
 import Home from '@/pages/Home';
@@ -65,6 +66,7 @@ const AuthenticatedApp = () => {
       <Route path="/google-complete" element={<GoogleComplete />} />
       <Route path="/politica-reembolso" element={<PoliticaReembolso />} />
       <Route element={<ProtectedRoute unauthenticatedElement={<Navigate to="/login" replace />} />}>
+        <Route element={<ProfileCompletionGuard />}>
         <Route element={<Layout />}>
           <Route element={<RoleGuard allow={["cliente"]} />}>
             <Route path="/" element={<Home />} />
@@ -83,6 +85,7 @@ const AuthenticatedApp = () => {
             <Route path="/painel-admin" element={<PainelAdmin />} />
             <Route path="/painel-financeiro-admin" element={<PainelFinanceiroAdmin />} />
           </Route>
+        </Route>
         </Route>
       </Route>
       <Route path="*" element={<PageNotFound />} />
