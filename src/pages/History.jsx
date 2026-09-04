@@ -26,7 +26,13 @@ export default function History() {
 
   const loadRequests = async () => {
     try {
-      const data = await base44.entities.ServiceRequest.list("-created_date", 50);
+      const user = await base44.auth.me();
+      // Somente os pedidos criados por esta conta — nunca de outro cliente
+      const data = await base44.entities.ServiceRequest.filter(
+        { created_by_id: user.id },
+        "-created_date",
+        50
+      );
       setRequests(data);
       if (data.length > 0) saveLastService(data[0]);
       setOffline(false);
