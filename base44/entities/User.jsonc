@@ -28,6 +28,10 @@
     "username": {
       "type": "string",
       "description": "Nome de usu\u00e1rio escolhido pelo usu\u00e1rio (exibido no app)"
+    },
+    "avatar_url": {
+      "type": "string",
+      "description": "Foto de perfil do usu\u00e1rio (c\u00e2mera ou galeria)"
     }
   },
   "required": [

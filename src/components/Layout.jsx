@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { Link, useLocation, Outlet } from "react-router-dom";
-import { Home as HomeIcon, Clock, LogOut, Briefcase, MapPin, RadioTower, Wallet, User, ShieldCheck, Menu, X, Trash2 } from "lucide-react";
+import { Home as HomeIcon, Clock, LogOut, Briefcase, MapPin, RadioTower, Wallet, User, ShieldCheck, Menu, X, Trash2, Camera } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { useAuth } from "@/lib/AuthContext";
 import { Image } from "@/components/ui/image";
@@ -9,6 +9,7 @@ import GlobalLocksmithRequestAlert from "@/components/locksmith/GlobalLocksmithR
 import GlobalChatAlert from "@/components/locksmith/GlobalChatAlert";
 import ServiceFinishAlert from "@/components/client/ServiceFinishAlert";
 import DeleteAccountModal from "@/components/DeleteAccountModal";
+import UserPhotoModal from "@/components/profile/UserPhotoModal";
 import MobileTabBar from "@/components/MobileTabBar";
 import { useChatUnread } from "@/lib/chatUnreadStore";
 import { AnimatePresence } from "framer-motion";
@@ -40,6 +41,8 @@ function SidebarContent({ onNavigate }) {
   const roleLabel = accountType === "chaveiro" ? "Chaveiro" : accountType === "admin" ? "Admin" : "Cliente";
   const chatUnread = useChatUnread();
   const [deleteOpen, setDeleteOpen] = useState(false);
+  const [photoOpen, setPhotoOpen] = useState(false);
+  const [avatar, setAvatar] = useState(user?.avatar_url || "");
 
   return (
     <>
@@ -88,9 +91,17 @@ function SidebarContent({ onNavigate }) {
       <div className="p-2 border-t border-border pb-safe">
         {user && (
           <div className="flex items-center gap-2 px-1.5 py-1 mb-0.5">
-            <div className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-              <User className="w-3 h-3 text-primary" />
-            </div>
+            <button
+              onClick={() => setPhotoOpen(true)}
+              className="w-6 h-6 rounded-full bg-primary/10 overflow-hidden flex items-center justify-center shrink-0"
+              title="Alterar foto de perfil"
+            >
+              {avatar ? (
+                <Image src={avatar} alt="Minha foto" className="w-full h-full" />
+              ) : (
+                <User className="w-3 h-3 text-primary" />
+              )}
+            </button>
             <div className="min-w-0 flex-1">
               <p className="text-xs font-medium text-foreground truncate">{user.full_name || user.email}</p>
               <p className="text-[10px] text-muted-foreground">{roleLabel}</p>
@@ -106,6 +117,13 @@ function SidebarContent({ onNavigate }) {
           Sair
         </button>
         <button
+          onClick={() => setPhotoOpen(true)}
+          className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-md text-xs font-medium text-muted-foreground hover:bg-accent transition-colors min-h-[36px]"
+        >
+          <Camera className="w-3 h-3" />
+          Foto de perfil
+        </button>
+        <button
           onClick={() => setDeleteOpen(true)}
           className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-md text-xs font-medium text-destructive hover:bg-destructive/10 transition-colors min-h-[36px]"
         >
@@ -115,6 +133,7 @@ function SidebarContent({ onNavigate }) {
       </div>
 
       <DeleteAccountModal open={deleteOpen} onOpenChange={setDeleteOpen} />
+      <UserPhotoModal open={photoOpen} onOpenChange={setPhotoOpen} onSaved={setAvatar} />
     </>
   );
 }

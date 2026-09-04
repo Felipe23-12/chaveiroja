@@ -9,6 +9,7 @@ import LocksmithHistorySummary from "@/components/locksmith/LocksmithHistorySumm
 import LocksmithFinancialPanel from "@/components/locksmith/LocksmithFinancialPanel";
 import MonthlySubscriptionConfig from "@/components/locksmith/MonthlySubscriptionConfig";
 import ServiceSelector from "@/components/locksmith/ServiceSelector";
+import AvatarPicker from "@/components/profile/AvatarPicker";
 import NativeSelectDrawer from "@/components/ui/NativeSelectDrawer";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
@@ -173,6 +174,14 @@ export default function LocksmithProfile() {
 
           {/* Aba: Modo de Trabalho */}
           <TabsContent value="modo" className="space-y-4 mt-0">
+            <div className="rounded-2xl border border-border bg-white p-4">
+              <AvatarPicker
+                value={selected.avatar_url}
+                onChange={(url) => updateLocksmith({ avatar_url: url })}
+                label="Sua foto de perfil"
+              />
+            </div>
+
             <div className="grid grid-cols-1 gap-3">
               <ModeCard
                 mode="livre"
