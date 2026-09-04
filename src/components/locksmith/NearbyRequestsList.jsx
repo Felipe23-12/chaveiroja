@@ -7,7 +7,7 @@ import NativeSelectDrawer from "@/components/ui/NativeSelectDrawer";
 
 import { DEFAULT_SERVICE_RADIUS_KM } from "@/components/locksmith/ServiceRadiusConfig";
 
-const RADIUS_OPTIONS = [1, 3, 5, 10, 15, 20, 30].map((km) => ({
+const RADIUS_OPTIONS = [1, 3, 5, 10, 15, 20, 30, 40, 50].map((km) => ({
   value: String(km),
   label: `${km} km`,
 }));
@@ -28,6 +28,15 @@ export default function NearbyRequestsList({ locksmith }) {
   useEffect(() => {
     setRadius(savedRadius);
   }, [savedRadius]);
+
+  // Salva o raio escolhido no perfil para que a configuração continue
+  // valendo ao sair e voltar ao app.
+  const changeRadius = (km) => {
+    setRadius(km);
+    if (locksmith?.id) {
+      base44.entities.Locksmith.update(locksmith.id, { service_radius_km: km }).catch(() => {});
+    }
+  };
 
   // Busca solicitações abertas (searching) e assina atualizações
   useEffect(() => {
@@ -108,7 +117,7 @@ export default function NearbyRequestsList({ locksmith }) {
               <NativeSelectDrawer
                 label="Raio de busca"
                 value={String(radius)}
-                onChange={(v) => setRadius(Number(v))}
+                onChange={(v) => changeRadius(Number(v))}
                 options={RADIUS_OPTIONS}
               />
             </div>
