@@ -771,6 +771,17 @@ export default function Home() {
     }
   };
 
+  // Cancelamento iniciado na tela de acompanhamento (?cancel=1): aplica as
+  // mesmas regras de taxa deste fluxo.
+  const cancelTriggered = useRef(false);
+  useEffect(() => {
+    if (searchParams.get("cancel") !== "1" || !activeRequest || cancelTriggered.current) return;
+    cancelTriggered.current = true;
+    setSearchParams({});
+    handleCancel();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeRequest?.id, searchParams]);
+
   const handleNewRequest = () => {
     goToStep(1);
     setServiceId("");

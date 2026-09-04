@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import LightMap from "@/components/map/LightMap";
 import QuickMessages from "@/components/chat/QuickMessages";
 import ArrivalDeadlineCountdown from "@/components/locksmith/ArrivalDeadlineCountdown";
+import CancelServiceButton from "@/components/locksmith/CancelServiceButton";
 import { fetchDrivingRoute, etaMinutes, haversineKm } from "@/lib/geo";
 
 export default function Acompanhamento() {
@@ -216,6 +217,7 @@ export default function Acompanhamento() {
               )}
             </div>
           </div>
+          <CancelServiceButton request={request} />
         </div>
 
         {/* Chat em tempo real */}
