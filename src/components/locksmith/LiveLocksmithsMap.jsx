@@ -22,6 +22,7 @@ export default function LiveLocksmithsMap({ customerLoc, livreOnly = false }) {
   // Local pesquisado (bairro/rua) — sobrepõe a localização automática
   const [searchLoc, setSearchLoc] = useState(null);
   const [searchLabel, setSearchLabel] = useState("");
+  const [minRating, setMinRating] = useState(0);
 
   const SPECIALTY_OPTIONS = ["Residencial", "Automotivo", "Comercial", "Emergencial"];
 
@@ -77,10 +78,12 @@ export default function LiveLocksmithsMap({ customerLoc, livreOnly = false }) {
         return mySpecialties.includes(specialtyFilter);
       });
     }
+    if (minRating > 0) result = result.filter((l) => (l.rating || 0) >= minRating);
     return result;
-  }, [withDist, maxDistance, searchQuery, specialtyFilter]);
+  }, [withDist, maxDistance, searchQuery, specialtyFilter, minRating]);
 
-  const isFiltering = searchQuery.trim() !== "" || maxDistance > 0 || specialtyFilter !== "";
+  const isFiltering =
+    searchQuery.trim() !== "" || maxDistance > 0 || specialtyFilter !== "" || minRating > 0;
 
   const mapMarkers = useMemo(() => {
     const arr = [];
@@ -207,6 +210,30 @@ export default function LiveLocksmithsMap({ customerLoc, livreOnly = false }) {
             <X className="w-3.5 h-3.5" />
           </button>
         )}
+      </div>
+
+      {/* Filtro por nota de avaliação */}
+      <div className="flex flex-wrap items-center gap-2">
+        <span className="text-xs font-medium text-muted-foreground shrink-0">Avaliação:</span>
+        <button
+          onClick={() => setMinRating(0)}
+          className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+            minRating === 0 ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground hover:bg-accent"
+          }`}
+        >
+          Todas
+        </button>
+        {[3, 4, 4.5].map((r) => (
+          <button
+            key={r}
+            onClick={() => setMinRating(minRating === r ? 0 : r)}
+            className={`flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+              minRating === r ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground hover:bg-accent"
+            }`}
+          >
+            <Star className="w-3 h-3" /> {r}+
+          </button>
+        ))}
       </div>
 
       <LightMap
