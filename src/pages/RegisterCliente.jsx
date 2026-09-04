@@ -9,7 +9,8 @@ import AuthLayout from "@/components/AuthLayout";
 import GoogleIcon from "@/components/GoogleIcon";
 import { safeReturnTo } from "@/lib/authReturnTo";
 import InlineOtpInput from "@/components/auth/InlineOtpInput";
-import { cpfError, formatCpf } from "@/lib/cpf";
+import { cpfError } from "@/lib/cpf";
+import CpfInput from "@/components/auth/CpfInput";
 
 export default function RegisterCliente() {
   const [fullName, setFullName] = useState("");
@@ -157,22 +158,7 @@ export default function RegisterCliente() {
           </div>
         </div>
 
-        <div className="space-y-2">
-          <Label htmlFor="cpf">CPF</Label>
-          <div className="relative">
-            <CreditCard className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" aria-hidden="true" />
-            <Input
-              id="cpf"
-              type="text"
-              inputMode="numeric"
-              placeholder="000.000.000-00"
-              value={cpf}
-              onChange={(e) => setCpf(formatCpf(e.target.value))}
-              className="pl-10 h-12"
-              required
-            />
-          </div>
-        </div>
+        <CpfInput value={cpf} onChange={setCpf} />
 
         <div className="space-y-2">
           <Label htmlFor="email">Email</Label>
