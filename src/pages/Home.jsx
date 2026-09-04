@@ -815,8 +815,8 @@ export default function Home() {
         </div>
       )}
 
-      {/* Step 5: Acompanhamento em tempo real */}
-      {step === 5 && activeRequest && (
+      {/* Step 5: Acompanhamento em tempo real (oculta durante pagamento da taxa) */}
+      {step === 5 && activeRequest && !cancelFeeData && (
         <div className="space-y-5 step-enter">
           <div>
             <h2 className="font-heading font-semibold text-lg text-foreground flex items-center gap-2">
