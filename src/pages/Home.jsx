@@ -313,6 +313,25 @@ export default function Home() {
         });
       }
 
+      // Notificação automática no chat para chamados urgentes (SLA de 35 min)
+      if (urgency === "urgent") {
+        try {
+          const user = await base44.auth.me();
+          await base44.entities.ChatMessage.create({
+            locksmith_id: nearest.l.id,
+            locksmith_name: nearest.l.name,
+            locksmith_user_id: nearest.l.created_by_id,
+            client_id: user?.id,
+            client_name: user?.full_name || customerName || "Cliente",
+            sender_type: "system",
+            sender_name: "Chaveiro Já",
+            message: "⚠️ Chamado URGENTE: o chaveiro tem até 35 minutos para chegar ao local do atendimento.",
+          });
+        } catch (e) {
+          /* não bloqueia o fluxo de solicitação */
+        }
+      }
+
       if (useDiscount) {
         setLoyalty((prev) => (prev ? { ...prev, available: prev.available - 1 } : prev));
       }

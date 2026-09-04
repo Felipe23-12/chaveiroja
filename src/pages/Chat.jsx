@@ -147,6 +147,15 @@ export default function Chat() {
           </div>
         )}
         {[...messages, ...pendingMessages].map((m) => {
+          if (m.sender_type === "system") {
+            return (
+              <div key={m.id} className="flex justify-center">
+                <div className="max-w-[90%] px-3 py-1.5 rounded-lg bg-amber-50 border border-amber-300 text-amber-800 text-xs text-center font-medium">
+                  {m.message}
+                </div>
+              </div>
+            );
+          }
           const mine = m.sender_type === "customer";
           return (
             <div key={m.id} className={`flex ${mine ? "justify-end" : "justify-start"}`}>

@@ -31,8 +31,8 @@ export default function LocksmithChatConversations({ me }) {
           const groups = {};
           let customerTotal = 0;
           list.forEach((m) => {
-            if (m.sender_type !== "customer") return;
-            customerTotal++;
+            if (m.sender_type === "customer") customerTotal++;
+            if (m.sender_type !== "customer" && m.sender_type !== "system") return;
             const key = m.client_id || m.sender_name || "Cliente";
             if (!groups[key]) groups[key] = { id: key, name: m.client_name || m.sender_name || "Cliente", lastDate: m.created_date, count: 0 };
             groups[key].count++;
@@ -148,6 +148,15 @@ export default function LocksmithChatConversations({ me }) {
           <div className="flex flex-col" style={{ height: 360 }}>
             <div className="flex-1 overflow-y-auto space-y-2 p-3">
               {messages.map((m) => {
+                if (m.sender_type === "system") {
+                  return (
+                    <div key={m.id} className="flex justify-center">
+                      <div className="max-w-[90%] px-3 py-1.5 rounded-lg bg-amber-50 border border-amber-300 text-amber-800 text-xs text-center font-medium">
+                        {m.message}
+                      </div>
+                    </div>
+                  );
+                }
                 const mine = m.sender_type === "locksmith";
                 return (
                   <div key={m.id} className={`flex ${mine ? "justify-end" : "justify-start"}`}>
