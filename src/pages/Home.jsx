@@ -508,6 +508,7 @@ export default function Home() {
       await confirmPaymentPaid(payment.id);
       await base44.entities.ServiceRequest.update(activeRequest.id, {
         status: "cancelled",
+        cancelled_by: "cliente",
         cancellation_fee: cancelFeeData.fee,
         cancellation_locksmith_amount: cancelFeeData.locksmithAmount,
         cancellation_app_fee: cancelFeeData.appFee,
@@ -672,11 +673,12 @@ export default function Home() {
     if (started) {
       // Janela grátis: cancelamento sem custo nos primeiros 5 min após o aceite
       const acceptedAt = activeRequest.accepted_at ? new Date(activeRequest.accepted_at).getTime() : null;
+      // Carência de 5 minutos após o aceite do chaveiro (sem timestamp = grátis)
       const withinFreeWindow =
-        acceptedAt != null && Date.now() - acceptedAt < CANCELLATION_THRESHOLD_MINUTES * 60 * 1000;
+        acceptedAt == null || Date.now() - acceptedAt < CANCELLATION_THRESHOLD_MINUTES * 60 * 1000;
       if (withinFreeWindow) {
         try {
-          await base44.entities.ServiceRequest.update(activeRequest.id, { status: "cancelled" });
+          await base44.entities.ServiceRequest.update(activeRequest.id, { status: "cancelled", cancelled_by: "cliente" });
           handleNewRequest();
         } catch (e) {
           toast({ title: "Falha ao cancelar", description: e.message || "Tente novamente", variant: "destructive" });
@@ -694,7 +696,7 @@ export default function Home() {
     }
     // Antes do aceite: cancela livremente
     try {
-      await base44.entities.ServiceRequest.update(activeRequest.id, { status: "cancelled" });
+      await base44.entities.ServiceRequest.update(activeRequest.id, { status: "cancelled", cancelled_by: "cliente" });
       handleNewRequest();
     } catch (e) {
       toast({ title: "Falha ao cancelar", description: e.message || "Tente novamente", variant: "destructive" });

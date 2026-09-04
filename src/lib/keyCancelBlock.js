@@ -22,9 +22,12 @@ export async function getKeyCancelBlock(userId) {
     50
   );
 
+  // Conta apenas cancelamentos feitos pelo próprio cliente — cancelamentos do
+  // chaveiro (ou recusas) não penalizam o cliente.
   const recent = list.filter(
     (r) =>
       KEY_SERVICE_TYPES.includes(r.service_type) &&
+      r.cancelled_by !== "chaveiro" &&
       new Date(r.updated_date).getTime() >= since
   );
 

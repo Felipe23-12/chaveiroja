@@ -457,14 +457,14 @@ export default function PainelChaveiro() {
   const handleReject = async (reqId) => {
     const req = pendingRequests.find((r) => r.id === reqId);
     if (!req) return;
-    await base44.entities.ServiceRequest.update(reqId, { status: "cancelled" });
+    await base44.entities.ServiceRequest.update(reqId, { status: "cancelled", cancelled_by: "chaveiro" });
   };
 
   // Chaveiro cancela o serviço em andamento a qualquer momento (modo app)
   const handleCancelActive = async () => {
     if (!active) return;
     try {
-      await base44.entities.ServiceRequest.update(active.id, { status: "cancelled" });
+      await base44.entities.ServiceRequest.update(active.id, { status: "cancelled", cancelled_by: "chaveiro" });
       dismissedCompletedIds.current.add(active.id);
       clearLastService();
       setActive(null);
