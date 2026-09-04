@@ -23,17 +23,18 @@ export default function LocksmithChatConversations({ me }) {
 
   // Carrega todas as conversas (clientes que enviaram mensagens para este chaveiro)
   useEffect(() => {
-    if (!me?.id) return;
+    if (!me?.id || !me?.created_by_id) return;
     const load = () =>
       base44.entities.ChatMessage
-        .filter({ locksmith_id: me.id }, "created_date")
+        .filter({ locksmith_id: me.id, locksmith_user_id: me.created_by_id }, "created_date")
         .then((list) => {
           const groups = {};
           let customerTotal = 0;
           list.forEach((m) => {
+            if (!m.client_id) return;
             if (m.sender_type === "customer") customerTotal++;
             if (m.sender_type !== "customer" && m.sender_type !== "system") return;
-            const key = m.client_id || m.sender_name || "Cliente";
+            const key = m.client_id;
             if (!groups[key]) groups[key] = { id: key, name: m.client_name || m.sender_name || "Cliente", lastDate: m.created_date, count: 0 };
             groups[key].count++;
             if (new Date(m.created_date) > new Date(groups[key].lastDate)) {
@@ -61,23 +62,20 @@ export default function LocksmithChatConversations({ me }) {
     load();
     const unsub = base44.entities.ChatMessage.subscribe(() => load());
     return unsub;
-  }, [me?.id]);
+  }, [me?.id, me?.created_by_id]);
 
   // Carrega mensagens da conversa ativa
   useEffect(() => {
-    if (!me?.id || !activeTab) return;
+    if (!me?.id || !me?.created_by_id || !activeTab) return;
     const load = () =>
       base44.entities.ChatMessage
-        .filter({ locksmith_id: me.id }, "created_date")
-        .then((list) => {
-          const filtered = list.filter((m) => (m.client_id || m.sender_name) === activeTab);
-          setMessages(filtered);
-        })
+        .filter({ locksmith_id: me.id, locksmith_user_id: me.created_by_id, client_id: activeTab }, "created_date")
+        .then(setMessages)
         .catch(() => {});
     load();
     const unsub = base44.entities.ChatMessage.subscribe(() => load());
     return unsub;
-  }, [me?.id, activeTab]);
+  }, [me?.id, me?.created_by_id, activeTab]);
 
   useEffect(() => {
     scrollRef.current?.scrollIntoView({ behavior: "smooth" });
