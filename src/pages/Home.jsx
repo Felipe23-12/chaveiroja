@@ -5,6 +5,7 @@ import { ArrowRight, ArrowLeft, Zap, Bell, Loader2, Navigation, CheckCircle2, Al
 import { Button } from "@/components/ui/button";
 import { SERVICE_CATALOG, calculateCancellationFee, CANCELLATION_THRESHOLD_MINUTES, calculateLongDistanceFee } from "@/lib/pricing";
 import { calculateDynamicPrice } from "@/lib/dynamicPricing";
+import { getCancellationWindow } from "@/lib/cancellationWindow";
 import { searchFipeAndKeyValue } from "@/lib/carKey";
 import { detectCarKeyProgramming } from "@/lib/carKeyProgramming";
 import { getKeyCancelBlock } from "@/lib/keyCancelBlock";
@@ -672,11 +673,10 @@ export default function Home() {
     const started = activeRequest.status === "accepted" || activeRequest.status === "on_the_way";
     if (started) {
       // Janela grátis: cancelamento sem custo nos primeiros 5 min após o aceite
-      const acceptedAt = activeRequest.accepted_at ? new Date(activeRequest.accepted_at).getTime() : null;
-      // Carência de 5 minutos após o aceite do chaveiro (sem timestamp = grátis)
-      const withinFreeWindow =
-        acceptedAt == null || Date.now() - acceptedAt < CANCELLATION_THRESHOLD_MINUTES * 60 * 1000;
-      if (withinFreeWindow) {
+      // Carência de 5 minutos, contada do aceite do chaveiro ou, na ausência
+      // dele, da abertura do chamado
+      const window = getCancellationWindow(activeRequest);
+      if (window.free) {
         try {
           await base44.entities.ServiceRequest.update(activeRequest.id, { status: "cancelled", cancelled_by: "cliente" });
           handleNewRequest();
