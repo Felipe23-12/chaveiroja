@@ -7,7 +7,7 @@ function ToolState({ call }) {
   const label = failed ? projection?.error_label : running ? projection?.active_label : projection?.label;
   return (
     <p className={`mt-2 text-xs font-medium ${failed ? "text-destructive" : "text-muted-foreground"}`}>
-      {label || (failed ? "Não foi possível iniciar" : running ? "Iniciando solicitação..." : "Solicitação iniciada")}
+      {label || (failed ? "Não foi possível concluir" : running ? "Consultando..." : "Consulta concluída")}
     </p>
   );
 }
