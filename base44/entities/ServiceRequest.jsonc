@@ -49,6 +49,10 @@
     "locksmith_name": {
       "type": "string"
     },
+    "locksmith_user_id": {
+      "type": "string",
+      "description": "ID do usu\u00e1rio (User) dono do perfil do chaveiro designado \u2014 usado no RLS para isolar o acesso"
+    },
     "rating": {
       "type": "number"
     },
@@ -201,6 +205,39 @@
     "address"
   ],
   "rls": {
+    "read": {
+      "$or": [
+        {
+          "created_by_id": "{{user.id}}"
+        },
+        {
+          "data.locksmith_user_id": "{{user.id}}"
+        },
+        {
+          "data.status": "searching"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "created_by_id": "{{user.id}}"
+        },
+        {
+          "data.locksmith_user_id": "{{user.id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
     "delete": {
       "$or": [
         {
