@@ -120,6 +120,11 @@ export default function History() {
                 <div className="flex items-center gap-1.5 text-sm text-muted-foreground mb-2">
                   <MapPin className="w-3.5 h-3.5" /> {req.address}
                 </div>
+                {req.distance_km != null && (
+                  <p className="text-xs text-muted-foreground mb-2">
+                    Distância inicial do chaveiro ao cliente: <span className="font-medium text-foreground">{Number(req.distance_km).toFixed(1)} km</span>
+                  </p>
+                )}
                 {req.locksmith_name && (
                   <div className="flex items-center justify-between">
                     <span className="text-sm text-muted-foreground">{req.locksmith_name}</span>

@@ -14,6 +14,12 @@ export function haversineKm(a, b) {
   return Math.round(2 * R * Math.asin(Math.sqrt(h)) * 10) / 10;
 }
 
+// Distância registrada no momento da criação do chamado. Esse valor permanece
+// salvo no serviço mesmo quando a posição ao vivo do chaveiro é atualizada.
+export function calculateInitialServiceDistance(locksmithLocation, customerDestination) {
+  return haversineKm(locksmithLocation, customerDestination);
+}
+
 // Move um ponto em direção a outro por uma fração (0..1)
 export function stepToward(from, to, fraction) {
   return {

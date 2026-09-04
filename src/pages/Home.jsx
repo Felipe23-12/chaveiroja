@@ -24,7 +24,7 @@ import ReviewForm from "@/components/locksmith/ReviewForm";
 import LightMap from "@/components/map/LightMap";
 import UpgradeToUrgentButton from "@/components/locksmith/UpgradeToUrgentButton";
 import UrgentArrivalCountdown from "@/components/locksmith/UrgentArrivalCountdown";
-import { DEFAULT_CENTER, getCustomerLocation, haversineKm, fetchDrivingRoute, etaMinutes } from "@/lib/geo";
+import { DEFAULT_CENTER, getCustomerLocation, haversineKm, calculateInitialServiceDistance, fetchDrivingRoute, etaMinutes } from "@/lib/geo";
 import { getClientLoyalty, applyLoyaltyDiscount } from "@/lib/loyalty";
 import { buildEligibleQueue } from "@/lib/ringRotation";
 
@@ -370,6 +370,11 @@ export default function Home() {
         return;
       }
 
+      const initialDistanceKm = calculateInitialServiceDistance(
+        { lat: nearest.l.lat, lng: nearest.l.lng },
+        customerLoc
+      );
+
       // Resumo das fechaduras enviado ao chaveiro junto com a solicitação
       const locksText = service.hasLocks ? locksSummary(locks) : "";
       const base = {
@@ -400,7 +405,7 @@ export default function Home() {
         const adjustedLabor = price
           ? Math.round((price.base - effectiveKeyValue - onlineFee) * 100) / 100
           : 0;
-        const kmFee = calculateLongDistanceFee(nearest.d);
+        const kmFee = calculateLongDistanceFee(initialDistanceKm);
         const disc = useDiscount ? applyLoyaltyDiscount(basePrice) : { amount: 0, final: basePrice };
         req = await base44.entities.ServiceRequest.create({
           ...base,
@@ -411,7 +416,7 @@ export default function Home() {
           vehicle_info: `${vehicleInfo.model} ${vehicleInfo.year}`.trim(),
           labor_cost: adjustedLabor,
           locomotion_cost: kmFee,
-          distance_km: Math.round(nearest.d * 100) / 100,
+          distance_km: initialDistanceKm,
           extra_cost: onlineFee,
           discount_applied: useDiscount,
           discount_amount: disc.amount,
@@ -419,13 +424,13 @@ export default function Home() {
       } else {
         // Preço dinâmico já inclui ajustes de oferta/demanda, região, bairro e taxa de distância
         const basePrice = price?.total || 0;
-        const kmFee = calculateLongDistanceFee(nearest.d);
+        const kmFee = calculateLongDistanceFee(initialDistanceKm);
         const disc = useDiscount ? applyLoyaltyDiscount(basePrice) : { amount: 0, final: basePrice };
         const motoModel = service.isMotoKey ? getMotoModel(motoInfo.brandId, motoInfo.modelId) : null;
         req = await base44.entities.ServiceRequest.create({
           ...base,
           price: disc.final,
-          distance_km: Math.round(nearest.d * 100) / 100,
+          distance_km: initialDistanceKm,
           locomotion_cost: kmFee,
           ...(service.isMotoKey
             ? {
