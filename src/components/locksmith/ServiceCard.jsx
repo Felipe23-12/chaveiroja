@@ -1,5 +1,5 @@
 import React from "react";
-import { Home, Car, KeyRound, Fingerprint } from "lucide-react";
+import { Home, Car, KeyRound, Fingerprint, Bike } from "lucide-react";
 
 const iconMap = {
   abertura_residencial: Home,
@@ -7,6 +7,7 @@ const iconMap = {
   abertura_tetra: KeyRound,
   abertura_eletronica: Fingerprint,
   confeccao_chave_carro: Car,
+  confeccao_chave_moto: Bike,
 };
 
 const colorMap = {
@@ -15,11 +16,12 @@ const colorMap = {
   abertura_tetra: { color: "text-violet-600", bg: "bg-violet-50" },
   abertura_eletronica: { color: "text-teal-600", bg: "bg-teal-50" },
   confeccao_chave_carro: { color: "text-rose-600", bg: "bg-rose-50" },
+  confeccao_chave_moto: { color: "text-emerald-600", bg: "bg-emerald-50" },
 };
 
 export default function ServiceCard({ service, selected, onClick }) {
-  const Icon = iconMap[service.id];
-  const c = colorMap[service.id];
+  const Icon = iconMap[service.id] || KeyRound;
+  const c = colorMap[service.id] || { color: "text-slate-600", bg: "bg-slate-100" };
   return (
     <button
       onClick={onClick}
