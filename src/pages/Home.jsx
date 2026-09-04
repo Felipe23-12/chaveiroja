@@ -195,7 +195,7 @@ export default function Home() {
     getCustomerLocation().then(setCustomerLoc);
     // Inclui chaveiros do modo app e também os do modo livre que aceitam
     // receber chamados do aplicativo (a elegibilidade é filtrada depois)
-    base44.entities.Locksmith.filter({ available: true }).then(setAppLocksmiths);
+    base44.entities.Locksmith.filter({ available: true }).then(setAppLocksmiths).catch(() => {});
     base44.auth.me()
       .then((u) => getClientLoyalty(u.id))
       .then(setLoyalty)
@@ -575,7 +575,8 @@ export default function Home() {
     ensureNotificationPermission();
     const unsub = base44.entities.ServiceRequest.subscribe((event) => {
       if (event.data?.id === activeRequest.id) {
-        base44.entities.ServiceRequest.get(activeRequest.id).then((updated) => {
+        base44.entities.ServiceRequest.get(activeRequest.id).catch(() => null).then((updated) => {
+          if (!updated) return; // falha de rede momentânea — ignora e espera o próximo evento
           setActiveRequest(updated);
           // O chamado toca para vários chaveiros — carrega quem realmente aceitou
           if (updated.locksmith_id && updated.locksmith_id !== selectedLocksmith?.id) {
