@@ -1,6 +1,20 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.46';
 import { verifyInternalCall } from '../../shared/internalCall.ts';
 
+const DEFAULT_RADIUS_KM = 15;
+
+// Distância em km entre dois pontos (Haversine)
+function haversineKm(aLat: number, aLng: number, bLat: number, bLng: number) {
+  const R = 6371;
+  const toRad = (v: number) => (v * Math.PI) / 180;
+  const dLat = toRad(bLat - aLat);
+  const dLng = toRad(bLng - aLng);
+  const h =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos(toRad(aLat)) * Math.cos(toRad(bLat)) * Math.sin(dLng / 2) ** 2;
+  return 2 * R * Math.asin(Math.sqrt(h));
+}
+
 export default async function(req) {
   try {
     const base44 = createClientFromRequest(req);
@@ -52,6 +66,14 @@ export default async function(req) {
       const locksmith = await base44.asServiceRole.entities.Locksmith.get(locksmithId).catch(() => null);
       const userId = locksmith?.created_by_id;
       if (!userId) continue;
+
+      // Confere o raio de atendimento do chaveiro antes de notificar —
+      // evita alertas de chamados fora da zona configurada por ele.
+      if (sr.customer_lat && sr.customer_lng && locksmith.lat && locksmith.lng) {
+        const dist = haversineKm(locksmith.lat, locksmith.lng, sr.customer_lat, sr.customer_lng);
+        if (dist > (locksmith.service_radius_km || DEFAULT_RADIUS_KM)) continue;
+      }
+
       try {
         // Push nativo: toca o som de notificação no celular mesmo com o app fechado
         await base44.asServiceRole.integrations.Core.SendPushNotification({
