@@ -34,6 +34,7 @@ import {
   AlertDialogAction,
   AlertDialogCancel,
 } from "@/components/ui/alert-dialog";
+import { syncServiceUpdate, flushActionQueue, queuedActionsCount, bindAutoFlush } from "@/lib/offlineActionQueue";
 import { playNotificationSound } from "@/lib/notificationSound";
 import ServiceStatusBadge, { PHASE_BORDER } from "@/components/locksmith/ServiceStatusBadge";
 import ArrivalDeadlineCountdown from "@/components/locksmith/ArrivalDeadlineCountdown";
@@ -84,6 +85,7 @@ export default function PainelChaveiro() {
   const [routePath, setRoutePath] = useState(null);
   const [routeEta, setRouteEta] = useState(null);
   const [online, setOnline] = useState(isOnline());
+  const [queuedCount, setQueuedCount] = useState(queuedActionsCount());
   const moveTimer = useRef(null);
   const notifiedIds = useRef(new Set());
   const dismissedCompletedIds = useRef(new Set());
@@ -106,6 +108,33 @@ export default function PainelChaveiro() {
       window.removeEventListener("offline", goOffline);
     };
   }, []);
+
+  // Sincronização: envia as atualizações de status feitas offline assim que a
+  // conexão voltar (na volta do evento "online" e na abertura do painel).
+  useEffect(() => {
+    bindAutoFlush((sent) => {
+      setQueuedCount(queuedActionsCount());
+      toast({
+        title: "Atendimento sincronizado",
+        description: `${sent} atualização${sent > 1 ? "ões" : ""} enviada${sent > 1 ? "s" : ""} ao servidor.`,
+      });
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    if (!online) return;
+    flushActionQueue().then((sent) => {
+      setQueuedCount(queuedActionsCount());
+      if (sent > 0) {
+        toast({
+          title: "Atendimento sincronizado",
+          description: `${sent} atualização${sent > 1 ? "ões" : ""} pendente${sent > 1 ? "s" : ""} enviada${sent > 1 ? "s" : ""}.`,
+        });
+      }
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [online]);
 
   // Abre a conversa de chat em tela cheia ao chegar no painel via alerta de mensagem
   useEffect(() => {
@@ -528,28 +557,44 @@ export default function PainelChaveiro() {
     }
   };
 
+  // Toda atualização de status passa pela fila de sincronização: se estiver sem
+  // internet, fica salva no aparelho e é enviada assim que a conexão voltar.
+  const updateStatus = async (data) => {
+    if (!active) return;
+    const updated = await syncServiceUpdate(active.id, data);
+    setActive((prev) => ({ ...prev, ...data }));
+    setQueuedCount(queuedActionsCount());
+    if (!isOnline()) {
+      toast({
+        title: "Salvo sem conexão",
+        description: "A atualização será enviada automaticamente quando a internet voltar.",
+      });
+    }
+    return updated;
+  };
+
   const handleConfirmStart = async () => {
     if (!active || !startPhotos.length) return;
-    await base44.entities.ServiceRequest.update(active.id, { start_photos: startPhotos });
+    await updateStatus({ start_photos: startPhotos });
   };
 
   // Chaveiro confirma que chegou ao local do cliente
   const handleConfirmArrival = async () => {
     if (!active) return;
-    await base44.entities.ServiceRequest.update(active.id, { locksmith_arrived: true });
+    await updateStatus({ locksmith_arrived: true });
   };
 
   // Registra as fotos do final do serviço — sinaliza ao cliente que o trabalho acabou
   // e libera a etapa de pagamento. O serviço ainda NÃO é concluído aqui.
   const handleRegisterEnd = async () => {
     if (!active || !endPhotos.length) return;
-    await base44.entities.ServiceRequest.update(active.id, { end_photos: endPhotos });
+    await updateStatus({ end_photos: endPhotos });
   };
 
   // Finaliza o serviço — só permitido após o pagamento do cliente ser confirmado.
   const handleFinish = async () => {
     if (!active || active.payment_status !== "paid" || active.client_confirmed !== true) return;
-    await base44.entities.ServiceRequest.update(active.id, { status: "completed", locksmith_confirmed: true });
+    await updateStatus({ status: "completed", locksmith_confirmed: true });
   };
 
   // Chaveiro confirma que recebeu o pagamento em dinheiro
@@ -661,7 +706,9 @@ export default function PainelChaveiro() {
             <p className="text-sm font-medium">
               Sem conexão — exibindo dados do último serviço em cache
               {syncedAt && ` (atualizado às ${syncedAt})`}.
-              As atualizações serão sincronizadas quando a internet voltar.
+              {queuedCount > 0
+                ? ` ${queuedCount} atualização(ões) na fila para envio quando a internet voltar.`
+                : " As atualizações serão sincronizadas quando a internet voltar."}
             </p>
           </div>
         );

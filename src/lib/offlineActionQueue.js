@@ -1,7 +1,9 @@
 // Fila de ações do chaveiro feitas sem internet (aceitar/recusar chamado).
 // As ações ficam salvas no dispositivo e são enviadas automaticamente assim
 // que a conexão voltar.
+import { base44 } from "@/api/base44Client";
 import { acceptRing, rejectRing } from "@/lib/ringBroadcast";
+import { saveLastService, getLastService } from "@/lib/offlineCache";
 
 const QUEUE_KEY = "chaveiro_offline_action_queue";
 let flushing = false;
@@ -49,6 +51,8 @@ export async function flushActionQueue() {
         await acceptRing(action.requestId, action.locksmith, action.extra || 0);
       } else if (action.type === "reject") {
         await rejectRing(action.request, action.locksmithId);
+      } else if (action.type === "status_update") {
+        await base44.entities.ServiceRequest.update(action.requestId, action.data);
       }
       sent += 1;
     } catch (e) {
@@ -58,6 +62,25 @@ export async function flushActionQueue() {
   writeQueue(remaining);
   flushing = false;
   return sent;
+}
+
+/**
+ * Atualiza o status do atendimento. Sem internet, a alteração é aplicada no
+ * cache local e fica na fila para ser enviada assim que a conexão voltar.
+ * Retorna o registro atualizado (do servidor ou do cache).
+ */
+export async function syncServiceUpdate(requestId, data) {
+  try {
+    const updated = await base44.entities.ServiceRequest.update(requestId, data);
+    saveLastService(updated);
+    return updated;
+  } catch (e) {
+    enqueueAction({ type: "status_update", requestId, data });
+    const cached = getLastService();
+    const merged = cached?.id === requestId ? { ...cached, ...data } : { id: requestId, ...data };
+    saveLastService(merged);
+    return merged;
+  }
 }
 
 /** Reenvia automaticamente quando a conexão voltar. */
