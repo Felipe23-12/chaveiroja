@@ -247,6 +247,7 @@ export function calculateCarKeyPrice({
   laborCost = CAR_KEY_LABOR,
   costPerKm = CAR_KEY_COST_PER_KM,
   extraCost = 0,
+  onlineProgrammingFee = 0,
 }) {
   const comp = keyType ? carKeyComponents({ fipeValue, keyValue, keyType }) : null;
   const kv = comp ? comp.keyValue : Number(keyValue) || 0;
@@ -255,13 +256,17 @@ export function calculateCarKeyPrice({
   const labor = comp ? comp.laborCost : Number(laborCost) || 0;
   const perKm = Number(costPerKm) || 0;
 
+  const onlineFee = Number(onlineProgrammingFee) || 0;
   const locomotion = Math.round(perKm * dist * 100) / 100;
-  const total = Math.round((kv + labor + locomotion + extra) * 100) / 100;
+  const total = Math.round((kv + labor + locomotion + extra + onlineFee) * 100) / 100;
 
   const breakdown = [
     { label: "Valor da chave original", value: kv },
     { label: "Mão de obra", value: labor },
   ];
+  if (onlineFee > 0) {
+    breakdown.push({ label: "Taxa de programação online (acesso da montadora)", value: onlineFee });
+  }
   if (dist > 0) {
     breakdown.push({ label: `Locomoção (${dist.toFixed(1)} km × R$ ${perKm})`, value: locomotion });
   }
@@ -269,7 +274,16 @@ export function calculateCarKeyPrice({
     breakdown.push({ label: "Custos adicionais", value: extra });
   }
 
-  return { keyValue: kv, laborCost: labor, locomotion, distanceKm: dist, extraCost: extra, total, breakdown };
+  return {
+    keyValue: kv,
+    laborCost: labor,
+    locomotion,
+    distanceKm: dist,
+    extraCost: extra,
+    onlineProgrammingFee: onlineFee,
+    total,
+    breakdown,
+  };
 }
 
 // Calcula a comissão do app no modo "app" (15%)

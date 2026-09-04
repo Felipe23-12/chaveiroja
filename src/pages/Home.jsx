@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { SERVICE_CATALOG, calculateCancellationFee, CANCELLATION_THRESHOLD_MINUTES, calculateLongDistanceFee } from "@/lib/pricing";
 import { calculateDynamicPrice } from "@/lib/dynamicPricing";
 import { searchFipeAndKeyValue } from "@/lib/carKey";
+import { detectCarKeyProgramming } from "@/lib/carKeyProgramming";
 import { getMotoKeyRange, getMotoModel, MOTO_BRANDS } from "@/lib/motoKey";
 import MotoKeyConfig from "@/components/locksmith/MotoKeyConfig";
 import DynamicPriceFactors from "@/components/locksmith/DynamicPriceFactors";
@@ -109,6 +110,12 @@ export default function Home() {
     [service, motoInfo]
   );
 
+  // Regras de programação (acesso online pago / somente concessionária)
+  const programming = useMemo(
+    () => (service?.isCarKey ? detectCarKeyProgramming(vehicleInfo.model, vehicleInfo.year) : null),
+    [service, vehicleInfo.model, vehicleInfo.year]
+  );
+
   // Serviço usado no cálculo: para moto, a faixa vem da tabela de regras
   const pricingService = useMemo(() => {
     if (service?.isMotoKey && motoRule?.range) return { ...service, baseRange: motoRule.range };
@@ -154,8 +161,9 @@ export default function Home() {
       keyValue,
       fipeValue,
       carKeyType,
+      onlineProgrammingFee: programming?.onlineFee || 0,
     });
-  }, [pricingService, service, motoRule, selectedOptions, customAddons, vehicleInfo, onlineLocksmithsCount, activeRequestsCount, urgency, customerLoc, address, nearestDistance, keyValue, fipeValue, carKeyType]);
+  }, [pricingService, service, motoRule, selectedOptions, customAddons, vehicleInfo, onlineLocksmithsCount, activeRequestsCount, urgency, customerLoc, address, nearestDistance, keyValue, fipeValue, carKeyType, programming]);
 
   useEffect(() => {
     getCustomerLocation().then(setCustomerLoc);
@@ -265,6 +273,10 @@ export default function Home() {
   // O pagamento acontece APÓS a conclusão do serviço, não antes.
   const handleConfirmConfig = async () => {
     if (!address || submitting) return;
+    if (programming?.dealerOnly) {
+      setSearchError(programming.reason);
+      return;
+    }
     setSubmitting(true);
     setSearchError("");
     try {
@@ -303,8 +315,11 @@ export default function Home() {
       if (service.isCarKey) {
         // Preço dinâmico: valor da chave (fixo) + mão de obra (0,8% da FIPE, ajustada dinamicamente)
         const effectiveKeyValue = carKeyType === "simples" ? 0 : keyValue || 0;
+        const onlineFee = programming?.onlineFee || 0;
         const basePrice = price?.total || 0;
-        const adjustedLabor = price ? Math.round((price.base - effectiveKeyValue) * 100) / 100 : 0;
+        const adjustedLabor = price
+          ? Math.round((price.base - effectiveKeyValue - onlineFee) * 100) / 100
+          : 0;
         const kmFee = calculateLongDistanceFee(nearest.d);
         const disc = useDiscount ? applyLoyaltyDiscount(basePrice) : { amount: 0, final: basePrice };
         req = await base44.entities.ServiceRequest.create({
@@ -317,7 +332,7 @@ export default function Home() {
           labor_cost: adjustedLabor,
           locomotion_cost: kmFee,
           distance_km: Math.round(nearest.d * 100) / 100,
-          extra_cost: 0,
+          extra_cost: onlineFee,
           discount_applied: useDiscount,
           discount_amount: disc.amount,
         });
@@ -766,6 +781,7 @@ export default function Home() {
               carKeyType={carKeyType}
               setCarKeyType={setCarKeyType}
               fipeValue={fipeValue}
+              programming={programming}
               price={null}
             />
           ) : service.isMotoKey ? (
@@ -837,6 +853,7 @@ export default function Home() {
               disabled={
                 !address ||
                 submitting ||
+                programming?.dealerOnly ||
                 (service?.isCarKey && !fipeValue) ||
                 (service?.isMotoKey && !motoRule?.range)
               }

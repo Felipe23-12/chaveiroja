@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import PriceSummary from "./PriceSummary";
 import AddressAutocomplete from "./AddressAutocomplete";
 import { CAR_KEY_TYPES } from "@/lib/pricing";
+import CarKeyProgrammingNotice from "./CarKeyProgrammingNotice";
 
 export default function CarKeyConfig({
   service,
@@ -23,6 +24,7 @@ export default function CarKeyConfig({
   searching,
   searchError,
   onSearch,
+  programming,
   price,
 }) {
   const updateVehicle = (field, value) =>
@@ -76,8 +78,10 @@ export default function CarKeyConfig({
         </div>
       )}
 
+      <CarKeyProgrammingNotice programming={programming} />
+
       {/* Tipo de chave escolhido pelo cliente */}
-      {fipeValue != null && (
+      {fipeValue != null && !programming?.dealerOnly && (
         <div>
           <label className="text-sm font-medium text-foreground mb-1.5 block">Tipo de chave</label>
           <div className="grid grid-cols-1 gap-2">

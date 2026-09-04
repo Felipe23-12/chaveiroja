@@ -119,6 +119,7 @@ export function calculateDynamicPrice({
   keyValue = null,
   fipeValue = null,
   carKeyType = null,
+  onlineProgrammingFee = 0,
 }) {
   if (!service) return null;
 
@@ -132,6 +133,7 @@ export function calculateDynamicPrice({
         keyType: carKeyType,
         distanceKm: 0,
         extraCost: 0,
+        onlineProgrammingFee,
       })
     : calculatePrice({
         service,
@@ -170,7 +172,8 @@ export function calculateDynamicPrice({
   if (service.isCarKey) {
     // Chave de carro: multiplica apenas a mão de obra; valor da chave é fixo
     const adjustedLabor = Math.round(baseResult.laborCost * combinedMultiplier * 100) / 100;
-    current = baseResult.keyValue + adjustedLabor;
+    const onlineFee = baseResult.onlineProgrammingFee || 0;
+    current = baseResult.keyValue + adjustedLabor + onlineFee;
     addonsTotal = 0;
 
     if (baseResult.keyValue > 0) {
@@ -180,6 +183,9 @@ export function calculateDynamicPrice({
       label: `Mão de obra (ajuste dinâmico ×${combinedMultiplier})`,
       value: adjustedLabor,
     });
+    if (onlineFee > 0) {
+      breakdown.push({ label: "Taxa de programação online (acesso da montadora)", value: onlineFee });
+    }
   } else {
     // Serviços normais: multiplica o base; adicionais são fixos
     current = Math.round(baseResult.base * combinedMultiplier * 100) / 100;
@@ -226,7 +232,11 @@ export function calculateDynamicPrice({
   const total = Math.round((current + addonsTotal + distanceFee) * 100) / 100;
 
   return {
-    base: service.isCarKey ? baseResult.keyValue + Math.round(baseResult.laborCost * combinedMultiplier * 100) / 100 : current,
+    base: service.isCarKey
+      ? baseResult.keyValue +
+        Math.round(baseResult.laborCost * combinedMultiplier * 100) / 100 +
+        (baseResult.onlineProgrammingFee || 0)
+      : current,
     addons: addonsTotal,
     distanceFee,
     total,
