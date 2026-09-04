@@ -266,6 +266,7 @@ export default function Home() {
         status: "ringing",
         locksmith_id: nearest.l.id,
         locksmith_name: nearest.l.name,
+        locksmith_user_id: nearest.l.created_by_id,
         customer_lat: customerLoc.lat,
         customer_lng: customerLoc.lng,
         locksmith_lat: nearest.l.lat,

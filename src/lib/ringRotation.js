@@ -46,6 +46,7 @@ export function useRingRotation({ request, queueRef, onRotate, onNoLocksmiths })
         await base44.entities.ServiceRequest.update(request.id, {
           locksmith_id: next.l.id,
           locksmith_name: next.l.name,
+          locksmith_user_id: next.l.created_by_id,
           locksmith_lat: next.l.lat,
           locksmith_lng: next.l.lng,
           distance_km: Math.round(next.d * 100) / 100,
