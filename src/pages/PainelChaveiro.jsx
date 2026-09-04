@@ -27,6 +27,7 @@ import { saveLastService, getLastService, clearLastService, saveLocksmithProfile
 import LoadingCard from "@/components/ui/LoadingCard";
 import { playNotificationSound } from "@/lib/notificationSound";
 import ServiceStatusBadge, { PHASE_BORDER } from "@/components/locksmith/ServiceStatusBadge";
+import UrgentArrivalCountdown from "@/components/locksmith/UrgentArrivalCountdown";
 
 // Raio de cobertura para considerar um pedido "na região" do chaveiro (km)
 const REGION_RADIUS_KM = 15;
@@ -684,6 +685,8 @@ export default function PainelChaveiro() {
             <p className="text-sm font-medium text-foreground">{phaseLabel}</p>
             <p className="text-xs text-muted-foreground mt-0.5">{active.address}</p>
           </div>
+
+          <UrgentArrivalCountdown request={active} />
 
           {/* Alerta persistente: cliente pagará em dinheiro — confirme o recebimento */}
           {cashPending && (

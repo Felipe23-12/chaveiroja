@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import LightMap from "@/components/map/LightMap";
 import QuickMessages from "@/components/chat/QuickMessages";
+import UrgentArrivalCountdown from "@/components/locksmith/UrgentArrivalCountdown";
 import { fetchDrivingRoute, etaMinutes, haversineKm } from "@/lib/geo";
 
 export default function Acompanhamento() {
@@ -164,6 +165,10 @@ export default function Acompanhamento() {
         <div className="w-10 h-10 rounded-full bg-emerald-500 text-white flex items-center justify-center font-semibold shrink-0">
           {locksmith?.name?.charAt(0) || "?"}
         </div>
+      </div>
+
+      <div className="mb-4">
+        <UrgentArrivalCountdown request={request} />
       </div>
 
       {/* Layout: mapa em cima, chat embaixo (mobile) | lado a lado (desktop) */}
