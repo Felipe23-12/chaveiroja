@@ -37,6 +37,7 @@ import {
 import { playNotificationSound } from "@/lib/notificationSound";
 import ServiceStatusBadge, { PHASE_BORDER } from "@/components/locksmith/ServiceStatusBadge";
 import UrgentArrivalCountdown from "@/components/locksmith/UrgentArrivalCountdown";
+import UrgentNearbyAlert from "@/components/locksmith/UrgentNearbyAlert";
 
 // Raio de cobertura para considerar um pedido "na região" do chaveiro (km)
 const REGION_RADIUS_KM = 15;
@@ -678,6 +679,9 @@ export default function PainelChaveiro() {
         </div>
         );
       })()}
+
+      {/* Alerta automático de chamados urgentes na região */}
+      {me && !active && <UrgentNearbyAlert locksmith={me} />}
 
       {/* Recebimentos automáticos via Stripe Connect */}
       {me && isAppMode && (
