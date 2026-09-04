@@ -4,13 +4,7 @@ import { Loader2, ArrowDownToLine, CheckCircle2, Clock, XCircle } from "lucide-r
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import NativeSelectDrawer from "@/components/ui/NativeSelectDrawer";
 import { requestWithdrawal } from "@/lib/payments";
 
 const STATUS_CONFIG = {
@@ -105,16 +99,20 @@ export default function WithdrawalSection({ locksmith, onWithdrawalMade }) {
           </div>
           <div>
             <Label className="text-xs">Tipo de chave Pix</Label>
-            <Select value={pixKeyType} onValueChange={setPixKeyType}>
-              <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="cpf">CPF</SelectItem>
-                <SelectItem value="cnpj">CNPJ</SelectItem>
-                <SelectItem value="email">E-mail</SelectItem>
-                <SelectItem value="phone">Telefone</SelectItem>
-                <SelectItem value="random">Chave aleatória</SelectItem>
-              </SelectContent>
-            </Select>
+            <div className="mt-1">
+              <NativeSelectDrawer
+                label="Tipo de chave Pix"
+                value={pixKeyType}
+                onChange={setPixKeyType}
+                options={[
+                  { value: "cpf", label: "CPF" },
+                  { value: "cnpj", label: "CNPJ" },
+                  { value: "email", label: "E-mail" },
+                  { value: "phone", label: "Telefone" },
+                  { value: "random", label: "Chave aleatória" },
+                ]}
+              />
+            </div>
           </div>
           <div>
             <Label className="text-xs">Chave Pix de destino</Label>

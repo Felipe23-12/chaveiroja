@@ -1,3 +1,4 @@
+import React, { lazy, Suspense } from 'react';
 import { Toaster } from "@/components/ui/toaster"
 import { QueryClientProvider } from '@tanstack/react-query'
 import { queryClientInstance } from '@/lib/query-client'
@@ -9,28 +10,38 @@ import ScrollToTop from './components/ScrollToTop';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import ProfileCompletionGuard from '@/components/ProfileCompletionGuard';
 import RoleGuard from '@/components/RoleGuard';
+import LoadingCard from '@/components/ui/LoadingCard';
 import Layout from '@/components/Layout';
-import Home from '@/pages/Home';
-import History from '@/pages/History';
-import LocksmithProfile from '@/pages/LocksmithProfile';
-import Mapa from '@/pages/Mapa';
-import Chat from '@/pages/Chat';
-import PainelChaveiro from '@/pages/PainelChaveiro';
-import PainelFinanceiro from '@/pages/PainelFinanceiro';
-import LocksmithPublicProfile from '@/pages/LocksmithPublicProfile';
-import Login from '@/pages/Login';
-import Register from '@/pages/Register';
-import ForgotPassword from '@/pages/ForgotPassword';
-import ResetPassword from '@/pages/ResetPassword';
-import RegisterCliente from '@/pages/RegisterCliente';
-import RegisterChaveiro from '@/pages/RegisterChaveiro';
-import PainelAdmin from '@/pages/PainelAdmin';
-import PainelFinanceiroAdmin from '@/pages/PainelFinanceiroAdmin';
-import GoogleComplete from '@/pages/GoogleComplete';
-import PoliticaReembolso from '@/pages/PoliticaReembolso';
-import TermosPrivacidade from '@/pages/TermosPrivacidade';
-import Acompanhamento from '@/pages/Acompanhamento';
+
+// Páginas carregadas sob demanda — reduz o tempo de inicialização em
+// conexões móveis lentas (WebView), pois só o código da rota atual é baixado.
+const Home = lazy(() => import('@/pages/Home'));
+const History = lazy(() => import('@/pages/History'));
+const LocksmithProfile = lazy(() => import('@/pages/LocksmithProfile'));
+const Mapa = lazy(() => import('@/pages/Mapa'));
+const Chat = lazy(() => import('@/pages/Chat'));
+const PainelChaveiro = lazy(() => import('@/pages/PainelChaveiro'));
+const PainelFinanceiro = lazy(() => import('@/pages/PainelFinanceiro'));
+const LocksmithPublicProfile = lazy(() => import('@/pages/LocksmithPublicProfile'));
+const Login = lazy(() => import('@/pages/Login'));
+const Register = lazy(() => import('@/pages/Register'));
+const ForgotPassword = lazy(() => import('@/pages/ForgotPassword'));
+const ResetPassword = lazy(() => import('@/pages/ResetPassword'));
+const RegisterCliente = lazy(() => import('@/pages/RegisterCliente'));
+const RegisterChaveiro = lazy(() => import('@/pages/RegisterChaveiro'));
+const PainelAdmin = lazy(() => import('@/pages/PainelAdmin'));
+const PainelFinanceiroAdmin = lazy(() => import('@/pages/PainelFinanceiroAdmin'));
+const GoogleComplete = lazy(() => import('@/pages/GoogleComplete'));
+const PoliticaReembolso = lazy(() => import('@/pages/PoliticaReembolso'));
+const TermosPrivacidade = lazy(() => import('@/pages/TermosPrivacidade'));
+const Acompanhamento = lazy(() => import('@/pages/Acompanhamento'));
 // Add page imports here
+
+const PageFallback = () => (
+  <div className="max-w-2xl mx-auto px-4 py-8">
+    <LoadingCard label="Carregando..." />
+  </div>
+);
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
@@ -57,41 +68,43 @@ const AuthenticatedApp = () => {
 
   // Render the main app
   return (
-    <Routes>
-      <Route path="/login" element={<Login />} />
-      <Route path="/register" element={<Register />} />
-      <Route path="/forgot-password" element={<ForgotPassword />} />
-      <Route path="/reset-password" element={<ResetPassword />} />
-      <Route path="/cadastro/cliente" element={<RegisterCliente />} />
-      <Route path="/cadastro/chaveiro" element={<RegisterChaveiro />} />
-      <Route path="/google-complete" element={<GoogleComplete />} />
-      <Route path="/politica-reembolso" element={<PoliticaReembolso />} />
-      <Route path="/termos-privacidade" element={<TermosPrivacidade />} />
-      <Route element={<ProtectedRoute unauthenticatedElement={<Navigate to="/login" replace />} />}>
-        <Route element={<ProfileCompletionGuard />}>
-        <Route element={<Layout />}>
-          <Route element={<RoleGuard allow={["cliente"]} />}>
-            <Route path="/" element={<Home />} />
-            <Route path="/mapa" element={<Mapa />} />
-            <Route path="/historico" element={<History />} />
-            <Route path="/chat/:locksmithId" element={<Chat />} />
-            <Route path="/chaveiro/:id" element={<LocksmithPublicProfile />} />
-            <Route path="/acompanhamento/:requestId" element={<Acompanhamento />} />
+    <Suspense fallback={<PageFallback />}>
+      <Routes>
+        <Route path="/login" element={<Login />} />
+        <Route path="/register" element={<Register />} />
+        <Route path="/forgot-password" element={<ForgotPassword />} />
+        <Route path="/reset-password" element={<ResetPassword />} />
+        <Route path="/cadastro/cliente" element={<RegisterCliente />} />
+        <Route path="/cadastro/chaveiro" element={<RegisterChaveiro />} />
+        <Route path="/google-complete" element={<GoogleComplete />} />
+        <Route path="/politica-reembolso" element={<PoliticaReembolso />} />
+        <Route path="/termos-privacidade" element={<TermosPrivacidade />} />
+        <Route element={<ProtectedRoute unauthenticatedElement={<Navigate to="/login" replace />} />}>
+          <Route element={<ProfileCompletionGuard />}>
+          <Route element={<Layout />}>
+            <Route element={<RoleGuard allow={["cliente"]} />}>
+              <Route path="/" element={<Home />} />
+              <Route path="/mapa" element={<Mapa />} />
+              <Route path="/historico" element={<History />} />
+              <Route path="/chat/:locksmithId" element={<Chat />} />
+              <Route path="/chaveiro/:id" element={<LocksmithPublicProfile />} />
+              <Route path="/acompanhamento/:requestId" element={<Acompanhamento />} />
+            </Route>
+            <Route element={<RoleGuard allow={["chaveiro"]} />}>
+              <Route path="/painel-chaveiro" element={<PainelChaveiro />} />
+              <Route path="/painel-financeiro" element={<PainelFinanceiro />} />
+              <Route path="/modo-trabalho" element={<LocksmithProfile />} />
+            </Route>
+            <Route element={<RoleGuard allow={["admin"]} />}>
+              <Route path="/painel-admin" element={<PainelAdmin />} />
+              <Route path="/painel-financeiro-admin" element={<PainelFinanceiroAdmin />} />
+            </Route>
           </Route>
-          <Route element={<RoleGuard allow={["chaveiro"]} />}>
-            <Route path="/painel-chaveiro" element={<PainelChaveiro />} />
-            <Route path="/painel-financeiro" element={<PainelFinanceiro />} />
-            <Route path="/modo-trabalho" element={<LocksmithProfile />} />
-          </Route>
-          <Route element={<RoleGuard allow={["admin"]} />}>
-            <Route path="/painel-admin" element={<PainelAdmin />} />
-            <Route path="/painel-financeiro-admin" element={<PainelFinanceiroAdmin />} />
           </Route>
         </Route>
-        </Route>
-      </Route>
-      <Route path="*" element={<PageNotFound />} />
-    </Routes>
+        <Route path="*" element={<PageNotFound />} />
+      </Routes>
+    </Suspense>
   );
 };
 

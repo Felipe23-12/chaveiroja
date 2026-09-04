@@ -1,13 +1,7 @@
 import React from "react";
 import { Search, Calendar, Filter, X } from "lucide-react";
 import { Input } from "@/components/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import NativeSelectDrawer from "@/components/ui/NativeSelectDrawer";
 import { Button } from "@/components/ui/button";
 
 export const SERVICE_TYPES = [
@@ -76,39 +70,31 @@ export default function ServiceFilters({ filters, onChange, onClear }) {
         <label className="text-xs text-muted-foreground flex items-center gap-1">
           <Filter className="w-3 h-3" /> Status
         </label>
-        <Select
+        <NativeSelectDrawer
+          label="Status"
+          placeholder="Todos os status"
           value={filters.status || "all"}
-          onValueChange={(v) => onChange({ ...filters, status: v === "all" ? "" : v })}
-        >
-          <SelectTrigger className="w-full">
-            <SelectValue placeholder="Todos os status" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Todos os status</SelectItem>
-            {SERVICE_STATUSES.map((s) => (
-              <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+          onChange={(v) => onChange({ ...filters, status: v === "all" ? "" : v })}
+          options={[
+            { value: "all", label: "Todos os status" },
+            ...SERVICE_STATUSES.map((s) => ({ value: s.value, label: s.label })),
+          ]}
+        />
       </div>
       <div className="flex flex-col gap-1 flex-1 min-w-[160px]">
         <label className="text-xs text-muted-foreground flex items-center gap-1">
           <Filter className="w-3 h-3" /> Tipo de serviço
         </label>
-        <Select
+        <NativeSelectDrawer
+          label="Tipo de serviço"
+          placeholder="Todos os tipos"
           value={filters.serviceType || "all"}
-          onValueChange={(v) => onChange({ ...filters, serviceType: v === "all" ? "" : v })}
-        >
-          <SelectTrigger className="w-full">
-            <SelectValue placeholder="Todos os tipos" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Todos os tipos</SelectItem>
-            {SERVICE_TYPES.map((t) => (
-              <SelectItem key={t} value={t}>{t}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+          onChange={(v) => onChange({ ...filters, serviceType: v === "all" ? "" : v })}
+          options={[
+            { value: "all", label: "Todos os tipos" },
+            ...SERVICE_TYPES.map((t) => ({ value: t, label: t })),
+          ]}
+        />
       </div>
       <div className="flex flex-col gap-1 flex-1 min-w-[160px]">
         <label className="text-xs text-muted-foreground flex items-center gap-1">

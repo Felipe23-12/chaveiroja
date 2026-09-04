@@ -36,6 +36,19 @@ const TABS_BY_ROLE = {
 // não perca seu lugar ao voltar para uma aba visitada anteriormente.
 const scrollCache = {};
 
+// A aba está ativa também quando o usuário está numa sub-rota dela
+// (ex: /chat/123 pertence à aba Início do cliente).
+const TAB_SUBROUTES = {
+  "/": ["/chat", "/chaveiro", "/acompanhamento"],
+};
+
+function isTabActive(tabPath, currentPath) {
+  if (currentPath === tabPath) return true;
+  return (TAB_SUBROUTES[tabPath] || []).some(
+    (p) => currentPath === p || currentPath.startsWith(`${p}/`)
+  );
+}
+
 export default function MobileTabBar() {
   const location = useLocation();
   const { user } = useAuth();
@@ -64,7 +77,19 @@ export default function MobileTabBar() {
   }, [currentPath]);
 
   const handleTabClick = (path) => {
-    if (path === currentPath) return; // mesma aba: não reseta a rolagem
+    // Já na aba (rota raiz): apenas volta ao topo, como num app nativo.
+    if (path === currentPath) {
+      scrollCache[path] = 0;
+      window.scrollTo({ top: 0, behavior: "smooth" });
+      return;
+    }
+    // Aba ativa numa sub-rota (ex: /chat/123): volta à raiz da aba
+    // descartando a rolagem antiga da sub-rota.
+    if (isTabActive(path, currentPath)) {
+      delete scrollCache[currentPath];
+      scrollCache[path] = 0;
+      return;
+    }
     // Salva a rolagem atual antes de navegar para a nova aba.
     scrollCache[currentPath] = window.scrollY;
   };
@@ -74,7 +99,7 @@ export default function MobileTabBar() {
       <div className="flex">
         {tabs.map((t) => {
           const Icon = t.icon;
-          const active = currentPath === t.path;
+          const active = isTabActive(t.path, currentPath);
           return (
             <Link
               key={t.path}

@@ -3,8 +3,14 @@ import { base44 } from "@/api/base44Client";
 import { MapPin, Navigation, Filter, Loader2, Inbox } from "lucide-react";
 import { haversineKm } from "@/lib/geo";
 import { SERVICE_CATALOG } from "@/lib/pricing";
+import NativeSelectDrawer from "@/components/ui/NativeSelectDrawer";
 
 const DEFAULT_RADIUS_KM = 10;
+
+const RADIUS_OPTIONS = [1, 3, 5, 10, 15, 20, 30].map((km) => ({
+  value: String(km),
+  label: `${km} km`,
+}));
 
 /**
  * Lista solicitações abertas (status "searching") próximas ao chaveiro.
@@ -92,16 +98,14 @@ export default function NearbyRequestsList({ locksmith }) {
         <div className="px-4 py-2.5 border-b border-border bg-muted/30">
           <div className="flex items-center gap-3">
             <span className="text-xs text-muted-foreground shrink-0">Raio:</span>
-            <input
-              type="range"
-              min="1"
-              max="30"
-              step="1"
-              value={radius}
-              onChange={(e) => setRadius(Number(e.target.value))}
-              className="flex-1 accent-primary"
-            />
-            <span className="text-xs font-medium text-foreground shrink-0 w-12 text-right">{radius} km</span>
+            <div className="flex-1">
+              <NativeSelectDrawer
+                label="Raio de busca"
+                value={String(radius)}
+                onChange={(v) => setRadius(Number(v))}
+                options={RADIUS_OPTIONS}
+              />
+            </div>
           </div>
         </div>
       )}
