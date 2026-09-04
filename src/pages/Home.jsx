@@ -32,6 +32,7 @@ import PaymentStep from "@/components/payment/PaymentStep";
 import ReceiptButton from "@/components/payment/ReceiptButton";
 import { createPaymentRecord, confirmPaymentPaid } from "@/lib/payments";
 import { ensureNotificationPermission, notifyClient } from "@/lib/clientNotifications";
+import { sendServiceStatusMessage } from "@/lib/serviceStatusMessages";
 import { Image } from "@/components/ui/image";
 import StepTransition from "@/components/ui/StepTransition";
 import StepProgress from "@/components/ui/StepProgress";
@@ -99,6 +100,7 @@ export default function Home() {
   const [keyBlock, setKeyBlock] = useState(null);
   const [customerName, setCustomerName] = useState("");
   const reqRef = useRef(null);
+  const notifiedAccepted = useRef(false);
   const notifiedMoving = useRef(false);
   const notifiedNearby = useRef(false);
   const notifiedEnd = useRef(false);
@@ -535,6 +537,10 @@ export default function Home() {
           if (updated.status === "accepted" && step === 3) {
             goToStep(4);
           }
+          if (updated.status === "accepted" && !notifiedAccepted.current) {
+            notifiedAccepted.current = true;
+            sendServiceStatusMessage("accepted", { request: updated, locksmith: selectedLocksmith });
+          }
           if (updated.status === "on_the_way" && step === 4) {
             goToStep(5);
           }
@@ -550,6 +556,7 @@ export default function Home() {
           // Notificação: chaveiro iniciou o deslocamento
           if (updated.status === "on_the_way" && !notifiedMoving.current) {
             notifiedMoving.current = true;
+            sendServiceStatusMessage("on_the_way", { request: updated, locksmith: selectedLocksmith });
             notifyClient(
               "Chaveiro a caminho!",
               `${selectedLocksmith?.name || "O chaveiro"} iniciou o deslocamento até você.`
@@ -572,6 +579,7 @@ export default function Home() {
             );
             if (dist <= 1 && dist >= 0) {
               notifiedNearby.current = true;
+              sendServiceStatusMessage("nearby", { request: updated, locksmith: selectedLocksmith });
               notifyClient(
                 "Seu chaveiro está chegando!",
                 `Ele está a menos de 1 km do seu endereço.`
@@ -586,6 +594,7 @@ export default function Home() {
           // Notificação: chaveiro chegou ao local
           if (updated.locksmith_arrived && !notifiedArrived.current) {
             notifiedArrived.current = true;
+            sendServiceStatusMessage("arrived", { request: updated, locksmith: selectedLocksmith });
             notifyClient("Chaveiro chegou!", `${selectedLocksmith?.name || "O chaveiro"} chegou ao seu endereço. Confirme a chegada.`);
             toast({ title: "📍 Chaveiro chegou!", description: "Confirme a chegada para liberar o início do serviço." });
           }
@@ -593,6 +602,7 @@ export default function Home() {
           // Notificação: chaveiro registrou o final do serviço (hora de confirmar e pagar)
           if (updated.end_photos?.length > 0 && !notifiedEnd.current) {
             notifiedEnd.current = true;
+            sendServiceStatusMessage("finished", { request: updated, locksmith: selectedLocksmith });
             notifyClient("Serviço concluído!", "O chaveiro finalizou o atendimento. Confirme e efetue o pagamento.");
             toast({ title: "✅ Serviço concluído!", description: "Confirme o serviço e efetue o pagamento." });
           }
@@ -725,8 +735,10 @@ export default function Home() {
     setCancelFeeData(null);
     setRoutePath(null);
     setRouteEta(null);
+    notifiedAccepted.current = false;
     notifiedMoving.current = false;
     notifiedNearby.current = false;
+    notifiedArrived.current = false;
     notifiedEnd.current = false;
     notifiedCompleted.current = false;
   };
