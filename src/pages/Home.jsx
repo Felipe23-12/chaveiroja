@@ -7,6 +7,7 @@ import { SERVICE_CATALOG, calculateCancellationFee, CANCELLATION_THRESHOLD_MINUT
 import { calculateDynamicPrice } from "@/lib/dynamicPricing";
 import { searchFipeAndKeyValue } from "@/lib/carKey";
 import { detectCarKeyProgramming } from "@/lib/carKeyProgramming";
+import { getKeyCancelBlock } from "@/lib/keyCancelBlock";
 import { getMotoKeyRange, getMotoModel, MOTO_BRANDS } from "@/lib/motoKey";
 import MotoKeyConfig from "@/components/locksmith/MotoKeyConfig";
 import DynamicPriceFactors from "@/components/locksmith/DynamicPriceFactors";
@@ -280,6 +281,21 @@ export default function Home() {
     setSubmitting(true);
     setSearchError("");
     try {
+      // Bloqueio por cancelamentos repetidos em confecção de chaves
+      if (service?.isCarKey || service?.isMotoKey) {
+        const user = await base44.auth.me().catch(() => null);
+        const block = await getKeyCancelBlock(user?.id);
+        if (block.blocked) {
+          const h = Math.floor(block.minutesLeft / 60);
+          const m = block.minutesLeft % 60;
+          setSearchError(
+            `Você cancelou 3 solicitações de confecção de chave. Novas solicitações estarão liberadas em ${h > 0 ? `${h}h ` : ""}${m}min.`
+          );
+          setSubmitting(false);
+          return;
+        }
+      }
+
       // Filtra apenas chaveiros que atendem o serviço solicitado.
       // 1. Se o chaveiro configurou serviços específicos, exige o ID do serviço.
       // 2. Se não configurou serviços, usa a especialidade como filtro:
