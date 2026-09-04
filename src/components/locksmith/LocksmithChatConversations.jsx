@@ -33,8 +33,8 @@ export default function LocksmithChatConversations({ me }) {
           list.forEach((m) => {
             if (m.sender_type !== "customer") return;
             customerTotal++;
-            const key = m.sender_name || "Cliente";
-            if (!groups[key]) groups[key] = { name: key, lastDate: m.created_date, count: 0 };
+            const key = m.client_id || m.sender_name || "Cliente";
+            if (!groups[key]) groups[key] = { id: key, name: m.client_name || m.sender_name || "Cliente", lastDate: m.created_date, count: 0 };
             groups[key].count++;
             if (new Date(m.created_date) > new Date(groups[key].lastDate)) {
               groups[key].lastDate = m.created_date;
@@ -44,7 +44,7 @@ export default function LocksmithChatConversations({ me }) {
             (a, b) => new Date(b.lastDate) - new Date(a.lastDate)
           );
           setConversations(sorted);
-          if (sorted.length > 0 && !activeTab) setActiveTab(sorted[0].name);
+          if (sorted.length > 0 && !activeTab) setActiveTab(sorted[0].id);
 
           // Notificação em tempo real de novas mensagens de cliente
           if (lastCustomerCountRef.current !== null && customerTotal > lastCustomerCountRef.current) {
@@ -70,11 +70,7 @@ export default function LocksmithChatConversations({ me }) {
       base44.entities.ChatMessage
         .filter({ locksmith_id: me.id }, "created_date")
         .then((list) => {
-          const filtered = list.filter(
-            (m) => m.sender_type === "customer"
-              ? m.sender_name === activeTab
-              : true // mensagens do chaveiro aparecem em todas as conversas
-          );
+          const filtered = list.filter((m) => (m.client_id || m.sender_name) === activeTab);
           setMessages(filtered);
         })
         .catch(() => {});
@@ -94,9 +90,13 @@ export default function LocksmithChatConversations({ me }) {
     const msg = text.trim();
     setText("");
     try {
+      const activeConv = conversations.find((c) => c.id === activeTab);
       await base44.entities.ChatMessage.create({
         locksmith_id: me.id,
         locksmith_name: me.name,
+        locksmith_user_id: me.created_by_id,
+        client_id: activeTab,
+        client_name: activeConv?.name,
         sender_type: "locksmith",
         sender_name: me.name,
         message: msg,
@@ -131,10 +131,10 @@ export default function LocksmithChatConversations({ me }) {
           <div className="flex gap-1 overflow-x-auto p-2 bg-muted/50 border-b border-border">
             {conversations.map((c) => (
               <button
-                key={c.name}
-                onClick={() => setActiveTab(c.name)}
+                key={c.id}
+                onClick={() => setActiveTab(c.id)}
                 className={`px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition-all ${
-                  activeTab === c.name
+                  activeTab === c.id
                     ? "bg-primary text-primary-foreground"
                     : "text-muted-foreground hover:bg-accent"
                 }`}
@@ -170,7 +170,7 @@ export default function LocksmithChatConversations({ me }) {
               <Input
                 value={text}
                 onChange={(e) => setText(e.target.value)}
-                placeholder={`Responder para ${activeTab}...`}
+                placeholder={`Responder para ${conversations.find((c) => c.id === activeTab)?.name || ""}...`}
                 disabled={sending}
               />
               <Button type="submit" size="icon" disabled={!text.trim() || sending}>
