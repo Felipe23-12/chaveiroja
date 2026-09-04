@@ -109,8 +109,9 @@ export function startAlarm() {
   tryPlay();
 
   if (!vibrateTimer && navigator.vibrate) {
-    navigator.vibrate([400, 200, 400]);
-    vibrateTimer = setInterval(() => navigator.vibrate([400, 200, 400]), 4000);
+    const pattern = [200, 100, 200, 100, 200];
+    navigator.vibrate(pattern);
+    vibrateTimer = setInterval(() => navigator.vibrate(pattern), 3000);
   }
 }
 

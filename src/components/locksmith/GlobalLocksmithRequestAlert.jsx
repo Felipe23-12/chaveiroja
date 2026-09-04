@@ -1,8 +1,8 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
 import { useAuth } from "@/lib/AuthContext";
-import { Bell, Check, X, MapPin, Clock, AlertCircle, Volume2, VolumeX, Wrench, ChevronUp } from "lucide-react";
+import { Bell, Check, X, MapPin, Clock, AlertCircle, Wrench, ChevronUp } from "lucide-react";
 import { isRingingFor, rejectRing, acceptRing } from "@/lib/ringBroadcast";
 import { startAlarm, stopAlarm, primeAlarmAudio } from "@/lib/persistentAlarm";
 import { savePendingRequests, getPendingRequests, saveLocksmithProfile, getLocksmithProfile } from "@/lib/offlineCache";
@@ -48,16 +48,10 @@ export default function GlobalLocksmithRequestAlert() {
   const [locksmith, setLocksmith] = useState(null);
   const locksmithId = locksmith?.id || null;
   const [requests, setRequests] = useState([]);
-  const [muted, setMuted] = useState(false);
   const [open, setOpen] = useState(false);
   const [accepting, setAccepting] = useState(null);
   const [queuedCount, setQueuedCount] = useState(queuedActionsCount());
   const online = useOnlineStatus();
-  const mutedRef = useRef(false);
-
-  useEffect(() => {
-    mutedRef.current = muted;
-  }, [muted]);
 
   const accountType = user?.account_type || (user?.role === "admin" ? "admin" : "cliente");
   const isChaveiro = accountType === "chaveiro";
@@ -131,7 +125,7 @@ export default function GlobalLocksmithRequestAlert() {
   // continua com o app em segundo plano e retoma ao reabrir o app.
   useEffect(() => {
     const pending = requests.length > 0;
-    if (!pending || muted) {
+    if (!pending) {
       stopAlarm();
       return;
     }
@@ -157,12 +151,13 @@ export default function GlobalLocksmithRequestAlert() {
     }
 
     return () => stopAlarm();
-  }, [requests.length > 0, muted]);
+  }, [requests.length > 0]);
 
   // Garante que o alarme pare ao sair do painel
   useEffect(() => () => stopAlarm(), []);
 
   const handleAccept = async (reqId, extra = 0) => {
+    if (requests.length === 1) stopAlarm();
     setAccepting(reqId);
     try {
       if (!locksmith) return;
@@ -181,6 +176,7 @@ export default function GlobalLocksmithRequestAlert() {
   };
 
   const handleReject = async (reqId) => {
+    if (requests.length === 1) stopAlarm();
     setAccepting(reqId);
     try {
       const req = requests.find((r) => r.id === reqId);
@@ -217,13 +213,6 @@ export default function GlobalLocksmithRequestAlert() {
                 </span>
               </div>
               <div className="flex items-center gap-1.5">
-                <button
-                  onClick={() => setMuted((m) => !m)}
-                  className="p-1.5 rounded-lg hover:bg-white/20 transition-colors"
-                  title={muted ? "Ativar som" : "Silenciar"}
-                >
-                  {muted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
-                </button>
                 <button
                   onClick={() => setOpen(false)}
                   className="p-1.5 rounded-lg hover:bg-white/20 transition-colors"

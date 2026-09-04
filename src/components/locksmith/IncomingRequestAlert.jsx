@@ -1,7 +1,5 @@
-import React, { useState, useEffect, useRef } from "react";
-import { Bell, Check, X, MapPin, Clock, AlertCircle, Volume2 } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { playNotificationSound } from "@/lib/notificationSound";
+import React, { useState, useEffect } from "react";
+import { Bell, Check, X, MapPin, Clock, AlertCircle } from "lucide-react";
 
 function formatElapsed(seconds) {
   const m = Math.floor(seconds / 60);
@@ -12,44 +10,18 @@ function formatElapsed(seconds) {
 export default function IncomingRequestAlert({ request, onAccept, onReject }) {
   const [elapsed, setElapsed] = useState(0);
   const [extraCost, setExtraCost] = useState("");
-  const [muted, setMuted] = useState(false);
-  const mutedRef = useRef(false);
 
-  useEffect(() => {
-    mutedRef.current = muted;
-  }, [muted]);
-
-  // Timer + som repetitivo + vibração enquanto a solicitação está pendente
+  // O alarme persistente é controlado globalmente; este timer acompanha
+  // somente o tempo aguardando resposta no cartão atual.
   useEffect(() => {
     if (!request) return;
     setElapsed(0);
     setExtraCost("");
     const start = Date.now();
-
     const timer = setInterval(() => {
       setElapsed((Date.now() - start) / 1000);
     }, 1000);
-
-    // Som repetitivo: áudio de notificação a cada 5 segundos enquanto pendente
-    const soundTimer = setInterval(() => {
-      if (mutedRef.current) return;
-      playNotificationSound();
-    }, 5000);
-
-    // Vibração no celular: padrão repetitivo
-    let vibrateTimer;
-    if (navigator.vibrate) {
-      navigator.vibrate([400, 200, 400]);
-      vibrateTimer = setInterval(() => {
-        if (!mutedRef.current) navigator.vibrate([400, 200, 400]);
-      }, 5000);
-    }
-
-    return () => {
-      clearInterval(timer);
-      clearInterval(soundTimer);
-      if (vibrateTimer) clearInterval(vibrateTimer);
-    };
+    return () => clearInterval(timer);
   }, [request?.id]);
 
   if (!request) return null;
@@ -86,13 +58,6 @@ export default function IncomingRequestAlert({ request, onAccept, onReject }) {
           </span>
         </div>
         <div className="flex items-center gap-2">
-          <button
-            onClick={() => setMuted((m) => !m)}
-            className="p-1 rounded hover:bg-white/20 transition-colors"
-            title={muted ? "Ativar som" : "Silenciar"}
-          >
-            <Volume2 className={`w-4 h-4 ${muted ? "opacity-40" : ""}`} />
-          </button>
           <div className="flex items-center gap-1.5 text-xs font-medium">
             <Clock className="w-3.5 h-3.5" />
             <span className="tabular-nums">{formatElapsed(elapsed)}</span>
