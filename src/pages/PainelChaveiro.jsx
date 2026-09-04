@@ -615,7 +615,7 @@ export default function PainelChaveiro() {
         return (
         <div className="flex items-center justify-between p-4 rounded-xl border border-border bg-card mb-5 fade-in-up">
           <div>
-            <p className="font-medium text-foreground">{me.name}</p>
+            <p className="font-medium text-foreground">{user?.full_name || me.name}</p>
             <p className="text-xs text-muted-foreground">
               Modo {isLivre ? "Livre" : "Aplicativo"} ·{" "}
               <span className={me.online ? "text-emerald-600" : "text-muted-foreground"}>
