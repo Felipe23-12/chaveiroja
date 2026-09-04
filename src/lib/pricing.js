@@ -300,12 +300,26 @@ export const CANCELLATION_FEE_RATE = 0.25;
 export const CANCELLATION_LOCKSMITH_SHARE = 0.20;
 export const CANCELLATION_APP_SHARE = 0.05;
 
-export function calculateCancellationFee(price) {
+// Confecção de chaves (carro e moto): taxa FIXA de cancelamento após 5 minutos.
+export const KEY_MAKING_CANCELLATION_FIXED = {
+  "Confecção de Chave de Carro": { normal: 150, urgent: 220 },
+  "Confecção de Chave de Moto": { normal: 100, urgent: 150 },
+};
+
+export function calculateCancellationFee(price, { serviceType = "", urgency = "normal" } = {}) {
+  const fixed = KEY_MAKING_CANCELLATION_FIXED[serviceType];
+  if (fixed) {
+    const fee = urgency === "urgent" ? fixed.urgent : fixed.normal;
+    // Mantém a divisão 80% chaveiro / 20% app sobre a taxa fixa
+    const locksmithAmount = Math.round(fee * 0.8 * 100) / 100;
+    const appFee = Math.round((fee - locksmithAmount) * 100) / 100;
+    return { fee, locksmithAmount, appFee, fixed: true };
+  }
   const p = Number(price) || 0;
   const fee = Math.round(p * CANCELLATION_FEE_RATE * 100) / 100;
   const locksmithAmount = Math.round(p * CANCELLATION_LOCKSMITH_SHARE * 100) / 100;
   const appFee = Math.round(p * CANCELLATION_APP_SHARE * 100) / 100;
-  return { fee, locksmithAmount, appFee };
+  return { fee, locksmithAmount, appFee, fixed: false };
 }
 
 // Calcula o repasse (valor líquido) devido ao chaveiro para um serviço,

@@ -657,7 +657,10 @@ export default function Home() {
         return;
       }
       // Após 5 min: abre a confirmação da taxa de cancelamento (paga online)
-      const c = calculateCancellationFee(activeRequest.price);
+      const c = calculateCancellationFee(activeRequest.price, {
+        serviceType: activeRequest.service_type,
+        urgency: activeRequest.urgency,
+      });
       setCancelFeeData(c);
       setCancelConfirmOpen(true);
       return;
@@ -1151,7 +1154,7 @@ export default function Home() {
           <AlertDialogHeader>
             <AlertDialogTitle>Confirmar taxa de cancelamento</AlertDialogTitle>
             <AlertDialogDescription>
-              O chaveiro já aceitou seu pedido e está a caminho. Será cobrada uma taxa de cancelamento de 25% (R$ {cancelFeeData?.fee.toFixed(2)}), paga apenas online (cartão). Deseja continuar?
+              O chaveiro já aceitou seu pedido e está a caminho. Será cobrada uma taxa de cancelamento {cancelFeeData?.fixed ? "fixa" : "de 25%"} de R$ {cancelFeeData?.fee.toFixed(2)}, paga apenas online (cartão). Deseja continuar?
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
