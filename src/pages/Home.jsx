@@ -856,12 +856,12 @@ export default function Home() {
               setCustomAddon={setCustomAddon}
               vehicleInfo={vehicleInfo}
               setVehicleInfo={setVehicleInfo}
-              price={price}
+              price={address ? price : null}
             />
           )}
 
           {/* Fatores dinâmicos de precificação (oferta/demanda, região, bairro, distância) */}
-          {price && nearestDistance != null && (
+          {address && price && nearestDistance != null && (
             <DynamicPriceFactors price={price} nearestDistance={nearestDistance} />
           )}
 

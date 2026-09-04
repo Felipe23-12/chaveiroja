@@ -124,7 +124,13 @@ export default function ServiceConfig({
         />
       </div>
 
-      <PriceSummary price={price} />
+      {price ? (
+        <PriceSummary price={price} />
+      ) : (
+        <div className="rounded-2xl bg-muted p-4 text-sm text-muted-foreground text-center">
+          Informe o endereço acima para calcularmos o valor do serviço.
+        </div>
+      )}
     </div>
   );
 }
