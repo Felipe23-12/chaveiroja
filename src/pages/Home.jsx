@@ -19,6 +19,7 @@ import LightMap from "@/components/map/LightMap";
 import UrgentArrivalCountdown from "@/components/locksmith/UrgentArrivalCountdown";
 import { DEFAULT_CENTER, getCustomerLocation, haversineKm, fetchDrivingRoute, etaMinutes } from "@/lib/geo";
 import { getClientLoyalty, applyLoyaltyDiscount } from "@/lib/loyalty";
+import { buildEligibleQueue, useRingRotation } from "@/lib/ringRotation";
 import PointsProgressCard from "@/components/locksmith/PointsProgressCard";
 import PaymentStep from "@/components/payment/PaymentStep";
 import ReceiptButton from "@/components/payment/ReceiptButton";
@@ -92,6 +93,7 @@ export default function Home() {
   const notifiedEnd = useRef(false);
   const notifiedCompleted = useRef(false);
   const notifiedArrived = useRef(false);
+  const queueRef = useRef([]);
 
   const service = useMemo(() => SERVICE_CATALOG.find((s) => s.id === serviceId), [serviceId]);
 
@@ -246,18 +248,9 @@ export default function Home() {
       // 1. Se o chaveiro configurou serviços específicos, exige o ID do serviço.
       // 2. Se não configurou serviços, usa a especialidade como filtro:
       //    o serviço só vai para chaveiros cuja especialidade inclui a do serviço.
-      const eligible = appLocksmiths.filter((l) => {
-        if (l.services && l.services.length > 0) {
-          return l.services.includes(service.id);
-        }
-        const locksmithSpecialties =
-          l.specialties && l.specialties.length > 0 ? l.specialties : [l.specialty];
-        return locksmithSpecialties.includes(service.specialty);
-      });
-
-      const nearest = [...eligible]
-        .map((l) => ({ l, d: haversineKm(customerLoc, { lat: l.lat, lng: l.lng }) }))
-        .sort((a, b) => a.d - b.d)[0];
+      const queue = buildEligibleQueue(appLocksmiths, service, customerLoc);
+      queueRef.current = queue;
+      const nearest = queue[0];
 
       if (!nearest) {
         setSearchError(`Nenhum chaveiro disponível para "${service.label}" no modo aplicativo agora. Tente outro serviço ou novamente.`);
@@ -344,6 +337,31 @@ export default function Home() {
       setSubmitting(false);
     }
   };
+
+  // Repassa o chamado ao próximo chaveiro mais próximo a cada minuto sem resposta
+  useRingRotation({
+    request: activeRequest,
+    queueRef,
+    onRotate: (l) => {
+      setSelectedLocksmith(l);
+      toast({
+        title: "Sem resposta — repassando chamado",
+        description: `Tocando agora em ${l.name}, o próximo chaveiro mais próximo.`,
+      });
+    },
+  });
+
+  // Reconstrói a fila de chaveiros ao retomar um chamado em andamento
+  useEffect(() => {
+    if (!activeRequest || activeRequest.status !== "ringing") return;
+    if (queueRef.current.length > 0) return;
+    const svc = SERVICE_CATALOG.find((s) => s.label === activeRequest.service_type);
+    if (!svc || appLocksmiths.length === 0) return;
+    queueRef.current = buildEligibleQueue(appLocksmiths, svc, {
+      lat: activeRequest.customer_lat,
+      lng: activeRequest.customer_lng,
+    });
+  }, [activeRequest?.id, activeRequest?.status, appLocksmiths]);
 
   // Pagamento confirmado via Stripe — acontece após o serviço, antes da finalização
   const handleServicePayment = async (method, stripePaymentIntentId) => {
