@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
+import { fetchMyLocksmith } from "@/lib/myLocksmith";
 import { Briefcase, Check, Loader2, Wallet, Percent, Power } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -29,15 +30,9 @@ export default function LocksmithProfile() {
         const user = await base44.auth.me();
         if (cancelled) return;
         setMe(user);
-        const list = await base44.entities.Locksmith.list();
+        const mine = await fetchMyLocksmith(user.id);
         if (cancelled) return;
-        const phoneDigits = (user.phone || "").replace(/\D/g, "");
-        const mine = list.find((l) => {
-          if (phoneDigits && l.phone && l.phone.replace(/\D/g, "") === phoneDigits) return true;
-          if (user.full_name && l.name === user.full_name) return true;
-          return false;
-        });
-        setMyLocksmith(mine || null);
+        setMyLocksmith(mine);
       } catch (e) {
         /* ignora */
       } finally {
@@ -48,14 +43,7 @@ export default function LocksmithProfile() {
   }, []);
 
   const reloadMyLocksmith = async () => {
-    const list = await base44.entities.Locksmith.list();
-    const phoneDigits = (me?.phone || "").replace(/\D/g, "");
-    const mine = list.find((l) => {
-      if (phoneDigits && l.phone && l.phone.replace(/\D/g, "") === phoneDigits) return true;
-      if (me?.full_name && l.name === me.full_name) return true;
-      return false;
-    });
-    setMyLocksmith(mine || null);
+    setMyLocksmith(await fetchMyLocksmith(me?.id));
   };
 
   const handleCreateProfile = async () => {

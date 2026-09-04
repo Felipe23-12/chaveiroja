@@ -2,33 +2,32 @@ import React, { useState, useEffect, useMemo } from "react";
 import { base44 } from "@/api/base44Client";
 import { Wallet, TrendingUp, Receipt, BadgeCheck, Clock, Loader2, FileDown, FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { fetchMyLocksmith } from "@/lib/myLocksmith";
 import { WORK_MODES, calculateRepasse } from "@/lib/pricing";
 import { downloadCommissionCSV, downloadCommissionPDF } from "@/lib/commissionReport";
 import WalletCard from "@/components/locksmith/WalletCard";
 import WithdrawalSection from "@/components/locksmith/WithdrawalSection";
 
 export default function PainelFinanceiro() {
-  const [locksmiths, setLocksmiths] = useState([]);
   const [selectedId, setSelectedId] = useState("");
   const [me, setMe] = useState(null);
   const [completed, setCompleted] = useState([]);
   const [cancelled, setCancelled] = useState([]);
   const [loading, setLoading] = useState(true);
   const [togglingFee, setTogglingFee] = useState(false);
+  const [noProfile, setNoProfile] = useState(false);
 
+  // Carrega apenas o perfil de chaveiro da conta logada
   useEffect(() => {
-    base44.entities.Locksmith.list().then((list) => {
-      setLocksmiths(list);
-      if (list.length && !selectedId) setSelectedId(list[0].id);
-    });
+    base44.auth.me()
+      .then((u) => fetchMyLocksmith(u.id))
+      .then((mine) => {
+        if (mine) setSelectedId(mine.id);
+        else {
+          setNoProfile(true);
+          setLoading(false);
+        }
+      });
   }, []);
 
   useEffect(() => {
@@ -132,20 +131,12 @@ export default function PainelFinanceiro() {
         </div>
       </div>
 
-      {/* Seleção de perfil */}
-      <div className="space-y-1.5 mb-5">
-        <Label>Selecione seu perfil</Label>
-        <Select value={selectedId} onValueChange={setSelectedId}>
-          <SelectTrigger><SelectValue placeholder="Escolha um chaveiro" /></SelectTrigger>
-          <SelectContent>
-            {locksmiths.map((l) => (
-              <SelectItem key={l.id} value={l.id}>
-                {l.name} · {l.work_mode === "livre" ? "Livre" : "App"}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
+      {noProfile && (
+        <div className="p-4 rounded-xl border border-amber-300 bg-amber-50 text-amber-800 mb-5">
+          <p className="font-medium">Nenhum perfil de chaveiro vinculado a esta conta.</p>
+          <p className="text-sm mt-1">Crie seu perfil em Modo de trabalho para acessar o painel financeiro.</p>
+        </div>
+      )}
 
       {me && (
         <div className="p-4 rounded-xl border border-border bg-card mb-5">

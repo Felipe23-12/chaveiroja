@@ -1,11 +1,10 @@
 import React, { useState, useEffect, useRef } from "react";
-import { useNavigate, useLocation } from "react-router-dom";
+import { useNavigate, useLocation, Link } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
 import { useAuth } from "@/lib/AuthContext";
+import { fetchMyLocksmith } from "@/lib/myLocksmith";
 import { Wrench, Bell, Check, X, Navigation, Power, Loader2, MapPin, WifiOff, CheckCircle2, Wallet, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Label } from "@/components/ui/label";
-import NativeSelectDrawer from "@/components/ui/NativeSelectDrawer";
 import { usePullToRefresh, PullToRefreshIndicator } from "@/components/ui/PullToRefresh";
 import LightMap from "@/components/map/LightMap";
 import OpenInNavAppsButton from "@/components/map/OpenInNavAppsButton";
@@ -85,6 +84,7 @@ export default function PainelChaveiro() {
   const { toast } = useToast();
   const [chatFocus, setChatFocus] = useState(false);
   const [cancelOpen, setCancelOpen] = useState(false);
+  const [profileChecked, setProfileChecked] = useState(false);
 
   const selected = locksmiths.find((l) => l.id === selectedId) || me;
 
@@ -110,16 +110,13 @@ export default function PainelChaveiro() {
 
   // Carrega chaveiros e assina atualizações do selecionado
   useEffect(() => {
-    base44.entities.Locksmith.list().then((list) => {
-      setLocksmiths(list);
-      if (list.length && !selectedId) {
-        const mine =
-          list.find((l) => l.created_by_id === user?.id) ||
-          list.find((l) => (l.name || "").trim() === (user?.full_name || "").trim());
-        setSelectedId((mine || list[0]).id);
-      }
+    if (!user?.id) return;
+    fetchMyLocksmith(user.id).then((mine) => {
+      setLocksmiths(mine ? [mine] : []);
+      setSelectedId(mine ? mine.id : "");
+      setProfileChecked(true);
     });
-  }, [user?.id, user?.full_name]);
+  }, [user?.id]);
 
   // Onboarding: cria o perfil do chaveiro após cadastro (sem confirmação por email)
   useEffect(() => {
@@ -147,12 +144,10 @@ export default function PainelChaveiro() {
         work_mode: "app",
         available: true,
         online: false,
-      }).then(() => {
-        base44.entities.Locksmith.list().then((list) => {
-          setLocksmiths(list);
-          const mine = list.find((l) => l.name === data.fullName);
-          if (mine) setSelectedId(mine.id);
-        });
+      }).then((created) => {
+        setLocksmiths([created]);
+        setSelectedId(created.id);
+        setProfileChecked(true);
       }).catch(() => {});
     } catch (e) {
       /* dados inválidos — ignora */
@@ -640,20 +635,14 @@ export default function PainelChaveiro() {
         </div>
       </div>
 
-      {/* Seleção de perfil */}
-      <div className="space-y-1.5 mb-5">
-        <Label>Selecione seu perfil</Label>
-        <NativeSelectDrawer
-          value={selectedId}
-          onChange={setSelectedId}
-          options={locksmiths.map((l) => ({
-            value: l.id,
-            label: `${l.name} · ${l.work_mode === "livre" ? "Livre" : "App"}`,
-          }))}
-          label="Selecione seu perfil"
-          placeholder="Escolha um chaveiro"
-        />
-      </div>
+      {profileChecked && !selectedId && (
+        <div className="p-4 rounded-xl border border-amber-300 bg-amber-50 text-amber-800 mb-5">
+          <p className="font-medium">Nenhum perfil de chaveiro vinculado a esta conta.</p>
+          <p className="text-sm mt-1">
+            Acesse <Link to="/modo-trabalho" className="underline font-semibold">Modo de trabalho</Link> para criar o seu perfil profissional.
+          </p>
+        </div>
+      )}
 
       {!me && selectedId && (
         <LoadingCard label="Carregando seu perfil..." className="mb-5" />
