@@ -66,6 +66,34 @@ export default async function(req) {
       ? `<tr><td style="padding: 8px 0; color: #666;">Comentário</td><td style="padding: 8px 0; font-style: italic;">"${reviewComment}"</td></tr>`
       : '';
 
+    const STATUS_LABELS = {
+      searching: 'Procurando chaveiro',
+      ringing: 'Aguardando aceite',
+      accepted: 'Aceito',
+      on_the_way: 'Chaveiro a caminho',
+      completed: 'Concluído',
+      cancelled: 'Cancelado',
+    };
+    const PAYMENT_LABELS = {
+      pending: 'Pendente',
+      pre_authorized: 'Pré-autorizado',
+      captured: 'Capturado',
+      paid: 'Pago',
+      cancelled: 'Cancelado',
+      refunded: 'Reembolsado',
+    };
+    const METHOD_LABELS = {
+      credit_card: 'Cartão de crédito',
+      debit_card: 'Cartão de débito',
+      pix: 'Pix',
+      dinheiro: 'Dinheiro',
+    };
+    const statusLabel = STATUS_LABELS[request.status] || request.status || 'Não informado';
+    const paymentLabel = [
+      PAYMENT_LABELS[request.payment_status] || 'Pendente',
+      METHOD_LABELS[request.payment_method],
+    ].filter(Boolean).join(' · ');
+
     const subject = `Resumo do serviço · ${serviceType}`;
     const html = `<div style="font-family: sans-serif; max-width: 500px; margin: 0 auto; color: #1a1a1a;">
       <div style="text-align: center; margin-bottom: 24px;">
@@ -78,6 +106,8 @@ export default async function(req) {
         <tr><td style="padding: 8px 0; color: #666;">Chaveiro</td><td style="padding: 8px 0;">${locksmithName}</td></tr>
         <tr><td style="padding: 8px 0; color: #666;">Endereço</td><td style="padding: 8px 0;">${address}</td></tr>
         <tr><td style="padding: 8px 0; color: #666;">Data</td><td style="padding: 8px 0;">${date}</td></tr>
+        <tr><td style="padding: 8px 0; color: #666;">Status da solicitação</td><td style="padding: 8px 0;">${statusLabel}</td></tr>
+        <tr><td style="padding: 8px 0; color: #666;">Pagamento</td><td style="padding: 8px 0;">${paymentLabel}</td></tr>
         ${ratingBlock}
         ${reviewBlock}
       </table>
