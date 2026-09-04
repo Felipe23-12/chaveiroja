@@ -27,9 +27,9 @@ import UrgentArrivalCountdown from "@/components/locksmith/UrgentArrivalCountdow
 import { DEFAULT_CENTER, getCustomerLocation, haversineKm, fetchDrivingRoute, etaMinutes } from "@/lib/geo";
 import { getClientLoyalty, applyLoyaltyDiscount } from "@/lib/loyalty";
 import { buildEligibleQueue } from "@/lib/ringRotation";
-import { BROADCAST_SIZE } from "@/lib/ringBroadcast";
+
 import { createLock, locksSummary } from "@/lib/locks";
-import { DEFAULT_RADIUS_KM } from "@/lib/searchRadius";
+import { DEFAULT_RADIUS_KM, expandUntilFound } from "@/lib/searchRadius";
 import { useRadiusExpansion } from "@/hooks/useRadiusExpansion";
 import SearchRadiusSelector from "@/components/locksmith/SearchRadiusSelector";
 import PointsProgressCard from "@/components/locksmith/PointsProgressCard";
@@ -191,7 +191,9 @@ export default function Home() {
 
   useEffect(() => {
     getCustomerLocation().then(setCustomerLoc);
-    base44.entities.Locksmith.filter({ work_mode: "app", available: true }).then(setAppLocksmiths);
+    // Inclui chaveiros do modo app e também os do modo livre que aceitam
+    // receber chamados do aplicativo (a elegibilidade é filtrada depois)
+    base44.entities.Locksmith.filter({ available: true }).then(setAppLocksmiths);
     base44.auth.me()
       .then((u) => getClientLoyalty(u.id))
       .then(setLoyalty)
@@ -350,13 +352,13 @@ export default function Home() {
       // Prioriza quem está dentro do raio escolhido; se ninguém estiver,
       // o chamado toca nos chaveiros elegíveis mais próximos de qualquer forma.
       const allEligible = buildEligibleQueue(appLocksmiths, service, customerLoc);
-      const inRadius = allEligible.filter((q) => q.d <= searchRadius);
-      const queue = inRadius.length > 0 ? inRadius : allEligible;
+      // Se ninguém estiver no raio escolhido, amplia 20% por vez até encontrar
+      const { radiusKm: usedRadius, inRadius: queue } = expandUntilFound(allEligible, searchRadius);
       queueRef.current = queue;
-      setCurrentRadius(searchRadius);
+      setCurrentRadius(usedRadius);
       const nearest = queue[0];
-      // O chamado toca ao mesmo tempo para os chaveiros mais próximos
-      const broadcast = queue.slice(0, BROADCAST_SIZE);
+      // O chamado toca ao mesmo tempo para TODOS os chaveiros dentro do raio
+      const broadcast = queue;
 
       if (!nearest) {
         setSearchError(`Nenhum chaveiro disponível para "${service.label}" no modo aplicativo agora. Tente novamente em instantes.`);
@@ -968,7 +970,9 @@ export default function Home() {
               Tocando nos chaveiros mais próximos...
             </h2>
             <p className="text-sm text-muted-foreground mb-4">
-              {service?.label} · raio de {currentRadius} km · o primeiro que aceitar atende você
+              {service?.label} · raio de {currentRadius} km ·{" "}
+              {activeRequest.ringing_locksmith_ids?.length || 0} chaveiro
+              {(activeRequest.ringing_locksmith_ids?.length || 0) === 1 ? "" : "s"} recebendo · o primeiro que aceitar atende você
             </p>
             <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
               <Loader2 className="w-4 h-4 animate-spin" /> Aguardando o profissional aceitar

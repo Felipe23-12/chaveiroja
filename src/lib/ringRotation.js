@@ -9,8 +9,15 @@ export const RING_TIMEOUT_MS = 60000;
  * Monta a fila de chaveiros elegíveis, do mais próximo ao mais distante.
  */
 export function buildEligibleQueue(locksmiths, service, customerLoc, radiusKm = null) {
+  const now = Date.now();
   const queue = locksmiths
     .filter((l) => {
+      // Precisa de localização válida para calcular a proximidade
+      if (!l.lat || !l.lng) return false;
+      // Não toca para quem está bloqueado por excesso de recusas
+      if (l.blocked_until && new Date(l.blocked_until).getTime() > now) return false;
+      // Chaveiro do modo livre só recebe chamados do app se tiver optado por isso
+      if (l.work_mode === "livre" && l.receive_app_requests === false) return false;
       if (l.services && l.services.length > 0) return l.services.includes(service.id);
       const specs = l.specialties && l.specialties.length > 0 ? l.specialties : [l.specialty];
       return specs.includes(service.specialty);

@@ -28,8 +28,8 @@ export function useRadiusExpansion({ request, service, locksmiths, customerLoc, 
         radiusRef.current = next;
 
         const all = buildEligibleQueue(locksmiths, service, customerLoc);
-        const inRadius = all.filter((q) => q.d <= next);
-        const queue = inRadius.length > 0 ? inRadius : all;
+        // Toca para todos os chaveiros elegíveis dentro do novo raio
+        const queue = all.filter((q) => q.d <= next);
         const ids = queue.map((q) => q.l.id);
         const userIds = queue.map((q) => q.l.created_by_id);
         const added = ids.filter((id) => !(fresh.ringing_locksmith_ids || []).includes(id));

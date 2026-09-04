@@ -11,3 +11,18 @@ export function expandRadius(radiusKm) {
   const next = Math.round(radiusKm * (1 + RADIUS_EXPAND_RATE) * 10) / 10;
   return Math.min(next, MAX_RADIUS_KM);
 }
+
+/**
+ * Se nenhum chaveiro estiver dentro do raio escolhido, amplia o raio em 20%
+ * (mesma regra da expansão automática) até encontrar chaveiros ou atingir o
+ * limite máximo. Retorna o raio usado e todos os chaveiros dentro dele.
+ */
+export function expandUntilFound(queue, startRadiusKm) {
+  let radiusKm = startRadiusKm;
+  let inRadius = queue.filter((q) => q.d <= radiusKm);
+  while (inRadius.length === 0 && radiusKm < MAX_RADIUS_KM) {
+    radiusKm = expandRadius(radiusKm);
+    inRadius = queue.filter((q) => q.d <= radiusKm);
+  }
+  return { radiusKm, inRadius };
+}
