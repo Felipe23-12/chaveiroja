@@ -5,6 +5,10 @@ import { useAuth } from "@/lib/AuthContext";
 import { Bell, Check, X, MapPin, Clock, AlertCircle, Volume2, VolumeX, Wrench, ChevronUp } from "lucide-react";
 import { isRingingFor, rejectRing, acceptRing } from "@/lib/ringBroadcast";
 import { startAlarm, stopAlarm, primeAlarmAudio } from "@/lib/persistentAlarm";
+import { savePendingRequests, getPendingRequests, saveLocksmithProfile, getLocksmithProfile } from "@/lib/offlineCache";
+import { enqueueAction, flushActionQueue, queuedActionsCount, bindAutoFlush } from "@/lib/offlineActionQueue";
+import { useOnlineStatus } from "@/hooks/useOnlineStatus";
+import OfflineBanner from "@/components/locksmith/OfflineBanner";
 
 function formatElapsed(seconds) {
   const m = Math.floor(seconds / 60);
@@ -47,6 +51,8 @@ export default function GlobalLocksmithRequestAlert() {
   const [muted, setMuted] = useState(false);
   const [open, setOpen] = useState(false);
   const [accepting, setAccepting] = useState(null);
+  const [queuedCount, setQueuedCount] = useState(queuedActionsCount());
+  const online = useOnlineStatus();
   const mutedRef = useRef(false);
 
   useEffect(() => {
@@ -62,10 +68,29 @@ export default function GlobalLocksmithRequestAlert() {
     base44.entities.Locksmith
       .filter({ created_by_id: user.id })
       .then((list) => {
-        if (list.length > 0) setLocksmith(list[0]);
+        if (list.length > 0) {
+          setLocksmith(list[0]);
+          saveLocksmithProfile(list[0]);
+        }
       })
-      .catch(() => {});
+      .catch(() => {
+        // Sem conexão: usa o perfil salvo do último chamado em cache
+        const cached = getPendingRequests()[0];
+        const profile = cached?.locksmith_id ? getLocksmithProfile(cached.locksmith_id) : null;
+        if (profile) setLocksmith(profile);
+      });
   }, [isChaveiro, user?.id]);
+
+  // Reenvia automaticamente as ações feitas offline quando a conexão volta
+  useEffect(() => {
+    if (!isChaveiro) return;
+    bindAutoFlush(() => setQueuedCount(queuedActionsCount()));
+  }, [isChaveiro]);
+
+  useEffect(() => {
+    if (!online) return;
+    flushActionQueue().then(() => setQueuedCount(queuedActionsCount()));
+  }, [online]);
 
   // Assina solicitações pendentes (status ringing) direcionadas ao chaveiro
   useEffect(() => {
@@ -73,8 +98,16 @@ export default function GlobalLocksmithRequestAlert() {
     const load = () =>
       base44.entities.ServiceRequest
         .filter({ ringing_locksmith_ids: locksmithId, status: "ringing" }, "-created_date")
-        .then((list) => setRequests(list.filter((r) => isRingingFor(r, locksmithId))))
-        .catch(() => {});
+        .then((list) => {
+          const ringing = list.filter((r) => isRingingFor(r, locksmithId));
+          setRequests(ringing);
+          savePendingRequests(ringing);
+        })
+        .catch(() => {
+          // Oscilação de internet: mantém visível o último chamado em cache
+          const cached = getPendingRequests().filter((r) => isRingingFor(r, locksmithId));
+          if (cached.length > 0) setRequests((prev) => (prev.length > 0 ? prev : cached));
+        });
     load();
     const timer = setInterval(load, 15000);
     const unsub = base44.entities.ServiceRequest.subscribe(() => load());
@@ -138,7 +171,10 @@ export default function GlobalLocksmithRequestAlert() {
       setRequests((prev) => prev.filter((r) => r.id !== reqId));
       if (won) navigate("/painel-chaveiro");
     } catch (e) {
-      // erro silencioso
+      // Sem conexão: guarda o aceite e envia assim que reconectar
+      enqueueAction({ type: "accept", requestId: reqId, locksmith, extra });
+      setQueuedCount(queuedActionsCount());
+      setRequests((prev) => prev.filter((r) => r.id !== reqId));
     } finally {
       setAccepting(null);
     }
@@ -152,7 +188,13 @@ export default function GlobalLocksmithRequestAlert() {
       if (req) await rejectRing(req, locksmithId);
       setRequests((prev) => prev.filter((r) => r.id !== reqId));
     } catch (e) {
-      // erro silencioso
+      // Sem conexão: guarda a recusa e envia assim que reconectar
+      const req = requests.find((r) => r.id === reqId);
+      if (req) {
+        enqueueAction({ type: "reject", request: req, locksmithId });
+        setQueuedCount(queuedActionsCount());
+      }
+      setRequests((prev) => prev.filter((r) => r.id !== reqId));
     } finally {
       setAccepting(null);
     }
@@ -191,6 +233,8 @@ export default function GlobalLocksmithRequestAlert() {
                 </button>
               </div>
             </div>
+
+            {!online && <OfflineBanner pendingCount={queuedCount} />}
 
             {/* Corpo */}
             <div className="p-4 space-y-3 max-h-[60vh] overflow-y-auto">
