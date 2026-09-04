@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { Star, Loader2, History, MessageSquare } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { getReviews } from "@/lib/reviews";
+import ReplacedPartsSummary from "@/components/locksmith/ReplacedPartsSummary";
 
 const STATUS_LABEL = {
   completed: "Concluído",
@@ -183,6 +184,7 @@ export default function LocksmithHistorySummary({ locksmithId }) {
                     {formatDate(s.updated_date)}
                   </span>
                 </div>
+                <ReplacedPartsSummary parts={s.replaced_parts} />
                 {s.rating ? (
                   <div className="flex items-center gap-0.5 mt-1.5">
                     {[1, 2, 3, 4, 5].map((n) => (

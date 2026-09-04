@@ -147,6 +147,14 @@
       "default": 0,
       "description": "Custos adicionais informados pelo chaveiro ao aceitar"
     },
+    "replaced_parts": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "default": [],
+      "description": "Checklist de pe\u00e7as substitu\u00eddas pelo chaveiro durante o atendimento"
+    },
     "commission_status": {
       "type": "string",
       "enum": [

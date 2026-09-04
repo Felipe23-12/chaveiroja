@@ -8,6 +8,7 @@ import SaveToCalendarButton from "@/components/locksmith/SaveToCalendarButton";
 import { saveLastService, getLastService } from "@/lib/offlineCache";
 import { WifiOff } from "lucide-react";
 import LoadingCard from "@/components/ui/LoadingCard";
+import ReplacedPartsSummary from "@/components/locksmith/ReplacedPartsSummary";
 import { usePullToRefresh, PullToRefreshIndicator } from "@/components/ui/PullToRefresh";
 
 const statusLabels = {
@@ -153,6 +154,7 @@ export default function History() {
                     )}
                   </div>
                 )}
+                <ReplacedPartsSummary parts={req.replaced_parts} />
                 <ServiceGallery startPhotos={req.start_photos} endPhotos={req.end_photos} />
                 {req.status === "completed" && <SaveToCalendarButton request={req} />}
               </div>

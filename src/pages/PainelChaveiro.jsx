@@ -43,6 +43,7 @@ import { registerRejection, getRejectBlock, rejectionsToday, DAILY_REJECT_LIMIT 
 import { isRingingFor, rejectRing, acceptRing } from "@/lib/ringBroadcast";
 import UrgentNearbyAlert from "@/components/locksmith/UrgentNearbyAlert";
 import GmailConnectCard from "@/components/gmail/GmailConnectCard";
+import PartsChecklist from "@/components/locksmith/PartsChecklist";
 import { notifyStatusByGmail } from "@/lib/gmailStatusEmail";
 
 // Raio de cobertura para considerar um pedido "na região" do chaveiro (km)
@@ -592,6 +593,10 @@ export default function PainelChaveiro() {
     await updateStatus({ end_photos: endPhotos });
   };
 
+  const handlePartsChange = async (parts) => {
+    await updateStatus({ replaced_parts: parts });
+  };
+
   // Finaliza o serviço — só permitido após o pagamento do cliente ser confirmado.
   const handleFinish = async () => {
     if (!active || active.payment_status !== "paid" || active.client_confirmed !== true) return;
@@ -936,6 +941,7 @@ export default function PainelChaveiro() {
 
           {phase === "finishing" && (
             <div className="p-4 rounded-xl border border-border bg-card space-y-3">
+              <PartsChecklist value={active.replaced_parts || []} onChange={handlePartsChange} />
               <p className="text-sm font-medium text-foreground">Registre as fotos do final do serviço</p>
               <PhotoUploader
                 label="Fotos do serviço finalizado"
