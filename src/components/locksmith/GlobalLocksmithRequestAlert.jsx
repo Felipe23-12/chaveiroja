@@ -4,6 +4,7 @@ import { base44 } from "@/api/base44Client";
 import { useAuth } from "@/lib/AuthContext";
 import { Bell, Check, X, MapPin, Clock, AlertCircle, Volume2, VolumeX, Wrench, ChevronUp } from "lucide-react";
 import { isRingingFor, rejectRing, acceptRing } from "@/lib/ringBroadcast";
+import { startAlarm, stopAlarm, primeAlarmAudio } from "@/lib/persistentAlarm";
 
 function formatElapsed(seconds) {
   const m = Math.floor(seconds / 60);
@@ -88,33 +89,45 @@ export default function GlobalLocksmithRequestAlert() {
     if (requests.length > 0) setOpen(true);
   }, [requests.length > 0]);
 
-  // Som + vibração enquanto houver solicitações pendentes
+  // Libera o áudio no primeiro toque (exigência dos navegadores móveis)
   useEffect(() => {
-    if (requests.length === 0) return;
-    playBeep();
-    setTimeout(playBeep, 250);
-    setTimeout(playBeep, 500);
-    if (navigator.vibrate) navigator.vibrate([400, 200, 400]);
+    if (isChaveiro) primeAlarmAudio();
+  }, [isChaveiro]);
 
-    const soundTimer = setInterval(() => {
-      if (mutedRef.current) return;
-      playBeep();
-      setTimeout(playBeep, 250);
-      setTimeout(playBeep, 500);
-    }, 5000);
+  // Alarme sonoro persistente: toca em loop enquanto houver chamados pendentes,
+  // continua com o app em segundo plano e retoma ao reabrir o app.
+  useEffect(() => {
+    const pending = requests.length > 0;
+    if (!pending || muted) {
+      stopAlarm();
+      return;
+    }
+    playBeep(); // reforço curto imediato, caso o loop ainda esteja liberando
+    startAlarm();
 
-    let vibrateTimer;
-    if (navigator.vibrate) {
-      vibrateTimer = setInterval(() => {
-        if (!mutedRef.current) navigator.vibrate([400, 200, 400]);
-      }, 5000);
+    // Aviso nativo do sistema para o chaveiro não perder o chamado
+    if ("Notification" in window) {
+      if (Notification.permission === "default") Notification.requestPermission().catch(() => {});
+      if (Notification.permission === "granted") {
+        try {
+          new Notification("Nova solicitação de serviço!", {
+            body: requests[0]?.service_type
+              ? `${requests[0].service_type} · ${requests[0].address || ""}`
+              : "Abra o app para aceitar o chamado.",
+            tag: "chamado-chaveiro",
+            renotify: true,
+          });
+        } catch (e) {
+          /* silencioso */
+        }
+      }
     }
 
-    return () => {
-      clearInterval(soundTimer);
-      if (vibrateTimer) clearInterval(vibrateTimer);
-    };
-  }, [requests.length > 0]);
+    return () => stopAlarm();
+  }, [requests.length > 0, muted]);
+
+  // Garante que o alarme pare ao sair do painel
+  useEffect(() => () => stopAlarm(), []);
 
   const handleAccept = async (reqId, extra = 0) => {
     setAccepting(reqId);
