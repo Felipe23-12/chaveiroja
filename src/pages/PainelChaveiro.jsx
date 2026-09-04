@@ -360,17 +360,36 @@ export default function PainelChaveiro() {
   useEffect(() => {
     if (!active || active.status === "completed" || !navigator.geolocation) return;
     const dest = { lat: active.customer_lat, lng: active.customer_lng };
+    // Throttle: o GPS pode disparar várias vezes por segundo; gravar a cada fix
+    // satura o banco e estoura o limite de taxa da plataforma. Só gravamos
+    // quando o chaveiro moveu >50m E passou >5s desde a última gravação, ou
+    // quando chegou ao destino (para marcar a chegada com precisão).
+    let lastLat = active.locksmith_lat;
+    let lastLng = active.locksmith_lng;
+    let lastTime = 0;
+    let arrivedFlag = false;
     const watchId = navigator.geolocation.watchPosition(
       async (pos) => {
+        if (arrivedFlag) return;
         const newLat = pos.coords.latitude;
         const newLng = pos.coords.longitude;
+        const moved = haversineKm({ lat: lastLat, lng: lastLng }, { lat: newLat, lng: newLng });
+        const now = Date.now();
         const dist = haversineKm({ lat: newLat, lng: newLng }, dest);
+        const shouldUpdate = (moved > 0.05 && now - lastTime > 5000) || dist < 0.05;
+        if (!shouldUpdate) return;
+        lastLat = newLat;
+        lastLng = newLng;
+        lastTime = now;
         await base44.entities.ServiceRequest.update(active.id, {
           status: "on_the_way",
           locksmith_lat: newLat,
           locksmith_lng: newLng,
         });
-        if (dist < 0.05) setArrived(true);
+        if (dist < 0.05) {
+          arrivedFlag = true;
+          setArrived(true);
+        }
       },
       () => {},
       { enableHighAccuracy: true, timeout: 10000, maximumAge: 5000 }
