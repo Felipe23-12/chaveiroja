@@ -17,6 +17,7 @@ import StripeConnectSetup from "@/components/locksmith/StripeConnectSetup";
 import IncomingRequestAlert from "@/components/locksmith/IncomingRequestAlert";
 import PendingRequestsList from "@/components/locksmith/PendingRequestsList";
 import NearbyRequestsList from "@/components/locksmith/NearbyRequestsList";
+import InactivityRevalidationCard from "@/components/locksmith/InactivityRevalidationCard";
 import { useToast } from "@/components/ui/use-toast";
 import DarkModeToggle from "@/components/DarkModeToggle";
 import { haversineKm, stepToward, fetchDrivingRoute, etaMinutes, getCustomerLocation } from "@/lib/geo";
@@ -507,6 +508,10 @@ export default function PainelChaveiro() {
     if (!me) return;
     // Corrida entre os chaveiros: o primeiro que aceitar fica com o chamado
     const won = await acceptRing(reqId, me, extra);
+    if (won) {
+      // Registra a atividade — base da regra de desativação por 30 dias sem aceitar
+      base44.entities.Locksmith.update(me.id, { last_accepted_at: new Date().toISOString() }).catch(() => {});
+    }
     if (!won) {
       toast({
         title: "Chamado já aceito",
@@ -800,7 +805,9 @@ export default function PainelChaveiro() {
 
       {me && (() => {
         const isLivre = me.work_mode === "livre";
-        const blockedOnline = isLivre && me.monthly_fee_paid !== true && !me.online;
+        const blockedOnline =
+          me.inactive_deactivated === true ||
+          (isLivre && me.monthly_fee_paid !== true && !me.online);
         return (
         <div className="flex items-center justify-between p-4 rounded-xl border border-border bg-card mb-5 fade-in-up">
           <div>
@@ -828,6 +835,11 @@ export default function PainelChaveiro() {
         </div>
         );
       })()}
+
+      {/* Perfil desativado automaticamente por 30 dias sem aceitar chamados */}
+      {me?.inactive_deactivated && (
+        <InactivityRevalidationCard locksmith={me} onRevalidated={setMe} />
+      )}
 
       {/* Bloqueio temporário por excesso de recusas */}
       {me && rejectBlock.blocked && (

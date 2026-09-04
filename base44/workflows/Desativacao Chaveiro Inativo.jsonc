@@ -1,0 +1,47 @@
+{
+  "trigger": {
+    "condition": null,
+    "config": {
+      "trigger_type": "scheduled",
+      "events": [],
+      "schedule_mode": "recurring",
+      "cron_expression": "0 4 * * *",
+      "one_time_date": null,
+      "timezone": "America/Sao_Paulo",
+      "interval_value": null,
+      "interval_unit": null,
+      "interval_anchor": null,
+      "ends_type": "never",
+      "ends_on_date": null,
+      "ends_after_count": null
+    }
+  },
+  "definition": {
+    "document": {
+      "dsl": "1.0.0",
+      "name": "desativacao_chaveiro_inativo",
+      "version": "1.0",
+      "namespace": "base44"
+    },
+    "do": [
+      {
+        "verificar_inatividade": {
+          "call": "invoke_backend_function",
+          "with": {
+            "function_name": "deactivateInactiveLocksmiths",
+            "args": {
+              "_internal_token": "cj_wf_int_7d2e5a1f9b8c4e30"
+            }
+          },
+          "then": "end",
+          "x-base44": {
+            "title": "Verificar chaveiros inativos",
+            "description": "Desativa quem n\u00e3o aceita h\u00e1 30 dias"
+          }
+        }
+      }
+    ]
+  },
+  "description": "Todos os dias verifica os chaveiros sem chamados aceitos h\u00e1 mais de 30 dias e desativa o perfil, exigindo revalida\u00e7\u00e3o dos documentos.",
+  "name": "Desativa\u00e7\u00e3o Chaveiro Inativo"
+}

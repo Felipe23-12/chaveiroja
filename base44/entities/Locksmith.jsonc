@@ -169,6 +169,34 @@
       "type": "boolean",
       "default": false
     },
+    "last_accepted_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Data/hora do \u00faltimo chamado aceito pelo chaveiro \u2014 base da regra de inatividade de 30 dias"
+    },
+    "inactive_deactivated": {
+      "type": "boolean",
+      "default": false,
+      "description": "Perfil desativado automaticamente por mais de 30 dias sem aceitar chamados"
+    },
+    "deactivated_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Data/hora da desativa\u00e7\u00e3o autom\u00e1tica por inatividade"
+    },
+    "revalidation_documents": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "default": [],
+      "description": "Documentos enviados pelo chaveiro na revalida\u00e7\u00e3o do cadastro"
+    },
+    "revalidated_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Data/hora da \u00faltima revalida\u00e7\u00e3o de documentos conclu\u00edda"
+    },
     "wallet_balance": {
       "type": "number",
       "default": 0,
