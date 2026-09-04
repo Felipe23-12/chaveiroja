@@ -4,6 +4,7 @@ import { base44 } from "@/api/base44Client";
 import { MapPin, Loader2, MessageCircle, Star, Wrench, Navigation, Search, SlidersHorizontal, X } from "lucide-react";
 import { haversineKm } from "@/lib/geo";
 import LightMap from "@/components/map/LightMap";
+import MapLocationSearch from "@/components/map/MapLocationSearch";
 
 /**
  * Tela principal do cliente: mostra TODOS os chaveiros disponíveis
@@ -18,6 +19,9 @@ export default function LiveLocksmithsMap({ customerLoc, livreOnly = false }) {
   const [searchQuery, setSearchQuery] = useState("");
   const [maxDistance, setMaxDistance] = useState(0);
   const [specialtyFilter, setSpecialtyFilter] = useState("");
+  // Local pesquisado (bairro/rua) — sobrepõe a localização automática
+  const [searchLoc, setSearchLoc] = useState(null);
+  const [searchLabel, setSearchLabel] = useState("");
 
   const SPECIALTY_OPTIONS = ["Residencial", "Automotivo", "Comercial", "Emergencial"];
 
@@ -43,15 +47,17 @@ export default function LiveLocksmithsMap({ customerLoc, livreOnly = false }) {
     };
   }, [livreOnly]);
 
+  const refLoc = searchLoc || (customerLoc?.lat ? customerLoc : { lat: -23.55, lng: -46.63 });
+
   const withDist = useMemo(
     () =>
       locksmiths
-        .map((l) => ({ ...l, distance: haversineKm(customerLoc, { lat: l.lat, lng: l.lng }) }))
+        .map((l) => ({ ...l, distance: haversineKm(refLoc, { lat: l.lat, lng: l.lng }) }))
         .sort((a, b) => a.distance - b.distance),
-    [locksmiths, customerLoc]
+    [locksmiths, refLoc.lat, refLoc.lng]
   );
 
-  const center = customerLoc?.lat ? customerLoc : { lat: -23.55, lng: -46.63 };
+  const center = refLoc;
 
   const filtered = useMemo(() => {
     let result = withDist;
@@ -78,7 +84,8 @@ export default function LiveLocksmithsMap({ customerLoc, livreOnly = false }) {
 
   const mapMarkers = useMemo(() => {
     const arr = [];
-    if (center?.lat && center?.lng) arr.push({ id: "me", lat: center.lat, lng: center.lng, type: "customer", label: "Você" });
+    if (center?.lat && center?.lng)
+      arr.push({ id: "me", lat: center.lat, lng: center.lng, type: "customer", label: searchLoc ? "Local" : "Você" });
     filtered.forEach((l) => {
       if (l.lat && l.lng) arr.push({ id: l.id, lat: l.lat, lng: l.lng, type: "locksmith", label: l.name, active: !l.available });
     });
@@ -108,6 +115,19 @@ export default function LiveLocksmithsMap({ customerLoc, livreOnly = false }) {
           </span>
         </div>
       </div>
+
+      {/* Busca por bairro ou rua — recentraliza o mapa no local pesquisado */}
+      <MapLocationSearch
+        label={searchLabel}
+        onSelect={({ address, lat, lng }) => {
+          setSearchLabel(address);
+          setSearchLoc({ lat, lng });
+        }}
+        onClear={() => {
+          setSearchLabel("");
+          setSearchLoc(null);
+        }}
+      />
 
       {/* Busca e filtro por distância */}
       <div className="flex flex-col sm:flex-row gap-2">
