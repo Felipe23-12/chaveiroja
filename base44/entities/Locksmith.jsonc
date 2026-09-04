@@ -49,6 +49,13 @@
       "default": [],
       "description": "Servi\u00e7os espec\u00edficos que o chaveiro atende (IDs do cat\u00e1logo). Vazio = atende todos."
     },
+    "service_radius_km": {
+      "type": "number",
+      "minimum": 1,
+      "maximum": 50,
+      "default": 15,
+      "description": "Raio de atendimento (km) escolhido pelo chaveiro \u2014 limita os chamados que ele recebe"
+    },
     "certificates": {
       "type": "array",
       "items": {

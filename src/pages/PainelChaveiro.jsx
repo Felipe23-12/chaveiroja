@@ -289,7 +289,7 @@ export default function PainelChaveiro() {
         { lat: me.lat, lng: me.lng },
         { lat: r.customer_lat, lng: r.customer_lng }
       );
-      if (dist > REGION_RADIUS_KM) return;
+      if (dist > (me.service_radius_km || REGION_RADIUS_KM)) return;
       notifiedIds.current.add(r.id);
       playNotificationSound();
       toast({

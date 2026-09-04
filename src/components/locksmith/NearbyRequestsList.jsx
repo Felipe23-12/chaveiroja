@@ -5,7 +5,7 @@ import { haversineKm } from "@/lib/geo";
 import { SERVICE_CATALOG } from "@/lib/pricing";
 import NativeSelectDrawer from "@/components/ui/NativeSelectDrawer";
 
-const DEFAULT_RADIUS_KM = 10;
+import { DEFAULT_SERVICE_RADIUS_KM } from "@/components/locksmith/ServiceRadiusConfig";
 
 const RADIUS_OPTIONS = [1, 3, 5, 10, 15, 20, 30].map((km) => ({
   value: String(km),
@@ -21,7 +21,13 @@ export default function NearbyRequestsList({ locksmith }) {
   const [allRequests, setAllRequests] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filterEnabled, setFilterEnabled] = useState(true);
-  const [radius, setRadius] = useState(DEFAULT_RADIUS_KM);
+  // Usa o raio de atendimento salvo no perfil do chaveiro
+  const savedRadius = locksmith?.service_radius_km || DEFAULT_SERVICE_RADIUS_KM;
+  const [radius, setRadius] = useState(savedRadius);
+
+  useEffect(() => {
+    setRadius(savedRadius);
+  }, [savedRadius]);
 
   // Busca solicitações abertas (searching) e assina atualizações
   useEffect(() => {

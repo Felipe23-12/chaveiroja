@@ -9,6 +9,7 @@ import LocksmithHistorySummary from "@/components/locksmith/LocksmithHistorySumm
 import LocksmithFinancialPanel from "@/components/locksmith/LocksmithFinancialPanel";
 import MonthlySubscriptionConfig from "@/components/locksmith/MonthlySubscriptionConfig";
 import ServiceSelector from "@/components/locksmith/ServiceSelector";
+import ServiceRadiusConfig from "@/components/locksmith/ServiceRadiusConfig";
 import AvatarPicker from "@/components/profile/AvatarPicker";
 import NativeSelectDrawer from "@/components/ui/NativeSelectDrawer";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -244,6 +245,12 @@ export default function LocksmithProfile() {
             )}
 
             <ServiceSelector locksmith={selected} onUpdate={updateLocksmith} />
+
+            <ServiceRadiusConfig
+              locksmith={selected}
+              saving={saving}
+              onSave={(km) => updateLocksmith({ service_radius_km: km })}
+            />
 
             <div className="flex items-center justify-between p-4 rounded-2xl border border-border bg-white">
               <div className="flex items-center gap-2">
