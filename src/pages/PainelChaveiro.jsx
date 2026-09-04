@@ -25,6 +25,16 @@ import { SERVICE_CATALOG } from "@/lib/pricing";
 import { confirmCashReceived } from "@/lib/payments";
 import { saveLastService, getLastService, clearLastService, saveLocksmithProfile, getLocksmithProfile, isOnline, saveLastRoute, getLastRoute, savePendingRequests, getPendingRequests } from "@/lib/offlineCache";
 import LoadingCard from "@/components/ui/LoadingCard";
+import {
+  AlertDialog,
+  AlertDialogContent,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogAction,
+  AlertDialogCancel,
+} from "@/components/ui/alert-dialog";
 import { playNotificationSound } from "@/lib/notificationSound";
 import ServiceStatusBadge, { PHASE_BORDER } from "@/components/locksmith/ServiceStatusBadge";
 import UrgentArrivalCountdown from "@/components/locksmith/UrgentArrivalCountdown";
@@ -74,6 +84,7 @@ export default function PainelChaveiro() {
   const dismissedCompletedIds = useRef(new Set());
   const { toast } = useToast();
   const [chatFocus, setChatFocus] = useState(false);
+  const [cancelOpen, setCancelOpen] = useState(false);
 
   const selected = locksmiths.find((l) => l.id === selectedId) || me;
 
@@ -432,6 +443,25 @@ export default function PainelChaveiro() {
     const req = pendingRequests.find((r) => r.id === reqId);
     if (!req) return;
     await base44.entities.ServiceRequest.update(reqId, { status: "cancelled" });
+  };
+
+  // Chaveiro cancela o serviço em andamento a qualquer momento (modo app)
+  const handleCancelActive = async () => {
+    if (!active) return;
+    try {
+      await base44.entities.ServiceRequest.update(active.id, { status: "cancelled" });
+      dismissedCompletedIds.current.add(active.id);
+      clearLastService();
+      setActive(null);
+      setStartPhotos([]);
+      setEndPhotos([]);
+      setArrived(false);
+      toast({ title: "Chamado cancelado", description: "O serviço foi cancelado e o cliente foi liberado." });
+    } catch (e) {
+      toast({ title: "Falha ao cancelar", description: e.message || "Tente novamente", variant: "destructive" });
+    } finally {
+      setCancelOpen(false);
+    }
   };
 
   const handleConfirmStart = async () => {
@@ -847,6 +877,36 @@ export default function PainelChaveiro() {
               </Button>
             </div>
           )}
+
+          {active.status !== "completed" && (
+            <Button
+              variant="outline"
+              onClick={() => setCancelOpen(true)}
+              className="w-full text-destructive border-destructive/40 hover:bg-destructive/5"
+            >
+              <X className="w-4 h-4 mr-1.5" /> Cancelar chamado
+            </Button>
+          )}
+
+          <AlertDialog open={cancelOpen} onOpenChange={setCancelOpen}>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Cancelar chamado?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  O serviço será cancelado e o cliente liberado para um novo atendimento. Esta ação não pode ser desfeita.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Continuar atendimento</AlertDialogCancel>
+                <AlertDialogAction
+                  onClick={handleCancelActive}
+                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                >
+                  Sim, cancelar
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
         </div>
       ) : !me ? null : (
         isAppMode ? (
