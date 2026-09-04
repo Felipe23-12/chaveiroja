@@ -79,7 +79,7 @@ const AuthenticatedApp = () => {
         <Route path="/google-complete" element={<GoogleComplete />} />
         <Route path="/politica-reembolso" element={<PoliticaReembolso />} />
         <Route path="/termos-privacidade" element={<TermosPrivacidade />} />
-        <Route element={<ProtectedRoute unauthenticatedElement={<Navigate to="/login" replace />} />}>
+        <Route element={<ProtectedRoute unauthenticatedElement={<Navigate to="/register" replace />} />}>
           <Route element={<ProfileCompletionGuard />}>
           <Route element={<Layout />}>
             <Route element={<RoleGuard allow={["cliente"]} />}>
