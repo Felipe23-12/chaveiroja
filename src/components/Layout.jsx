@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { Link, useLocation, Outlet } from "react-router-dom";
-import { Home as HomeIcon, Clock, LogOut, Briefcase, MapPin, RadioTower, Wallet, User, ShieldCheck, Menu, X, Trash2, Camera } from "lucide-react";
+import { Home as HomeIcon, Clock, LogOut, Briefcase, MapPin, RadioTower, Wallet, User, ShieldCheck, Menu, X, Trash2, Camera, CreditCard } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { useAuth } from "@/lib/AuthContext";
 import { Image } from "@/components/ui/image";
@@ -20,6 +20,7 @@ const ALL_NAV = [
   { label: "Início", path: "/", icon: HomeIcon, roles: ["cliente"] },
   { label: "Mapa", path: "/mapa", icon: MapPin, roles: ["cliente"] },
   { label: "Histórico", path: "/historico", icon: Clock, roles: ["cliente"] },
+  { label: "Pagamentos", path: "/pagamentos", icon: CreditCard, roles: ["cliente"] },
   { label: "Painel Chaveiro", path: "/painel-chaveiro", icon: RadioTower, roles: ["chaveiro"] },
   { label: "Financeiro", path: "/painel-financeiro", icon: Wallet, roles: ["chaveiro"] },
   { label: "Modo de Trabalho", path: "/modo-trabalho", icon: Briefcase, roles: ["chaveiro"] },

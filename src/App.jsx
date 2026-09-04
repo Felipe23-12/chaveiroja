@@ -35,6 +35,7 @@ const GoogleComplete = lazy(() => import('@/pages/GoogleComplete'));
 const PoliticaReembolso = lazy(() => import('@/pages/PoliticaReembolso'));
 const TermosPrivacidade = lazy(() => import('@/pages/TermosPrivacidade'));
 const Acompanhamento = lazy(() => import('@/pages/Acompanhamento'));
+const Pagamentos = lazy(() => import('@/pages/Pagamentos'));
 // Add page imports here
 
 const PageFallback = () => (
@@ -86,6 +87,7 @@ const AuthenticatedApp = () => {
               <Route path="/" element={<Home />} />
               <Route path="/mapa" element={<Mapa />} />
               <Route path="/historico" element={<History />} />
+              <Route path="/pagamentos" element={<Pagamentos />} />
               <Route path="/chat/:locksmithId" element={<Chat />} />
               <Route path="/chaveiro/:id" element={<LocksmithPublicProfile />} />
               <Route path="/acompanhamento/:requestId" element={<Acompanhamento />} />
