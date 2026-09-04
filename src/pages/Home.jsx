@@ -29,6 +29,9 @@ import { getClientLoyalty, applyLoyaltyDiscount } from "@/lib/loyalty";
 import { buildEligibleQueue } from "@/lib/ringRotation";
 import { BROADCAST_SIZE } from "@/lib/ringBroadcast";
 import { createLock, locksSummary } from "@/lib/locks";
+import { DEFAULT_RADIUS_KM } from "@/lib/searchRadius";
+import { useRadiusExpansion } from "@/hooks/useRadiusExpansion";
+import SearchRadiusSelector from "@/components/locksmith/SearchRadiusSelector";
 import PointsProgressCard from "@/components/locksmith/PointsProgressCard";
 import PaymentStep from "@/components/payment/PaymentStep";
 import ReceiptButton from "@/components/payment/ReceiptButton";
@@ -81,6 +84,8 @@ export default function Home() {
   const [customAddons, setCustomAddons] = useState({});
   const [vehicleInfo, setVehicleInfo] = useState({ model: "", year: "", complexity: "simples" });
   const [locks, setLocks] = useState([createLock()]);
+  const [searchRadius, setSearchRadius] = useState(DEFAULT_RADIUS_KM);
+  const [currentRadius, setCurrentRadius] = useState(DEFAULT_RADIUS_KM);
   const [keyValue, setKeyValue] = useState(null);
   const [fipeValue, setFipeValue] = useState(null);
   const [carKeyType, setCarKeyType] = useState("simples");
@@ -249,6 +254,30 @@ export default function Home() {
     return unsub;
   }, []);
 
+  // Chaveiros elegíveis dentro do raio escolhido pelo cliente
+  const inRadiusCount = useMemo(() => {
+    if (!service) return null;
+    return buildEligibleQueue(appLocksmiths, service, customerLoc, searchRadius).length;
+  }, [service, appLocksmiths, customerLoc, searchRadius]);
+
+  // Sem resposta em 5 minutos: aumenta o raio em 20% e toca em mais chaveiros
+  useRadiusExpansion({
+    request: activeRequest,
+    service,
+    locksmiths: appLocksmiths,
+    customerLoc,
+    radiusKm: currentRadius,
+    onExpand: ({ radiusKm, added }) => {
+      setCurrentRadius(radiusKm);
+      toast({
+        title: `Raio de busca ampliado para ${radiusKm} km`,
+        description: added > 0
+          ? `Mais ${added} chaveiro${added > 1 ? "s" : ""} está${added > 1 ? "ão" : ""} recebendo seu chamado.`
+          : "Continuamos procurando chaveiros disponíveis.",
+      });
+    },
+  });
+
   const toggleOption = (optId) => {
     setSelectedOptions((prev) =>
       prev.includes(optId) ? prev.filter((o) => o !== optId) : [...prev, optId]
@@ -318,14 +347,15 @@ export default function Home() {
       // 1. Se o chaveiro configurou serviços específicos, exige o ID do serviço.
       // 2. Se não configurou serviços, usa a especialidade como filtro:
       //    o serviço só vai para chaveiros cuja especialidade inclui a do serviço.
-      const queue = buildEligibleQueue(appLocksmiths, service, customerLoc);
+      const queue = buildEligibleQueue(appLocksmiths, service, customerLoc, searchRadius);
       queueRef.current = queue;
+      setCurrentRadius(searchRadius);
       const nearest = queue[0];
       // O chamado toca ao mesmo tempo para os chaveiros mais próximos
       const broadcast = queue.slice(0, BROADCAST_SIZE);
 
       if (!nearest) {
-        setSearchError(`Nenhum chaveiro disponível para "${service.label}" no modo aplicativo agora. Tente outro serviço ou novamente.`);
+        setSearchError(`Nenhum chaveiro disponível para "${service.label}" em até ${searchRadius} km. Aumente o raio de busca e tente novamente.`);
         setSubmitting(false);
         return;
       }
@@ -724,6 +754,8 @@ export default function Home() {
     setCustomAddons({});
     setVehicleInfo({ model: "", year: "", complexity: "simples" });
     setLocks([createLock()]);
+    setSearchRadius(DEFAULT_RADIUS_KM);
+    setCurrentRadius(DEFAULT_RADIUS_KM);
     setKeyValue(null);
     setFipeValue(null);
     setCarKeyType("simples");
@@ -869,6 +901,12 @@ export default function Home() {
             <DynamicPriceFactors price={price} nearestDistance={nearestDistance} />
           )}
 
+          <SearchRadiusSelector
+            radius={searchRadius}
+            setRadius={setSearchRadius}
+            availableCount={inRadiusCount}
+          />
+
           <div>
             <label className="text-sm font-medium text-foreground mb-1.5 block">Urgência</label>
             <div className="grid grid-cols-2 gap-3">
@@ -926,7 +964,7 @@ export default function Home() {
               Tocando nos chaveiros mais próximos...
             </h2>
             <p className="text-sm text-muted-foreground mb-4">
-              {service?.label} · o primeiro que aceitar atende você
+              {service?.label} · raio de {currentRadius} km · o primeiro que aceitar atende você
             </p>
             <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
               <Loader2 className="w-4 h-4 animate-spin" /> Aguardando o profissional aceitar

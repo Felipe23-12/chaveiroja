@@ -8,8 +8,8 @@ export const RING_TIMEOUT_MS = 60000;
 /**
  * Monta a fila de chaveiros elegíveis, do mais próximo ao mais distante.
  */
-export function buildEligibleQueue(locksmiths, service, customerLoc) {
-  return locksmiths
+export function buildEligibleQueue(locksmiths, service, customerLoc, radiusKm = null) {
+  const queue = locksmiths
     .filter((l) => {
       if (l.services && l.services.length > 0) return l.services.includes(service.id);
       const specs = l.specialties && l.specialties.length > 0 ? l.specialties : [l.specialty];
@@ -17,6 +17,9 @@ export function buildEligibleQueue(locksmiths, service, customerLoc) {
     })
     .map((l) => ({ l, d: haversineKm(customerLoc, { lat: l.lat, lng: l.lng }) }))
     .sort((a, b) => a.d - b.d);
+
+  // Respeita o raio de busca escolhido pelo cliente
+  return radiusKm ? queue.filter((q) => q.d <= radiusKm) : queue;
 }
 
 /**
