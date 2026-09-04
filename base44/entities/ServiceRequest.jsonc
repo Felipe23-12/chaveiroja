@@ -70,6 +70,14 @@
       "default": [],
       "description": "IDs dos usu\u00e1rios (User) dos chaveiros para os quais o chamado est\u00e1 tocando \u2014 usado no RLS"
     },
+    "push_notified_locksmith_ids": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "default": [],
+      "description": "Chaveiros que j\u00e1 receberam o push nativo deste chamado (evita alerta repetido)"
+    },
     "rejections": {
       "type": "array",
       "items": {

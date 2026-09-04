@@ -12,55 +12,65 @@ export default async function(req) {
       return Response.json({ error: "service_request_id é obrigatório" }, { status: 400 });
     }
 
-    // Busca o pedido recém-criado
     const sr = await base44.asServiceRole.entities.ServiceRequest.get(serviceRequestId);
     if (!sr) {
       return Response.json({ error: "Pedido não encontrado" }, { status: 404 });
     }
 
-    // Só notifica pedidos recém-criados (status searching ou ringing)
+    // Só notifica pedidos que ainda estão procurando chaveiro
     if (sr.status !== "searching" && sr.status !== "ringing") {
       return Response.json({ skipped: true, reason: `status ${sr.status} não requer notificação` });
     }
 
-    if (!sr.locksmith_id) {
+    // Todos os chaveiros para quem o chamado está tocando (broadcast + ampliações de raio)
+    const locksmithIds = (sr.ringing_locksmith_ids || []).length > 0
+      ? sr.ringing_locksmith_ids
+      : (sr.locksmith_id ? [sr.locksmith_id] : []);
+
+    if (locksmithIds.length === 0) {
       return Response.json({ skipped: true, reason: "Nenhum chaveiro atribuído" });
     }
 
-    // Busca o chaveiro para obter o user_id (created_by_id)
-    const locksmith = await base44.asServiceRole.entities.Locksmith.get(sr.locksmith_id).catch(() => null);
-    if (!locksmith) {
-      return Response.json({ skipped: true, reason: "Chaveiro não encontrado" });
+    // Evita notificar de novo quem já recebeu o alerta deste chamado
+    const alreadyNotified = sr.push_notified_locksmith_ids || [];
+    const targets = locksmithIds.filter((id) => !alreadyNotified.includes(id));
+    if (targets.length === 0) {
+      return Response.json({ skipped: true, reason: "Todos os chaveiros já foram notificados" });
     }
 
-    const locksmithUserId = locksmith.created_by_id;
-    if (!locksmithUserId) {
-      return Response.json({ skipped: true, reason: "Chaveiro sem usuário vinculado" });
-    }
-
-    // Monta a mensagem com tipo de serviço e localização exata
     const serviceType = sr.service_type || "Serviço de chaveiro";
     const address = sr.address || "Endereço não informado";
     const urgencyLabel = sr.urgency === "urgent" ? " (URGENTE)" : "";
-
-    const title = `🔔 Novo pedido${urgencyLabel}`;
+    const title = `🔔 Novo chamado${urgencyLabel}`;
     const content = `${serviceType}\n📍 ${address}`;
 
-    // Envia a notificação push ao chaveiro
-    await base44.asServiceRole.integrations.Core.SendPushNotification({
-      user_id: locksmithUserId,
-      title,
-      content,
-      action_label: "Ver pedido",
-      action_url: "/painel-chaveiro",
-    });
+    const notified = [];
+    for (const locksmithId of targets) {
+      const locksmith = await base44.asServiceRole.entities.Locksmith.get(locksmithId).catch(() => null);
+      const userId = locksmith?.created_by_id;
+      if (!userId) continue;
+      try {
+        // Push nativo: toca o som de notificação no celular mesmo com o app fechado
+        await base44.asServiceRole.integrations.Core.SendPushNotification({
+          user_id: userId,
+          title,
+          content,
+          action_label: "Ver chamado",
+          action_url: "/painel-chaveiro",
+        });
+        notified.push(locksmithId);
+      } catch (e) {
+        // segue para os demais chaveiros
+      }
+    }
 
-    return Response.json({
-      success: true,
-      locksmith_id: sr.locksmith_id,
-      locksmith_name: locksmith.name,
-      service_type: serviceType,
-    });
+    if (notified.length > 0) {
+      await base44.asServiceRole.entities.ServiceRequest.update(serviceRequestId, {
+        push_notified_locksmith_ids: [...alreadyNotified, ...notified],
+      });
+    }
+
+    return Response.json({ success: true, notified_count: notified.length, notified });
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });
   }
