@@ -1,0 +1,41 @@
+{
+  "description": "Envia notifica\u00e7\u00e3o push ao destinat\u00e1rio sempre que uma nova mensagem de chat \u00e9 enviada, para que o alerta toque e apare\u00e7a na tela do celular mesmo com o app fechado",
+  "name": "Notifica\u00e7\u00e3o Push Mensagem Chat",
+  "definition": {
+    "document": {
+      "dsl": "1.0.0",
+      "name": "push_mensagem_chat",
+      "version": "1.0",
+      "namespace": "base44"
+    },
+    "do": [
+      {
+        "send_push": {
+          "call": "invoke_backend_function",
+          "with": {
+            "function_name": "sendChatPushNotification",
+            "args": {
+              "chat_message_id": "${ .trigger.entity_id }",
+              "_internal_token": "cj_wf_int_7d2e5a1f9b8c4e30"
+            }
+          },
+          "then": "end",
+          "x-base44": {
+            "title": "Notificar destinat\u00e1rio",
+            "description": "Push da nova mensagem"
+          }
+        }
+      }
+    ]
+  },
+  "trigger": {
+    "condition": null,
+    "config": {
+      "trigger_type": "entity",
+      "events": [
+        "create"
+      ],
+      "entity_name": "ChatMessage"
+    }
+  }
+}
