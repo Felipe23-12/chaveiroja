@@ -29,6 +29,16 @@ import StepProgress from "@/components/ui/StepProgress";
 import ErrorBanner from "@/components/ui/ErrorBanner";
 import LoadingCard from "@/components/ui/LoadingCard";
 import { useToast } from "@/components/ui/use-toast";
+import {
+  AlertDialog,
+  AlertDialogContent,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogAction,
+  AlertDialogCancel,
+} from "@/components/ui/alert-dialog";
 
 export default function Home() {
   const { toast } = useToast();
@@ -73,6 +83,7 @@ export default function Home() {
   const [routePath, setRoutePath] = useState(null);
   const [routeEta, setRouteEta] = useState(null);
   const [cancelFeeData, setCancelFeeData] = useState(null);
+  const [cancelConfirmOpen, setCancelConfirmOpen] = useState(false);
   const [customerName, setCustomerName] = useState("");
   const reqRef = useRef(null);
   const notifiedMoving = useRef(false);
@@ -539,21 +550,34 @@ export default function Home() {
       toast({ title: "Não é possível cancelar", description: "O chaveiro já chegou no local. Aguarde a finalização do serviço.", variant: "destructive" });
       return;
     }
-    // Se o chaveiro já aceitou (saiu a caminho), cobra taxa de cancelamento online
     const started = activeRequest.status === "accepted" || activeRequest.status === "on_the_way";
     if (started) {
+      // Janela grátis: cancelamento sem custo nos primeiros 5 min após o aceite
+      const acceptedAt = activeRequest.accepted_at ? new Date(activeRequest.accepted_at).getTime() : null;
+      const withinFreeWindow =
+        acceptedAt != null && Date.now() - acceptedAt < CANCELLATION_THRESHOLD_MINUTES * 60 * 1000;
+      if (withinFreeWindow) {
+        try {
+          await base44.entities.ServiceRequest.update(activeRequest.id, { status: "cancelled" });
+          handleNewRequest();
+        } catch (e) {
+          toast({ title: "Falha ao cancelar", description: e.message || "Tente novamente", variant: "destructive" });
+        }
+        return;
+      }
+      // Após 5 min: abre a confirmação da taxa de cancelamento (paga online)
       const c = calculateCancellationFee(activeRequest.price);
-      const ok = window.confirm(
-        `O chaveiro já aceitou seu pedido e está a caminho.\n\n` +
-        `Será cobrada uma taxa de cancelamento de 25% (R$ ${c.fee.toFixed(2)}), paga apenas online (cartão).\n\nDeseja continuar?`
-      );
-      if (!ok) return;
       setCancelFeeData(c);
+      setCancelConfirmOpen(true);
       return;
     }
     // Antes do aceite: cancela livremente
-    await base44.entities.ServiceRequest.update(activeRequest.id, { status: "cancelled" });
-    handleNewRequest();
+    try {
+      await base44.entities.ServiceRequest.update(activeRequest.id, { status: "cancelled" });
+      handleNewRequest();
+    } catch (e) {
+      toast({ title: "Falha ao cancelar", description: e.message || "Tente novamente", variant: "destructive" });
+    }
   };
 
   const handleNewRequest = () => {
@@ -990,6 +1014,22 @@ export default function Home() {
           <ErrorBanner message={searchError} />
         </div>
       )}
+
+      {/* Confirmação nativa da taxa de cancelamento (window.confirm não funciona em WebView) */}
+      <AlertDialog open={cancelConfirmOpen} onOpenChange={setCancelConfirmOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirmar taxa de cancelamento</AlertDialogTitle>
+            <AlertDialogDescription>
+              O chaveiro já aceitou seu pedido e está a caminho. Será cobrada uma taxa de cancelamento de 25% (R$ {cancelFeeData?.fee.toFixed(2)}), paga apenas online (cartão). Deseja continuar?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setCancelFeeData(null)}>Não, voltar</AlertDialogCancel>
+            <AlertDialogAction>Sim, pagar taxa e cancelar</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
