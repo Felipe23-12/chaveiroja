@@ -770,7 +770,7 @@ export default function PainelChaveiro() {
                 height={320}
                 markers={[
                   { id: "c", lat: active.customer_lat, lng: active.customer_lng, type: "client", label: "Cliente" },
-                  { id: "l", lat: active.locksmith_lat, lng: active.locksmith_lng, type: "me", label: "Eu" },
+                  { id: "l", lat: active.locksmith_lat, lng: active.locksmith_lng, type: "locksmith_me", label: "Eu" },
                 ]}
                 route={
                   active.status !== "completed"

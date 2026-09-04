@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { Navigation, Plus, Minus, Locate } from "lucide-react";
+import { Navigation, Plus, Minus, Locate, Wrench } from "lucide-react";
 
 /**
  * Mapa leve otimizado para WebView do Android.
@@ -214,6 +214,21 @@ export default function LightMap({ center, markers = [], route = null, routePath
                 <div className="w-8 h-8 rounded-full bg-sky-500 border-[3px] border-white shadow-lg flex items-center justify-center text-white text-[11px] font-bold">
                   Eu
                 </div>
+              </div>
+            );
+          }
+          if (m.type === "locksmith_me") {
+            return (
+              <div key={m.id} className="absolute -translate-x-1/2 -translate-y-1/2 z-20 flex flex-col items-center" style={p}>
+                <div className="relative">
+                  <span className="absolute inset-0 rounded-full bg-primary/50 animate-ping" />
+                  <div className="relative w-9 h-9 rounded-full bg-primary border-[3px] border-white shadow-lg flex items-center justify-center">
+                    <Wrench className="w-4 h-4 text-primary-foreground" />
+                  </div>
+                </div>
+                <span className="mt-1 px-2 py-0.5 rounded-md bg-foreground text-background text-[10px] font-bold shadow whitespace-nowrap">
+                  {m.label || "Eu"}
+                </span>
               </div>
             );
           }
