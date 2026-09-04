@@ -7,6 +7,8 @@ const TEXTS = {
   on_the_way: (name) => `🚗 ${name} saiu e está a caminho do seu endereço.`,
   nearby: (name) => `📍 ${name} está a menos de 1 km — prepare-se para recebê-lo.`,
   arrived: (name) => `🔔 ${name} chegou ao local do atendimento.`,
+  not_arrived: (name) =>
+    `⚠️ O cliente informou que ${name} ainda não chegou ao endereço do atendimento.`,
   finished: (name) => `🧾 ${name} registrou a finalização do serviço. Confirme e efetue o pagamento.`,
 };
 

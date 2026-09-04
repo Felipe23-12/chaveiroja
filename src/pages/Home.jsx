@@ -712,6 +712,20 @@ export default function Home() {
     setActiveRequest((prev) => ({ ...prev, client_arrived_confirmed: true }));
   };
 
+  // Cliente informa que o chaveiro ainda NÃO chegou — desfaz a confirmação do
+  // chaveiro e o devolve para o acompanhamento de deslocamento.
+  const handleDenyArrival = async () => {
+    if (!activeRequest) return;
+    await base44.entities.ServiceRequest.update(activeRequest.id, { locksmith_arrived: false });
+    setActiveRequest((prev) => ({ ...prev, locksmith_arrived: false }));
+    notifiedArrived.current = false;
+    sendServiceStatusMessage("not_arrived", { request: activeRequest, locksmith: selectedLocksmith });
+    toast({
+      title: "Chegada não confirmada",
+      description: "Avisamos o chaveiro de que ele ainda não chegou ao seu endereço.",
+    });
+  };
+
   // Cliente confirma que o serviço foi finalizado (libera o pagamento)
   const handleConfirmService = async () => {
     if (!activeRequest) return;
@@ -1063,9 +1077,16 @@ export default function Home() {
                 <MapPin className="w-5 h-5" />
                 <p className="font-medium text-sm">O chaveiro chegou ao local!</p>
               </div>
-              <p className="text-xs text-muted-foreground">Confirme a chegada para que o chaveiro inicie o atendimento.</p>
+              <p className="text-xs text-muted-foreground">Confirme a chegada para que o chaveiro inicie o atendimento. Se ele ainda não chegou, avise pelo botão abaixo.</p>
               <Button onClick={handleConfirmArrival} className="w-full">
                 <CheckCircle2 className="w-4 h-4 mr-1.5" /> Confirmar chegada do chaveiro
+              </Button>
+              <Button
+                onClick={handleDenyArrival}
+                variant="outline"
+                className="w-full text-red-600 border-red-200 hover:bg-red-50"
+              >
+                <AlertTriangle className="w-4 h-4 mr-1.5" /> Ele ainda não chegou
               </Button>
             </div>
           )}

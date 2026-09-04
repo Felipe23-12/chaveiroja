@@ -49,6 +49,10 @@ import { notifyStatusByGmail } from "@/lib/gmailStatusEmail";
 // Raio de cobertura para considerar um pedido "na região" do chaveiro (km)
 const REGION_RADIUS_KM = 15;
 
+// Distância máxima do endereço do cliente para o chaveiro poder confirmar
+// a chegada (100 metros)
+const ARRIVAL_RADIUS_KM = 0.1;
+
 // Alerta sonoro curto via Web Audio (não depende de arquivos externos)
 function playBeep() {
   try {
@@ -416,7 +420,7 @@ export default function PainelChaveiro() {
         const moved = haversineKm({ lat: lastLat, lng: lastLng }, { lat: newLat, lng: newLng });
         const now = Date.now();
         const dist = haversineKm({ lat: newLat, lng: newLng }, dest);
-        const shouldUpdate = (moved > 0.05 && now - lastTime > 5000) || dist < 0.15;
+        const shouldUpdate = (moved > 0.05 && now - lastTime > 5000) || dist < ARRIVAL_RADIUS_KM;
         if (!shouldUpdate) return;
         lastLat = newLat;
         lastLng = newLng;
@@ -431,8 +435,8 @@ export default function PainelChaveiro() {
           emailedStatus.current.add(emailKey);
           notifyStatusByGmail(active.id, "on_the_way");
         }
-        // Chegada detectada com tolerância de 150 m (GPS urbano tem imprecisão)
-        if (dist < 0.15) {
+        // Chegada detectada com tolerância de 100 m
+        if (dist < ARRIVAL_RADIUS_KM) {
           arrivedFlag = true;
           setArrived(true);
         }
@@ -580,10 +584,52 @@ export default function PainelChaveiro() {
     await updateStatus({ start_photos: startPhotos });
   };
 
-  // Chaveiro confirma que chegou ao local do cliente
+  // Chaveiro confirma que chegou ao local do cliente — só permitido a até 100 m
+  // do endereço, validado pelo GPS no momento do clique.
   const handleConfirmArrival = async () => {
     if (!active) return;
-    await updateStatus({ locksmith_arrived: true });
+    if (!navigator.geolocation) {
+      toast({
+        title: "GPS indisponível",
+        description: "Ative a localização do aparelho para confirmar a chegada.",
+        variant: "destructive",
+      });
+      return;
+    }
+    const pos = await new Promise((resolve) =>
+      navigator.geolocation.getCurrentPosition(
+        (p) => resolve(p),
+        () => resolve(null),
+        { enableHighAccuracy: true, timeout: 10000, maximumAge: 5000 }
+      )
+    );
+    if (!pos) {
+      toast({
+        title: "Não foi possível obter sua localização",
+        description: "Verifique a permissão de GPS e tente novamente.",
+        variant: "destructive",
+      });
+      return;
+    }
+    const dist = haversineKm(
+      { lat: pos.coords.latitude, lng: pos.coords.longitude },
+      { lat: active.customer_lat, lng: active.customer_lng }
+    );
+    if (dist > ARRIVAL_RADIUS_KM) {
+      toast({
+        title: "Você ainda não está no local",
+        description: `A confirmação só é liberada a até 100 m do endereço. Você está a ${
+          dist < 1 ? `${Math.round(dist * 1000)} m` : `${dist.toFixed(1)} km`
+        } de distância.`,
+        variant: "destructive",
+      });
+      return;
+    }
+    await updateStatus({
+      locksmith_arrived: true,
+      locksmith_lat: pos.coords.latitude,
+      locksmith_lng: pos.coords.longitude,
+    });
   };
 
   // Registra as fotos do final do serviço — sinaliza ao cliente que o trabalho acabou
@@ -897,11 +943,16 @@ export default function PainelChaveiro() {
                 to={{ lat: active.customer_lat, lng: active.customer_lng }}
                 className="mt-3"
               />
-              {/* Confirmação manual — o GPS pode não detectar a chegada com precisão */}
+              {/* Confirmação manual — validada por GPS (até 100 m do endereço) */}
               {phase === "moving" && (
-                <Button onClick={handleConfirmArrival} variant="outline" className="w-full">
-                  <MapPin className="w-4 h-4 mr-1.5" /> Cheguei no local do cliente
-                </Button>
+                <>
+                  <Button onClick={handleConfirmArrival} variant="outline" className="w-full">
+                    <MapPin className="w-4 h-4 mr-1.5" /> Cheguei no local do cliente
+                  </Button>
+                  <p className="text-xs text-muted-foreground text-center">
+                    A confirmação de chegada só é liberada quando você estiver a até 100 m do endereço do cliente.
+                  </p>
+                </>
               )}
             </>
           )}
