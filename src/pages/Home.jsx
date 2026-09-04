@@ -347,7 +347,11 @@ export default function Home() {
       // 1. Se o chaveiro configurou serviços específicos, exige o ID do serviço.
       // 2. Se não configurou serviços, usa a especialidade como filtro:
       //    o serviço só vai para chaveiros cuja especialidade inclui a do serviço.
-      const queue = buildEligibleQueue(appLocksmiths, service, customerLoc, searchRadius);
+      // Prioriza quem está dentro do raio escolhido; se ninguém estiver,
+      // o chamado toca nos chaveiros elegíveis mais próximos de qualquer forma.
+      const allEligible = buildEligibleQueue(appLocksmiths, service, customerLoc);
+      const inRadius = allEligible.filter((q) => q.d <= searchRadius);
+      const queue = inRadius.length > 0 ? inRadius : allEligible;
       queueRef.current = queue;
       setCurrentRadius(searchRadius);
       const nearest = queue[0];
@@ -355,7 +359,7 @@ export default function Home() {
       const broadcast = queue.slice(0, BROADCAST_SIZE);
 
       if (!nearest) {
-        setSearchError(`Nenhum chaveiro disponível para "${service.label}" em até ${searchRadius} km. Aumente o raio de busca e tente novamente.`);
+        setSearchError(`Nenhum chaveiro disponível para "${service.label}" no modo aplicativo agora. Tente novamente em instantes.`);
         setSubmitting(false);
         return;
       }

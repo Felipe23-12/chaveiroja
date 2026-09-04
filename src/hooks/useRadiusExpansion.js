@@ -27,7 +27,9 @@ export function useRadiusExpansion({ request, service, locksmiths, customerLoc, 
         const next = expandRadius(radiusRef.current);
         radiusRef.current = next;
 
-        const queue = buildEligibleQueue(locksmiths, service, customerLoc, next);
+        const all = buildEligibleQueue(locksmiths, service, customerLoc);
+        const inRadius = all.filter((q) => q.d <= next);
+        const queue = inRadius.length > 0 ? inRadius : all;
         const ids = queue.map((q) => q.l.id);
         const userIds = queue.map((q) => q.l.created_by_id);
         const added = ids.filter((id) => !(fresh.ringing_locksmith_ids || []).includes(id));
