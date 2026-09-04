@@ -38,6 +38,8 @@ import { playNotificationSound } from "@/lib/notificationSound";
 import ServiceStatusBadge, { PHASE_BORDER } from "@/components/locksmith/ServiceStatusBadge";
 import UrgentArrivalCountdown from "@/components/locksmith/UrgentArrivalCountdown";
 import UrgentNearbyAlert from "@/components/locksmith/UrgentNearbyAlert";
+import GmailConnectCard from "@/components/gmail/GmailConnectCard";
+import { notifyStatusByGmail } from "@/lib/gmailStatusEmail";
 
 // Raio de cobertura para considerar um pedido "na região" do chaveiro (km)
 const REGION_RADIUS_KM = 15;
@@ -86,6 +88,7 @@ export default function PainelChaveiro() {
   const [chatFocus, setChatFocus] = useState(false);
   const [cancelOpen, setCancelOpen] = useState(false);
   const [profileChecked, setProfileChecked] = useState(false);
+  const emailedStatus = useRef(new Set());
 
   const selected = locksmiths.find((l) => l.id === selectedId) || me;
 
@@ -382,6 +385,11 @@ export default function PainelChaveiro() {
           locksmith_lat: newLat,
           locksmith_lng: newLng,
         });
+        const emailKey = `rota_${active.id}`;
+        if (!emailedStatus.current.has(emailKey)) {
+          emailedStatus.current.add(emailKey);
+          notifyStatusByGmail(active.id, "on_the_way");
+        }
         if (dist < 0.05) {
           arrivedFlag = true;
           setArrived(true);
@@ -458,6 +466,7 @@ export default function PainelChaveiro() {
     const req = pendingRequests.find((r) => r.id === reqId);
     if (!req) return;
     await base44.entities.ServiceRequest.update(reqId, { status: "cancelled", cancelled_by: "chaveiro" });
+    notifyStatusByGmail(reqId, "cancelled");
   };
 
   // Chaveiro cancela o serviço em andamento a qualquer momento (modo app)
@@ -465,6 +474,7 @@ export default function PainelChaveiro() {
     if (!active) return;
     try {
       await base44.entities.ServiceRequest.update(active.id, { status: "cancelled", cancelled_by: "chaveiro" });
+      notifyStatusByGmail(active.id, "cancelled");
       dismissedCompletedIds.current.add(active.id);
       clearLastService();
       setActive(null);
@@ -682,6 +692,13 @@ export default function PainelChaveiro() {
 
       {/* Alerta automático de chamados urgentes na região */}
       {me && !active && <UrgentNearbyAlert locksmith={me} />}
+
+      {/* Conexão da conta Gmail para avisos automáticos ao cliente */}
+      {me && (
+        <div className="mb-5">
+          <GmailConnectCard />
+        </div>
+      )}
 
       {/* Recebimentos automáticos via Stripe Connect */}
       {me && isAppMode && (
