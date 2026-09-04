@@ -415,7 +415,7 @@ export default function PainelChaveiro() {
         const moved = haversineKm({ lat: lastLat, lng: lastLng }, { lat: newLat, lng: newLng });
         const now = Date.now();
         const dist = haversineKm({ lat: newLat, lng: newLng }, dest);
-        const shouldUpdate = (moved > 0.05 && now - lastTime > 5000) || dist < 0.05;
+        const shouldUpdate = (moved > 0.05 && now - lastTime > 5000) || dist < 0.15;
         if (!shouldUpdate) return;
         lastLat = newLat;
         lastLng = newLng;
@@ -430,7 +430,8 @@ export default function PainelChaveiro() {
           emailedStatus.current.add(emailKey);
           notifyStatusByGmail(active.id, "on_the_way");
         }
-        if (dist < 0.05) {
+        // Chegada detectada com tolerância de 150 m (GPS urbano tem imprecisão)
+        if (dist < 0.15) {
           arrivedFlag = true;
           setArrived(true);
         }
@@ -891,6 +892,12 @@ export default function PainelChaveiro() {
                 to={{ lat: active.customer_lat, lng: active.customer_lng }}
                 className="mt-3"
               />
+              {/* Confirmação manual — o GPS pode não detectar a chegada com precisão */}
+              {phase === "moving" && (
+                <Button onClick={handleConfirmArrival} variant="outline" className="w-full">
+                  <MapPin className="w-4 h-4 mr-1.5" /> Cheguei no local do cliente
+                </Button>
+              )}
             </>
           )}
 
