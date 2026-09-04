@@ -1,5 +1,7 @@
 // Motor de precificação e catálogo de serviços do ChaveiroJá
 
+import { calculateLocksExtra } from "./locks";
+
 export const CAR_KEY_LABOR = 350;
 export const CAR_KEY_COST_PER_KM = 1.5;
 
@@ -68,9 +70,7 @@ export const SERVICE_CATALOG = [
     description: "Abrir fechadura de casa ou apartamento",
     specialty: "Residencial",
     baseRange: [80, 250],
-    options: [
-      { id: "troca_miolo", label: "Troca de miolo + 2 chaves", price: 90 },
-    ],
+    hasLocks: true,
   },
   {
     id: "abertura_automotiva",
@@ -86,8 +86,8 @@ export const SERVICE_CATALOG = [
     description: "Fechadura tetra / tetrachave",
     specialty: "Residencial",
     baseRange: [100, 300],
+    hasLocks: true,
     options: [
-      { id: "troca_miolo", label: "Troca de miolo", price: 90 },
       { id: "troca_fechadura", label: "Troca de fechadura completa", price: "custom" },
     ],
   },
@@ -97,6 +97,7 @@ export const SERVICE_CATALOG = [
     description: "Fechadura eletrônica / digital",
     specialty: "Residencial",
     baseRange: [350, 450],
+    hasLocks: true,
   },
   {
     id: "confeccao_chave_carro",
@@ -180,6 +181,7 @@ export function calculatePrice({
   selectedOptions = [],
   customAddons = {},
   vehicleInfo = null,
+  locks = [],
   locksmithsAvailable = 5,
   urgency = "normal",
 }) {
@@ -232,6 +234,13 @@ export function calculatePrice({
       breakdown.push({ label: opt.label, value: val });
     }
   });
+
+  // Fechaduras adicionais e trocas de miolo informadas pelo cliente
+  const locksExtra = calculateLocksExtra(locks);
+  if (locksExtra.total > 0) {
+    addonsTotal += locksExtra.total;
+    breakdown.push(...locksExtra.breakdown);
+  }
 
   const total = base + addonsTotal;
   return { base, addons: addonsTotal, total, breakdown, timeTier: time };

@@ -109,6 +109,7 @@ export function calculateDynamicPrice({
   selectedOptions = [],
   customAddons = {},
   vehicleInfo = null,
+  locks = [],
   onlineLocksmiths = 0,
   activeRequests = 0,
   urgency = "normal",
@@ -140,6 +141,7 @@ export function calculateDynamicPrice({
         selectedOptions,
         customAddons,
         vehicleInfo,
+        locks,
         locksmithsAvailable: 5,
         urgency,
       });

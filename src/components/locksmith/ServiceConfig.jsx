@@ -3,6 +3,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import PriceSummary from "./PriceSummary";
 import AddressAutocomplete from "./AddressAutocomplete";
+import LocksConfig from "./LocksConfig";
 
 export default function ServiceConfig({
   service,
@@ -17,6 +18,8 @@ export default function ServiceConfig({
   setCustomAddon,
   vehicleInfo,
   setVehicleInfo,
+  locks,
+  setLocks,
   price,
 }) {
   const updateVehicle = (field, value) =>
@@ -28,6 +31,9 @@ export default function ServiceConfig({
         <h2 className="font-heading font-semibold text-lg text-foreground">{service.label}</h2>
         <p className="text-sm text-muted-foreground">{service.description}</p>
       </div>
+
+      {/* Fechaduras: quantas portas abrir e quais miolos trocar */}
+      {service.hasLocks && <LocksConfig locks={locks} setLocks={setLocks} />}
 
       {/* Adicionais */}
       {service.options && service.options.length > 0 && (

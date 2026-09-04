@@ -28,6 +28,7 @@ import { DEFAULT_CENTER, getCustomerLocation, haversineKm, fetchDrivingRoute, et
 import { getClientLoyalty, applyLoyaltyDiscount } from "@/lib/loyalty";
 import { buildEligibleQueue } from "@/lib/ringRotation";
 import { BROADCAST_SIZE } from "@/lib/ringBroadcast";
+import { createLock, locksSummary } from "@/lib/locks";
 import PointsProgressCard from "@/components/locksmith/PointsProgressCard";
 import PaymentStep from "@/components/payment/PaymentStep";
 import ReceiptButton from "@/components/payment/ReceiptButton";
@@ -79,6 +80,7 @@ export default function Home() {
   const [selectedOptions, setSelectedOptions] = useState([]);
   const [customAddons, setCustomAddons] = useState({});
   const [vehicleInfo, setVehicleInfo] = useState({ model: "", year: "", complexity: "simples" });
+  const [locks, setLocks] = useState([createLock()]);
   const [keyValue, setKeyValue] = useState(null);
   const [fipeValue, setFipeValue] = useState(null);
   const [carKeyType, setCarKeyType] = useState("simples");
@@ -167,6 +169,7 @@ export default function Home() {
       selectedOptions,
       customAddons,
       vehicleInfo,
+      locks: service?.hasLocks ? locks : [],
       onlineLocksmiths: onlineLocksmithsCount,
       activeRequests: activeRequestsCount,
       urgency,
@@ -179,7 +182,7 @@ export default function Home() {
       carKeyType,
       onlineProgrammingFee: programming?.onlineFee || 0,
     });
-  }, [pricingService, service, motoRule, selectedOptions, customAddons, vehicleInfo, onlineLocksmithsCount, activeRequestsCount, urgency, customerLoc, address, nearestDistance, keyValue, fipeValue, carKeyType, programming]);
+  }, [pricingService, service, motoRule, selectedOptions, customAddons, vehicleInfo, locks, onlineLocksmithsCount, activeRequestsCount, urgency, customerLoc, address, nearestDistance, keyValue, fipeValue, carKeyType, programming]);
 
   useEffect(() => {
     getCustomerLocation().then(setCustomerLoc);
@@ -327,10 +330,12 @@ export default function Home() {
         return;
       }
 
+      // Resumo das fechaduras enviado ao chaveiro junto com a solicitação
+      const locksText = service.hasLocks ? locksSummary(locks) : "";
       const base = {
         service_type: service.label,
         address,
-        description,
+        description: [locksText, description].filter(Boolean).join(" — "),
         urgency,
         status: "ringing",
         locksmith_id: nearest.l.id,
@@ -718,6 +723,7 @@ export default function Home() {
     setSelectedOptions([]);
     setCustomAddons({});
     setVehicleInfo({ model: "", year: "", complexity: "simples" });
+    setLocks([createLock()]);
     setKeyValue(null);
     setFipeValue(null);
     setCarKeyType("simples");
@@ -852,6 +858,8 @@ export default function Home() {
               setCustomAddon={setCustomAddon}
               vehicleInfo={vehicleInfo}
               setVehicleInfo={setVehicleInfo}
+              locks={locks}
+              setLocks={setLocks}
               price={address ? price : null}
             />
           )}
