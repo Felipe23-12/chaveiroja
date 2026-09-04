@@ -1,4 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.44';
+import { verifyInternalCall } from '../../shared/internalCall.ts';
 
 const SPREADSHEET_ID = "1OKEypS7Y593A1QTB5LbI7ja-4QN1P1yDfsqAuLabpXI";
 const SHEET_NAME = "Pagamentos";
@@ -7,6 +8,7 @@ export default async function(req) {
   try {
     const base44 = createClientFromRequest(req);
     const body = await req.json().catch(() => ({}));
+    if (!verifyInternalCall(body)) return Response.json({ error: 'Unauthorized' }, { status: 401 });
     const serviceRequestId = body.service_request_id;
 
     if (!serviceRequestId) {

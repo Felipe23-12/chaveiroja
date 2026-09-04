@@ -18,6 +18,18 @@ export default async function(req) {
       return Response.json({ error: 'Solicitação não encontrada' }, { status: 404 });
     }
 
+    // Autorização: somente o cliente proprietário, o chaveiro designado ou admin
+    const isOwner = request.created_by_id === user.id;
+    const isAdmin = user.role === 'admin';
+    let isAssignedLocksmith = false;
+    if (!isOwner && !isAdmin && request.locksmith_id) {
+      const locksmith = await base44.asServiceRole.entities.Locksmith.get(request.locksmith_id).catch(() => null);
+      isAssignedLocksmith = locksmith?.created_by_id === user.id;
+    }
+    if (!isOwner && !isAdmin && !isAssignedLocksmith) {
+      return Response.json({ error: 'Forbidden' }, { status: 403 });
+    }
+
     // Carrega o cliente (User) para obter o email
     let customerEmail = null;
     let customerName = 'Cliente';

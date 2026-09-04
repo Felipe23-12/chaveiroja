@@ -1,4 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.44';
+import { verifyInternalCall } from '../../shared/internalCall.ts';
 
 // Envia automaticamente o recibo do serviço ao cliente após o pagamento
 // ser confirmado. Roda como service role (chamado por workflow, sem usuário).
@@ -6,6 +7,7 @@ export default async function(req) {
   try {
     const base44 = createClientFromRequest(req);
     const body = await req.json();
+    if (!verifyInternalCall(body)) return Response.json({ error: 'Unauthorized' }, { status: 401 });
     const { service_request_id } = body;
     if (!service_request_id) {
       return Response.json({ error: 'service_request_id é obrigatório' }, { status: 400 });
