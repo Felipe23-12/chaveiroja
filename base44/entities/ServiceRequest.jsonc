@@ -225,6 +225,11 @@
       "default": false,
       "description": "Chaveiro confirmou ter recebido o pagamento em dinheiro do cliente"
     },
+    "rering_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Data/hora em que o chamado recusado deve tocar novamente para o mesmo chaveiro (2 minutos ap\u00f3s a recusa)"
+    },
     "urgency_upgrade_status": {
       "type": "string",
       "enum": [

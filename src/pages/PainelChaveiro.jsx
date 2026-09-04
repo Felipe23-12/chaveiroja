@@ -39,6 +39,7 @@ import ServiceStatusBadge, { PHASE_BORDER } from "@/components/locksmith/Service
 import ArrivalDeadlineCountdown from "@/components/locksmith/ArrivalDeadlineCountdown";
 import UrgencyUpgradeAlert from "@/components/locksmith/UrgencyUpgradeAlert";
 import { registerRejection, getRejectBlock, rejectionsToday, DAILY_REJECT_LIMIT } from "@/lib/rejectLimit";
+import { useRejectRering, RERING_DELAY_MS } from "@/hooks/useRejectRering";
 import UrgentNearbyAlert from "@/components/locksmith/UrgentNearbyAlert";
 import GmailConnectCard from "@/components/gmail/GmailConnectCard";
 import { notifyStatusByGmail } from "@/lib/gmailStatusEmail";
@@ -93,6 +94,9 @@ export default function PainelChaveiro() {
   const emailedStatus = useRef(new Set());
 
   const selected = locksmiths.find((l) => l.id === selectedId) || me;
+
+  // Chamados recusados voltam a tocar para este chaveiro depois de 2 minutos
+  useRejectRering(selectedId);
 
   // Monitora status da conexão (online/offline)
   useEffect(() => {
@@ -476,8 +480,12 @@ export default function PainelChaveiro() {
   const handleReject = async (reqId) => {
     const req = pendingRequests.find((r) => r.id === reqId);
     if (!req) return;
-    await base44.entities.ServiceRequest.update(reqId, { status: "cancelled", cancelled_by: "chaveiro" });
-    notifyStatusByGmail(reqId, "cancelled");
+    // Não cancela o chamado: ele volta a tocar para este chaveiro em 2 minutos,
+    // caso nenhum outro chaveiro assuma nesse intervalo.
+    await base44.entities.ServiceRequest.update(reqId, {
+      status: "searching",
+      rering_at: new Date(Date.now() + RERING_DELAY_MS).toISOString(),
+    });
     if (me) {
       const { count, blocked } = await registerRejection(me);
       const fresh = await base44.entities.Locksmith.get(me.id);
