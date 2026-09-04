@@ -1,21 +1,17 @@
 {
   "name": "Chaveiro Já",
   "short_name": "Chaveiro Já",
-  "description": "Chaveiros de confiança a um toque — solicite serviços de chaveiro com rastreamento em tempo real e pagamento seguro.",
+  "description": "Serviços de chaveiro com rastreamento em tempo real e pagamento seguro.",
+  "lang": "pt-BR",
   "start_url": "/",
+  "scope": "/",
   "display": "standalone",
+  "orientation": "portrait-primary",
   "background_color": "#ffffff",
   "theme_color": "#0f172a",
-  "orientation": "portrait",
   "icons": [
     {
-      "src": "https://media.base44.com/images/public/6a975d266a8000184833026a/dd1b4ee70_ChatGPTImage3desetde202614_01_55.png",
-      "sizes": "192x192",
-      "type": "image/png",
-      "purpose": "any maskable"
-    },
-    {
-      "src": "https://media.base44.com/images/public/6a975d266a8000184833026a/dd1b4ee70_ChatGPTImage3desetde202614_01_55.png",
+      "src": "https://media.base44.com/images/public/6a975d266a8000184833026a/d4717d1d4_ChatGPTImage4desetde202604_02_02.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any maskable"
