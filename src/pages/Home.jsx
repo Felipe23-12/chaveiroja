@@ -5,7 +5,9 @@ import { ArrowRight, ArrowLeft, Zap, Bell, Loader2, Navigation, CheckCircle2, Al
 import { Button } from "@/components/ui/button";
 import { SERVICE_CATALOG, calculateCancellationFee, CANCELLATION_THRESHOLD_MINUTES, calculateLongDistanceFee } from "@/lib/pricing";
 import { calculateDynamicPrice } from "@/lib/dynamicPricing";
-import { searchCarKeyValue } from "@/lib/carKey";
+import { searchFipeAndKeyValue } from "@/lib/carKey";
+import { getMotoKeyRange, getMotoModel, MOTO_BRANDS } from "@/lib/motoKey";
+import MotoKeyConfig from "@/components/locksmith/MotoKeyConfig";
 import DynamicPriceFactors from "@/components/locksmith/DynamicPriceFactors";
 import ServiceCard from "@/components/locksmith/ServiceCard";
 import ServiceConfig from "@/components/locksmith/ServiceConfig";
@@ -71,6 +73,9 @@ export default function Home() {
   const [customAddons, setCustomAddons] = useState({});
   const [vehicleInfo, setVehicleInfo] = useState({ model: "", year: "", complexity: "simples" });
   const [keyValue, setKeyValue] = useState(null);
+  const [fipeValue, setFipeValue] = useState(null);
+  const [carKeyType, setCarKeyType] = useState("simples");
+  const [motoInfo, setMotoInfo] = useState({ brandId: "", modelId: "", year: "", keyType: "", hasPassword: null });
   const [searching, setSearching] = useState(false);
 
   const [customerLoc, setCustomerLoc] = useState(DEFAULT_CENTER);
@@ -97,6 +102,18 @@ export default function Home() {
 
   const service = useMemo(() => SERVICE_CATALOG.find((s) => s.id === serviceId), [serviceId]);
 
+  // Regra de faixa de valores da chave de moto (marca, modelo, ano, tipo de chave)
+  const motoRule = useMemo(
+    () => (service?.isMotoKey ? getMotoKeyRange(motoInfo) : null),
+    [service, motoInfo]
+  );
+
+  // Serviço usado no cálculo: para moto, a faixa vem da tabela de regras
+  const pricingService = useMemo(() => {
+    if (service?.isMotoKey && motoRule?.range) return { ...service, baseRange: motoRule.range };
+    return service;
+  }, [service, motoRule]);
+
   useEffect(() => {
     base44.auth.me().then((u) => setCustomerName(u?.full_name || "")).catch(() => {});
   }, []);
@@ -119,9 +136,10 @@ export default function Home() {
 
   // Preço dinâmico (modo aplicativo): oferta/demanda + urgência + região + bairro + distância
   const price = useMemo(() => {
-    if (!service) return null;
+    if (!pricingService) return null;
+    if (service?.isMotoKey && !motoRule?.range) return null;
     return calculateDynamicPrice({
-      service,
+      service: pricingService,
       selectedOptions,
       customAddons,
       vehicleInfo,
@@ -133,8 +151,10 @@ export default function Home() {
       address,
       nearestDistanceKm: nearestDistance,
       keyValue,
+      fipeValue,
+      carKeyType,
     });
-  }, [service, selectedOptions, customAddons, vehicleInfo, onlineLocksmithsCount, activeRequestsCount, urgency, customerLoc, address, nearestDistance, keyValue]);
+  }, [pricingService, service, motoRule, selectedOptions, customAddons, vehicleInfo, onlineLocksmithsCount, activeRequestsCount, urgency, customerLoc, address, nearestDistance, keyValue, fipeValue, carKeyType]);
 
   useEffect(() => {
     getCustomerLocation().then(setCustomerLoc);
@@ -223,15 +243,17 @@ export default function Home() {
     setSearching(true);
     setSearchError("");
     try {
-      const val = await searchCarKeyValue(vehicleInfo.model, vehicleInfo.year);
-      if (val == null || val <= 0) {
-        setSearchError("Não foi possível encontrar o valor da chave. Tente novamente.");
+      const res = await searchFipeAndKeyValue(vehicleInfo.model, vehicleInfo.year);
+      if (!res) {
+        setSearchError("Não foi possível encontrar o valor da tabela FIPE. Tente novamente.");
+        setFipeValue(null);
         setKeyValue(null);
       } else {
-        setKeyValue(val);
+        setFipeValue(res.fipeValue);
+        setKeyValue(res.keyValue);
       }
     } catch (e) {
-      setSearchError(e.message || "Falha ao pesquisar o valor da chave");
+      setSearchError(e.message || "Falha ao consultar a tabela FIPE do veículo");
     } finally {
       setSearching(false);
     }
@@ -277,15 +299,19 @@ export default function Home() {
 
       let req;
       if (service.isCarKey) {
-        // Preço dinâmico: valor da chave (fixo) + mão de obra (ajustada por oferta/demanda/região/bairro)
+        // Preço dinâmico: valor da chave (fixo) + mão de obra (0,8% da FIPE, ajustada dinamicamente)
+        const effectiveKeyValue = carKeyType === "simples" ? 0 : keyValue || 0;
         const basePrice = price?.total || 0;
-        const adjustedLabor = price ? Math.round((price.base - (keyValue || 0)) * 100) / 100 : 0;
+        const adjustedLabor = price ? Math.round((price.base - effectiveKeyValue) * 100) / 100 : 0;
         const kmFee = calculateLongDistanceFee(nearest.d);
         const disc = useDiscount ? applyLoyaltyDiscount(basePrice) : { amount: 0, final: basePrice };
         req = await base44.entities.ServiceRequest.create({
           ...base,
           price: disc.final,
-          key_value: keyValue,
+          key_value: effectiveKeyValue,
+          fipe_value: fipeValue,
+          key_type: carKeyType,
+          vehicle_info: `${vehicleInfo.model} ${vehicleInfo.year}`.trim(),
           labor_cost: adjustedLabor,
           locomotion_cost: kmFee,
           distance_km: Math.round(nearest.d * 100) / 100,
@@ -298,11 +324,20 @@ export default function Home() {
         const basePrice = price?.total || 0;
         const kmFee = calculateLongDistanceFee(nearest.d);
         const disc = useDiscount ? applyLoyaltyDiscount(basePrice) : { amount: 0, final: basePrice };
+        const motoModel = service.isMotoKey ? getMotoModel(motoInfo.brandId, motoInfo.modelId) : null;
         req = await base44.entities.ServiceRequest.create({
           ...base,
           price: disc.final,
           distance_km: Math.round(nearest.d * 100) / 100,
           locomotion_cost: kmFee,
+          ...(service.isMotoKey
+            ? {
+                key_type: motoInfo.keyType,
+                vehicle_info: `${MOTO_BRANDS.find((b) => b.id === motoInfo.brandId)?.label || ""} ${
+                  motoModel?.label || ""
+                } ${motoInfo.year}${motoInfo.keyType === "presenca" ? (motoInfo.hasPassword ? " · com senha" : " · sem senha") : ""}`.trim(),
+              }
+            : {}),
           discount_applied: useDiscount,
           discount_amount: disc.amount,
         });
@@ -629,6 +664,9 @@ export default function Home() {
     setCustomAddons({});
     setVehicleInfo({ model: "", year: "", complexity: "simples" });
     setKeyValue(null);
+    setFipeValue(null);
+    setCarKeyType("simples");
+    setMotoInfo({ brandId: "", modelId: "", year: "", keyType: "", hasPassword: null });
     setSearching(false);
     setSearchError("");
     setSelectedLocksmith(null);
@@ -723,6 +761,22 @@ export default function Home() {
               searching={searching}
               searchError={searchError}
               onSearch={handleSearchKey}
+              carKeyType={carKeyType}
+              setCarKeyType={setCarKeyType}
+              fipeValue={fipeValue}
+              price={null}
+            />
+          ) : service.isMotoKey ? (
+            <MotoKeyConfig
+              service={service}
+              motoInfo={motoInfo}
+              setMotoInfo={setMotoInfo}
+              motoRule={motoRule}
+              address={address}
+              setAddress={setAddress}
+              onAddressSelect={handleAddressSelect}
+              description={description}
+              setDescription={setDescription}
               price={null}
             />
           ) : (
@@ -776,7 +830,16 @@ export default function Home() {
             <Button variant="outline" onClick={() => goToStep(1)} className="flex-1">
               <ArrowLeft className="w-4 h-4 mr-2" /> Voltar
             </Button>
-            <Button onClick={handleConfirmConfig} disabled={!address || submitting || (service?.isCarKey && !keyValue)} className="flex-1">
+            <Button
+              onClick={handleConfirmConfig}
+              disabled={
+                !address ||
+                submitting ||
+                (service?.isCarKey && !fipeValue) ||
+                (service?.isMotoKey && !motoRule?.range)
+              }
+              className="flex-1"
+            >
               {submitting ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Bell className="w-4 h-4 mr-2" />}
               Solicitar chaveiro
             </Button>

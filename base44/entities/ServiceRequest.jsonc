@@ -9,7 +9,8 @@
         "Abertura Automotiva",
         "Abertura Fechadura Tetra",
         "Abertura Fechadura Eletr\u00f4nica",
-        "Confec\u00e7\u00e3o de Chave de Carro"
+        "Confec\u00e7\u00e3o de Chave de Carro",
+        "Confec\u00e7\u00e3o de Chave de Moto"
       ],
       "default": "Abertura Residencial"
     },
@@ -74,6 +75,18 @@
     "key_value": {
       "type": "number",
       "description": "Valor da chave original pesquisado (confec\u00e7\u00e3o de chave de carro)"
+    },
+    "fipe_value": {
+      "type": "number",
+      "description": "Valor da Tabela FIPE do ve\u00edculo usado para calcular a m\u00e3o de obra (0,8%)"
+    },
+    "key_type": {
+      "type": "string",
+      "description": "Tipo de chave escolhido: simples, canivete, telecomando (carro) ou simples/presenca (moto)"
+    },
+    "vehicle_info": {
+      "type": "string",
+      "description": "Resumo do ve\u00edculo/moto informado pelo cliente (marca, modelo, ano)"
     },
     "labor_cost": {
       "type": "number",

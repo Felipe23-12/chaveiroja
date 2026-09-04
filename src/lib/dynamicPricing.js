@@ -117,6 +117,8 @@ export function calculateDynamicPrice({
   address = "",
   nearestDistanceKm = null,
   keyValue = null,
+  fipeValue = null,
+  carKeyType = null,
 }) {
   if (!service) return null;
 
@@ -124,7 +126,13 @@ export function calculateDynamicPrice({
   // Passa locksmithsAvailable neutro (5) para evitar dupla contagem de oferta —
   // a oferta/demanda é tratada exclusivamente pelo multiplicador dinâmico abaixo.
   const baseResult = service.isCarKey
-    ? calculateCarKeyPrice({ keyValue: keyValue || 0, distanceKm: 0, extraCost: 0 })
+    ? calculateCarKeyPrice({
+        keyValue: keyValue || 0,
+        fipeValue: fipeValue || 0,
+        keyType: carKeyType,
+        distanceKm: 0,
+        extraCost: 0,
+      })
     : calculatePrice({
         service,
         selectedOptions,
@@ -165,7 +173,9 @@ export function calculateDynamicPrice({
     current = baseResult.keyValue + adjustedLabor;
     addonsTotal = 0;
 
-    breakdown.push({ label: "Valor da chave original", value: baseResult.keyValue });
+    if (baseResult.keyValue > 0) {
+      breakdown.push({ label: "Valor da chave original", value: baseResult.keyValue });
+    }
     breakdown.push({
       label: `Mão de obra (ajuste dinâmico ×${combinedMultiplier})`,
       value: adjustedLabor,

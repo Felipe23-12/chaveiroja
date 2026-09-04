@@ -3,6 +3,50 @@
 export const CAR_KEY_LABOR = 350;
 export const CAR_KEY_COST_PER_KM = 1.5;
 
+// Confecção de chave de carro (modo aplicativo):
+// mão de obra = 0,8% do valor da tabela FIPE do veículo.
+//  - Chave simples: mão de obra FIPE + custo fixo de R$ 120 (sem chave original)
+//  - Chave canivete / com telecomando: mão de obra FIPE + valor da chave original
+export const CAR_KEY_FIPE_LABOR_RATE = 0.008;
+export const CAR_KEY_SIMPLE_FIXED = 120;
+
+export const CAR_KEY_TYPES = [
+  {
+    id: "simples",
+    label: "Chave simples",
+    description: "0,8% da tabela FIPE + R$ 120 fixos",
+    usesOriginalKey: false,
+  },
+  {
+    id: "canivete",
+    label: "Chave canivete",
+    description: "0,8% da tabela FIPE + valor da chave original",
+    usesOriginalKey: true,
+  },
+  {
+    id: "telecomando",
+    label: "Chave com telecomando",
+    description: "0,8% da tabela FIPE + valor da chave original",
+    usesOriginalKey: true,
+  },
+];
+
+// Mão de obra e valor da chave conforme o tipo escolhido pelo cliente
+export function carKeyComponents({ fipeValue = 0, keyValue = 0, keyType = "simples" }) {
+  const fipe = Number(fipeValue) || 0;
+  const fipeLabor = Math.round(fipe * CAR_KEY_FIPE_LABOR_RATE * 100) / 100;
+  const type = CAR_KEY_TYPES.find((t) => t.id === keyType) || CAR_KEY_TYPES[0];
+  if (type.usesOriginalKey) {
+    return { fipeLabor, laborCost: fipeLabor, keyValue: Number(keyValue) || 0, type };
+  }
+  return {
+    fipeLabor,
+    laborCost: Math.round((fipeLabor + CAR_KEY_SIMPLE_FIXED) * 100) / 100,
+    keyValue: 0,
+    type,
+  };
+}
+
 // Taxa de longa distância: quando o chaveiro está a mais de 20 km do cliente,
 // cobra-se R$ 0,90 por km adicional (serviços que não têm locomoção embutida).
 export const LONG_DISTANCE_THRESHOLD_KM = 20;
@@ -63,6 +107,14 @@ export const SERVICE_CATALOG = [
     isCarKey: true,
     laborCost: CAR_KEY_LABOR,
     costPerKm: CAR_KEY_COST_PER_KM,
+  },
+  {
+    id: "confeccao_chave_moto",
+    label: "Confecção de Chave de Moto",
+    description: "Chave simples ou presença para motos até 300cc (modo aplicativo)",
+    specialty: "Automotivo",
+    isMotoKey: true,
+    baseRange: [200, 500],
   },
 ];
 
@@ -189,15 +241,18 @@ export function calculatePrice({
 // valor da chave original + mão de obra fixa + locomoção (R$ por km) + adicionais
 export function calculateCarKeyPrice({
   keyValue = 0,
+  fipeValue = 0,
+  keyType = null,
   distanceKm = 0,
   laborCost = CAR_KEY_LABOR,
   costPerKm = CAR_KEY_COST_PER_KM,
   extraCost = 0,
 }) {
-  const kv = Number(keyValue) || 0;
+  const comp = keyType ? carKeyComponents({ fipeValue, keyValue, keyType }) : null;
+  const kv = comp ? comp.keyValue : Number(keyValue) || 0;
   const dist = Number(distanceKm) || 0;
   const extra = Number(extraCost) || 0;
-  const labor = Number(laborCost) || 0;
+  const labor = comp ? comp.laborCost : Number(laborCost) || 0;
   const perKm = Number(costPerKm) || 0;
 
   const locomotion = Math.round(perKm * dist * 100) / 100;

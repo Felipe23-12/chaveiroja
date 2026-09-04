@@ -21,3 +21,26 @@ export async function searchCarKeyValue(model, year) {
   if (typeof val !== "number" || isNaN(val)) return null;
   return val;
 }
+
+// Pesquisa o valor da Tabela FIPE do veículo e o valor da chave original.
+// A mão de obra da confecção é calculada a partir do valor FIPE (0,8%).
+export async function searchFipeAndKeyValue(model, year) {
+  const res = await base44.integrations.Core.InvokeLLM({
+    prompt: `Pesquise na Tabela FIPE brasileira o valor médio atual em reais (BRL) do veículo ${model} ano ${year} (campo fipe_value) e também o valor médio de mercado de uma chave original/codificada desse veículo em concessionárias no Brasil (campo key_value). Retorne apenas números em reais.`,
+    add_context_from_internet: true,
+    model: "gemini_3_flash",
+    response_json_schema: {
+      type: "object",
+      properties: {
+        fipe_value: { type: "number", description: "Valor da tabela FIPE em reais (BRL)" },
+        key_value: { type: "number", description: "Valor médio da chave original em reais (BRL)" },
+        notes: { type: "string" },
+      },
+      required: ["fipe_value"],
+    },
+  });
+  const fipe = res?.fipe_value;
+  if (typeof fipe !== "number" || isNaN(fipe) || fipe <= 0) return null;
+  const key = typeof res?.key_value === "number" && !isNaN(res.key_value) ? res.key_value : 0;
+  return { fipeValue: fipe, keyValue: key };
+}

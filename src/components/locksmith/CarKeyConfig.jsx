@@ -5,11 +5,15 @@ import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import PriceSummary from "./PriceSummary";
 import AddressAutocomplete from "./AddressAutocomplete";
+import { CAR_KEY_TYPES } from "@/lib/pricing";
 
 export default function CarKeyConfig({
   service,
   vehicleInfo,
   setVehicleInfo,
+  carKeyType,
+  setCarKeyType,
+  fipeValue,
   address,
   setAddress,
   onAddressSelect,
@@ -62,12 +66,35 @@ export default function CarKeyConfig({
       </div>
 
       {/* O sistema mantém os dados necessários para calcular o serviço, mas não expõe valores nesta etapa. */}
-      {keyValue != null && (
+      {fipeValue != null && (
         <div className="p-4 rounded-xl border border-border bg-muted/40 text-center">
-          <p className="text-sm font-medium text-foreground">Dados da chave consultados</p>
+          <p className="text-sm font-medium text-foreground">Tabela FIPE e chave consultadas</p>
           <p className="text-xs text-muted-foreground mt-1">
-            O valor será informado após a confirmação da solicitação.
+            A mão de obra é calculada em 0,8% do valor da tabela FIPE do veículo. O valor será
+            informado após a confirmação da solicitação.
           </p>
+        </div>
+      )}
+
+      {/* Tipo de chave escolhido pelo cliente */}
+      {fipeValue != null && (
+        <div>
+          <label className="text-sm font-medium text-foreground mb-1.5 block">Tipo de chave</label>
+          <div className="grid grid-cols-1 gap-2">
+            {CAR_KEY_TYPES.map((t) => (
+              <button
+                key={t.id}
+                type="button"
+                onClick={() => setCarKeyType(t.id)}
+                className={`p-3 rounded-xl border-2 text-left min-h-[44px] transition-all ${
+                  carKeyType === t.id ? "border-primary bg-primary/5" : "border-border"
+                }`}
+              >
+                <p className="text-sm font-medium text-foreground">{t.label}</p>
+                <p className="text-xs text-muted-foreground">{t.description}</p>
+              </button>
+            ))}
+          </div>
         </div>
       )}
 
