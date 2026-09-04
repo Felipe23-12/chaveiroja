@@ -88,6 +88,7 @@ export default function Home() {
   const [currentRadius, setCurrentRadius] = useState(DEFAULT_RADIUS_KM);
   const [keyValue, setKeyValue] = useState(null);
   const [fipeValue, setFipeValue] = useState(null);
+  const [hasCodedKey, setHasCodedKey] = useState(false);
   const [carKeyType, setCarKeyType] = useState("simples");
   const [motoInfo, setMotoInfo] = useState({ brandId: "", modelId: "", year: "", keyType: "", hasPassword: null });
   const [searching, setSearching] = useState(false);
@@ -185,9 +186,10 @@ export default function Home() {
       keyValue,
       fipeValue,
       carKeyType,
+      hasCodedKey,
       onlineProgrammingFee: programming?.onlineFee || 0,
     });
-  }, [pricingService, service, motoRule, selectedOptions, customAddons, vehicleInfo, locks, onlineLocksmithsCount, activeRequestsCount, urgency, customerLoc, address, nearestDistance, keyValue, fipeValue, carKeyType, programming]);
+  }, [pricingService, service, motoRule, selectedOptions, customAddons, vehicleInfo, locks, onlineLocksmithsCount, activeRequestsCount, urgency, customerLoc, address, nearestDistance, keyValue, fipeValue, carKeyType, hasCodedKey, programming]);
 
   useEffect(() => {
     getCustomerLocation().then(setCustomerLoc);
@@ -305,6 +307,7 @@ export default function Home() {
       const res = await searchFipeAndKeyValue(vehicleInfo.model, vehicleInfo.year);
       setFipeValue(res.fipeValue);
       setKeyValue(res.keyValue);
+      setHasCodedKey(res.hasCodedKey);
       if (!res.keyValueTrusted && carKeyType !== "simples") {
         setSearchError(
           "Não foi possível confirmar o valor da chave original deste modelo. O chaveiro informará esse valor ao aceitar o serviço."
@@ -313,6 +316,7 @@ export default function Home() {
     } catch (e) {
       setFipeValue(null);
       setKeyValue(null);
+      setHasCodedKey(false);
       setSearchError(e.message || "Falha ao consultar a tabela FIPE do veículo");
     } finally {
       setSearching(false);
@@ -389,7 +393,7 @@ export default function Home() {
 
       let req;
       if (service.isCarKey) {
-        // Preço dinâmico: valor da chave (fixo) + mão de obra (0,8% da FIPE, ajustada dinamicamente)
+        // Preço dinâmico: valor da chave + mão de obra pela faixa de ano/codificação da FIPE
         const effectiveKeyValue = carKeyType === "simples" ? 0 : keyValue || 0;
         const onlineFee = programming?.onlineFee || 0;
         const basePrice = price?.total || 0;
@@ -764,6 +768,7 @@ export default function Home() {
     setCurrentRadius(DEFAULT_RADIUS_KM);
     setKeyValue(null);
     setFipeValue(null);
+    setHasCodedKey(false);
     setCarKeyType("simples");
     setMotoInfo({ brandId: "", modelId: "", year: "", keyType: "", hasPassword: null });
     setSearching(false);

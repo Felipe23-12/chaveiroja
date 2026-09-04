@@ -5,38 +5,43 @@ import { calculateLocksExtra } from "./locks";
 export const CAR_KEY_LABOR = 350;
 export const CAR_KEY_COST_PER_KM = 1.5;
 
-// Confecção de chave de carro (modo aplicativo):
-// mão de obra = 0,8% do valor da tabela FIPE do veículo.
-//  - Chave simples: mão de obra FIPE + custo fixo de R$ 120 (sem chave original)
-//  - Chave canivete / com telecomando: mão de obra FIPE + valor da chave original
-export const CAR_KEY_FIPE_LABOR_RATE = 0.008;
+// Confecção de chave de carro (modo aplicativo): taxa de mão de obra por ano
+// e presença de codificação eletrônica, aplicada sobre o valor da Tabela FIPE.
+export function getCarKeyFipeLaborRate(year, hasCodedKey = false) {
+  const y = Number(year) || 0;
+  if (y >= 2020) return 0.008;
+  if (y >= 2010) return 0.009;
+  if (y >= 2000) return 0.011;
+  return hasCodedKey ? 0.013 : 0.011;
+}
 export const CAR_KEY_SIMPLE_FIXED = 120;
 
 export const CAR_KEY_TYPES = [
   {
     id: "simples",
     label: "Chave simples",
-    description: "0,8% da tabela FIPE + R$ 120 fixos",
+    description: "Percentual da FIPE conforme ano/codificação + R$ 120 fixos",
     usesOriginalKey: false,
   },
   {
     id: "canivete",
     label: "Chave canivete",
-    description: "0,8% da tabela FIPE + valor da chave original",
+    description: "Percentual da FIPE conforme ano/codificação + valor da chave original",
     usesOriginalKey: true,
   },
   {
     id: "telecomando",
     label: "Chave com telecomando",
-    description: "0,8% da tabela FIPE + valor da chave original",
+    description: "Percentual da FIPE conforme ano/codificação + valor da chave original",
     usesOriginalKey: true,
   },
 ];
 
 // Mão de obra e valor da chave conforme o tipo escolhido pelo cliente
-export function carKeyComponents({ fipeValue = 0, keyValue = 0, keyType = "simples" }) {
+export function carKeyComponents({ fipeValue = 0, keyValue = 0, keyType = "simples", year, hasCodedKey = false }) {
   const fipe = Number(fipeValue) || 0;
-  const fipeLabor = Math.round(fipe * CAR_KEY_FIPE_LABOR_RATE * 100) / 100;
+  const rate = getCarKeyFipeLaborRate(year, hasCodedKey);
+  const fipeLabor = Math.round(fipe * rate * 100) / 100;
   const type = CAR_KEY_TYPES.find((t) => t.id === keyType) || CAR_KEY_TYPES[0];
   if (type.usesOriginalKey) {
     return { fipeLabor, laborCost: fipeLabor, keyValue: Number(keyValue) || 0, type };
@@ -257,8 +262,10 @@ export function calculateCarKeyPrice({
   costPerKm = CAR_KEY_COST_PER_KM,
   extraCost = 0,
   onlineProgrammingFee = 0,
+  year = null,
+  hasCodedKey = false,
 }) {
-  const comp = keyType ? carKeyComponents({ fipeValue, keyValue, keyType }) : null;
+  const comp = keyType ? carKeyComponents({ fipeValue, keyValue, keyType, year, hasCodedKey }) : null;
   const kv = comp ? comp.keyValue : Number(keyValue) || 0;
   const dist = Number(distanceKm) || 0;
   const extra = Number(extraCost) || 0;

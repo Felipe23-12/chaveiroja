@@ -120,6 +120,7 @@ export function calculateDynamicPrice({
   keyValue = null,
   fipeValue = null,
   carKeyType = null,
+  hasCodedKey = false,
   onlineProgrammingFee = 0,
 }) {
   if (!service) return null;
@@ -132,6 +133,8 @@ export function calculateDynamicPrice({
         keyValue: keyValue || 0,
         fipeValue: fipeValue || 0,
         keyType: carKeyType,
+        year: vehicleInfo?.year,
+        hasCodedKey,
         distanceKm: 0,
         extraCost: 0,
         onlineProgrammingFee,

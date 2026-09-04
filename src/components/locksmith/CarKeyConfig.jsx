@@ -72,8 +72,7 @@ export default function CarKeyConfig({
         <div className="p-4 rounded-xl border border-border bg-muted/40 text-center">
           <p className="text-sm font-medium text-foreground">Tabela FIPE e chave consultadas</p>
           <p className="text-xs text-muted-foreground mt-1">
-            A mão de obra é calculada em 0,8% do valor da tabela FIPE do veículo. O valor será
-            informado após a confirmação da solicitação.
+            A mão de obra é calculada pelo ano e pela codificação da chave, usando entre 0,8% e 1,3% da Tabela FIPE. O valor será informado após a confirmação da solicitação.
           </p>
         </div>
       )}
