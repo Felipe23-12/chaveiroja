@@ -17,21 +17,26 @@ export default function Chat() {
   const [sending, setSending] = useState(false);
   const [pendingMessages, setPendingMessages] = useState([]);
   const [customerName, setCustomerName] = useState("");
+  const [user, setUser] = useState(null);
   const [reviewOpen, setReviewOpen] = useState(false);
   const scrollRef = useRef(null);
 
   useEffect(() => {
     if (!locksmithId) return;
     base44.entities.Locksmith.get(locksmithId).then(setLocksmith);
-    const load = () =>
-      base44.entities.ChatMessage.filter({ locksmith_id: locksmithId }, "created_date").then(setMessages);
-    load();
-    const unsub = base44.entities.ChatMessage.subscribe(() => load());
-    return unsub;
   }, [locksmithId]);
 
   useEffect(() => {
-    base44.auth.me().then((u) => setCustomerName(u?.full_name || "Cliente")).catch(() => {});
+    if (!locksmithId || !user?.id) return;
+    const load = () =>
+      base44.entities.ChatMessage.filter({ locksmith_id: locksmithId, client_id: user.id }, "created_date").then(setMessages);
+    load();
+    const unsub = base44.entities.ChatMessage.subscribe(() => load());
+    return unsub;
+  }, [locksmithId, user?.id]);
+
+  useEffect(() => {
+    base44.auth.me().then((u) => { setUser(u); setCustomerName(u?.full_name || "Cliente"); }).catch(() => {});
   }, []);
 
   useEffect(() => {
@@ -54,6 +59,9 @@ export default function Chat() {
       await base44.entities.ChatMessage.create({
         locksmith_id: locksmithId,
         locksmith_name: locksmith?.name,
+        locksmith_user_id: locksmith?.created_by_id,
+        client_id: user?.id,
+        client_name: customerName,
         sender_type: "customer",
         sender_name: customerName,
         message: msg,
@@ -80,6 +88,9 @@ export default function Chat() {
       await base44.entities.ChatMessage.create({
         locksmith_id: locksmithId,
         locksmith_name: locksmith?.name,
+        locksmith_user_id: locksmith?.created_by_id,
+        client_id: user?.id,
+        client_name: customerName,
         sender_type: "customer",
         sender_name: customerName,
         message: msg,
