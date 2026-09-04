@@ -13,6 +13,8 @@
 // O valor final dentro da faixa é definido pelo motor dinâmico (região,
 // horário, feriado, oferta/demanda e urgência).
 
+import { validateMotoYear } from "@/lib/fipeValidation";
+
 export const MOTO_BRANDS = [
   { id: "honda", label: "Honda" },
   { id: "yamaha", label: "Yamaha" },
@@ -61,9 +63,16 @@ export function getMotoModel(brandId, modelId) {
  */
 export function getMotoKeyRange({ brandId, modelId, year, keyType, hasPassword = false }) {
   const model = getMotoModel(brandId, modelId);
-  const y = Number(year) || 0;
-  if (!model || !y || !keyType) {
+  if (!model || !year || !keyType) {
     return { range: null, blocked: false, reason: "Selecione marca, modelo, ano e tipo de chave." };
+  }
+  const checkedYear = validateMotoYear(year);
+  if (!checkedYear.valid) {
+    return { range: null, blocked: true, reason: checkedYear.error };
+  }
+  const y = checkedYear.year;
+  if (keyType === "presenca" && hasPassword == null) {
+    return { range: null, blocked: false, reason: "Informe se a moto possui senha de chave presença." };
   }
 
   // Chave presença apenas nos scooters compatíveis

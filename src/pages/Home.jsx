@@ -245,15 +245,16 @@ export default function Home() {
     setSearchError("");
     try {
       const res = await searchFipeAndKeyValue(vehicleInfo.model, vehicleInfo.year);
-      if (!res) {
-        setSearchError("Não foi possível encontrar o valor da tabela FIPE. Tente novamente.");
-        setFipeValue(null);
-        setKeyValue(null);
-      } else {
-        setFipeValue(res.fipeValue);
-        setKeyValue(res.keyValue);
+      setFipeValue(res.fipeValue);
+      setKeyValue(res.keyValue);
+      if (!res.keyValueTrusted && carKeyType !== "simples") {
+        setSearchError(
+          "Não foi possível confirmar o valor da chave original deste modelo. O chaveiro informará esse valor ao aceitar o serviço."
+        );
       }
     } catch (e) {
+      setFipeValue(null);
+      setKeyValue(null);
       setSearchError(e.message || "Falha ao consultar a tabela FIPE do veículo");
     } finally {
       setSearching(false);
