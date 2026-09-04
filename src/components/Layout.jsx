@@ -116,6 +116,14 @@ function SidebarContent({ onNavigate }) {
           <LogOut className="w-3 h-3" />
           Sair
         </button>
+        <Link
+          to="/termos-privacidade"
+          onClick={onNavigate}
+          className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-md text-xs font-medium text-muted-foreground hover:bg-accent transition-colors min-h-[36px]"
+        >
+          <ShieldCheck className="w-3 h-3" />
+          Termos e Privacidade
+        </Link>
         <button
           onClick={() => setPhotoOpen(true)}
           className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-md text-xs font-medium text-muted-foreground hover:bg-accent transition-colors min-h-[36px]"

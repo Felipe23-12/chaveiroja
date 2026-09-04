@@ -28,6 +28,7 @@ import PainelAdmin from '@/pages/PainelAdmin';
 import PainelFinanceiroAdmin from '@/pages/PainelFinanceiroAdmin';
 import GoogleComplete from '@/pages/GoogleComplete';
 import PoliticaReembolso from '@/pages/PoliticaReembolso';
+import TermosPrivacidade from '@/pages/TermosPrivacidade';
 import Acompanhamento from '@/pages/Acompanhamento';
 // Add page imports here
 
@@ -65,6 +66,7 @@ const AuthenticatedApp = () => {
       <Route path="/cadastro/chaveiro" element={<RegisterChaveiro />} />
       <Route path="/google-complete" element={<GoogleComplete />} />
       <Route path="/politica-reembolso" element={<PoliticaReembolso />} />
+      <Route path="/termos-privacidade" element={<TermosPrivacidade />} />
       <Route element={<ProtectedRoute unauthenticatedElement={<Navigate to="/login" replace />} />}>
         <Route element={<ProfileCompletionGuard />}>
         <Route element={<Layout />}>
