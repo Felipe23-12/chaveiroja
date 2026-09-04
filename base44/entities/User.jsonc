@@ -24,6 +24,10 @@
     "cpf": {
       "type": "string",
       "description": "CPF do usu\u00e1rio"
+    },
+    "username": {
+      "type": "string",
+      "description": "Nome de usu\u00e1rio escolhido pelo usu\u00e1rio (exibido no app)"
     }
   },
   "required": [

@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
 import { useAuth } from "@/lib/AuthContext";
-import { Wrench, Bell, Check, X, Navigation, Power, Loader2, MapPin, WifiOff, CheckCircle2, Wallet, ArrowLeft, Pencil } from "lucide-react";
+import { Wrench, Bell, Check, X, Navigation, Power, Loader2, MapPin, WifiOff, CheckCircle2, Wallet, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import NativeSelectDrawer from "@/components/ui/NativeSelectDrawer";
@@ -73,28 +73,8 @@ export default function PainelChaveiro() {
   const dismissedCompletedIds = useRef(new Set());
   const { toast } = useToast();
   const [chatFocus, setChatFocus] = useState(false);
-  const [editingName, setEditingName] = useState(false);
-  const [nameInput, setNameInput] = useState("");
-  const [savingName, setSavingName] = useState(false);
 
   const selected = locksmiths.find((l) => l.id === selectedId) || me;
-
-  const saveDisplayName = async () => {
-    if (!me) return;
-    const value = (nameInput || "").trim();
-    if (!value) return;
-    setSavingName(true);
-    try {
-      const updated = await base44.entities.Locksmith.update(me.id, { display_name: value });
-      setMe(updated);
-      setEditingName(false);
-      toast({ title: "Nome de exibição atualizado" });
-    } catch (e) {
-      toast({ title: "Erro ao salvar nome", variant: "destructive" });
-    } finally {
-      setSavingName(false);
-    }
-  };
 
   // Monitora status da conexão (online/offline)
   useEffect(() => {
@@ -635,35 +615,7 @@ export default function PainelChaveiro() {
         return (
         <div className="flex items-center justify-between p-4 rounded-xl border border-border bg-card mb-5 fade-in-up">
           <div>
-            {editingName ? (
-              <div className="flex items-center gap-1">
-                <input
-                  value={nameInput}
-                  onChange={(e) => setNameInput(e.target.value)}
-                  onKeyDown={(e) => { if (e.key === "Enter") saveDisplayName(); }}
-                  className="h-8 rounded-md border border-input bg-transparent px-2 text-sm font-medium text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring min-w-0"
-                  placeholder="Seu nome de usuário"
-                  autoFocus
-                />
-                <button onClick={saveDisplayName} disabled={savingName} className="text-emerald-600 p-2 min-h-[44px] min-w-[44px] flex items-center justify-center" aria-label="Salvar nome">
-                  <Check className="w-4 h-4" />
-                </button>
-                <button onClick={() => setEditingName(false)} className="text-muted-foreground p-2 min-h-[44px] min-w-[44px] flex items-center justify-center" aria-label="Cancelar">
-                  <X className="w-4 h-4" />
-                </button>
-              </div>
-            ) : (
-              <div className="flex items-center gap-1">
-                <p className="font-medium text-foreground">{me.display_name || me.name}</p>
-                <button
-                  onClick={() => { setNameInput(me.display_name || me.name); setEditingName(true); }}
-                  className="text-muted-foreground p-2 min-h-[44px] min-w-[44px] flex items-center justify-center"
-                  aria-label="Editar nome"
-                >
-                  <Pencil className="w-3.5 h-3.5" />
-                </button>
-              </div>
-            )}
+            <p className="font-medium text-foreground">{user?.username || user?.full_name || me.name}</p>
             <p className="text-xs text-muted-foreground">
               Modo {isLivre ? "Livre" : "Aplicativo"} ·{" "}
               <span className={me.online ? "text-emerald-600" : "text-muted-foreground"}>
