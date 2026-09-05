@@ -64,7 +64,12 @@ export default function NearbyRequestsList({ locksmith }) {
         .catch(() => setLoading(false));
     load();
     const unsub = base44.entities.ServiceRequest.subscribe(() => load());
-    return unsub;
+    return () => {
+      if (typeof unsub === "function") unsub();
+      else if (unsub && typeof unsub.then === "function") {
+        unsub.then((fn) => typeof fn === "function" && fn()).catch(() => {});
+      }
+    };
   }, []);
 
   if (!locksmith || !locksmith.online) return null;
