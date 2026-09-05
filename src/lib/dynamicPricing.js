@@ -122,6 +122,7 @@ export function calculateDynamicPrice({
   carKeyType = null,
   hasCodedKey = false,
   onlineProgrammingFee = 0,
+  weather = null,
 }) {
   if (!service) return null;
 
@@ -161,6 +162,10 @@ export function calculateDynamicPrice({
   let combinedMultiplier =
     supplyDemand.multiplier * urgencyMult * region.multiplier * neighborhood.multiplier;
   combinedMultiplier = Math.min(Math.max(combinedMultiplier, MIN_COMBINED), MAX_COMBINED);
+  // Chuva é aplicada por fora do limite: garoa acrescenta pouco e tempestade
+  // acrescenta o máximo de 70%.
+  const weatherMult = weather?.multiplier || 1.0;
+  combinedMultiplier = combinedMultiplier * weatherMult;
   combinedMultiplier = Math.round(combinedMultiplier * 100) / 100;
 
   // 4. Taxa de distância excedente (acima de 20 km)
@@ -219,6 +224,14 @@ export function calculateDynamicPrice({
     current = pushAdjustment(`Região (${region.label})`, current, region.multiplier);
     current = pushAdjustment(`Bairro (${neighborhood.label})`, current, neighborhood.multiplier);
 
+    if (weatherMult > 1) {
+      current = pushAdjustment(
+        `Clima (${weather.label} · +${Math.round((weatherMult - 1) * 100)}%)`,
+        current,
+        weatherMult
+      );
+    }
+
     // Adicionais (do breakdown original, excluindo o primeiro item que é a base)
     (baseResult.breakdown || []).slice(1).forEach((item) => {
       breakdown.push(item);
@@ -252,6 +265,7 @@ export function calculateDynamicPrice({
       urgency: urgency === "urgent" ? { multiplier: urgencyMult, label: "Urgente" } : null,
       region,
       neighborhood,
+      weather: weatherMult > 1 ? weather : null,
       combinedMultiplier,
       distanceOverThreshold,
       onlineLocksmiths,

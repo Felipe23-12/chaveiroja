@@ -32,6 +32,7 @@ import { safeUnsubscribe } from "@/lib/safeUnsubscribe";
 import { createLock, locksSummary } from "@/lib/locks";
 import { DEFAULT_RADIUS_KM, expandUntilFound } from "@/lib/searchRadius";
 import { useRadiusExpansion } from "@/hooks/useRadiusExpansion";
+import useWeatherSurge from "@/hooks/useWeatherSurge";
 import SearchRadiusSelector from "@/components/locksmith/SearchRadiusSelector";
 import PointsProgressCard from "@/components/locksmith/PointsProgressCard";
 import PaymentStep from "@/components/payment/PaymentStep";
@@ -113,6 +114,9 @@ export default function Home() {
 
   const service = useMemo(() => SERVICE_CATALOG.find((s) => s.id === serviceId), [serviceId]);
 
+  // Condição do tempo no local do cliente — chuva aumenta o valor (até 70%)
+  const weather = useWeatherSurge(customerLoc.lat, customerLoc.lng);
+
   // Regra de faixa de valores da chave de moto (marca, modelo, ano, tipo de chave)
   const motoRule = useMemo(
     () => (service?.isMotoKey ? getMotoKeyRange(motoInfo) : null),
@@ -182,8 +186,9 @@ export default function Home() {
       carKeyType,
       hasCodedKey,
       onlineProgrammingFee: programming?.onlineFee || 0,
+      weather,
     });
-  }, [pricingService, service, motoRule, selectedOptions, customAddons, vehicleInfo, locks, onlineLocksmithsCount, activeRequestsCount, urgency, customerLoc, address, nearestDistance, keyValue, fipeValue, carKeyType, hasCodedKey, programming]);
+  }, [pricingService, service, motoRule, selectedOptions, customAddons, vehicleInfo, locks, onlineLocksmithsCount, activeRequestsCount, urgency, customerLoc, address, nearestDistance, keyValue, fipeValue, carKeyType, hasCodedKey, programming, weather]);
 
   useEffect(() => {
     getCustomerLocation().then(setCustomerLoc);

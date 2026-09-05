@@ -1,5 +1,6 @@
 import React from "react";
-import { TrendingUp, TrendingDown, MapPin, Home, Zap, AlertTriangle, Gauge, CalendarClock } from "lucide-react";
+import { TrendingUp, TrendingDown, MapPin, Home, Zap, AlertTriangle, Gauge, CalendarClock, CloudRain } from "lucide-react";
+import WeatherSurgeNotice from "@/components/locksmith/WeatherSurgeNotice";
 
 // Exibe os fatores dinâmicos de precificação (oferta/demanda, região, bairro,
 // urgência) como badges informativas, além do aviso de taxa de distância.
@@ -11,6 +12,8 @@ export default function DynamicPriceFactors({ price, nearestDistance }) {
 
   return (
     <div className="space-y-3">
+      <WeatherSurgeNotice weather={factors.weather} />
+
       {/* Aviso de taxa de distância excedente */}
       {overThreshold && (
         <div className="flex items-start gap-2 p-3 rounded-xl bg-amber-50 border border-amber-300 text-amber-800">
@@ -63,6 +66,14 @@ export default function DynamicPriceFactors({ price, nearestDistance }) {
         />
         {factors.urgency && (
           <FactorBadge icon={Zap} label="Urgência" value="Valor máximo" tone="high" />
+        )}
+        {factors.weather && (
+          <FactorBadge
+            icon={CloudRain}
+            label="Clima"
+            value={`${factors.weather.label} (+${Math.round((factors.weather.multiplier - 1) * 100)}%)`}
+            tone="high"
+          />
         )}
         <FactorBadge
           icon={MapPin}
