@@ -14,7 +14,6 @@ import MobileTabBar from "@/components/MobileTabBar";
 import { useChatUnread } from "@/lib/chatUnreadStore";
 import { AnimatePresence } from "framer-motion";
 import PageTransition from "@/components/PageTransition";
-import EmergencyAssistant from "@/components/emergency/EmergencyAssistant";
 
 const ALL_NAV = [
   { label: "Início", path: "/", icon: HomeIcon, roles: ["cliente"] },
@@ -206,7 +205,6 @@ export default function Layout() {
       <GlobalLocksmithRequestAlert />
       <GlobalChatAlert />
       <ServiceFinishAlert />
-      <EmergencyAssistant />
       <MobileTopBar onMenu={() => setDrawerOpen(true)} />
       <MobileDrawer open={drawerOpen} onClose={() => setDrawerOpen(false)} />
       <aside className="hidden md:flex md:w-64 md:min-h-screen bg-card border-r border-border flex-col sticky top-0 md:h-screen">
