@@ -8,7 +8,7 @@ import { expandRadius, RADIUS_EXPAND_INTERVAL_MS, MAX_RADIUS_KM } from "@/lib/se
  * busca em 20% a cada 5 minutos e passa a tocar também nos chaveiros que
  * entraram no novo raio.
  */
-export function useRadiusExpansion({ request, service, locksmiths, customerLoc, radiusKm, onExpand }) {
+export function useRadiusExpansion({ request, service, locksmiths, customerLoc, radiusKm, onExpand, enabled = true }) {
   const radiusRef = useRef(radiusKm);
 
   useEffect(() => {
@@ -16,6 +16,7 @@ export function useRadiusExpansion({ request, service, locksmiths, customerLoc, 
   }, [radiusKm, request?.id]);
 
   useEffect(() => {
+    if (!enabled) return;
     if (!request || request.status !== "ringing" || !service) return;
 
     const timer = setInterval(async () => {
@@ -46,5 +47,5 @@ export function useRadiusExpansion({ request, service, locksmiths, customerLoc, 
 
     return () => clearInterval(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [request?.id, request?.status, service?.id, locksmiths.length]);
+  }, [enabled, request?.id, request?.status, service?.id, locksmiths.length]);
 }

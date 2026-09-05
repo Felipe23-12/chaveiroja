@@ -84,7 +84,8 @@ export default function Home() {
   const [customAddons, setCustomAddons] = useState({});
   const [vehicleInfo, setVehicleInfo] = useState({ make: "", model: "", year: "", doorStatus: "", complexity: "simples" });
   const [locks, setLocks] = useState([createLock()]);
-  const [searchRadius, setSearchRadius] = useState(DEFAULT_RADIUS_KM);
+  // null = "Chaveiro perto de mim" (começa em 10 km e amplia automaticamente)
+  const [searchRadius, setSearchRadius] = useState(null);
   const [currentRadius, setCurrentRadius] = useState(DEFAULT_RADIUS_KM);
   const [keyValue, setKeyValue] = useState(null);
   const [fipeValue, setFipeValue] = useState(null);
@@ -258,10 +259,16 @@ export default function Home() {
     return unsub;
   }, []);
 
-  // Chaveiros elegíveis dentro do raio escolhido pelo cliente
+  // Chaveiros elegíveis: com raio escolhido, conta todos os online; na opção
+  // "perto de mim", conta apenas os que estão dentro do raio inicial.
   const inRadiusCount = useMemo(() => {
     if (!service) return null;
-    return buildEligibleQueue(appLocksmiths, service, customerLoc, searchRadius).length;
+    return buildEligibleQueue(
+      appLocksmiths,
+      service,
+      customerLoc,
+      searchRadius == null ? DEFAULT_RADIUS_KM : undefined
+    ).length;
   }, [service, appLocksmiths, customerLoc, searchRadius]);
 
   // Sem resposta em 5 minutos: aumenta o raio em 20% e toca em mais chaveiros
@@ -271,6 +278,9 @@ export default function Home() {
     locksmiths: appLocksmiths,
     customerLoc,
     radiusKm: currentRadius,
+    // A ampliação automática só vale na opção "Chaveiro perto de mim";
+    // com raio escolhido o chamado já toca para todos os chaveiros online.
+    enabled: searchRadius == null,
     onExpand: ({ radiusKm, added }) => {
       setCurrentRadius(radiusKm);
       toast({
@@ -357,8 +367,19 @@ export default function Home() {
       // Prioriza quem está dentro do raio escolhido; se ninguém estiver,
       // o chamado toca nos chaveiros elegíveis mais próximos de qualquer forma.
       const allEligible = buildEligibleQueue(appLocksmiths, service, customerLoc);
-      // Se ninguém estiver no raio escolhido, amplia 20% por vez até encontrar
-      const { radiusKm: usedRadius, inRadius: queue } = expandUntilFound(allEligible, searchRadius);
+      let queue;
+      let usedRadius;
+      if (searchRadius == null) {
+        // "Chaveiro perto de mim": começa em 10 km e amplia 20% até encontrar
+        const res = expandUntilFound(allEligible, DEFAULT_RADIUS_KM);
+        usedRadius = res.radiusKm;
+        queue = res.inRadius;
+      } else {
+        // Raio escolhido pelo cliente: toca de uma vez para todos os chaveiros
+        // online que atendem o serviço, para não demorar na busca.
+        usedRadius = searchRadius;
+        queue = allEligible;
+      }
       queueRef.current = queue;
       setCurrentRadius(usedRadius);
       const nearest = queue[0];
@@ -792,7 +813,7 @@ export default function Home() {
     setCustomAddons({});
     setVehicleInfo({ make: "", model: "", year: "", doorStatus: "", complexity: "simples" });
     setLocks([createLock()]);
-    setSearchRadius(DEFAULT_RADIUS_KM);
+    setSearchRadius(null);
     setCurrentRadius(DEFAULT_RADIUS_KM);
     setKeyValue(null);
     setFipeValue(null);
@@ -1003,7 +1024,8 @@ export default function Home() {
               Tocando nos chaveiros mais próximos...
             </h2>
             <p className="text-sm text-muted-foreground mb-4">
-              {service?.label} · raio de {currentRadius} km ·{" "}
+              {service?.label} ·{" "}
+              {searchRadius == null ? `raio de ${currentRadius} km` : "todos os chaveiros online"} ·{" "}
               {activeRequest.ringing_locksmith_ids?.length || 0} chaveiro
               {(activeRequest.ringing_locksmith_ids?.length || 0) === 1 ? "" : "s"} recebendo · o primeiro que aceitar atende você
             </p>
