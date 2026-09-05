@@ -120,20 +120,26 @@ export const CAR_MAKES = [
   },
 ];
 
+// Normaliza para comparar ignorando acentos e maiúsculas (ex.: "citroen" = "Citroën")
+const norm = (s = "") =>
+  s
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .trim()
+    .toLowerCase();
+
 // Modelos da montadora que começam com o texto digitado.
 export function findModels(makeLabel, query = "") {
-  const make = CAR_MAKES.find(
-    (m) => m.label.toLowerCase() === (makeLabel || "").trim().toLowerCase()
-  );
+  const make = CAR_MAKES.find((m) => norm(m.label) === norm(makeLabel));
   if (!make) return [];
-  const q = query.trim().toLowerCase();
+  const q = norm(query);
   if (!q) return make.models;
-  return make.models.filter((model) => model.toLowerCase().startsWith(q));
+  return make.models.filter((model) => norm(model).startsWith(q));
 }
 
 // Montadoras que começam com o texto digitado.
 export function findMakes(query = "") {
-  const q = query.trim().toLowerCase();
+  const q = norm(query);
   if (!q) return CAR_MAKES;
-  return CAR_MAKES.filter((m) => m.label.toLowerCase().startsWith(q));
+  return CAR_MAKES.filter((m) => norm(m.label).startsWith(q));
 }
