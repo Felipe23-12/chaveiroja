@@ -10,10 +10,12 @@ export default function EmergencyAssistant() {
   const agent = useEmergencyAgent();
   const accountType = user?.account_type || (user?.role === "admin" ? "admin" : "cliente");
   if (accountType !== "cliente") return null;
-  const toggle = async () => {
+  const toggle = () => {
     const next = !open;
     setOpen(next);
-    if (next) await agent.start();
+    // Inicia a conversa sem bloquear o toque — falhas aparecem no painel,
+    // em vez de travar o app no WebView.
+    if (next) Promise.resolve(agent.start()).catch(() => {});
   };
   return (
     <>
