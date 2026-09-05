@@ -4,6 +4,7 @@ import { MapPin, Navigation, Filter, Loader2, Inbox } from "lucide-react";
 import { haversineKm } from "@/lib/geo";
 import { SERVICE_CATALOG } from "@/lib/pricing";
 import NativeSelectDrawer from "@/components/ui/NativeSelectDrawer";
+import { resyncRingingForRadius } from "@/lib/radiusResync";
 
 import { DEFAULT_SERVICE_RADIUS_KM } from "@/components/locksmith/ServiceRadiusConfig";
 
@@ -45,7 +46,9 @@ export default function NearbyRequestsList({ locksmith }) {
   const changeRadius = (km) => {
     setRadius(km);
     if (locksmith?.id) {
-      base44.entities.Locksmith.update(locksmith.id, { service_radius_km: km }).catch(() => {});
+      base44.entities.Locksmith.update(locksmith.id, { service_radius_km: km })
+        .then(() => resyncRingingForRadius({ ...locksmith, service_radius_km: km }, km))
+        .catch(() => {});
     }
   };
 

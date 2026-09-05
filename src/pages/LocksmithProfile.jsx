@@ -10,6 +10,7 @@ import LocksmithFinancialPanel from "@/components/locksmith/LocksmithFinancialPa
 import MonthlySubscriptionConfig from "@/components/locksmith/MonthlySubscriptionConfig";
 import ServiceSelector from "@/components/locksmith/ServiceSelector";
 import ServiceRadiusConfig from "@/components/locksmith/ServiceRadiusConfig";
+import { resyncRingingForRadius } from "@/lib/radiusResync";
 import AvatarPicker from "@/components/profile/AvatarPicker";
 import NativeSelectDrawer from "@/components/ui/NativeSelectDrawer";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -249,7 +250,10 @@ export default function LocksmithProfile() {
             <ServiceRadiusConfig
               locksmith={selected}
               saving={saving}
-              onSave={(km) => updateLocksmith({ service_radius_km: km })}
+              onSave={(km) => {
+                updateLocksmith({ service_radius_km: km });
+                resyncRingingForRadius({ ...selected, service_radius_km: km }, km).catch(() => {});
+              }}
             />
 
             <div className="flex items-center justify-between p-4 rounded-2xl border border-border bg-white">
