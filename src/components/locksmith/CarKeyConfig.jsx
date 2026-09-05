@@ -7,6 +7,7 @@ import PriceSummary from "./PriceSummary";
 import AddressAutocomplete from "./AddressAutocomplete";
 import { CAR_KEY_TYPES } from "@/lib/pricing";
 import CarKeyProgrammingNotice from "./CarKeyProgrammingNotice";
+import VehicleMakeModelFields from "./VehicleMakeModelFields";
 
 export default function CarKeyConfig({
   service,
@@ -41,22 +42,7 @@ export default function CarKeyConfig({
       <div className="space-y-3">
         <label className="text-sm font-medium text-foreground block">Dados do veículo</label>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <div>
-            <label className="text-xs text-muted-foreground mb-1 block">Montadora</label>
-            <Input
-              placeholder="Ex: Honda"
-              value={vehicleInfo.make || ""}
-              onChange={(e) => updateVehicle("make", e.target.value)}
-            />
-          </div>
-          <div>
-            <label className="text-xs text-muted-foreground mb-1 block">Modelo</label>
-            <Input
-              placeholder="Ex: Civic"
-              value={vehicleInfo.model || ""}
-              onChange={(e) => updateVehicle("model", e.target.value)}
-            />
-          </div>
+          <VehicleMakeModelFields vehicleInfo={vehicleInfo} updateVehicle={updateVehicle} />
           <div>
             <label className="text-xs text-muted-foreground mb-1 block">Ano do veículo</label>
             <Input
