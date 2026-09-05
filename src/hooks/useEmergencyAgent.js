@@ -31,7 +31,19 @@ export default function useEmergencyAgent() {
     try {
       const active = await start();
       if (!active) return;
+      setMessages((prev) => [...prev, { role: "user", content: text }]);
       await base44.agents.addMessage(active, { role: "user", content: text });
+      // Fallback: se a assinatura em tempo real falhar (comum em WebView),
+      // busca a conversa periodicamente até a resposta do assistente chegar.
+      const before = (active.messages || []).length;
+      for (let i = 0; i < 20; i++) {
+        await new Promise((r) => setTimeout(r, 2000));
+        const latest = await base44.agents.getConversation(active.id);
+        const msgs = latest.messages || [];
+        setMessages(msgs);
+        setConversation(latest);
+        if (msgs.length > before + 1 && msgs[msgs.length - 1].role === "assistant") break;
+      }
     } catch (e) {
       setError(e.message || "Não foi possível enviar a mensagem.");
     } finally {
