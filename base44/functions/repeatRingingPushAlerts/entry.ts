@@ -16,14 +16,20 @@ export default async function(req) {
     if (!internalCall && !user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
     if (!internalCall && user.role !== 'admin') return Response.json({ error: 'Forbidden' }, { status: 403 });
 
-    const pending = await base44.asServiceRole.entities.ServiceRequest.filter({ status: "ringing" });
+    // Inclui também os chamados em busca (searching): eles seguem aguardando
+    // um chaveiro e devem continuar apitando no celular.
+    const [ringing, searching] = await Promise.all([
+      base44.asServiceRole.entities.ServiceRequest.filter({ status: "ringing" }),
+      base44.asServiceRole.entities.ServiceRequest.filter({ status: "searching" }),
+    ]);
+    const pending = [...(ringing || []), ...(searching || [])];
     let total = 0;
-    for (const sr of pending || []) {
+    for (const sr of pending) {
       const res = await notifyRingingLocksmiths(base44, sr, true);
       total += res.notified.length;
     }
 
-    return Response.json({ success: true, requests: pending?.length || 0, notified_count: total });
+    return Response.json({ success: true, requests: pending.length, notified_count: total });
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });
   }

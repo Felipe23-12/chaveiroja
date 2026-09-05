@@ -40,9 +40,11 @@ export async function notifyRingingLocksmiths(base44: any, sr: any, repeat = fal
 
   const serviceType = sr.service_type || "Serviço de chaveiro";
   const address = sr.address || "Endereço não informado";
-  const urgencyLabel = sr.urgency === "urgent" ? " (URGENTE)" : "";
-  const title = `🔔 Novo chamado${urgencyLabel}`;
-  const content = `${serviceType}\n📍 ${address}`;
+  const isUrgent = sr.urgency === "urgent";
+  // Título curto e direto — é o que aparece na tela de bloqueio do celular
+  const title = isUrgent ? "🚨 CHAMADO URGENTE — atenda agora!" : "🔔 Novo chamado disponível";
+  const priceLine = sr.price ? `\n💰 R$ ${Number(sr.price).toFixed(2)}` : "";
+  const content = `${serviceType}\n📍 ${address}${priceLine}\nToque para aceitar antes de outro chaveiro.`;
 
   const notified: string[] = [];
   for (const locksmithId of targets) {
