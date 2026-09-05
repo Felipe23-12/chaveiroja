@@ -16,6 +16,33 @@ export function haversineKm(aLat: number, aLng: number, bLat: number, bLng: numb
 }
 
 /**
+ * Chamado sem chaveiro atribuído (status "searching"): avisa todos os
+ * chaveiros online cujo raio de atendimento alcança o endereço do cliente.
+ * Garante que o celular apite mesmo quando o chamado ainda não foi direcionado.
+ */
+export async function notifyNearbyOnlineLocksmiths(base44: any, sr: any) {
+  if (!sr.customer_lat || !sr.customer_lng) return { notified: [] };
+
+  const locksmiths = await base44.asServiceRole.entities.Locksmith
+    .filter({ online: true })
+    .catch(() => []);
+
+  const eligible = (locksmiths || []).filter((l: any) => {
+    if (!l.lat || !l.lng || !l.created_by_id) return false;
+    const dist = haversineKm(l.lat, l.lng, sr.customer_lat, sr.customer_lng);
+    return dist <= (l.service_radius_km || DEFAULT_RADIUS_KM);
+  });
+
+  if (eligible.length === 0) return { notified: [] };
+
+  return notifyRingingLocksmiths(
+    base44,
+    { ...sr, ringing_locksmith_ids: eligible.map((l: any) => l.id) },
+    true
+  );
+}
+
+/**
  * Notifica todos os chaveiros para quem o chamado está tocando.
  * repeat = true reenvia o alerta mesmo para quem já recebeu (reforço contínuo).
  */

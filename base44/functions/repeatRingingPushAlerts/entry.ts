@@ -1,6 +1,6 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.46';
 import { verifyInternalCall } from '../../shared/internalCall.ts';
-import { notifyRingingLocksmiths } from '../../shared/locksmithRingPush.ts';
+import { notifyRingingLocksmiths, notifyNearbyOnlineLocksmiths } from '../../shared/locksmithRingPush.ts';
 
 /**
  * Reforço contínuo do alerta: enquanto um chamado seguir tocando sem ninguém
@@ -22,10 +22,20 @@ export default async function(req) {
       base44.asServiceRole.entities.ServiceRequest.filter({ status: "ringing" }),
       base44.asServiceRole.entities.ServiceRequest.filter({ status: "searching" }),
     ]);
-    const pending = [...(ringing || []), ...(searching || [])];
+    // Só reforça chamados abertos nas últimas 2 horas — evita reenviar alertas
+    // de pedidos antigos abandonados.
+    const cutoff = Date.now() - 2 * 60 * 60 * 1000;
+    const pending = [...(ringing || []), ...(searching || [])].filter(
+      (sr) => new Date(sr.created_date).getTime() > cutoff
+    );
+
     let total = 0;
     for (const sr of pending) {
-      const res = await notifyRingingLocksmiths(base44, sr, true);
+      const hasTargets = (sr.ringing_locksmith_ids || []).length > 0 || sr.locksmith_id;
+      // Chamado ainda sem chaveiro direcionado: avisa todos os online no raio
+      const res = hasTargets
+        ? await notifyRingingLocksmiths(base44, sr, true)
+        : await notifyNearbyOnlineLocksmiths(base44, sr);
       total += res.notified.length;
     }
 
