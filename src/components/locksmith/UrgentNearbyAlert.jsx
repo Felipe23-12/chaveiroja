@@ -4,6 +4,7 @@ import { AlertTriangle, MapPin, Clock } from "lucide-react";
 import { haversineKm } from "@/lib/geo";
 import { SERVICE_CATALOG } from "@/lib/pricing";
 import { playNotificationSound } from "@/lib/notificationSound";
+import { safeUnsubscribe } from "@/lib/safeUnsubscribe";
 
 const RADIUS_KM = 15;
 
@@ -50,7 +51,7 @@ export default function UrgentNearbyAlert({ locksmith }) {
         .catch(() => {});
     load();
     const unsub = base44.entities.ServiceRequest.subscribe(() => load());
-    return unsub;
+    return safeUnsubscribe(unsub);
   }, [locksmith?.id, locksmith?.online, locksmith?.lat, locksmith?.lng]);
 
   if (!locksmith?.online || urgent.length === 0) return null;

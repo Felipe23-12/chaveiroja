@@ -46,6 +46,7 @@ import UrgentNearbyAlert from "@/components/locksmith/UrgentNearbyAlert";
 import GmailConnectCard from "@/components/gmail/GmailConnectCard";
 import PartsChecklist from "@/components/locksmith/PartsChecklist";
 import { notifyStatusByGmail } from "@/lib/gmailStatusEmail";
+import { safeUnsubscribe } from "@/lib/safeUnsubscribe";
 
 // Raio de cobertura para considerar um pedido "na região" do chaveiro (km)
 const REGION_RADIUS_KM = 15;
@@ -217,7 +218,7 @@ export default function PainelChaveiro() {
           })
           .catch(() => {});
     });
-    return unsub;
+    return safeUnsubscribe(unsub);
   }, [selectedId]);
 
   // Escuta "toques" (status ringing) direcionados a este chaveiro (modo app)
@@ -240,7 +241,7 @@ export default function PainelChaveiro() {
     load();
     // Reavalia periodicamente para o chamado recusado voltar a tocar no prazo
     const timer = setInterval(load, 15000);
-    const unsub = base44.entities.ServiceRequest.subscribe(() => load());
+    const unsub = safeUnsubscribe(base44.entities.ServiceRequest.subscribe(() => load()));
     return () => {
       clearInterval(timer);
       unsub();
@@ -298,7 +299,7 @@ export default function PainelChaveiro() {
         description: `${r.service_type} · ${r.address} · ${dist.toFixed(1)} km de você`,
       });
     });
-    return unsub;
+    return safeUnsubscribe(unsub);
   }, [selectedId, me]);
 
   // Busca a rota de carro entre o chaveiro e o cliente (OSRM) — com cache offline
@@ -389,7 +390,7 @@ export default function PainelChaveiro() {
         });
     load();
     const unsub = base44.entities.ServiceRequest.subscribe(() => load());
-    return unsub;
+    return safeUnsubscribe(unsub);
   }, [selectedId]);
 
   // Reseta estado de chegada e sincroniza fotos ao mudar de serviço ativo

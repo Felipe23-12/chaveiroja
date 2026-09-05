@@ -9,6 +9,7 @@ import { savePendingRequests, getPendingRequests, saveLocksmithProfile, getLocks
 import { enqueueAction, flushActionQueue, queuedActionsCount, bindAutoFlush } from "@/lib/offlineActionQueue";
 import { useOnlineStatus } from "@/hooks/useOnlineStatus";
 import OfflineBanner from "@/components/locksmith/OfflineBanner";
+import { safeUnsubscribe } from "@/lib/safeUnsubscribe";
 
 function formatElapsed(seconds) {
   const m = Math.floor(seconds / 60);
@@ -104,7 +105,7 @@ export default function GlobalLocksmithRequestAlert() {
         });
     load();
     const timer = setInterval(load, 15000);
-    const unsub = base44.entities.ServiceRequest.subscribe(() => load());
+    const unsub = safeUnsubscribe(base44.entities.ServiceRequest.subscribe(() => load()));
     return () => {
       clearInterval(timer);
       unsub();

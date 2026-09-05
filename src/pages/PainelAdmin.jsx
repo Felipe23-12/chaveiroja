@@ -10,6 +10,7 @@ import ServiceGallery from "@/components/locksmith/ServiceGallery";
 import FinancialConsolidation from "@/components/admin/FinancialConsolidation";
 import { completeWithdrawal } from "@/lib/payments";
 import { useToast } from "@/components/ui/use-toast";
+import { safeUnsubscribe } from "@/lib/safeUnsubscribe";
 
 const fmtMoney = (n) =>
   (n || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
@@ -69,7 +70,7 @@ export default function PainelAdmin() {
         load();
       }
     });
-    return unsub;
+    return safeUnsubscribe(unsub);
   }, []);
 
   const revenue = requests

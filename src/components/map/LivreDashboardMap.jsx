@@ -4,6 +4,7 @@ import { haversineKm } from "@/lib/geo";
 import { X } from "lucide-react";
 import LightMap from "@/components/map/LightMap";
 import OpenInNavAppsButton from "@/components/map/OpenInNavAppsButton";
+import { safeUnsubscribe } from "@/lib/safeUnsubscribe";
 
 // Raio de cobertura para exibir clientes no mapa (km)
 const RADIUS_KM = 30;
@@ -27,7 +28,7 @@ export default function LivreDashboardMap({ me }) {
         })
         .catch(() => {});
     load().finally(() => active && setLoading(false));
-    const unsub = base44.entities.ServiceRequest.subscribe(() => load());
+    const unsub = safeUnsubscribe(base44.entities.ServiceRequest.subscribe(() => load()));
     return () => {
       active = false;
       unsub();

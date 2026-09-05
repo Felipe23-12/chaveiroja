@@ -5,6 +5,7 @@ import { MapPin, Loader2, MessageCircle, Star, Wrench, Navigation, Search, Slide
 import { haversineKm } from "@/lib/geo";
 import LightMap from "@/components/map/LightMap";
 import MapLocationSearch from "@/components/map/MapLocationSearch";
+import { safeUnsubscribe } from "@/lib/safeUnsubscribe";
 
 /**
  * Tela principal do cliente: mostra TODOS os chaveiros disponíveis
@@ -41,7 +42,7 @@ export default function LiveLocksmithsMap({ customerLoc, livreOnly = false }) {
         }
       });
     load().finally(() => active && setLoading(false));
-    const unsub = base44.entities.Locksmith.subscribe(() => load());
+    const unsub = safeUnsubscribe(base44.entities.Locksmith.subscribe(() => load()));
     return () => {
       active = false;
       unsub();

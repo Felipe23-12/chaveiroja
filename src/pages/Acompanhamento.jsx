@@ -9,6 +9,7 @@ import QuickMessages from "@/components/chat/QuickMessages";
 import ArrivalDeadlineCountdown from "@/components/locksmith/ArrivalDeadlineCountdown";
 import CancelServiceButton from "@/components/locksmith/CancelServiceButton";
 import { fetchDrivingRoute, etaMinutes, haversineKm } from "@/lib/geo";
+import { safeUnsubscribe } from "@/lib/safeUnsubscribe";
 
 export default function Acompanhamento() {
   const { requestId } = useParams();
@@ -41,20 +42,21 @@ export default function Acompanhamento() {
                 .then(setMessages)
                 .catch(() => {});
             loadMsgs();
-            const unsubMsg = base44.entities.ChatMessage.subscribe(() => loadMsgs());
-            return unsubMsg;
+            return safeUnsubscribe(base44.entities.ChatMessage.subscribe(() => loadMsgs()));
           }
         })
         .catch(() => setLoading(false));
     const promise = load();
-    const unsub = base44.entities.ServiceRequest.subscribe((event) => {
-      if (event.data?.id === requestId) {
-        base44.entities.ServiceRequest.get(requestId).then(setRequest).catch(() => {});
-      }
-    });
+    const unsub = safeUnsubscribe(
+      base44.entities.ServiceRequest.subscribe((event) => {
+        if (event.data?.id === requestId) {
+          base44.entities.ServiceRequest.get(requestId).then(setRequest).catch(() => {});
+        }
+      })
+    );
     return () => {
       unsub();
-      if (typeof promise?.then === "function") promise.then((u) => u && u());
+      if (typeof promise?.then === "function") promise.then((u) => typeof u === "function" && u()).catch(() => {});
     };
   }, [requestId]);
 

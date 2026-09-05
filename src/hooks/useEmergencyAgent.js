@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { base44 } from "@/api/base44Client";
+import { safeUnsubscribe } from "@/lib/safeUnsubscribe";
 
 export default function useEmergencyAgent() {
   const [conversation, setConversation] = useState(null);
@@ -58,7 +59,7 @@ export default function useEmergencyAgent() {
         setMessages(data.messages || []);
         setConversation(data);
       });
-      return typeof unsubscribe === "function" ? unsubscribe : undefined;
+      return safeUnsubscribe(unsubscribe);
     } catch (e) {
       return undefined;
     }

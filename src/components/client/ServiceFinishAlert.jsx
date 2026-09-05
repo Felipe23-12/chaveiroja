@@ -5,6 +5,7 @@ import { useAuth } from "@/lib/AuthContext";
 import { CheckCircle2 } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import { ensureNotificationPermission, notifyClient } from "@/lib/clientNotifications";
+import { safeUnsubscribe } from "@/lib/safeUnsubscribe";
 
 // Alerta sonoro curto via Web Audio (não depende de arquivos externos)
 function playBeep() {
@@ -64,7 +65,7 @@ export default function ServiceFinishAlert() {
         })
         .catch(() => {});
     load();
-    const unsub = base44.entities.ServiceRequest.subscribe(() => load());
+    const unsub = safeUnsubscribe(base44.entities.ServiceRequest.subscribe(() => load()));
     return () => {
       active = false;
       unsub();

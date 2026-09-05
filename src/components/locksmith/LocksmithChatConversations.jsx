@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/components/ui/use-toast";
 import { playNotificationSound } from "@/lib/notificationSound";
+import { safeUnsubscribe } from "@/lib/safeUnsubscribe";
 
 /**
  * Abas de conversas com clientes + resposta, para o chaveiro no modo livre.
@@ -61,7 +62,7 @@ export default function LocksmithChatConversations({ me }) {
         .catch(() => {});
     load();
     const unsub = base44.entities.ChatMessage.subscribe(() => load());
-    return unsub;
+    return safeUnsubscribe(unsub);
   }, [me?.id, me?.created_by_id]);
 
   // Carrega mensagens da conversa ativa
@@ -74,7 +75,7 @@ export default function LocksmithChatConversations({ me }) {
         .catch(() => {});
     load();
     const unsub = base44.entities.ChatMessage.subscribe(() => load());
-    return unsub;
+    return safeUnsubscribe(unsub);
   }, [me?.id, me?.created_by_id, activeTab]);
 
   useEffect(() => {

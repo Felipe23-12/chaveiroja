@@ -6,6 +6,7 @@ import { MessageCircle } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import { setChatUnread, incrementChatUnread } from "@/lib/chatUnreadStore";
 import { playNotificationSound } from "@/lib/notificationSound";
+import { safeUnsubscribe } from "@/lib/safeUnsubscribe";
 
 const lastSeenKey = (id) => `chat_last_seen_${id}`;
 
@@ -94,7 +95,7 @@ export default function GlobalChatAlert() {
         .catch(() => {});
     load();
     const unsub = base44.entities.ChatMessage.subscribe(() => load());
-    return unsub;
+    return safeUnsubscribe(unsub);
   }, [locksmith?.id]);
 
   // Zera o contador e persiste lastSeen quando o chaveiro está no painel

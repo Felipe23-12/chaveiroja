@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import ReviewForm from "@/components/locksmith/ReviewForm";
 import QuickMessages from "@/components/chat/QuickMessages";
+import { safeUnsubscribe } from "@/lib/safeUnsubscribe";
 
 export default function Chat() {
   const { locksmithId } = useParams();
@@ -32,7 +33,7 @@ export default function Chat() {
       base44.entities.ChatMessage.filter({ locksmith_id: locksmithId, client_id: user.id }, "created_date").then(setMessages);
     load();
     const unsub = base44.entities.ChatMessage.subscribe(() => load());
-    return unsub;
+    return safeUnsubscribe(unsub);
   }, [locksmithId, user?.id]);
 
   useEffect(() => {

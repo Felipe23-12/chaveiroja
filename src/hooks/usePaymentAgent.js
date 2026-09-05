@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { base44 } from "@/api/base44Client";
+import { safeUnsubscribe } from "@/lib/safeUnsubscribe";
 
 export default function usePaymentAgent() {
   const [conversation, setConversation] = useState(null);
@@ -19,10 +20,12 @@ export default function usePaymentAgent() {
 
   useEffect(() => {
     if (!conversation?.id) return;
-    return base44.agents.subscribeToConversation(conversation.id, (data) => {
-      setMessages(data.messages || []);
-      setConversation(data);
-    });
+    return safeUnsubscribe(
+      base44.agents.subscribeToConversation(conversation.id, (data) => {
+        setMessages(data.messages || []);
+        setConversation(data);
+      })
+    );
   }, [conversation?.id]);
 
   const send = async (content) => {
