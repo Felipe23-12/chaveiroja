@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
-import { Clock, MapPin, Star, Wrench } from "lucide-react";
+import { Clock, Wrench } from "lucide-react";
+import ServiceHistoryCard from "@/components/history/ServiceHistoryCard";
 import ServiceFilters, { filterRequests } from "@/components/admin/ServiceFilters";
 import ServiceSearchBar from "@/components/admin/ServiceSearchBar";
 import ServiceGallery from "@/components/locksmith/ServiceGallery";
@@ -10,14 +11,6 @@ import { WifiOff } from "lucide-react";
 import LoadingCard from "@/components/ui/LoadingCard";
 import ReplacedPartsSummary from "@/components/locksmith/ReplacedPartsSummary";
 import { usePullToRefresh, PullToRefreshIndicator } from "@/components/ui/PullToRefresh";
-
-const statusLabels = {
-  pending: { label: "Pendente", color: "bg-amber-100 text-amber-700" },
-  accepted: { label: "Aceito", color: "bg-blue-100 text-blue-700" },
-  on_the_way: { label: "A caminho", color: "bg-violet-100 text-violet-700" },
-  completed: { label: "Concluído", color: "bg-green-100 text-green-700" },
-  cancelled: { label: "Cancelado", color: "bg-red-100 text-red-700" },
-};
 
 export default function History() {
   const [requests, setRequests] = useState([]);
@@ -107,59 +100,13 @@ export default function History() {
         </div>
       ) : (
         <div className="space-y-3">
-          {filtered.map((req) => {
-            const st = statusLabels[req.status] || statusLabels.pending;
-            return (
-              <div key={req.id} className="p-4 rounded-2xl bg-card border border-border fade-in-up">
-                <div className="flex items-start justify-between gap-2 mb-2">
-                  <div className="flex items-center gap-2">
-                    <span className="font-heading font-semibold text-foreground">{req.service_type}</span>
-                    <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${st.color}`}>{st.label}</span>
-                  </div>
-                  <span className="font-heading font-bold text-foreground">R$ {req.price?.toFixed(2)}</span>
-                </div>
-                <div className="flex items-center gap-1.5 text-sm text-muted-foreground mb-2">
-                  <MapPin className="w-3.5 h-3.5" /> {req.address}
-                </div>
-                {req.distance_km != null && (
-                  <p className="text-xs text-muted-foreground mb-2">
-                    Distância inicial do chaveiro ao cliente: <span className="font-medium text-foreground">{Number(req.distance_km).toFixed(1)} km</span>
-                  </p>
-                )}
-                {req.locksmith_name && (
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm text-muted-foreground">{req.locksmith_name}</span>
-                  </div>
-                )}
-                {req.status === "completed" && req.rating && (
-                  <div className="mt-3 pt-3 border-t border-border">
-                    <div className="flex items-center gap-2 mb-1">
-                      <span className="text-xs font-medium text-muted-foreground">Sua avaliação:</span>
-                      <div className="flex items-center gap-0.5">
-                        {[1, 2, 3, 4, 5].map((n) => (
-                          <Star
-                            key={n}
-                            className={`w-4 h-4 ${
-                              n <= req.rating
-                                ? "fill-amber-400 text-amber-400"
-                                : "fill-muted text-muted"
-                            }`}
-                          />
-                        ))}
-                      </div>
-                      <span className="text-sm font-heading font-semibold text-foreground">{req.rating.toFixed(1)}</span>
-                    </div>
-                    {req.review && (
-                      <p className="text-sm text-muted-foreground italic mt-1">"{req.review}"</p>
-                    )}
-                  </div>
-                )}
-                <ReplacedPartsSummary parts={req.replaced_parts} />
-                <ServiceGallery startPhotos={req.start_photos} endPhotos={req.end_photos} />
-                {req.status === "completed" && <SaveToCalendarButton request={req} />}
-              </div>
-            );
-          })}
+          {filtered.map((req) => (
+            <ServiceHistoryCard key={req.id} request={req} perspective="cliente">
+              <ReplacedPartsSummary parts={req.replaced_parts} />
+              <ServiceGallery startPhotos={req.start_photos} endPhotos={req.end_photos} />
+              {req.status === "completed" && <SaveToCalendarButton request={req} />}
+            </ServiceHistoryCard>
+          ))}
           {filtered.length === 0 && (
             <div className="text-center py-10 text-sm text-muted-foreground">
               Nenhum serviço encontrado com os filtros aplicados.

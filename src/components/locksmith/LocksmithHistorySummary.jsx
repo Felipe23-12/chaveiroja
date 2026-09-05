@@ -3,30 +3,7 @@ import { Star, Loader2, History, MessageSquare } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { getReviews } from "@/lib/reviews";
 import ReplacedPartsSummary from "@/components/locksmith/ReplacedPartsSummary";
-
-const STATUS_LABEL = {
-  completed: "Concluído",
-  cancelled: "Cancelado",
-  accepted: "Em andamento",
-  on_the_way: "A caminho",
-  ringing: "Aguardando",
-  searching: "Procurando",
-};
-
-function formatCurrency(v) {
-  return (v || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
-}
-
-function formatDate(d) {
-  if (!d) return "";
-  return new Date(d).toLocaleDateString("pt-BR", {
-    day: "2-digit",
-    month: "2-digit",
-    year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-}
+import ServiceHistoryCard from "@/components/history/ServiceHistoryCard";
 
 export default function LocksmithHistorySummary({ locksmithId }) {
   const [services, setServices] = useState([]);
@@ -159,52 +136,11 @@ export default function LocksmithHistorySummary({ locksmithId }) {
             Nenhum serviço finalizado ainda.
           </p>
         ) : (
-          <div className="space-y-2 max-h-72 overflow-y-auto pr-1">
+          <div className="space-y-3 max-h-[28rem] overflow-y-auto pr-1">
             {services.map((s) => (
-              <div
-                key={s.id}
-                className="p-3 rounded-lg border border-border bg-muted/30"
-              >
-                <div className="flex items-center justify-between gap-2">
-                  <p className="text-sm font-medium text-foreground">
-                    {s.service_type}
-                  </p>
-                  <span className="text-sm font-semibold text-emerald-700">
-                    {formatCurrency(s.price)}
-                  </span>
-                </div>
-                <p className="text-xs text-muted-foreground mt-0.5 truncate">
-                  {s.address}
-                </p>
-                <div className="flex items-center justify-between mt-1.5">
-                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 text-[11px] font-medium">
-                    {STATUS_LABEL[s.status] || s.status}
-                  </span>
-                  <span className="text-[11px] text-muted-foreground">
-                    {formatDate(s.updated_date)}
-                  </span>
-                </div>
+              <ServiceHistoryCard key={s.id} request={s} perspective="chaveiro">
                 <ReplacedPartsSummary parts={s.replaced_parts} />
-                {s.rating ? (
-                  <div className="flex items-center gap-0.5 mt-1.5">
-                    {[1, 2, 3, 4, 5].map((n) => (
-                      <Star
-                        key={n}
-                        className={`w-3 h-3 ${
-                          s.rating >= n
-                            ? "fill-amber-400 text-amber-400"
-                            : "text-border"
-                        }`}
-                      />
-                    ))}
-                    {s.review && (
-                      <span className="text-[11px] text-muted-foreground ml-1 truncate">
-                        — {s.review}
-                      </span>
-                    )}
-                  </div>
-                ) : null}
-              </div>
+              </ServiceHistoryCard>
             ))}
           </div>
         )}
