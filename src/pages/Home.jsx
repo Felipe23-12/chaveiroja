@@ -27,6 +27,7 @@ import UrgentArrivalCountdown from "@/components/locksmith/UrgentArrivalCountdow
 import { DEFAULT_CENTER, getCustomerLocation, haversineKm, calculateInitialServiceDistance, fetchDrivingRoute, etaMinutes } from "@/lib/geo";
 import { getClientLoyalty, applyLoyaltyDiscount } from "@/lib/loyalty";
 import { buildEligibleQueue } from "@/lib/ringRotation";
+import { safeUnsubscribe } from "@/lib/safeUnsubscribe";
 
 import { createLock, locksSummary } from "@/lib/locks";
 import { DEFAULT_RADIUS_KM, expandUntilFound } from "@/lib/searchRadius";
@@ -44,16 +45,8 @@ import StepProgress from "@/components/ui/StepProgress";
 import ErrorBanner from "@/components/ui/ErrorBanner";
 import LoadingCard from "@/components/ui/LoadingCard";
 import { useToast } from "@/components/ui/use-toast";
-import {
-  AlertDialog,
-  AlertDialogContent,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogAction,
-  AlertDialogCancel,
-} from "@/components/ui/alert-dialog";
+import CancelFeeConfirmDialog from "@/components/client/CancelFeeConfirmDialog";
+import RingingStep from "@/components/client/RingingStep";
 
 export default function Home() {
   const { toast } = useToast();
@@ -256,7 +249,7 @@ export default function Home() {
     };
     fetchDemand();
     const unsub = base44.entities.ServiceRequest.subscribe(() => fetchDemand());
-    return unsub;
+    return safeUnsubscribe(unsub);
   }, []);
 
   // Chaveiros elegíveis: com raio escolhido, conta todos os online; na opção
@@ -683,7 +676,7 @@ export default function Home() {
         });
       }
     });
-    return unsub;
+    return safeUnsubscribe(unsub);
   }, [activeRequest?.id, step, selectedLocksmith]);
 
   // Busca a rota real de carro entre o chaveiro e o cliente (OSRM)
@@ -1015,28 +1008,13 @@ export default function Home() {
 
       {/* Step 3: Procurando / tocando no chaveiro */}
       {step === 3 && activeRequest && (
-        <div className="space-y-5 text-center step-enter">
-          <div className="flex flex-col items-center py-8">
-            <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mb-4">
-              <Bell className="w-8 h-8 text-primary animate-bounce" />
-            </div>
-            <h2 className="font-heading font-semibold text-lg text-foreground mb-1">
-              Tocando nos chaveiros mais próximos...
-            </h2>
-            <p className="text-sm text-muted-foreground mb-4">
-              {service?.label} ·{" "}
-              {searchRadius == null ? `raio de ${currentRadius} km` : "todos os chaveiros online"} ·{" "}
-              {activeRequest.ringing_locksmith_ids?.length || 0} chaveiro
-              {(activeRequest.ringing_locksmith_ids?.length || 0) === 1 ? "" : "s"} recebendo · o primeiro que aceitar atende você
-            </p>
-            <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
-              <Loader2 className="w-4 h-4 animate-spin" /> Aguardando o profissional aceitar
-            </div>
-          </div>
-          <Button variant="outline" onClick={handleCancel} className="w-full">
-            Cancelar solicitação
-          </Button>
-        </div>
+        <RingingStep
+          request={activeRequest}
+          serviceLabel={service?.label}
+          searchRadius={searchRadius}
+          currentRadius={currentRadius}
+          onCancel={handleCancel}
+        />
       )}
 
       {/* Step 4: Pedido em andamento (chaveiro aceitou) */}
@@ -1302,21 +1280,12 @@ export default function Home() {
         </div>
       )}
 
-      {/* Confirmação nativa da taxa de cancelamento (window.confirm não funciona em WebView) */}
-      <AlertDialog open={cancelConfirmOpen} onOpenChange={setCancelConfirmOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Confirmar taxa de cancelamento</AlertDialogTitle>
-            <AlertDialogDescription>
-              O chaveiro já aceitou seu pedido e está a caminho. Será cobrada uma taxa de cancelamento {cancelFeeData?.fixed ? "fixa" : "de 25%"} de R$ {cancelFeeData?.fee.toFixed(2)}, paga apenas online (cartão). Deseja continuar?
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => setCancelFeeData(null)}>Não, voltar</AlertDialogCancel>
-            <AlertDialogAction>Sim, pagar taxa e cancelar</AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      <CancelFeeConfirmDialog
+        open={cancelConfirmOpen}
+        onOpenChange={setCancelConfirmOpen}
+        cancelFeeData={cancelFeeData}
+        onBack={() => setCancelFeeData(null)}
+      />
     </div>
   );
 }
