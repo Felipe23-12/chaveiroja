@@ -6,6 +6,7 @@ import { haversineKm } from "@/lib/geo";
 import LightMap from "@/components/map/LightMap";
 import MapLocationSearch from "@/components/map/MapLocationSearch";
 import { safeUnsubscribe } from "@/lib/safeUnsubscribe";
+import { estimateEtaMinutes, formatEta } from "@/lib/etaEstimate";
 
 /**
  * Tela principal do cliente: mostra TODOS os chaveiros disponíveis
@@ -54,7 +55,10 @@ export default function LiveLocksmithsMap({ customerLoc, livreOnly = false }) {
   const withDist = useMemo(
     () =>
       locksmiths
-        .map((l) => ({ ...l, distance: haversineKm(refLoc, { lat: l.lat, lng: l.lng }) }))
+        .map((l) => {
+          const distance = haversineKm(refLoc, { lat: l.lat, lng: l.lng });
+          return { ...l, distance, eta: estimateEtaMinutes(distance) };
+        })
         .sort((a, b) => a.distance - b.distance),
     [locksmiths, refLoc.lat, refLoc.lng]
   );
@@ -105,7 +109,7 @@ export default function LiveLocksmithsMap({ customerLoc, livreOnly = false }) {
             <MapPin className="w-4 h-4 text-primary" /> Chaveiros disponíveis perto de você
           </h3>
           <p className="text-xs text-muted-foreground">
-            Profissionais online em tempo real · veja a lista abaixo para detalhes
+            Posição atualizada em tempo real · com tempo estimado de chegada até seu endereço
           </p>
         </div>
         <div className="flex items-center gap-3 text-xs">
@@ -241,6 +245,7 @@ export default function LiveLocksmithsMap({ customerLoc, livreOnly = false }) {
         center={center}
         markers={mapMarkers}
         height={360}
+        eta={filtered[0]?.eta ?? null}
         renderPopup={(m, close) => {
           const l = filtered.find((x) => x.id === m.id);
           if (!l) return null;
@@ -251,6 +256,9 @@ export default function LiveLocksmithsMap({ customerLoc, livreOnly = false }) {
                   <p className="text-sm font-semibold text-foreground truncate">{l.name}</p>
                   <p className="text-xs text-muted-foreground">{l.specialty} · ⭐ {l.rating}</p>
                   <p className="text-xs text-muted-foreground">{l.distance} km · {l.work_mode === "livre" ? "Livre" : "App"}</p>
+                  <p className="text-xs font-semibold text-primary flex items-center gap-1">
+                    <Navigation className="w-3 h-3" /> chega em ~{formatEta(l.eta)}
+                  </p>
                 </div>
                 <button onClick={close} className="p-1 rounded-lg text-muted-foreground hover:bg-accent shrink-0" title="Fechar">
                   <X className="w-4 h-4" />
@@ -321,6 +329,9 @@ export default function LiveLocksmithsMap({ customerLoc, livreOnly = false }) {
                 </div>
                 <p className="text-xs text-muted-foreground">
                   {l.specialty} · {l.distance} km · ⭐ {l.rating}
+                </p>
+                <p className="text-xs font-medium text-primary flex items-center gap-1">
+                  <Navigation className="w-3 h-3" /> chegada estimada em ~{formatEta(l.eta)}
                 </p>
               </div>
               <button
