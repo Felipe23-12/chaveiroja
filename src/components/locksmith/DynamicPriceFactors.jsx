@@ -19,8 +19,9 @@ export default function DynamicPriceFactors({ price, nearestDistance, assumedNea
         <div className="flex items-start gap-2 p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800">
           <MapPin className="w-4 h-4 shrink-0 mt-0.5" />
           <p className="text-sm">
-            Valor estimado considerando um chaveiro <strong>dentro do seu raio de busca</strong>, sem
-            taxa de quilometragem. Se você optar por buscar chaveiros mais distantes, o valor passa a
+            Valor estimado considerando um chaveiro <strong>dentro do raio de busca escolhido</strong>,
+            sem taxa de quilometragem. Chaveiros além desse raio não são exibidos — ao escolher{" "}
+            <strong>30 km ou 50 km</strong>, aparecem os profissionais mais distantes e o valor passa a
             incluir <strong>R$ 0,90 por km acima de 20 km</strong>.
           </p>
         </div>

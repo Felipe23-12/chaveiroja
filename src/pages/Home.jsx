@@ -163,29 +163,30 @@ export default function Home() {
       .catch(() => setKeyBlock(null));
   }, [activeRequest?.status]);
 
-  // Distância do chaveiro elegível mais próximo (para estimativa de preço)
+  // Distância do chaveiro elegível mais próximo DENTRO do raio escolhido.
+  // Chaveiros além do raio não entram na busca nem no cálculo do valor.
   const nearestDistance = useMemo(() => {
     if (!service || appLocksmiths.length === 0) return null;
-    const eligible = appLocksmiths.filter((l) => {
-      if (l.services && l.services.length > 0) return l.services.includes(service.id);
-      const locksmithSpecialties =
-        l.specialties && l.specialties.length > 0 ? l.specialties : [l.specialty];
-      return locksmithSpecialties.includes(service.specialty);
-    });
-    if (eligible.length === 0) return null;
-    return Math.min(...eligible.map((l) => haversineKm(customerLoc, { lat: l.lat, lng: l.lng })));
-  }, [service, appLocksmiths, customerLoc]);
+    const limit = searchRadius == null ? DEFAULT_RADIUS_KM : searchRadius;
+    const distances = appLocksmiths
+      .filter((l) => {
+        if (l.services && l.services.length > 0) return l.services.includes(service.id);
+        const locksmithSpecialties =
+          l.specialties && l.specialties.length > 0 ? l.specialties : [l.specialty];
+        return locksmithSpecialties.includes(service.specialty);
+      })
+      .map((l) => haversineKm(customerLoc, { lat: l.lat, lng: l.lng }))
+      .filter((d) => d <= limit);
+    if (distances.length === 0) return null;
+    return Math.min(...distances);
+  }, [service, appLocksmiths, customerLoc, searchRadius]);
 
-  // Distância usada na estimativa de valor:
-  //  - "Chaveiro perto de mim": calcula como se houvesse chaveiro dentro do raio
-  //    de busca, mesmo que nenhum esteja online ali — sem taxa de km excedente.
-  //  - Raio escolhido pelo cliente: usa a distância real do chaveiro mais
-  //    próximo, cobrando a regra por km acima do limite de 20 km.
+  // Distância usada na estimativa de valor: sempre limitada ao raio escolhido.
+  // Se não houver chaveiro online dentro do raio, o cálculo assume um chaveiro
+  // no limite do raio — assim a taxa por km só aparece nos raios acima de 20 km.
   const pricingDistance = useMemo(() => {
-    if (searchRadius == null) {
-      return Math.min(nearestDistance ?? DEFAULT_RADIUS_KM, DEFAULT_RADIUS_KM);
-    }
-    return nearestDistance;
+    const limit = searchRadius == null ? DEFAULT_RADIUS_KM : searchRadius;
+    return Math.min(nearestDistance ?? limit, limit);
   }, [searchRadius, nearestDistance]);
 
   // Supply: chaveiros online no modo app
@@ -312,15 +313,15 @@ export default function Home() {
     return safeUnsubscribe(unsub);
   }, []);
 
-  // Chaveiros elegíveis: com raio escolhido, conta todos os online; na opção
-  // "perto de mim", conta apenas os que estão dentro do raio inicial.
+  // Chaveiros elegíveis dentro do raio escolhido (ou do raio inicial na opção
+  // "perto de mim") — chaveiros mais distantes não são considerados.
   const inRadiusCount = useMemo(() => {
     if (!service) return null;
     return buildEligibleQueue(
       appLocksmiths,
       service,
       customerLoc,
-      searchRadius == null ? DEFAULT_RADIUS_KM : undefined
+      searchRadius == null ? DEFAULT_RADIUS_KM : searchRadius
     ).length;
   }, [service, appLocksmiths, customerLoc, searchRadius]);
 
@@ -433,9 +434,10 @@ export default function Home() {
         queue = res.inRadius;
       } else {
         // Raio escolhido pelo cliente: toca de uma vez para todos os chaveiros
-        // online que atendem o serviço, para não demorar na busca.
+        // online que atendem o serviço DENTRO desse raio — quem está mais longe
+        // não recebe o chamado nem entra no cálculo do valor.
         usedRadius = searchRadius;
-        queue = allEligible;
+        queue = allEligible.filter((q) => q.d <= searchRadius);
       }
       queueRef.current = queue;
       setCurrentRadius(usedRadius);
@@ -1046,7 +1048,7 @@ export default function Home() {
             <DynamicPriceFactors
               price={price}
               nearestDistance={pricingDistance}
-              assumedNearby={searchRadius == null}
+              assumedNearby={pricingDistance != null && pricingDistance <= 20}
             />
           )}
 
