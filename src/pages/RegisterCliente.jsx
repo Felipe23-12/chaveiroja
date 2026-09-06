@@ -12,7 +12,7 @@ import InlineOtpInput from "@/components/auth/InlineOtpInput";
 import { cpfError } from "@/lib/cpf";
 import CpfInput from "@/components/auth/CpfInput";
 import TermsAcceptance from "@/components/auth/TermsAcceptance";
-import { markTermsAcceptedThisSession, termsPayload } from "@/lib/termsVersion";
+import { termsPayload } from "@/lib/termsVersion";
 
 export default function RegisterCliente() {
   const [fullName, setFullName] = useState("");
@@ -84,7 +84,6 @@ export default function RegisterCliente() {
         account_type: "cliente",
         ...termsPayload(),
       });
-      markTermsAcceptedThisSession();
     } catch (e) {
       /* não bloqueia o cadastro se um campo opcional não puder ser salvo */
     }

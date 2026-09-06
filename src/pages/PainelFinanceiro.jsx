@@ -149,8 +149,8 @@ export default function PainelFinanceiro() {
         </div>
       )}
 
-      {/* Carteira digital e saque via Pix — modo app */}
-      {me && isAppMode && (
+      {/* Carteira digital e saque via Pix */}
+      {me && (
         <div className="mb-6">
           <h2 className="font-heading font-semibold text-lg text-foreground mb-3">Carteira digital</h2>
           <WalletCard balance={me.wallet_balance} pending={me.pending_balance} />

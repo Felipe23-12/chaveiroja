@@ -8,7 +8,7 @@ import { Loader2, User, UserPlus, Wrench, Phone, CreditCard, AtSign } from "luci
 import AuthLayout from "@/components/AuthLayout";
 import { cpfError, onlyDigits, formatCpf } from "@/lib/cpf";
 import TermsAcceptance from "@/components/auth/TermsAcceptance";
-import { markTermsAcceptedThisSession, termsPayload } from "@/lib/termsVersion";
+import { termsPayload } from "@/lib/termsVersion";
 
 export default function GoogleComplete() {
   const [searchParams] = useSearchParams();
@@ -76,7 +76,6 @@ export default function GoogleComplete() {
         account_type: tipo,
         ...termsPayload(),
       });
-      markTermsAcceptedThisSession();
       window.location.assign(dest);
     } catch (err) {
       setError(String(err?.message || "Não foi possível salvar. Tente novamente."));

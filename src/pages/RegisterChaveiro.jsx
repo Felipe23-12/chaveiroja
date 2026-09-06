@@ -14,7 +14,7 @@ import InlineOtpInput from "@/components/auth/InlineOtpInput";
 import { cpfError } from "@/lib/cpf";
 import CpfInput from "@/components/auth/CpfInput";
 import TermsAcceptance from "@/components/auth/TermsAcceptance";
-import { markTermsAcceptedThisSession, termsPayload } from "@/lib/termsVersion";
+import { termsPayload } from "@/lib/termsVersion";
 
 export default function RegisterChaveiro() {
   const [fullName, setFullName] = useState("");
@@ -82,7 +82,6 @@ export default function RegisterChaveiro() {
           account_type: "chaveiro",
           ...termsPayload(),
         });
-        markTermsAcceptedThisSession();
         const dest = returnTo !== "/" ? returnTo : "/painel-chaveiro";
         window.location.assign(dest);
       } else {
@@ -121,7 +120,6 @@ export default function RegisterChaveiro() {
         ...termsPayload(),
       });
     }
-    markTermsAcceptedThisSession();
     const dest = returnTo !== "/" ? returnTo : "/painel-chaveiro";
     window.location.assign(dest);
   };

@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { ShieldCheck, Loader2 } from "lucide-react";
 import AuthLayout from "@/components/AuthLayout";
 import TermsAcceptance from "@/components/auth/TermsAcceptance";
-import { markTermsAcceptedThisSession, termsPayload } from "@/lib/termsVersion";
+import { termsPayload } from "@/lib/termsVersion";
 
 export default function AceiteTermos() {
   const { user, checkUserAuth, logout } = useAuth();
@@ -25,7 +25,6 @@ export default function AceiteTermos() {
     setError("");
     try {
       await base44.auth.updateMe(termsPayload());
-      markTermsAcceptedThisSession();
       await checkUserAuth();
       window.location.assign(returnTo);
     } catch (e) {
@@ -43,7 +42,7 @@ export default function AceiteTermos() {
       <p className="text-xs text-muted-foreground mb-4 leading-relaxed">
         Em conformidade com a Lei Geral de Proteção de Dados (Lei nº 13.709/2018), o Código de Defesa do
         Consumidor (Lei nº 8.078/1990) e o Marco Civil da Internet (Lei nº 12.965/2014), pedimos a confirmação
-        do aceite a cada acesso, antes do uso das funções do aplicativo.
+        do aceite uma única vez, no cadastro, antes do uso das funções do aplicativo.
       </p>
 
       {error && (
