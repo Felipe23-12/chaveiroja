@@ -14,6 +14,7 @@ import InlineOtpInput from "@/components/auth/InlineOtpInput";
 import { cpfError } from "@/lib/cpf";
 import CpfInput from "@/components/auth/CpfInput";
 import TermsAcceptance from "@/components/auth/TermsAcceptance";
+import { markTermsAcceptedThisSession, termsPayload } from "@/lib/termsVersion";
 
 export default function RegisterChaveiro() {
   const [fullName, setFullName] = useState("");
@@ -75,8 +76,9 @@ export default function RegisterChaveiro() {
           cpf,
           full_name: fullName,
           account_type: "chaveiro",
-          terms_accepted_at: new Date().toISOString(),
+          ...termsPayload(),
         });
+        markTermsAcceptedThisSession();
         const dest = returnTo !== "/" ? returnTo : "/painel-chaveiro";
         window.location.assign(dest);
       } else {
@@ -107,14 +109,15 @@ export default function RegisterChaveiro() {
         cpf: data.cpf,
         full_name: data.fullName,
         account_type: "chaveiro",
-        terms_accepted_at: new Date().toISOString(),
+        ...termsPayload(),
       });
     } else {
       await base44.auth.updateMe({
         account_type: "chaveiro",
-        terms_accepted_at: new Date().toISOString(),
+        ...termsPayload(),
       });
     }
+    markTermsAcceptedThisSession();
     const dest = returnTo !== "/" ? returnTo : "/painel-chaveiro";
     window.location.assign(dest);
   };

@@ -36,7 +36,11 @@
     "terms_accepted_at": {
       "type": "string",
       "format": "date-time",
-      "description": "Data/hora do aceite das regras e termos de uso no cadastro"
+      "description": "Data/hora do \u00faltimo aceite das regras e termos de uso"
+    },
+    "terms_version": {
+      "type": "string",
+      "description": "Vers\u00e3o dos termos e regras aceita pelo usu\u00e1rio \u2014 quando os termos mudam, o app exige novo aceite"
     }
   },
   "required": [

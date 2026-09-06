@@ -35,7 +35,14 @@ export default function TermosPrivacidade() {
         </p>
         <p>
           Ao criar uma conta e utilizar o aplicativo, você declara ter no mínimo 18 anos e concorda
-          integralmente com estes Termos de Uso e com a Política de Privacidade aqui descrita.
+          integralmente com estes Termos de Uso e com a Política de Privacidade aqui descrita. O aceite é
+          registrado com data e hora no cadastro e reconfirmado a cada novo acesso, antes do uso das
+          funções do aplicativo.
+        </p>
+        <p>
+          Estes termos observam a legislação brasileira, em especial o Código Civil (Lei nº 10.406/2002), o
+          Código de Defesa do Consumidor (Lei nº 8.078/1990), o Marco Civil da Internet (Lei nº 12.965/2014)
+          e a Lei Geral de Proteção de Dados (Lei nº 13.709/2018).
         </p>
       </LegalSection>
 

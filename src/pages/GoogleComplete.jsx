@@ -7,6 +7,8 @@ import { Label } from "@/components/ui/label";
 import { Loader2, User, UserPlus, Wrench, Phone, CreditCard, AtSign } from "lucide-react";
 import AuthLayout from "@/components/AuthLayout";
 import { cpfError, onlyDigits, formatCpf } from "@/lib/cpf";
+import TermsAcceptance from "@/components/auth/TermsAcceptance";
+import { markTermsAcceptedThisSession, termsPayload } from "@/lib/termsVersion";
 
 export default function GoogleComplete() {
   const [searchParams] = useSearchParams();
@@ -20,6 +22,7 @@ export default function GoogleComplete() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [acceptedTerms, setAcceptedTerms] = useState(false);
 
   useEffect(() => {
     const load = async () => {
@@ -59,6 +62,10 @@ export default function GoogleComplete() {
       setError(cpfMsg);
       return;
     }
+    if (!acceptedTerms) {
+      setError("É necessário aceitar as regras e os termos de uso para validar o cadastro");
+      return;
+    }
     setSaving(true);
     try {
       await base44.auth.updateMe({
@@ -67,7 +74,9 @@ export default function GoogleComplete() {
         phone: phone.trim(),
         cpf: cpfDigits,
         account_type: tipo,
+        ...termsPayload(),
       });
+      markTermsAcceptedThisSession();
       window.location.assign(dest);
     } catch (err) {
       setError(String(err?.message || "Não foi possível salvar. Tente novamente."));
@@ -163,7 +172,9 @@ export default function GoogleComplete() {
           </div>
         </div>
 
-        <Button type="submit" className="w-full h-12 font-medium" disabled={saving}>
+        <TermsAcceptance accountType={tipo} checked={acceptedTerms} onChange={setAcceptedTerms} />
+
+        <Button type="submit" className="w-full h-12 font-medium" disabled={saving || !acceptedTerms}>
           {saving ? (
             <>
               <Loader2 className="w-4 h-4 mr-2 animate-spin" />
