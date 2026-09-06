@@ -12,6 +12,8 @@ import {
   calculateLongDistanceFee,
   LONG_DISTANCE_THRESHOLD_KM,
   LONG_DISTANCE_KM_FEE,
+  BROKEN_KEY_FEE,
+  isOpeningService,
 } from "./pricing";
 import {
   SP_CENTER,
@@ -123,6 +125,7 @@ export function calculateDynamicPrice({
   hasCodedKey = false,
   onlineProgrammingFee = 0,
   weather = null,
+  brokenKeyInLock = false,
 }) {
   if (!service) return null;
 
@@ -259,11 +262,17 @@ export function calculateDynamicPrice({
     });
   }
 
+  // Chave quebrada dentro da fechadura (serviços de abertura): taxa fixa
+  const brokenKeyFee = isOpeningService(service) && brokenKeyInLock ? BROKEN_KEY_FEE : 0;
+  if (brokenKeyFee > 0) {
+    breakdown.push({ label: "Chave quebrada dentro da fechadura", value: brokenKeyFee });
+  }
+
   // Piso nacional das aberturas residencial e automotiva: R$ 50
   const MIN_OPENING_TOTAL = 50;
   const hasOpeningFloor = ["abertura_residencial", "abertura_automotiva"].includes(service.id);
   const rawTotal = Math.round((current + addonsTotal + distanceFee) * 100) / 100;
-  const total = hasOpeningFloor ? Math.max(rawTotal, MIN_OPENING_TOTAL) : rawTotal;
+  const total = (hasOpeningFloor ? Math.max(rawTotal, MIN_OPENING_TOTAL) : rawTotal) + brokenKeyFee;
 
   return {
     base: service.isCarKey
@@ -273,7 +282,8 @@ export function calculateDynamicPrice({
       : current,
     addons: addonsTotal,
     distanceFee,
-    total,
+    brokenKeyFee,
+    total: Math.round(total * 100) / 100,
     breakdown,
     timeTier: baseResult.timeTier,
     factors: {

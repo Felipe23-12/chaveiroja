@@ -5,6 +5,8 @@ import PriceSummary from "./PriceSummary";
 import AddressAutocomplete from "./AddressAutocomplete";
 import LocksConfig from "./LocksConfig";
 import VehicleMakeModelFields from "./VehicleMakeModelFields";
+import BrokenKeySelector from "./BrokenKeySelector";
+import { isOpeningService } from "@/lib/pricing";
 
 export default function ServiceConfig({
   service,
@@ -21,6 +23,8 @@ export default function ServiceConfig({
   setVehicleInfo,
   locks,
   setLocks,
+  brokenKeyInLock,
+  setBrokenKeyInLock,
   price,
 }) {
   const vehicleReady = Boolean(
@@ -38,6 +42,11 @@ export default function ServiceConfig({
         <h2 className="font-heading font-semibold text-lg text-foreground">{service.label}</h2>
         <p className="text-sm text-muted-foreground">{service.description}</p>
       </div>
+
+      {/* Chave quebrada dentro da fechadura (obrigatório nas aberturas) */}
+      {isOpeningService(service) && (
+        <BrokenKeySelector value={brokenKeyInLock} onChange={setBrokenKeyInLock} />
+      )}
 
       {/* Fechaduras: quantas portas abrir e quais miolos trocar */}
       {service.hasLocks && <LocksConfig locks={locks} setLocks={setLocks} />}
@@ -134,7 +143,11 @@ export default function ServiceConfig({
         />
       </div>
 
-      {service.needsVehicleInfo && !vehicleReady ? (
+      {isOpeningService(service) && brokenKeyInLock == null ? (
+        <div className="rounded-2xl bg-muted p-4 text-sm text-muted-foreground text-center">
+          Informe se a chave está quebrada dentro da fechadura para calcularmos o valor do serviço.
+        </div>
+      ) : service.needsVehicleInfo && !vehicleReady ? (
         <div className="rounded-2xl bg-muted p-4 text-sm text-muted-foreground text-center">
           Informe montadora, modelo e ano do veículo para calcularmos o valor do serviço.
         </div>

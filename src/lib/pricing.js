@@ -65,6 +65,12 @@ export function calculateLongDistanceFee(distanceKm) {
   return Math.round(LONG_DISTANCE_KM_FEE * dist * 100) / 100;
 }
 
+// Acréscimo fixo quando a chave está quebrada dentro da fechadura (aberturas)
+export const BROKEN_KEY_FEE = 25;
+
+export const isOpeningService = (service) =>
+  Boolean(service?.id && service.id.startsWith("abertura_"));
+
 // Limiar do valor "médio" usado no ajuste por urgência
 export const TIER_MEDIUM = 0.6;
 

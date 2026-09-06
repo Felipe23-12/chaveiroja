@@ -3,7 +3,7 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
 import { ArrowRight, ArrowLeft, Bell, Loader2, Navigation, CheckCircle2, AlertTriangle, MessageCircle, MapPin } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { SERVICE_CATALOG, calculateCancellationFee, CANCELLATION_THRESHOLD_MINUTES, calculateLongDistanceFee } from "@/lib/pricing";
+import { SERVICE_CATALOG, calculateCancellationFee, CANCELLATION_THRESHOLD_MINUTES, calculateLongDistanceFee, isOpeningService } from "@/lib/pricing";
 import { calculateDynamicPrice } from "@/lib/dynamicPricing";
 import { getCancellationWindow } from "@/lib/cancellationWindow";
 import { searchFipeAndKeyValue } from "@/lib/carKey";
@@ -81,6 +81,8 @@ export default function Home() {
   const [customAddons, setCustomAddons] = useState({});
   const [vehicleInfo, setVehicleInfo] = useState({ make: "", model: "", year: "", doorStatus: "", complexity: "simples" });
   const [locks, setLocks] = useState([createLock()]);
+  // null = cliente ainda não confirmou se a chave está quebrada na fechadura
+  const [brokenKeyInLock, setBrokenKeyInLock] = useState(null);
   // null = "Chaveiro perto de mim" (começa em 10 km e amplia automaticamente)
   const [searchRadius, setSearchRadius] = useState(null);
   const [currentRadius, setCurrentRadius] = useState(DEFAULT_RADIUS_KM);
@@ -213,8 +215,9 @@ export default function Home() {
       hasCodedKey,
       onlineProgrammingFee: programming?.onlineFee || 0,
       weather,
+      brokenKeyInLock: brokenKeyInLock === true,
     });
-  }, [pricingService, service, motoRule, selectedOptions, customAddons, vehicleInfo, locks, onlineLocksmithsCount, activeRequestsCount, urgency, customerLoc, address, pricingDistance, keyValue, fipeValue, carKeyType, hasCodedKey, programming, weather]);
+  }, [pricingService, service, motoRule, selectedOptions, customAddons, vehicleInfo, locks, onlineLocksmithsCount, activeRequestsCount, urgency, customerLoc, address, pricingDistance, keyValue, fipeValue, carKeyType, hasCodedKey, programming, weather, brokenKeyInLock]);
 
   useEffect(() => {
     getCustomerLocation().then(setCustomerLoc);
@@ -456,10 +459,15 @@ export default function Home() {
 
       // Resumo das fechaduras enviado ao chaveiro junto com a solicitação
       const locksText = service.hasLocks ? locksSummary(locks) : "";
+      const brokenKeyText = isOpeningService(service)
+        ? brokenKeyInLock
+          ? "Chave quebrada dentro da fechadura"
+          : "Chave não está quebrada na fechadura"
+        : "";
       const base = {
         service_type: service.label,
         address,
-        description: [locksText, description].filter(Boolean).join(" — "),
+        description: [locksText, brokenKeyText, description].filter(Boolean).join(" — "),
         urgency,
         status: "ringing",
         locksmith_id: nearest.l.id,
@@ -895,6 +903,7 @@ export default function Home() {
     setCustomAddons({});
     setVehicleInfo({ make: "", model: "", year: "", doorStatus: "", complexity: "simples" });
     setLocks([createLock()]);
+    setBrokenKeyInLock(null);
     setSearchRadius(null);
     setCurrentRadius(DEFAULT_RADIUS_KM);
     setKeyValue(null);
@@ -1034,6 +1043,8 @@ export default function Home() {
               setVehicleInfo={setVehicleInfo}
               locks={locks}
               setLocks={setLocks}
+              brokenKeyInLock={brokenKeyInLock}
+              setBrokenKeyInLock={setBrokenKeyInLock}
               price={address ? price : null}
             />
           )}
@@ -1058,6 +1069,7 @@ export default function Home() {
                 !address ||
                 submitting ||
                 programming?.dealerOnly ||
+                (isOpeningService(service) && brokenKeyInLock == null) ||
                 (service?.needsVehicleInfo &&
                   !service?.isCarKey &&
                   (!vehicleInfo.make?.trim() || !vehicleInfo.model?.trim() || !String(vehicleInfo.year || "").trim())) ||
