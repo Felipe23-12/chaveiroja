@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import { Link } from "react-router-dom";
 import { Info } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -17,10 +17,21 @@ const RULES = {
 };
 
 /**
- * Aceite obrigatório dos termos no cadastro, reforçando que o Chaveiro Já
- * é uma plataforma de intermediação e não prestadora do serviço.
+ * Aceite obrigatório dos termos no cadastro. São três confirmações
+ * independentes: regras/termos gerais, uso pessoal e exclusivo da conta
+ * (proibido ceder a terceiros) e sigilo dos dados protegidos pela LGPD.
+ * O onChange só recebe true quando todas as três forem marcadas.
  */
 export default function TermsAcceptance({ accountType = "cliente", checked, onChange }) {
+  const [terms, setTerms] = useState(false);
+  const [noShare, setNoShare] = useState(false);
+  const [lgpd, setLgpd] = useState(false);
+
+  const update = (next) => {
+    const all = next.terms && next.noShare && next.lgpd;
+    if (all !== !!checked) onChange(all);
+  };
+
   return (
     <div className="space-y-3 rounded-xl border border-border bg-muted/30 p-4">
       <div className="flex gap-2">
@@ -40,7 +51,14 @@ export default function TermsAcceptance({ accountType = "cliente", checked, onCh
       </ul>
 
       <label className="flex items-start gap-2.5 cursor-pointer">
-        <Checkbox checked={checked} onCheckedChange={onChange} className="mt-0.5" />
+        <Checkbox
+          checked={terms}
+          onCheckedChange={(v) => {
+            setTerms(!!v);
+            update({ terms: !!v, noShare, lgpd });
+          }}
+          className="mt-0.5"
+        />
         <span className="text-xs text-foreground leading-relaxed">
           Li e aceito as regras do aplicativo, os{" "}
           <Link to="/termos-privacidade" target="_blank" className="text-primary underline">
@@ -51,6 +69,39 @@ export default function TermsAcceptance({ accountType = "cliente", checked, onCh
             Política de Reembolso
           </Link>
           , reconhecendo o papel de intermediação da plataforma.
+        </span>
+      </label>
+
+      <label className="flex items-start gap-2.5 cursor-pointer">
+        <Checkbox
+          checked={noShare}
+          onCheckedChange={(v) => {
+            setNoShare(!!v);
+            update({ terms, noShare: !!v, lgpd });
+          }}
+          className="mt-0.5"
+        />
+        <span className="text-xs text-foreground leading-relaxed">
+          Declaro que a conta é <strong className="text-foreground">pessoal e intransferível</strong>: não
+          vou ceder, emprestar, vender ou compartilhar meu acesso (login, senha ou códigos) com terceiros, e
+          assumo a responsabilidade por tudo que for feito na minha conta.
+        </span>
+      </label>
+
+      <label className="flex items-start gap-2.5 cursor-pointer">
+        <Checkbox
+          checked={lgpd}
+          onCheckedChange={(v) => {
+            setLgpd(!!v);
+            update({ terms, noShare, lgpd: !!v });
+          }}
+          className="mt-0.5"
+        />
+        <span className="text-xs text-foreground leading-relaxed">
+          Comprometo-me a <strong className="text-foreground">manter sigilo dos dados pessoais</strong> a que
+          tiver acesso pelo aplicativo (nome, CPF, telefone, endereço, localização, fotos e informações de
+          pagamento), usando-os apenas para o atendimento e nunca divulgando, repassando ou comercializando
+          esses dados, conforme a Lei Geral de Proteção de Dados (Lei 13.709/2018).
         </span>
       </label>
     </div>
