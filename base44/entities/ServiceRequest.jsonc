@@ -324,7 +324,16 @@
           "data.ringing_locksmith_user_ids": "{{user.id}}"
         },
         {
-          "data.status": "searching"
+          "$and": [
+            {
+              "data.status": "searching"
+            },
+            {
+              "user_condition": {
+                "account_type": "chaveiro"
+              }
+            }
+          ]
         },
         {
           "user_condition": {
