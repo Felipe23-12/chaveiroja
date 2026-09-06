@@ -82,8 +82,7 @@ export default function RegisterChaveiro() {
           account_type: "chaveiro",
           ...termsPayload(),
         });
-        const dest = returnTo !== "/" ? returnTo : "/painel-chaveiro";
-        window.location.assign(dest);
+        window.location.assign("/cadastro/recebimentos");
       } else {
         setShowOtp(true);
       }
@@ -120,8 +119,7 @@ export default function RegisterChaveiro() {
         ...termsPayload(),
       });
     }
-    const dest = returnTo !== "/" ? returnTo : "/painel-chaveiro";
-    window.location.assign(dest);
+    window.location.assign("/cadastro/recebimentos");
   };
 
   return (

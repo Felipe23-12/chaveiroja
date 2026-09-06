@@ -76,7 +76,7 @@ export default function GoogleComplete() {
         account_type: tipo,
         ...termsPayload(),
       });
-      window.location.assign(dest);
+      window.location.assign(tipo === "chaveiro" ? "/cadastro/recebimentos" : dest);
     } catch (err) {
       setError(String(err?.message || "Não foi possível salvar. Tente novamente."));
       setSaving(false);

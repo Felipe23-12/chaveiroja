@@ -38,6 +38,7 @@ const TermosPrivacidade = lazy(() => import('@/pages/TermosPrivacidade'));
 const Acompanhamento = lazy(() => import('@/pages/Acompanhamento'));
 const Pagamentos = lazy(() => import('@/pages/Pagamentos'));
 const AceiteTermos = lazy(() => import('@/pages/AceiteTermos'));
+const CadastroRecebimentos = lazy(() => import('@/pages/CadastroRecebimentos'));
 // Add page imports here
 
 const PageFallback = () => (
@@ -97,6 +98,7 @@ const AuthenticatedApp = () => {
               <Route path="/acompanhamento/:requestId" element={<Acompanhamento />} />
             </Route>
             <Route element={<RoleGuard allow={["chaveiro"]} />}>
+              <Route path="/cadastro/recebimentos" element={<CadastroRecebimentos />} />
               <Route path="/painel-chaveiro" element={<PainelChaveiro />} />
               <Route path="/painel-financeiro" element={<PainelFinanceiro />} />
               <Route path="/modo-trabalho" element={<LocksmithProfile />} />
