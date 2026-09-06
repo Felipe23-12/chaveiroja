@@ -32,7 +32,9 @@ function SidebarContent({ onNavigate }) {
   const location = useLocation();
   const { user } = useAuth();
   const accountType = user?.account_type || (user?.role === "admin" ? "admin" : "cliente");
-  const navItems = ALL_NAV.filter((i) => accountType === "admin" || i.roles.includes(accountType));
+  // Administrador enxerga os painéis de admin mesmo usando uma conta de cliente/chaveiro
+  const isAdmin = user?.role === "admin" || accountType === "admin";
+  const navItems = ALL_NAV.filter((i) => isAdmin || i.roles.includes(accountType));
   const homePath = accountType === "chaveiro" ? "/painel-chaveiro" : accountType === "admin" ? "/painel-admin" : "/";
 
   const handleLogout = async () => {
@@ -152,7 +154,8 @@ function MobileTopBar({ onMenu }) {
   const location = useLocation();
   const { user } = useAuth();
   const accountType = user?.account_type || (user?.role === "admin" ? "admin" : "cliente");
-  const navItems = ALL_NAV.filter((i) => accountType === "admin" || i.roles.includes(accountType));
+  const isAdmin = user?.role === "admin" || accountType === "admin";
+  const navItems = ALL_NAV.filter((i) => isAdmin || i.roles.includes(accountType));
   const current = navItems.find((i) => i.path === location.pathname);
   return (
     <div className="md:hidden sticky top-0 z-40 flex items-center justify-between px-4 h-14 bg-card border-b border-border pt-safe">

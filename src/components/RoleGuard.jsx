@@ -6,7 +6,7 @@ export default function RoleGuard({ allow }) {
   const { user } = useAuth();
   const type = user?.account_type || (user?.role === "admin" ? "admin" : "cliente");
 
-  if (type === "admin" || allow.includes(type)) {
+  if (type === "admin" || user?.role === "admin" || allow.includes(type)) {
     return <Outlet />;
   }
 
