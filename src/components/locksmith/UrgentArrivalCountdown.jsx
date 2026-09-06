@@ -1,5 +1,7 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Clock, AlertCircle, Navigation } from "lucide-react";
+import { notifyClient } from "@/lib/clientNotifications";
+import { useToast } from "@/components/ui/use-toast";
 import {
   ARRIVAL_SLA_MINUTES,
   NEARBY_TOLERANCE_KM,
@@ -14,12 +16,35 @@ import {
  * Se o prazo estourar e ele já estiver a até 5 km, ganha 10 minutos de tolerância.
  */
 export default function UrgentArrivalCountdown({ request }) {
+  const { toast } = useToast();
   const [now, setNow] = useState(Date.now());
+  const notifiedTolerance = useRef(false);
 
   useEffect(() => {
     const t = setInterval(() => setNow(Date.now()), 1000);
     return () => clearInterval(t);
   }, []);
+
+  useEffect(() => {
+    notifiedTolerance.current = false;
+  }, [request?.id]);
+
+  const inTolerance =
+    request?.urgency === "urgent" &&
+    !request?.locksmith_arrived &&
+    request?.status !== "completed" &&
+    request?.status !== "cancelled" &&
+    toleranceApplied(request, now);
+
+  // Avisa o cliente (notificação nativa + aviso na tela) quando a tolerância começa
+  useEffect(() => {
+    if (!inTolerance || notifiedTolerance.current) return;
+    notifiedTolerance.current = true;
+    const msg = `O chaveiro já está a menos de ${NEARBY_TOLERANCE_KM} km e está chegando. Foram concedidos ${NEARBY_TOLERANCE_MINUTES} minutos de tolerância no prazo.`;
+    notifyClient("Seu chaveiro está chegando", msg);
+    toast({ title: "⏱️ Tolerância de 10 minutos", description: msg });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [inTolerance]);
 
   if (!request || request.urgency !== "urgent") return null;
 
