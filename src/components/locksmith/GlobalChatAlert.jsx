@@ -5,6 +5,7 @@ import { useAuth } from "@/lib/AuthContext";
 import { useToast } from "@/components/ui/use-toast";
 import { setChatUnread, incrementChatUnread } from "@/lib/chatUnreadStore";
 import { playNotificationSound } from "@/lib/notificationSound";
+import { ensureNotificationPermission, notifyClient } from "@/lib/clientNotifications";
 import { safeUnsubscribe } from "@/lib/safeUnsubscribe";
 
 const lastSeenKey = (id) => `chat_last_seen_${id}`;
@@ -50,6 +51,8 @@ export default function GlobalChatAlert() {
   // Assina mensagens de clientes direcionadas a este chaveiro (qualquer modo)
   useEffect(() => {
     if (!locksmith?.id) return;
+    // Garante a permissão de notificação nativa no celular
+    ensureNotificationPermission();
     const key = lastSeenKey(locksmith.id);
     let lastSeen = 0;
     try { lastSeen = parseInt(localStorage.getItem(key) || "0", 10) || 0; } catch (e) {}
@@ -81,6 +84,10 @@ export default function GlobalChatAlert() {
               const latest = newMsgs[newMsgs.length - 1];
               playNotificationSound();
               if (navigator.vibrate) navigator.vibrate([200, 100, 200, 100, 200]);
+              notifyClient(
+                `💬 ${latest.sender_name || "Cliente"}`,
+                latest.message?.slice(0, 140) || "Nova mensagem recebida"
+              );
               toast({
                 title: "💬 Nova mensagem de cliente",
                 description: `${latest.sender_name || "Cliente"}: ${latest.message?.slice(0, 60) || "..."}`,
