@@ -12,7 +12,6 @@ import { getKeyCancelBlock } from "@/lib/keyCancelBlock";
 import KeyBlockBanner from "@/components/locksmith/KeyBlockBanner";
 import { getMotoKeyRange, getMotoModel, MOTO_BRANDS } from "@/lib/motoKey";
 import MotoKeyConfig from "@/components/locksmith/MotoKeyConfig";
-import DynamicPriceFactors from "@/components/locksmith/DynamicPriceFactors";
 import ServiceCard from "@/components/locksmith/ServiceCard";
 import ServiceConfig from "@/components/locksmith/ServiceConfig";
 import CarKeyConfig from "@/components/locksmith/CarKeyConfig";
@@ -1036,15 +1035,6 @@ export default function Home() {
               locks={locks}
               setLocks={setLocks}
               price={address ? price : null}
-            />
-          )}
-
-          {/* Fatores dinâmicos de precificação (oferta/demanda, região, bairro, distância) */}
-          {address && price && (
-            <DynamicPriceFactors
-              price={price}
-              nearestDistance={pricingDistance}
-              assumedNearby={pricingDistance != null && pricingDistance <= 20}
             />
           )}
 
