@@ -1,12 +1,17 @@
 import React, { useState, useEffect } from "react";
-import { Clock, AlertCircle } from "lucide-react";
-
-const URGENT_SLA_MINUTES = 35;
+import { Clock, AlertCircle, Navigation } from "lucide-react";
+import {
+  ARRIVAL_SLA_MINUTES,
+  NEARBY_TOLERANCE_KM,
+  NEARBY_TOLERANCE_MINUTES,
+  arrivalDeadline,
+  toleranceApplied,
+} from "@/lib/arrivalSla";
 
 /**
  * Contagem regressiva do prazo de chegada para chamados urgentes.
  * O chaveiro tem até 35 minutos (a partir da aceitação) para chegar no cliente.
- * Some quando o chamado não é urgente, já chegou, ou está concluído/cancelado.
+ * Se o prazo estourar e ele já estiver a até 5 km, ganha 10 minutos de tolerância.
  */
 export default function UrgentArrivalCountdown({ request }) {
   const [now, setNow] = useState(Date.now());
@@ -17,16 +22,29 @@ export default function UrgentArrivalCountdown({ request }) {
   }, []);
 
   if (!request || request.urgency !== "urgent") return null;
-  if (!request.accepted_at) return null;
-  if (request.locksmith_arrived) return null;
-  if (request.status === "completed" || request.status === "cancelled") return null;
 
-  const deadline = new Date(request.accepted_at).getTime() + URGENT_SLA_MINUTES * 60 * 1000;
+  const deadline = arrivalDeadline(request, now);
+  if (deadline == null) return null;
+
+  const tolerance = toleranceApplied(request, now);
   const remainingMs = deadline - now;
   const expired = remainingMs <= 0;
   const totalSec = Math.max(0, Math.floor(remainingMs / 1000));
   const min = Math.floor(totalSec / 60);
   const sec = totalSec % 60;
+
+  if (tolerance && !expired) {
+    return (
+      <div className="flex items-start gap-2 p-3 rounded-xl border border-emerald-400 bg-emerald-50 text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-400 text-sm font-medium">
+        <Navigation className="w-4 h-4 shrink-0 mt-0.5" />
+        <span>
+          Seu chaveiro já está a menos de {NEARBY_TOLERANCE_KM} km e está chegando. Como ele está
+          bem próximo, o prazo recebeu uma tolerância de {NEARBY_TOLERANCE_MINUTES} minutos —
+          restam {min}:{sec.toString().padStart(2, "0")}.
+        </span>
+      </div>
+    );
+  }
 
   return (
     <div
@@ -39,7 +57,7 @@ export default function UrgentArrivalCountdown({ request }) {
       {expired ? <AlertCircle className="w-4 h-4 shrink-0" /> : <Clock className="w-4 h-4 shrink-0" />}
       <span>
         {expired
-          ? `Prazo de chegada ultrapassado (limite ${URGENT_SLA_MINUTES} min)`
+          ? `Prazo de chegada ultrapassado (limite ${ARRIVAL_SLA_MINUTES.urgent} min)`
           : `Chamado urgente — chegada em até ${min}:${sec.toString().padStart(2, "0")}`}
       </span>
     </div>

@@ -21,7 +21,7 @@ export default function ArrivalDeadlineCountdown({ request }) {
     cancelledRef.current = false;
   }, [request?.id]);
 
-  const deadline = arrivalDeadline(request);
+  const deadline = arrivalDeadline(request, now);
   const expired = deadline != null && deadline - now <= 0;
 
   useEffect(() => {
