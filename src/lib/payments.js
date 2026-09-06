@@ -102,10 +102,13 @@ export async function confirmPaymentPaid(paymentId) {
   // Com Stripe Connect, o repasse líquido já é direcionado automaticamente ao chaveiro.
   // A carteira interna continua sendo usada apenas para pagamentos legados sem Connect.
   if (payment.locksmith_id && payment.net_amount) {
-    const connect = await base44.entities.StripeConnectAccount.filter({ locksmith_id: payment.locksmith_id }).catch(() => []);
+    const locksmith = await base44.entities.Locksmith.get(payment.locksmith_id);
+    // O cadastro do Stripe Connect pode estar vinculado ao perfil ou ao usuário
+    const connect = await base44.entities.StripeConnectAccount.filter({
+      locksmith_id: locksmith?.created_by_id || payment.locksmith_id,
+    }).catch(() => []);
     const connectAtivo = !!connect?.[0]?.stripe_account_id && connect?.[0]?.charges_enabled && connect?.[0]?.payouts_enabled;
     if (!connectAtivo) {
-      const locksmith = await base44.entities.Locksmith.get(payment.locksmith_id);
       // Desconta a comissão acumulada de serviços anteriores pagos em dinheiro
       const pendingCash = locksmith.pending_cash_commission || 0;
       const creditAmount = Math.max(0, Math.round((payment.net_amount - pendingCash) * 100) / 100);

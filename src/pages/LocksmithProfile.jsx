@@ -8,6 +8,7 @@ import { WORK_MODES, calculateCommission } from "@/lib/pricing";
 import LocksmithHistorySummary from "@/components/locksmith/LocksmithHistorySummary";
 import LocksmithFinancialPanel from "@/components/locksmith/LocksmithFinancialPanel";
 import MonthlySubscriptionConfig from "@/components/locksmith/MonthlySubscriptionConfig";
+import StripeConnectSetup from "@/components/locksmith/StripeConnectSetup";
 import ServiceSelector from "@/components/locksmith/ServiceSelector";
 import ServiceRadiusConfig from "@/components/locksmith/ServiceRadiusConfig";
 import { resyncRingingForRadius } from "@/lib/radiusResync";
@@ -282,6 +283,16 @@ export default function LocksmithProfile() {
           <TabsContent value="financeiro" className="space-y-4 mt-0">
             {selected.work_mode === "livre" && (
               <MonthlySubscriptionConfig locksmith={selected} onUpdate={updateLocksmith} />
+            )}
+            {selected.work_mode === "app" && (
+              <>
+                <div className="p-4 rounded-2xl border border-emerald-200 bg-emerald-50 text-sm text-emerald-800">
+                  No modo aplicativo, sua parte (85%) cai <strong>direto na sua conta Stripe</strong> a cada
+                  pagamento do cliente — você saca ou transfere quando quiser pelo painel Stripe. A comissão
+                  do app (15%) é retida automaticamente na conta do aplicativo.
+                </div>
+                <StripeConnectSetup />
+              </>
             )}
             <LocksmithFinancialPanel locksmith={selected} />
           </TabsContent>

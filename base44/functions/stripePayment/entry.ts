@@ -35,7 +35,15 @@ export default async function(req) {
       const pmType = method === "pix" ? "pix" : "card";
       let destinationAccountId = "";
       if (locksmith_id) {
-        const records = await base44.asServiceRole.entities.StripeConnectAccount.filter({ locksmith_id });
+        // A conta Stripe Connect pode estar registrada pelo ID do perfil de
+        // chaveiro ou pelo ID do usuário dono do perfil — procuramos nos dois.
+        let records = await base44.asServiceRole.entities.StripeConnectAccount.filter({ locksmith_id });
+        if (!records?.[0]?.stripe_account_id) {
+          const profile = await base44.asServiceRole.entities.Locksmith.get(locksmith_id).catch(() => null);
+          if (profile?.created_by_id) {
+            records = await base44.asServiceRole.entities.StripeConnectAccount.filter({ locksmith_id: profile.created_by_id });
+          }
+        }
         destinationAccountId = records?.[0]?.stripe_account_id || "";
         // Sem conta Stripe Connect ativa: cria um PaymentIntent direto na conta
         // da plataforma. O repasse ao chaveiro é feito via carteira interna ao
