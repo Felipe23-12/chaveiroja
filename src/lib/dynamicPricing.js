@@ -247,6 +247,18 @@ export function calculateDynamicPrice({
     });
   }
 
+  // Abertura automotiva: veículos a partir de 2020 têm acréscimo de 25%
+  const vehicleYear = parseInt(vehicleInfo?.year, 10);
+  if (service.id === "abertura_automotiva" && vehicleYear >= 2020) {
+    const before = current;
+    current = Math.round(current * 1.25 * 100) / 100;
+    breakdown.push({
+      label: "Veículo 2020 ou mais novo (+25%)",
+      value: Math.round((current - before) * 100) / 100,
+      isAdjustment: true,
+    });
+  }
+
   // Piso nacional das aberturas residencial e automotiva: R$ 50
   const MIN_OPENING_TOTAL = 50;
   const hasOpeningFloor = ["abertura_residencial", "abertura_automotiva"].includes(service.id);
