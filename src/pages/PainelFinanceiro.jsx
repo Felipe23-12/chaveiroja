@@ -7,6 +7,7 @@ import { WORK_MODES, calculateRepasse } from "@/lib/pricing";
 import { downloadCommissionCSV, downloadCommissionPDF } from "@/lib/commissionReport";
 import WalletCard from "@/components/locksmith/WalletCard";
 import WithdrawalSection from "@/components/locksmith/WithdrawalSection";
+import SheetsExportButton from "@/components/locksmith/SheetsExportButton";
 
 export default function PainelFinanceiro() {
   const [selectedId, setSelectedId] = useState("");
@@ -175,6 +176,12 @@ export default function PainelFinanceiro() {
           >
             <FileText className="w-4 h-4" /> Relatório CSV
           </Button>
+        </div>
+      )}
+
+      {me && (
+        <div className="mb-5">
+          <SheetsExportButton />
         </div>
       )}
 
