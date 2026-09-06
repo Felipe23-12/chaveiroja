@@ -96,9 +96,9 @@ export default function CarKeyConfig({
       {/* O sistema mantém os dados necessários para calcular o serviço, mas não expõe valores nesta etapa. */}
       {fipeValue != null && (
         <div className="p-4 rounded-xl border border-border bg-muted/40 text-center">
-          <p className="text-sm font-medium text-foreground">Tabela FIPE e chave consultadas</p>
+          <p className="text-sm font-medium text-foreground">Veículo e chave consultados</p>
           <p className="text-xs text-muted-foreground mt-1">
-            A mão de obra é calculada pelo ano e pela codificação da chave, usando entre 0,8% e 1,3% da Tabela FIPE. O valor será informado após a confirmação da solicitação.
+            O valor do serviço será informado após a confirmação da solicitação.
           </p>
         </div>
       )}

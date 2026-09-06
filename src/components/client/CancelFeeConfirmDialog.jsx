@@ -11,7 +11,7 @@ import {
 } from "@/components/ui/alert-dialog";
 
 /** Confirmação nativa da taxa de cancelamento (window.confirm não funciona em WebView) */
-export default function CancelFeeConfirmDialog({ open, onOpenChange, cancelFeeData, onBack }) {
+export default function CancelFeeConfirmDialog({ open, onOpenChange, cancelFeeData, onConfirm, onBack }) {
   return (
     <AlertDialog open={open} onOpenChange={onOpenChange}>
       <AlertDialogContent>
@@ -24,7 +24,7 @@ export default function CancelFeeConfirmDialog({ open, onOpenChange, cancelFeeDa
         </AlertDialogHeader>
         <AlertDialogFooter>
           <AlertDialogCancel onClick={onBack}>Não, voltar</AlertDialogCancel>
-          <AlertDialogAction>Sim, pagar taxa e cancelar</AlertDialogAction>
+          <AlertDialogAction onClick={onConfirm}>Sim, pagar taxa e cancelar</AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>
     </AlertDialog>

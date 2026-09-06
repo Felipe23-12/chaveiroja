@@ -20,19 +20,19 @@ export const CAR_KEY_TYPES = [
   {
     id: "simples",
     label: "Chave simples",
-    description: "Percentual da FIPE conforme ano/codificação + R$ 120 fixos",
+    description: "Chave comum, sem telecomando",
     usesOriginalKey: false,
   },
   {
     id: "canivete",
     label: "Chave canivete",
-    description: "Percentual da FIPE conforme ano/codificação + valor da chave original",
+    description: "Chave dobrável com lâmina retrátil",
     usesOriginalKey: true,
   },
   {
     id: "telecomando",
     label: "Chave com telecomando",
-    description: "Percentual da FIPE conforme ano/codificação + valor da chave original",
+    description: "Chave com controle de trava e destrava",
     usesOriginalKey: true,
   },
 ];

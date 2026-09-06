@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo, useRef } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
-import { ArrowRight, ArrowLeft, Zap, Bell, Loader2, Navigation, CheckCircle2, AlertTriangle, MessageCircle, MapPin } from "lucide-react";
+import { ArrowRight, ArrowLeft, Bell, Loader2, Navigation, CheckCircle2, AlertTriangle, MessageCircle, MapPin } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { SERVICE_CATALOG, calculateCancellationFee, CANCELLATION_THRESHOLD_MINUTES, calculateLongDistanceFee } from "@/lib/pricing";
 import { calculateDynamicPrice } from "@/lib/dynamicPricing";
@@ -19,10 +19,9 @@ import CarKeyConfig from "@/components/locksmith/CarKeyConfig";
 import RequestTracking from "@/components/locksmith/RequestTracking";
 import LiveLocksmithsMap from "@/components/locksmith/LiveLocksmithsMap";
 import ModuleSelector from "@/components/locksmith/ModuleSelector";
-import LocksmithMiniProfile from "@/components/locksmith/LocksmithMiniProfile";
-import ReviewForm from "@/components/locksmith/ReviewForm";
 import LightMap from "@/components/map/LightMap";
 import UpgradeToUrgentButton from "@/components/locksmith/UpgradeToUrgentButton";
+import UrgencySelector from "@/components/client/UrgencySelector";
 import UrgentArrivalCountdown from "@/components/locksmith/UrgentArrivalCountdown";
 import { DEFAULT_CENTER, getCustomerLocation, haversineKm, calculateInitialServiceDistance, fetchDrivingRoute, etaMinutes } from "@/lib/geo";
 import { getClientLoyalty, applyLoyaltyDiscount } from "@/lib/loyalty";
@@ -48,6 +47,10 @@ import LoadingCard from "@/components/ui/LoadingCard";
 import { useToast } from "@/components/ui/use-toast";
 import CancelFeeConfirmDialog from "@/components/client/CancelFeeConfirmDialog";
 import RingingStep from "@/components/client/RingingStep";
+import DebtBlockNotice from "@/components/client/DebtBlockNotice";
+import AcceptedStep from "@/components/client/AcceptedStep";
+import ReviewStep from "@/components/client/ReviewStep";
+import useClientDebt from "@/hooks/useClientDebt";
 
 export default function Home() {
   const { toast } = useToast();
@@ -111,6 +114,10 @@ export default function Home() {
   const notifiedCompleted = useRef(false);
   const notifiedArrived = useRef(false);
   const queueRef = useRef([]);
+  const debtNotified = useRef(false);
+
+  // Taxa de cancelamento em aberto — bloqueia o modo aplicativo até ser paga
+  const { debt, refresh: refreshDebt } = useClientDebt();
 
   const service = useMemo(() => SERVICE_CATALOG.find((s) => s.id === serviceId), [serviceId]);
 
@@ -238,6 +245,34 @@ export default function Home() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Débito pendente: reabre a tela de pagamento da taxa e avisa o cliente.
+  // Qualquer tentativa de sair (Voltar / novo pedido) volta para esta tela.
+  useEffect(() => {
+    if (!debt) return;
+    if (activeRequest?.id === debt.request.id && cancelFeeData) return;
+    const r = debt.request;
+    setActiveRequest(r);
+    reqRef.current = r.id;
+    if (r.locksmith_id) {
+      base44.entities.Locksmith.get(r.locksmith_id).then(setSelectedLocksmith).catch(() => {});
+    }
+    setCancelFeeData({
+      fee: debt.fee,
+      locksmithAmount: Number(r.cancellation_locksmith_amount) || 0,
+      appFee: Number(r.cancellation_app_fee) || 0,
+    });
+    if (!debtNotified.current) {
+      debtNotified.current = true;
+      notifyClient("Débito pendente", `Você tem uma taxa de cancelamento de R$ ${debt.fee.toFixed(2)} em aberto. Pague para voltar a usar o app.`);
+      toast({
+        title: "Débito pendente",
+        description: `Taxa de cancelamento de R$ ${debt.fee.toFixed(2)} em aberto. Pague para liberar novos pedidos.`,
+        variant: "destructive",
+      });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [debt, activeRequest?.id, cancelFeeData]);
+
   // Demanda ativa: conta solicitações em andamento (searching + ringing)
   // para alimentar o cálculo dinâmico de oferta vs. demanda.
   useEffect(() => {
@@ -326,7 +361,7 @@ export default function Home() {
       setFipeValue(null);
       setKeyValue(null);
       setHasCodedKey(false);
-      setSearchError(e.message || "Falha ao consultar a tabela FIPE do veículo");
+      setSearchError(e.message || "Falha ao consultar os dados do veículo");
     } finally {
       setSearching(false);
     }
@@ -336,6 +371,10 @@ export default function Home() {
   // O pagamento acontece APÓS a conclusão do serviço, não antes.
   const handleConfirmConfig = async () => {
     if (!address || submitting) return;
+    if (debt) {
+      setSearchError("Você possui uma taxa de cancelamento em aberto. Pague o débito para solicitar novos serviços.");
+      return;
+    }
     if (programming?.dealerOnly) {
       setSearchError(programming.reason);
       return;
@@ -577,8 +616,11 @@ export default function Home() {
         cancellation_fee: cancelFeeData.fee,
         cancellation_locksmith_amount: cancelFeeData.locksmithAmount,
         cancellation_app_fee: cancelFeeData.appFee,
+        payment_id: payment.id,
+        payment_method: method,
         payment_status: "paid",
       });
+      await refreshDebt();
       handleNewRequest();
     } catch (e) {
       setSearchError(e.message || "Falha ao processar taxa de cancelamento");
@@ -790,6 +832,28 @@ export default function Home() {
     }
   };
 
+  // Cliente confirmou o cancelamento com taxa: o chamado é cancelado NA HORA e
+  // a taxa fica registrada como débito pendente — se o cliente fechar o app sem
+  // pagar, o débito continua bloqueando o uso até a quitação.
+  const handleConfirmCancelWithFee = async () => {
+    if (!activeRequest || !cancelFeeData) return;
+    try {
+      const updated = await base44.entities.ServiceRequest.update(activeRequest.id, {
+        status: "cancelled",
+        cancelled_by: "cliente",
+        cancellation_fee: cancelFeeData.fee,
+        cancellation_locksmith_amount: cancelFeeData.locksmithAmount,
+        cancellation_app_fee: cancelFeeData.appFee,
+        payment_status: "pending",
+      });
+      setActiveRequest(updated);
+      refreshDebt();
+    } catch (e) {
+      toast({ title: "Falha ao cancelar", description: e.message || "Tente novamente", variant: "destructive" });
+      setCancelFeeData(null);
+    }
+  };
+
   // Cancelamento iniciado na tela de acompanhamento (?cancel=1): aplica as
   // mesmas regras de taxa deste fluxo.
   const cancelTriggered = useRef(false);
@@ -858,12 +922,12 @@ export default function Home() {
         <ModuleSelector module={module} setModule={setModule} />
       )}
 
-      {showAppFlow && (
+      {showAppFlow && !cancelFeeData && (
         <StepProgress step={step} total={7} />
       )}
 
       {/* Step 1: Serviço */}
-      {step === 1 && showAppFlow && (
+      {step === 1 && showAppFlow && !cancelFeeData && (
         <div className="space-y-5 step-enter">
           <KeyBlockBanner block={keyBlock} />
           <PointsProgressCard loyalty={loyalty} />
@@ -965,27 +1029,7 @@ export default function Home() {
             availableCount={inRadiusCount}
           />
 
-          <div>
-            <label className="text-sm font-medium text-foreground mb-1.5 block">Urgência</label>
-            <div className="grid grid-cols-2 gap-3">
-              <button
-                onClick={() => setUrgency("normal")}
-                className={`p-3 rounded-xl border-2 text-sm font-medium transition-all ${
-                  urgency === "normal" ? "border-primary bg-primary/5 text-primary" : "border-border text-muted-foreground"
-                }`}
-              >
-                Normal
-              </button>
-              <button
-                onClick={() => setUrgency("urgent")}
-                className={`p-3 rounded-xl border-2 text-sm font-medium transition-all flex items-center justify-center gap-1.5 ${
-                  urgency === "urgent" ? "border-red-500 bg-red-50 text-red-600" : "border-border text-muted-foreground"
-                }`}
-              >
-                <Zap className="w-4 h-4" /> Urgente
-              </button>
-            </div>
-          </div>
+          <UrgencySelector urgency={urgency} setUrgency={setUrgency} />
 
           <ErrorBanner message={searchError} />
 
@@ -1012,7 +1056,7 @@ export default function Home() {
       )}
 
       {/* Step 3: Procurando / tocando no chaveiro */}
-      {step === 3 && activeRequest && (
+      {step === 3 && activeRequest && !cancelFeeData && (
         <RingingStep
           request={activeRequest}
           serviceLabel={service?.label}
@@ -1024,52 +1068,16 @@ export default function Home() {
 
       {/* Step 4: Pedido em andamento (chaveiro aceitou) */}
       {step === 4 && activeRequest && activeRequest.status === "accepted" && (
-        <div className="space-y-5 step-enter">
-          <div className="flex flex-col items-center text-center">
-            <div className="w-16 h-16 rounded-full bg-emerald-100 flex items-center justify-center mb-4">
-              <CheckCircle2 className="w-8 h-8 text-emerald-600" />
-            </div>
-            <h2 className="font-heading font-semibold text-lg text-foreground mb-1">
-              Chaveiro aceitou seu pedido!
-            </h2>
-            <p className="text-sm text-muted-foreground mb-3">
-              {selectedLocksmith?.name} · {service?.label}
-            </p>
-            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-100 text-emerald-700 text-xs font-medium">
-              <CheckCircle2 className="w-3.5 h-3.5" /> Status: Em Andamento
-            </span>
-          </div>
-
-          <UrgentArrivalCountdown request={activeRequest} />
-
-          <LightMap
-            center={{ lat: activeRequest.customer_lat, lng: activeRequest.customer_lng }}
-            height={300}
-            markers={[
-              { id: "c", lat: activeRequest.customer_lat, lng: activeRequest.customer_lng, type: "customer", label: "Você" },
-              { id: "l", lat: activeRequest.locksmith_lat, lng: activeRequest.locksmith_lng, type: "locksmith", label: selectedLocksmith?.name?.split(" ")[0] },
-            ]}
-            route={{ from: { lat: activeRequest.locksmith_lat, lng: activeRequest.locksmith_lng }, to: { lat: activeRequest.customer_lat, lng: activeRequest.customer_lng } }}
-            routePath={routePath}
-            eta={routeEta}
-          />
-
-          <LocksmithMiniProfile locksmith={selectedLocksmith} />
-          <UpgradeToUrgentButton request={activeRequest} onUpdated={setActiveRequest} />
-          <div className="flex gap-2">
-            <Button onClick={() => { handleAdvance(); goToStep(5); }} size="lg" className="flex-1">
-              Acompanhar no mapa <Navigation className="w-4 h-4 ml-2" />
-            </Button>
-            <Button
-              variant="outline"
-              onClick={() => navigate(`/acompanhamento/${activeRequest.id}`)}
-              size="lg"
-              className="flex-1"
-            >
-              <MessageCircle className="w-4 h-4 mr-2" /> Rota + Chat
-            </Button>
-          </div>
-        </div>
+        <AcceptedStep
+          request={activeRequest}
+          locksmith={selectedLocksmith}
+          serviceLabel={service?.label}
+          routePath={routePath}
+          routeEta={routeEta}
+          onTrack={() => { handleAdvance(); goToStep(5); }}
+          onChat={() => navigate(`/acompanhamento/${activeRequest.id}`)}
+          onUpdated={setActiveRequest}
+        />
       )}
 
       {/* Step 5: Acompanhamento em tempo real (oculta durante pagamento da taxa) */}
@@ -1226,42 +1234,17 @@ export default function Home() {
 
       {/* Step 7: Avaliação final (após o chaveiro finalizar o serviço) */}
       {step === 7 && activeRequest && activeRequest.status === "completed" && (
-        <div className="space-y-5 step-enter">
-          <div className="flex flex-col items-center text-center py-4">
-            <div className="w-16 h-16 rounded-full bg-emerald-100 flex items-center justify-center mb-4">
-              <CheckCircle2 className="w-8 h-8 text-emerald-600" />
-            </div>
-            <h2 className="font-heading font-semibold text-lg text-foreground mb-1">Pagamento confirmado!</h2>
-            <p className="text-sm text-muted-foreground">{activeRequest.service_type} · {selectedLocksmith?.name}</p>
-          </div>
-
-          <LocksmithMiniProfile locksmith={selectedLocksmith} />
-
-          <div className="p-4 rounded-2xl border border-border bg-card">
-            <p className="text-center text-sm font-medium text-foreground mb-3">Avalie o atendimento do chaveiro</p>
-            <ReviewForm
-              locksmithId={selectedLocksmith?.id}
-              locksmithName={selectedLocksmith?.name}
-              serviceType={activeRequest.service_type}
-              workMode={selectedLocksmith?.work_mode}
-              onSubmitted={(r) => handleRate(r)}
-            />
-          </div>
-
-          <ReceiptButton
-            serviceRequest={activeRequest}
-            locksmith={selectedLocksmith}
-            customerName={customerName}
-          />
-
-          <Button onClick={handleNewRequest} variant="outline" className="w-full">
-            Solicitar novo serviço
-          </Button>
-        </div>
+        <ReviewStep
+          request={activeRequest}
+          locksmith={selectedLocksmith}
+          customerName={customerName}
+          onRate={handleRate}
+          onNewRequest={handleNewRequest}
+        />
       )}
 
       {/* Tela de pagamento da taxa de cancelamento */}
-      {cancelFeeData && activeRequest && (
+      {cancelFeeData && activeRequest && !cancelConfirmOpen && (
         <div className="space-y-3 step-enter">
           <div className="flex flex-col items-center text-center py-4">
             <div className="w-16 h-16 rounded-full bg-amber-100 flex items-center justify-center mb-4">
@@ -1272,6 +1255,7 @@ export default function Home() {
               O chaveiro já havia aceitado seu pedido. Pague a taxa de cancelamento para liberar novos pedidos.
             </p>
           </div>
+          <DebtBlockNotice debt={debt} />
           <PaymentStep
             amount={cancelFeeData.fee}
             description={`Taxa de cancelamento - ${activeRequest.service_type}`}
@@ -1289,6 +1273,7 @@ export default function Home() {
         open={cancelConfirmOpen}
         onOpenChange={setCancelConfirmOpen}
         cancelFeeData={cancelFeeData}
+        onConfirm={handleConfirmCancelWithFee}
         onBack={() => setCancelFeeData(null)}
       />
     </div>

@@ -8,10 +8,14 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import ReviewForm from "@/components/locksmith/ReviewForm";
 import QuickMessages from "@/components/chat/QuickMessages";
 import { safeUnsubscribe } from "@/lib/safeUnsubscribe";
+import useClientDebt from "@/hooks/useClientDebt";
+import DebtBlockNotice from "@/components/client/DebtBlockNotice";
 
 export default function Chat() {
   const { locksmithId } = useParams();
   const navigate = useNavigate();
+  // Taxa de cancelamento em aberto bloqueia o envio de mensagens
+  const { debt } = useClientDebt();
   const [locksmith, setLocksmith] = useState(null);
   const [messages, setMessages] = useState([]);
   const [text, setText] = useState("");
@@ -46,7 +50,7 @@ export default function Chat() {
 
   const handleSend = async (e) => {
     e.preventDefault();
-    if (!text.trim() || sending) return;
+    if (!text.trim() || sending || debt) return;
     setSending(true);
     const msg = text.trim();
     setText("");
@@ -78,7 +82,7 @@ export default function Chat() {
   };
 
   const handleQuickSend = async (msg) => {
-    if (sending) return;
+    if (sending || debt) return;
     setSending(true);
     const tempId = `temp-${Date.now()}`;
     setPendingMessages((prev) => [
@@ -178,18 +182,26 @@ export default function Chat() {
         <div ref={scrollRef} />
       </div>
 
-      <QuickMessages onSend={handleQuickSend} disabled={sending} />
-      <form onSubmit={handleSend} className="flex gap-2 pt-3 border-t border-border">
-        <Input
-          value={text}
-          onChange={(e) => setText(e.target.value)}
-          placeholder="Escreva sua mensagem..."
-          disabled={sending}
-        />
-        <Button type="submit" size="icon" disabled={!text.trim() || sending}>
-          <Send className="w-4 h-4" />
-        </Button>
-      </form>
+      {debt ? (
+        <div className="pt-3 border-t border-border">
+          <DebtBlockNotice debt={debt} onPay={() => navigate("/")} />
+        </div>
+      ) : (
+        <>
+          <QuickMessages onSend={handleQuickSend} disabled={sending} />
+          <form onSubmit={handleSend} className="flex gap-2 pt-3 border-t border-border">
+            <Input
+              value={text}
+              onChange={(e) => setText(e.target.value)}
+              placeholder="Escreva sua mensagem..."
+              disabled={sending}
+            />
+            <Button type="submit" size="icon" disabled={!text.trim() || sending}>
+              <Send className="w-4 h-4" />
+            </Button>
+          </form>
+        </>
+      )}
     </div>
   );
 }
