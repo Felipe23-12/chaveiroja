@@ -7,7 +7,9 @@ export default function PaymentAgentPanel() {
   const { messages, sending, error, ready, send } = usePaymentAgent();
   const [text, setText] = useState("");
   const endRef = useRef(null);
-  useEffect(() => endRef.current?.scrollIntoView({ behavior: "smooth" }), [messages]);
+  useEffect(() => {
+    endRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages]);
   const submit = (event) => {
     event.preventDefault();
     if (!text.trim()) return;

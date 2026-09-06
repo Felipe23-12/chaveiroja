@@ -5,7 +5,9 @@ import EmergencyAgentMessage from "@/components/emergency/EmergencyAgentMessage"
 export default function EmergencyAssistantPanel({ messages, sending, error, onSend, onClose }) {
   const [text, setText] = useState("");
   const endRef = useRef(null);
-  useEffect(() => endRef.current?.scrollIntoView({ behavior: "smooth" }), [messages]);
+  useEffect(() => {
+    endRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages]);
   const submit = (event) => {
     event.preventDefault();
     if (!text.trim()) return;

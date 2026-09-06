@@ -19,13 +19,19 @@ export default function usePaymentAgent() {
   }, []);
 
   useEffect(() => {
-    if (!conversation?.id) return;
-    return safeUnsubscribe(
-      base44.agents.subscribeToConversation(conversation.id, (data) => {
-        setMessages(data.messages || []);
-        setConversation(data);
-      })
-    );
+    if (!conversation?.id) return undefined;
+    let unsub = () => {};
+    try {
+      unsub = safeUnsubscribe(
+        base44.agents.subscribeToConversation(conversation.id, (data) => {
+          setMessages(data.messages || []);
+          setConversation(data);
+        })
+      );
+    } catch (e) {
+      /* assinatura indisponível — segue sem tempo real */
+    }
+    return () => unsub();
   }, [conversation?.id]);
 
   const send = async (content) => {
