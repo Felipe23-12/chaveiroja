@@ -1058,6 +1058,9 @@ export default function Home() {
                 !address ||
                 submitting ||
                 programming?.dealerOnly ||
+                (service?.needsVehicleInfo &&
+                  !service?.isCarKey &&
+                  (!vehicleInfo.make?.trim() || !vehicleInfo.model?.trim() || !String(vehicleInfo.year || "").trim())) ||
                 (service?.isCarKey && (!fipeValue || !vehicleInfo.doorStatus)) ||
                 (service?.isMotoKey && !motoRule?.range)
               }

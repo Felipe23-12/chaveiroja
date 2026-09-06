@@ -4,6 +4,7 @@ import { Textarea } from "@/components/ui/textarea";
 import PriceSummary from "./PriceSummary";
 import AddressAutocomplete from "./AddressAutocomplete";
 import LocksConfig from "./LocksConfig";
+import VehicleMakeModelFields from "./VehicleMakeModelFields";
 
 export default function ServiceConfig({
   service,
@@ -22,6 +23,12 @@ export default function ServiceConfig({
   setLocks,
   price,
 }) {
+  const vehicleReady = Boolean(
+    (vehicleInfo?.make || "").trim() &&
+      (vehicleInfo?.model || "").trim() &&
+      (vehicleInfo?.year || "").toString().trim()
+  );
+
   const updateVehicle = (field, value) =>
     setVehicleInfo((v) => ({ ...v, [field]: value }));
 
@@ -75,15 +82,12 @@ export default function ServiceConfig({
       {service.needsVehicleInfo && (
         <div className="space-y-3">
           <label className="text-sm font-medium text-foreground block">Dados do veículo</label>
-          <div className="grid grid-cols-2 gap-3">
-            <Input
-              placeholder="Modelo"
-              value={vehicleInfo.model || ""}
-              onChange={(e) => updateVehicle("model", e.target.value)}
-            />
+          <VehicleMakeModelFields vehicleInfo={vehicleInfo} updateVehicle={updateVehicle} />
+          <div>
+            <label className="text-xs text-muted-foreground mb-1 block">Ano</label>
             <Input
               type="number"
-              placeholder="Ano"
+              placeholder="Ex: 2021"
               value={vehicleInfo.year || ""}
               onChange={(e) => updateVehicle("year", e.target.value)}
             />
@@ -130,7 +134,11 @@ export default function ServiceConfig({
         />
       </div>
 
-      {price ? (
+      {service.needsVehicleInfo && !vehicleReady ? (
+        <div className="rounded-2xl bg-muted p-4 text-sm text-muted-foreground text-center">
+          Informe montadora, modelo e ano do veículo para calcularmos o valor do serviço.
+        </div>
+      ) : price ? (
         <PriceSummary price={price} />
       ) : (
         <div className="rounded-2xl bg-muted p-4 text-sm text-muted-foreground text-center">
