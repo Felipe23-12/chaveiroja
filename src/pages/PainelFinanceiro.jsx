@@ -6,6 +6,7 @@ import { fetchMyLocksmith } from "@/lib/myLocksmith";
 import { WORK_MODES, calculateRepasse } from "@/lib/pricing";
 import { downloadCommissionCSV, downloadCommissionPDF } from "@/lib/commissionReport";
 import WalletCard from "@/components/locksmith/WalletCard";
+import EarningsSplitCard from "@/components/locksmith/EarningsSplitCard";
 import WithdrawalSection from "@/components/locksmith/WithdrawalSection";
 import SheetsExportButton from "@/components/locksmith/SheetsExportButton";
 
@@ -244,6 +245,15 @@ export default function PainelFinanceiro() {
           </p>
         </div>
       </div>
+
+      {/* Quanto o chaveiro ganhou x quanto foi para a plataforma */}
+      {me && stats.count > 0 && (
+        <EarningsSplitCard
+          gross={stats.gross}
+          net={stats.net}
+          platform={isAppMode ? stats.commission : monthlyFee}
+        />
+      )}
 
       {/* Status da mensalidade — modo livre */}
       {!isAppMode && me && (
