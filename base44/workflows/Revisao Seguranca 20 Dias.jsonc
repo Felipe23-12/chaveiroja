@@ -1,0 +1,44 @@
+{
+  "name": "Revis\u00e3o de Seguran\u00e7a a cada 20 dias",
+  "trigger": {
+    "condition": null,
+    "config": {
+      "trigger_type": "scheduled",
+      "events": [],
+      "schedule_mode": "interval",
+      "cron_expression": null,
+      "one_time_date": null,
+      "timezone": "UTC",
+      "interval_value": 20,
+      "interval_unit": "days",
+      "interval_anchor": "2026-09-07T12:00:00Z",
+      "ends_type": "never",
+      "ends_on_date": null,
+      "ends_after_count": null
+    }
+  },
+  "definition": {
+    "document": {
+      "dsl": "1.0.0",
+      "name": "revisao_seguranca_20_dias",
+      "version": "1.0",
+      "namespace": "base44"
+    },
+    "do": [
+      {
+        "run_security_audit": {
+          "call": "invoke_backend_function",
+          "with": {
+            "function_name": "securityAudit"
+          },
+          "then": "end",
+          "x-base44": {
+            "title": "Revis\u00e3o de seguran\u00e7a",
+            "description": "Verifica isolamento e envia relat\u00f3rio"
+          }
+        }
+      }
+    ]
+  },
+  "description": "Verifica o isolamento de dados (v\u00ednculos de acesso, contas Stripe duplicadas, administradores) e envia o relat\u00f3rio por email aos administradores a cada 20 dias."
+}
