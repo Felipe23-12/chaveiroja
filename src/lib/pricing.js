@@ -68,8 +68,9 @@ export function calculateLongDistanceFee(distanceKm) {
 // Acréscimo fixo quando a chave está quebrada dentro da fechadura (aberturas)
 export const BROKEN_KEY_FEE = 25;
 
+// Fechadura eletrônica não usa chave física — a pergunta não se aplica
 export const isOpeningService = (service) =>
-  Boolean(service?.id && service.id.startsWith("abertura_"));
+  Boolean(service?.id && service.id.startsWith("abertura_") && service.id !== "abertura_eletronica");
 
 // Limiar do valor "médio" usado no ajuste por urgência
 export const TIER_MEDIUM = 0.6;
