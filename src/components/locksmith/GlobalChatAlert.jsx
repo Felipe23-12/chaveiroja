@@ -1,8 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
-import { useNavigate, useLocation } from "react-router-dom";
+import { useLocation } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
 import { useAuth } from "@/lib/AuthContext";
-import { MessageCircle } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import { setChatUnread, incrementChatUnread } from "@/lib/chatUnreadStore";
 import { playNotificationSound } from "@/lib/notificationSound";
@@ -19,7 +18,6 @@ const lastSeenKey = (id) => `chat_last_seen_${id}`;
  */
 export default function GlobalChatAlert() {
   const { user } = useAuth();
-  const navigate = useNavigate();
   const location = useLocation();
   const { toast } = useToast();
   const [locksmith, setLocksmith] = useState(null);
