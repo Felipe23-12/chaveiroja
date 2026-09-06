@@ -12,7 +12,7 @@ import ServiceSelector from "@/components/locksmith/ServiceSelector";
 import ServiceRadiusConfig from "@/components/locksmith/ServiceRadiusConfig";
 import { resyncRingingForRadius } from "@/lib/radiusResync";
 import AvatarPicker from "@/components/profile/AvatarPicker";
-import NativeSelectDrawer from "@/components/ui/NativeSelectDrawer";
+import SpecialtiesSelector from "@/components/locksmith/SpecialtiesSelector";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 export default function LocksmithProfile() {
@@ -21,7 +21,7 @@ export default function LocksmithProfile() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [creating, setCreating] = useState(false);
-  const [newProfile, setNewProfile] = useState({ specialty: "Residencial", vehicle: "", bio: "" });
+  const [newProfile, setNewProfile] = useState({ specialties: ["Residencial"], vehicle: "", bio: "" });
 
   const selected = myLocksmith;
 
@@ -56,7 +56,8 @@ export default function LocksmithProfile() {
       await base44.entities.Locksmith.create({
         name: me.full_name || "Chaveiro",
         phone: me.phone || "",
-        specialty: newProfile.specialty,
+        specialty: newProfile.specialties[0] || "Residencial",
+        specialties: newProfile.specialties,
         vehicle: newProfile.vehicle,
         bio: newProfile.bio,
         work_mode: "app",
@@ -126,20 +127,10 @@ export default function LocksmithProfile() {
             Você ainda não tem um perfil de chaveiro vinculado à sua conta. Preencha os dados abaixo para começar a configurar seu modo de trabalho.
           </p>
           <div className="space-y-3">
-            <div>
-              <label className="text-sm font-medium text-foreground mb-1.5 block">Especialidade</label>
-              <NativeSelectDrawer
-                value={newProfile.specialty}
-                onChange={(v) => setNewProfile({ ...newProfile, specialty: v })}
-                options={[
-                  { value: "Residencial", label: "Residencial" },
-                  { value: "Automotivo", label: "Automotivo" },
-                  { value: "Comercial", label: "Comercial" },
-                  { value: "Emergencial", label: "Emergencial" },
-                ]}
-                label="Especialidade"
-              />
-            </div>
+            <SpecialtiesSelector
+              value={newProfile.specialties}
+              onChange={(v) => setNewProfile({ ...newProfile, specialties: v })}
+            />
             <div>
               <label className="text-sm font-medium text-foreground mb-1.5 block">Veículo</label>
               <Input
@@ -159,7 +150,7 @@ export default function LocksmithProfile() {
               />
             </div>
           </div>
-          <Button onClick={handleCreateProfile} disabled={creating || !newProfile.vehicle.trim()} className="w-full">
+          <Button onClick={handleCreateProfile} disabled={creating || !newProfile.vehicle.trim() || newProfile.specialties.length === 0} className="w-full">
             {creating ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
             {creating ? "Criando perfil..." : "Criar perfil e configurar"}
           </Button>
@@ -244,6 +235,15 @@ export default function LocksmithProfile() {
                 </div>
               </div>
             )}
+
+            <div className="rounded-2xl border border-border bg-white p-4">
+              <SpecialtiesSelector
+                value={selected.specialties?.length ? selected.specialties : [selected.specialty].filter(Boolean)}
+                onChange={(v) =>
+                  updateLocksmith({ specialties: v, specialty: v[0] || selected.specialty })
+                }
+              />
+            </div>
 
             <ServiceSelector locksmith={selected} onUpdate={updateLocksmith} />
 

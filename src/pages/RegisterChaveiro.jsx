@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import NativeSelectDrawer from "@/components/ui/NativeSelectDrawer";
+import SpecialtiesSelector from "@/components/locksmith/SpecialtiesSelector";
 import { Wrench, Mail, Lock, Loader2, User, Phone, CreditCard } from "lucide-react";
 import AuthLayout from "@/components/AuthLayout";
 import GoogleIcon from "@/components/GoogleIcon";
@@ -20,7 +20,7 @@ export default function RegisterChaveiro() {
   const [fullName, setFullName] = useState("");
   const [phone, setPhone] = useState("");
   const [cpf, setCpf] = useState("");
-  const [specialty, setSpecialty] = useState("Residencial");
+  const [specialties, setSpecialties] = useState(["Residencial"]);
   const [vehicle, setVehicle] = useState("");
   const [bio, setBio] = useState("");
   const [email, setEmail] = useState("");
@@ -45,6 +45,10 @@ export default function RegisterChaveiro() {
       setError("As senhas não coincidem");
       return;
     }
+    if (specialties.length === 0) {
+      setError("Escolha pelo menos uma especialidade");
+      return;
+    }
     if (!vehicle.trim()) {
       setError("Informe seu veículo (ex: Moto Honda Pop 110i)");
       return;
@@ -63,7 +67,7 @@ export default function RegisterChaveiro() {
       const registration = await base44.auth.register({ email, password });
 
       sessionStorage.setItem("chaveiro_onboarding", JSON.stringify({
-        fullName, phone, cpf, specialty, vehicle, bio,
+        fullName, phone, cpf, specialty: specialties[0] || "Residencial", specialties, vehicle, bio,
       }));
 
       // O cadastro por email do Base44 envia um código OTP. Mostramos a etapa
@@ -198,21 +202,7 @@ export default function RegisterChaveiro() {
 
         <div className="space-y-4 rounded-xl border border-border bg-muted/30 p-4">
           <p className="text-sm font-semibold text-foreground">Dados profissionais</p>
-          <div className="space-y-2">
-            <Label htmlFor="specialty">Especialidade</Label>
-            <NativeSelectDrawer
-              value={specialty}
-              onChange={setSpecialty}
-              options={[
-                { value: "Residencial", label: "Residencial" },
-                { value: "Automotivo", label: "Automotivo" },
-                { value: "Comercial", label: "Comercial" },
-                { value: "Emergencial", label: "Emergencial" },
-              ]}
-              label="Especialidade"
-              placeholder="Escolha sua especialidade"
-            />
-          </div>
+          <SpecialtiesSelector value={specialties} onChange={setSpecialties} />
           <div className="space-y-2">
             <Label htmlFor="vehicle">Veículo</Label>
             <Input
