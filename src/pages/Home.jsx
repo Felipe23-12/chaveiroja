@@ -52,7 +52,6 @@ import AcceptedStep from "@/components/client/AcceptedStep";
 import ReviewStep from "@/components/client/ReviewStep";
 import useClientDebt from "@/hooks/useClientDebt";
 import { useRegionalPriceRange } from "@/hooks/useRegionalPriceRange";
-import RegionalPriceNotice from "@/components/locksmith/RegionalPriceNotice";
 
 export default function Home() {
   const { toast } = useToast();
@@ -1039,9 +1038,6 @@ export default function Home() {
               price={address ? price : null}
             />
           )}
-
-          {/* Base regional (estado/capital) usada no cálculo do valor */}
-          {address && <RegionalPriceNotice regional={regional} />}
 
           {/* Fatores dinâmicos de precificação (oferta/demanda, região, bairro, distância) */}
           {address && price && (
