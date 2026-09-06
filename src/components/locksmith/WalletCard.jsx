@@ -1,5 +1,6 @@
 import React from "react";
 import { Wallet, ArrowDownToLine, Clock } from "lucide-react";
+import StripeWithdrawButton from "@/components/locksmith/StripeWithdrawButton";
 
 export default function WalletCard({ balance, pending, onWithdraw }) {
   return (
@@ -9,9 +10,12 @@ export default function WalletCard({ balance, pending, onWithdraw }) {
           <Wallet className="w-5 h-5" />
           <span className="text-sm font-medium opacity-90">Saldo disponível para saque</span>
         </div>
-        <p className="font-heading font-bold text-3xl mb-1">
-          R$ {(Number(balance) || 0).toFixed(2)}
-        </p>
+        <div className="flex items-center justify-between gap-3 mb-1">
+          <p className="font-heading font-bold text-3xl">
+            R$ {(Number(balance) || 0).toFixed(2)}
+          </p>
+          <StripeWithdrawButton />
+        </div>
         <div className="flex items-center gap-1.5 text-xs opacity-80">
           <Clock className="w-3.5 h-3.5" />
           <span>R$ {(Number(pending) || 0).toFixed(2)} em processamento</span>
