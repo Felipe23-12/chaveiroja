@@ -51,6 +51,8 @@ import DebtBlockNotice from "@/components/client/DebtBlockNotice";
 import AcceptedStep from "@/components/client/AcceptedStep";
 import ReviewStep from "@/components/client/ReviewStep";
 import useClientDebt from "@/hooks/useClientDebt";
+import { useRegionalPriceRange } from "@/hooks/useRegionalPriceRange";
+import RegionalPriceNotice from "@/components/locksmith/RegionalPriceNotice";
 
 export default function Home() {
   const { toast } = useToast();
@@ -136,11 +138,17 @@ export default function Home() {
     [service, vehicleInfo.make, vehicleInfo.model, vehicleInfo.year]
   );
 
-  // Serviço usado no cálculo: para moto, a faixa vem da tabela de regras
+  // Faixa de referência do estado/capital mais próximo (ajustada pela distância
+  // até a capital: perto = médias maiores, longe = médias menores)
+  const regional = useRegionalPriceRange(serviceId, customerLoc.lat, customerLoc.lng);
+
+  // Serviço usado no cálculo: para moto, a faixa vem da tabela de regras;
+  // para os serviços de abertura, a faixa vem da referência regional.
   const pricingService = useMemo(() => {
     if (service?.isMotoKey && motoRule?.range) return { ...service, baseRange: motoRule.range };
+    if (service && regional?.range) return { ...service, baseRange: regional.range };
     return service;
-  }, [service, motoRule]);
+  }, [service, motoRule, regional]);
 
   useEffect(() => {
     base44.auth.me().then((u) => setCustomerName(u?.full_name || "")).catch(() => {});
@@ -1017,6 +1025,9 @@ export default function Home() {
               price={address ? price : null}
             />
           )}
+
+          {/* Base regional (estado/capital) usada no cálculo do valor */}
+          {address && <RegionalPriceNotice regional={regional} />}
 
           {/* Fatores dinâmicos de precificação (oferta/demanda, região, bairro, distância) */}
           {address && price && nearestDistance != null && (

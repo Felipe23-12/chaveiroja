@@ -1,0 +1,112 @@
+{
+  "name": "PrecoReferencia",
+  "type": "object",
+  "properties": {
+    "id_referencia": {
+      "type": "string",
+      "description": "Identificador \u00fanico do registro (ex.: sp_abertura_automotiva)"
+    },
+    "capital": {
+      "type": "string"
+    },
+    "uf": {
+      "type": "string"
+    },
+    "regiao": {
+      "type": "string"
+    },
+    "capital_slug": {
+      "type": "string"
+    },
+    "servico_codigo": {
+      "type": "string"
+    },
+    "servico_nome": {
+      "type": "string"
+    },
+    "preco_minimo_brl": {
+      "type": "number"
+    },
+    "preco_medio_brl": {
+      "type": "number"
+    },
+    "preco_maximo_brl": {
+      "type": "number"
+    },
+    "preco_maximo_noturno_feriado_brl": {
+      "type": "number"
+    },
+    "moeda": {
+      "type": "string",
+      "default": "BRL"
+    },
+    "origem_codigo": {
+      "type": "string"
+    },
+    "origem_texto": {
+      "type": "string"
+    },
+    "dado_local": {
+      "type": "boolean",
+      "default": false
+    },
+    "confianca": {
+      "type": "string"
+    },
+    "quantidade_observacoes": {
+      "type": "number",
+      "default": 0
+    },
+    "quantidade_fontes": {
+      "type": "number",
+      "default": 0
+    },
+    "quantidade_relatos_com_valor": {
+      "type": "number",
+      "default": 0
+    },
+    "fontes_nomes": {
+      "type": "string"
+    },
+    "fontes_urls": {
+      "type": "string"
+    },
+    "data_referencia": {
+      "type": "string",
+      "format": "date"
+    },
+    "ativo": {
+      "type": "boolean",
+      "default": true
+    },
+    "exibir_no_app": {
+      "type": "boolean",
+      "default": true
+    },
+    "aviso_usuario": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "capital_slug",
+    "servico_codigo",
+    "preco_medio_brl"
+  ],
+  "rls": {
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}
