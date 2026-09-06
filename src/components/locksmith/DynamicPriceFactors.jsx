@@ -4,7 +4,7 @@ import WeatherSurgeNotice from "@/components/locksmith/WeatherSurgeNotice";
 
 // Exibe os fatores dinâmicos de precificação (oferta/demanda, região, bairro,
 // urgência) como badges informativas, além do aviso de taxa de distância.
-export default function DynamicPriceFactors({ price, nearestDistance }) {
+export default function DynamicPriceFactors({ price, nearestDistance, assumedNearby = false }) {
   if (!price?.factors) return null;
 
   const { factors } = price;
@@ -14,14 +14,27 @@ export default function DynamicPriceFactors({ price, nearestDistance }) {
     <div className="space-y-3">
       <WeatherSurgeNotice weather={factors.weather} />
 
+      {/* Estimativa considerando chaveiro dentro do raio de busca */}
+      {assumedNearby && (
+        <div className="flex items-start gap-2 p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800">
+          <MapPin className="w-4 h-4 shrink-0 mt-0.5" />
+          <p className="text-sm">
+            Valor estimado considerando um chaveiro <strong>dentro do seu raio de busca</strong>, sem
+            taxa de quilometragem. Se você optar por buscar chaveiros mais distantes, o valor passa a
+            incluir <strong>R$ 0,90 por km acima de 20 km</strong>.
+          </p>
+        </div>
+      )}
+
       {/* Aviso de taxa de distância excedente */}
-      {overThreshold && (
+      {!assumedNearby && overThreshold && nearestDistance != null && (
         <div className="flex items-start gap-2 p-3 rounded-xl bg-amber-50 border border-amber-300 text-amber-800">
           <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
           <p className="text-sm">
             <strong>Atenção:</strong> O chaveiro mais próximo está a{" "}
-            {nearestDistance.toFixed(1)} km. Será cobrada uma taxa adicional de{" "}
-            <strong>R$ 0,90 por km</strong> excedente (acima de 20 km).
+            {nearestDistance.toFixed(1)} km. Serão cobrados{" "}
+            <strong>R$ 0,90 por km</strong> excedente (acima de 20 km) — adicional de{" "}
+            <strong>R$ {Number(price.distanceFee || 0).toFixed(2)}</strong> neste atendimento.
           </p>
         </div>
       )}

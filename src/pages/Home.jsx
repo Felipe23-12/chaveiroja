@@ -176,6 +176,18 @@ export default function Home() {
     return Math.min(...eligible.map((l) => haversineKm(customerLoc, { lat: l.lat, lng: l.lng })));
   }, [service, appLocksmiths, customerLoc]);
 
+  // Distância usada na estimativa de valor:
+  //  - "Chaveiro perto de mim": calcula como se houvesse chaveiro dentro do raio
+  //    de busca, mesmo que nenhum esteja online ali — sem taxa de km excedente.
+  //  - Raio escolhido pelo cliente: usa a distância real do chaveiro mais
+  //    próximo, cobrando a regra por km acima do limite de 20 km.
+  const pricingDistance = useMemo(() => {
+    if (searchRadius == null) {
+      return Math.min(nearestDistance ?? DEFAULT_RADIUS_KM, DEFAULT_RADIUS_KM);
+    }
+    return nearestDistance;
+  }, [searchRadius, nearestDistance]);
+
   // Supply: chaveiros online no modo app
   const onlineLocksmithsCount = appLocksmiths.filter((l) => l.online).length;
 
@@ -195,7 +207,7 @@ export default function Home() {
       customerLat: customerLoc.lat,
       customerLng: customerLoc.lng,
       address,
-      nearestDistanceKm: nearestDistance,
+      nearestDistanceKm: pricingDistance,
       keyValue,
       fipeValue,
       carKeyType,
@@ -203,7 +215,7 @@ export default function Home() {
       onlineProgrammingFee: programming?.onlineFee || 0,
       weather,
     });
-  }, [pricingService, service, motoRule, selectedOptions, customAddons, vehicleInfo, locks, onlineLocksmithsCount, activeRequestsCount, urgency, customerLoc, address, nearestDistance, keyValue, fipeValue, carKeyType, hasCodedKey, programming, weather]);
+  }, [pricingService, service, motoRule, selectedOptions, customAddons, vehicleInfo, locks, onlineLocksmithsCount, activeRequestsCount, urgency, customerLoc, address, pricingDistance, keyValue, fipeValue, carKeyType, hasCodedKey, programming, weather]);
 
   useEffect(() => {
     getCustomerLocation().then(setCustomerLoc);
@@ -1030,8 +1042,12 @@ export default function Home() {
           {address && <RegionalPriceNotice regional={regional} />}
 
           {/* Fatores dinâmicos de precificação (oferta/demanda, região, bairro, distância) */}
-          {address && price && nearestDistance != null && (
-            <DynamicPriceFactors price={price} nearestDistance={nearestDistance} />
+          {address && price && (
+            <DynamicPriceFactors
+              price={price}
+              nearestDistance={pricingDistance}
+              assumedNearby={searchRadius == null}
+            />
           )}
 
           <SearchRadiusSelector
