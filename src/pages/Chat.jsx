@@ -144,6 +144,15 @@ export default function Chat() {
         </DialogContent>
       </Dialog>
 
+      {/* Confirmação clara de com quem o cliente está conversando */}
+      <div className="mb-3 p-3 rounded-xl border-2 border-primary bg-primary/10 text-center">
+        <p className="text-xs text-muted-foreground uppercase tracking-wide">Você está conversando com</p>
+        <p className="font-heading font-bold text-lg text-foreground">{locksmith?.name || "..."}</p>
+        {locksmith?.specialty && (
+          <p className="text-xs text-muted-foreground">{locksmith.specialty}{locksmith.distance_km ? ` · ${locksmith.distance_km} km` : ""}</p>
+        )}
+      </div>
+
       <div className="flex-1 overflow-y-auto space-y-3 pb-4">
         {messages.length === 0 && (
           <div className="text-center py-10">
