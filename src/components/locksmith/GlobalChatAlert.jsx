@@ -108,25 +108,7 @@ export default function GlobalChatAlert() {
     }
   }, [location.pathname, locksmith?.id]);
 
-  if (!isChaveiro || !locksmith || unread === 0) return null;
-
-  return (
-    <button
-      onClick={() => {
-        setUnread(0);
-        setChatUnread(0);
-        try { localStorage.setItem(lastSeenKey(locksmith.id), String(Date.now())); } catch (e) {}
-        navigate("/painel-chaveiro", { state: { openChat: true } });
-      }}
-      className="fixed bottom-20 right-4 z-[60] flex items-center gap-2 pl-3 pr-4 h-12 rounded-full bg-primary text-primary-foreground font-bold text-sm shadow-2xl active:scale-95 transition-all animate-alert-slide"
-    >
-      <div className="relative">
-        <MessageCircle className="w-5 h-5" />
-        <span className="absolute -top-2 -right-2 w-5 h-5 rounded-full bg-red-500 text-white text-[10px] font-bold flex items-center justify-center animate-alert-blink">
-          {unread > 9 ? "9+" : unread}
-        </span>
-      </div>
-      <span>Mensagens</span>
-    </button>
-  );
+  // Somente detecção/alerta — a abertura das conversas é feita pelo botão
+  // flutuante global (LocksmithChatFab), disponível em qualquer tela.
+  return null;
 }

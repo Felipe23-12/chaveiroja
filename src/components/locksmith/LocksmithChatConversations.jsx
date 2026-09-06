@@ -24,10 +24,10 @@ export default function LocksmithChatConversations({ me }) {
 
   // Carrega todas as conversas (clientes que enviaram mensagens para este chaveiro)
   useEffect(() => {
-    if (!me?.id || !me?.created_by_id) return;
+    if (!me?.id) return;
     const load = () =>
       base44.entities.ChatMessage
-        .filter({ locksmith_id: me.id, locksmith_user_id: me.created_by_id }, "created_date")
+        .filter({ locksmith_id: me.id }, "created_date")
         .then((list) => {
           const groups = {};
           let customerTotal = 0;
@@ -67,10 +67,10 @@ export default function LocksmithChatConversations({ me }) {
 
   // Carrega mensagens da conversa ativa
   useEffect(() => {
-    if (!me?.id || !me?.created_by_id || !activeTab) return;
+    if (!me?.id || !activeTab) return;
     const load = () =>
       base44.entities.ChatMessage
-        .filter({ locksmith_id: me.id, locksmith_user_id: me.created_by_id, client_id: activeTab }, "created_date")
+        .filter({ locksmith_id: me.id, client_id: activeTab }, "created_date")
         .then(setMessages)
         .catch(() => {});
     load();

@@ -7,6 +7,7 @@ import { Image } from "@/components/ui/image";
 import DarkModeToggle from "@/components/DarkModeToggle";
 import GlobalLocksmithRequestAlert from "@/components/locksmith/GlobalLocksmithRequestAlert";
 import GlobalChatAlert from "@/components/locksmith/GlobalChatAlert";
+import LocksmithChatFab from "@/components/locksmith/LocksmithChatFab";
 import ServiceFinishAlert from "@/components/client/ServiceFinishAlert";
 import DeleteAccountModal from "@/components/DeleteAccountModal";
 import UserPhotoModal from "@/components/profile/UserPhotoModal";
@@ -204,6 +205,7 @@ export default function Layout() {
     <div className="flex flex-col md:flex-row min-h-screen bg-background">
       <GlobalLocksmithRequestAlert />
       <GlobalChatAlert />
+      <LocksmithChatFab />
       <ServiceFinishAlert />
       <MobileTopBar onMenu={() => setDrawerOpen(true)} />
       <MobileDrawer open={drawerOpen} onClose={() => setDrawerOpen(false)} />
