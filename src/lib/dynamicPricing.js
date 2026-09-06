@@ -247,7 +247,11 @@ export function calculateDynamicPrice({
     });
   }
 
-  const total = Math.round((current + addonsTotal + distanceFee) * 100) / 100;
+  // Piso nacional das aberturas residencial e automotiva: R$ 50
+  const MIN_OPENING_TOTAL = 50;
+  const hasOpeningFloor = ["abertura_residencial", "abertura_automotiva"].includes(service.id);
+  const rawTotal = Math.round((current + addonsTotal + distanceFee) * 100) / 100;
+  const total = hasOpeningFloor ? Math.max(rawTotal, MIN_OPENING_TOTAL) : rawTotal;
 
   return {
     base: service.isCarKey

@@ -39,15 +39,21 @@ export function capitalProximity(distanceKm) {
  * Constrói a faixa base do serviço a partir do registro de referência da
  * capital mais próxima, deslocada pela distância do cliente até essa capital.
  */
+// Valor mínimo nacional de abertura (residencial e automotiva) em qualquer
+// capital ou cidade do Brasil — as demais regras continuam sendo aplicadas.
+export const MIN_OPENING_PRICE_BRL = 50;
+export const MIN_OPENING_CODES = ["residencial_comum", "abertura_automotiva"];
+
 export function buildRegionalRange(reference, distanceKm) {
   if (!reference) return null;
-  const min = Number(reference.preco_minimo_brl) || 0;
+  const floor = MIN_OPENING_CODES.includes(reference.servico_codigo) ? MIN_OPENING_PRICE_BRL : 0;
+  const min = Math.max(Number(reference.preco_minimo_brl) || 0, floor);
   const avg = Number(reference.preco_medio_brl) || 0;
   const max = Number(reference.preco_maximo_brl) || avg;
   if (!avg) return null;
 
   const p = capitalProximity(distanceKm);
-  const low = Math.round(min + (avg - min) * p * 0.5);
+  const low = Math.max(Math.round(min + (avg - min) * p * 0.5), floor);
   const high = Math.round(avg + (max - avg) * p);
 
   return {
