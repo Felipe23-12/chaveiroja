@@ -25,14 +25,12 @@ export default function GoogleComplete() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [acceptedTerms, setAcceptedTerms] = useState(false);
-  const [googleEmail, setGoogleEmail] = useState("");
   const [passwordReady, setPasswordReady] = useState(false);
 
   useEffect(() => {
     const load = async () => {
       try {
         const me = await base44.auth.me();
-        setGoogleEmail(me?.email || "");
         setPasswordReady(me?.password_created === true);
         if (me?.full_name) setFullName(me.full_name);
         if (me?.username) setUsername(me.username);
@@ -101,7 +99,7 @@ export default function GoogleComplete() {
   if (!passwordReady) {
     return (
       <AuthLayout icon={tipo === "chaveiro" ? Wrench : UserPlus} title="Proteja sua conta" subtitle="O acesso com Google também exige uma senha">
-        <GooglePasswordSetup email={googleEmail} accountType={tipo} />
+        <GooglePasswordSetup onComplete={() => setPasswordReady(true)} />
       </AuthLayout>
     );
   }

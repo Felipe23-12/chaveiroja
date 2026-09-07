@@ -42,6 +42,10 @@ export default function RegisterChaveiro() {
       setError("Informe seu nome");
       return;
     }
+    if (!/^(?=.*[A-Za-z])(?=.*\d).{8,}$/.test(password)) {
+      setError("A senha deve ter no mínimo 8 caracteres, com letras e números");
+      return;
+    }
     if (password !== confirmPassword) {
       setError("As senhas não coincidem");
       return;

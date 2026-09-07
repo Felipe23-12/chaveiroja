@@ -19,8 +19,8 @@ export default function ResetPassword() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
-    if (newPassword.length < 8) {
-      setError("A senha deve ter pelo menos 8 caracteres");
+    if (!/^(?=.*[A-Za-z])(?=.*\d).{8,}$/.test(newPassword)) {
+      setError("A senha deve ter no mínimo 8 caracteres, com letras e números");
       return;
     }
     if (newPassword !== confirmPassword) {
@@ -30,15 +30,6 @@ export default function ResetPassword() {
     setLoading(true);
     try {
       await base44.auth.resetPassword({ resetToken, newPassword });
-      const pendingRaw = localStorage.getItem("google_password_setup");
-      const pending = pendingRaw ? JSON.parse(pendingRaw) : null;
-      if (pending?.email) {
-        await base44.auth.loginViaEmailPassword(pending.email, newPassword);
-        await base44.auth.updateMe({ password_created: true });
-        localStorage.removeItem("google_password_setup");
-        window.location.href = pending.returnTo || "/";
-        return;
-      }
       window.location.href = "/login";
     } catch (err) {
       setError(err.message || "Não foi possível criar a senha");

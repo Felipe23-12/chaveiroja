@@ -1,43 +1,40 @@
 import React, { useState } from "react";
-import { Mail, Loader2, Lock } from "lucide-react";
+import { Loader2, Lock } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 
-export default function GooglePasswordSetup({ email, accountType }) {
-  const [sending, setSending] = useState(false);
-  const [sent, setSent] = useState(false);
+export default function GooglePasswordSetup({ onComplete }) {
+  const [password, setPassword] = useState("");
+  const [confirmation, setConfirmation] = useState("");
+  const [error, setError] = useState("");
+  const [saving, setSaving] = useState(false);
 
-  const sendLink = async () => {
-    setSending(true);
-    localStorage.setItem("google_password_setup", JSON.stringify({
-      email,
-      returnTo: `/google-complete?tipo=${accountType}`,
-    }));
+  const submit = async (event) => {
+    event.preventDefault();
+    setError("");
+    const valid = password.length >= 8 && /[A-Za-z]/.test(password) && /[0-9]/.test(password);
+    if (!valid) return setError("Use no mínimo 8 caracteres, com letras e números.");
+    if (password !== confirmation) return setError("As senhas não coincidem.");
+    setSaving(true);
     try {
-      await base44.auth.resetPasswordRequest(email);
+      const user = await base44.auth.me();
+      await base44.auth.changePassword({ userId: user.id, currentPassword: "", newPassword: password });
+      await base44.auth.updateMe({ password_created: true });
+      onComplete();
+    } catch (err) {
+      setError(err?.message || "Não foi possível criar a senha.");
     } finally {
-      setSending(false);
-      setSent(true);
+      setSaving(false);
     }
   };
 
-  return (
-    <div className="space-y-4 text-center">
-      <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10">
-        <Lock className="h-6 w-6 text-primary" />
-      </div>
-      <div>
-        <h2 className="font-heading font-semibold text-foreground">Crie sua senha de acesso</h2>
-        <p className="mt-1 text-sm text-muted-foreground">Enviaremos um link seguro para {email}.</p>
-      </div>
-      {sent ? (
-        <p className="rounded-lg bg-primary/10 p-3 text-sm text-foreground">Abra o e-mail, crie sua senha e você voltará para concluir o cadastro.</p>
-      ) : (
-        <Button type="button" className="w-full h-12" onClick={sendLink} disabled={sending || !email}>
-          {sending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Mail className="h-4 w-4" />}
-          Enviar link para criar senha
-        </Button>
-      )}
-    </div>
-  );
+  return <form onSubmit={submit} className="space-y-4">
+    {error && <p className="rounded-lg bg-destructive/10 p-3 text-sm text-destructive">{error}</p>}
+    <div className="space-y-2"><Label htmlFor="google-password">Senha</Label><Input id="google-password" type="password" autoComplete="new-password" value={password} onChange={(e) => setPassword(e.target.value)} required /></div>
+    <div className="space-y-2"><Label htmlFor="google-confirmation">Confirmar senha</Label><Input id="google-confirmation" type="password" autoComplete="new-password" value={confirmation} onChange={(e) => setConfirmation(e.target.value)} required /></div>
+    <p className="text-xs text-muted-foreground">Mínimo de 8 caracteres, contendo letras e números.</p>
+    <Button type="submit" className="w-full h-12" disabled={saving}>{saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Lock className="h-4 w-4" />}Criar senha e continuar</Button>
+  </form>;
 }
