@@ -250,6 +250,7 @@
     "name"
   ],
   "rls": {
+    "create": null,
     "read": {
       "$or": [
         {

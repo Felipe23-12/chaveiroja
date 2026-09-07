@@ -312,6 +312,7 @@
     "address"
   ],
   "rls": {
+    "create": null,
     "read": {
       "$or": [
         {
@@ -321,19 +322,11 @@
           "data.locksmith_user_id": "{{user.id}}"
         },
         {
-          "data.ringing_locksmith_user_ids": "{{user.id}}"
-        },
-        {
-          "$and": [
-            {
-              "data.status": "searching"
-            },
-            {
-              "user_condition": {
-                "account_type": "chaveiro"
-              }
-            }
-          ]
+          "data.ringing_locksmith_user_ids": {
+            "$in": [
+              "{{user.id}}"
+            ]
+          }
         },
         {
           "user_condition": {
