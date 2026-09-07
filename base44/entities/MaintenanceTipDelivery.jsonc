@@ -1,0 +1,52 @@
+{
+  "name": "MaintenanceTipDelivery",
+  "type": "object",
+  "properties": {
+    "user_id": {
+      "type": "string"
+    },
+    "week": {
+      "type": "string"
+    },
+    "tip_index": {
+      "type": "integer"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "sent",
+        "failed"
+      ]
+    },
+    "error": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "user_id",
+    "week",
+    "status"
+  ],
+  "rls": {
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}
