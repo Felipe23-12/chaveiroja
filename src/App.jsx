@@ -9,6 +9,7 @@ import UserNotRegisteredError from '@/components/UserNotRegisteredError';
 import ScrollToTop from './components/ScrollToTop';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import ProfileCompletionGuard from '@/components/ProfileCompletionGuard';
+import PasswordCreationGuard from '@/components/PasswordCreationGuard';
 import RoleGuard from '@/components/RoleGuard';
 import TermsGate from '@/components/TermsGate';
 import LoadingCard from '@/components/ui/LoadingCard';
@@ -39,6 +40,7 @@ const Acompanhamento = lazy(() => import('@/pages/Acompanhamento'));
 const Pagamentos = lazy(() => import('@/pages/Pagamentos'));
 const AceiteTermos = lazy(() => import('@/pages/AceiteTermos'));
 const CadastroRecebimentos = lazy(() => import('@/pages/CadastroRecebimentos'));
+const CreatePassword = lazy(() => import('@/pages/CreatePassword'));
 // Add page imports here
 
 const PageFallback = () => (
@@ -84,6 +86,8 @@ const AuthenticatedApp = () => {
         <Route path="/politica-reembolso" element={<PoliticaReembolso />} />
         <Route path="/termos-privacidade" element={<TermosPrivacidade />} />
         <Route element={<ProtectedRoute unauthenticatedElement={<Navigate to="/register" replace />} />}>
+          <Route path="/criar-senha" element={<CreatePassword />} />
+          <Route element={<PasswordCreationGuard />}>
           <Route element={<ProfileCompletionGuard />}>
           <Route path="/aceite-termos" element={<AceiteTermos />} />
           <Route element={<TermsGate />}>
@@ -107,6 +111,7 @@ const AuthenticatedApp = () => {
               <Route path="/painel-admin" element={<PainelAdmin />} />
               <Route path="/painel-financeiro-admin" element={<PainelFinanceiroAdmin />} />
             </Route>
+          </Route>
           </Route>
           </Route>
           </Route>
