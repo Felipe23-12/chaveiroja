@@ -8,6 +8,7 @@ import ServiceFilters, { filterRequests } from "@/components/admin/ServiceFilter
 import ServiceSearchBar from "@/components/admin/ServiceSearchBar";
 import ServiceGallery from "@/components/locksmith/ServiceGallery";
 import FinancialConsolidation from "@/components/admin/FinancialConsolidation";
+import ResetLocksmithsDialog from "@/components/admin/ResetLocksmithsDialog";
 import { completeWithdrawal } from "@/lib/payments";
 import { useToast } from "@/components/ui/use-toast";
 import { safeUnsubscribe } from "@/lib/safeUnsubscribe";
@@ -31,7 +32,6 @@ export default function PainelAdmin() {
   const [withdrawals, setWithdrawals] = useState([]);
   const [filters, setFilters] = useState({ date: "", serviceType: "", status: "", locksmithName: "", search: "" });
   const [loading, setLoading] = useState(true);
-  const [resetting, setResetting] = useState(false);
   const { toast } = useToast();
   const knownWithdrawalIds = useRef(new Set());
 
@@ -112,25 +112,6 @@ export default function PainelAdmin() {
     }
   };
 
-  const resetAll = async () => {
-    if (!window.confirm("ATENÇÃO: Isso vai excluir TODOS os chaveiros e TODOS os usuários (exceto você). Esta ação não pode ser desfeita. Deseja continuar?")) return;
-    if (!window.confirm("Confirme novamente: excluir todos os dados de usuários e chaveiros?")) return;
-    setResetting(true);
-    try {
-      await base44.entities.Locksmith.deleteMany({});
-      const me = await base44.auth.me();
-      const others = users.filter((u) => u.id !== me.id);
-      for (const u of others) {
-        try { await base44.entities.User.delete(u.id); } catch (e) {}
-      }
-      await load();
-    } catch (e) {
-      alert("Erro ao resetar: " + (e.message || e));
-    } finally {
-      setResetting(false);
-    }
-  };
-
   if (loading) {
     return (
       <div className="flex items-center justify-center py-20">
@@ -170,15 +151,7 @@ export default function PainelAdmin() {
       )}
 
       <div className="flex justify-end">
-        <Button
-          variant="destructive"
-          onClick={resetAll}
-          disabled={resetting}
-          className="gap-2"
-        >
-          <Trash2 className="w-4 h-4" />
-          {resetting ? "Resetando..." : "Resetar tudo (usuários e chaveiros)"}
-        </Button>
+        <ResetLocksmithsDialog onReset={load} />
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
