@@ -29,6 +29,7 @@ export default function Login() {
       if (dest === "/") {
         try {
           let me = await base44.auth.me();
+          // Entrar com uma senha válida comprova que ela já foi cadastrada.
           if (me?.password_created !== true) me = await base44.auth.updateMe({ password_created: true });
           const at = me?.account_type;
           dest = me?.role === "admin" ? "/painel-admin" : at === "chaveiro" ? "/painel-chaveiro" : "/";
