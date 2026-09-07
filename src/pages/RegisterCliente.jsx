@@ -176,7 +176,7 @@ export default function RegisterCliente() {
           </div>
         </div>
 
-        <CpfInput value={cpf} onChange={setCpf} />
+        <CpfInput value={cpf} onChange={setCpf} email={email} />
 
         <div className="space-y-2">
           <Label htmlFor="email">Email</Label>

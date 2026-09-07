@@ -4,6 +4,7 @@ import { base44 } from "@/api/base44Client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
 import { LogIn, Mail, Lock, Loader2 } from "lucide-react";
 import AuthLayout from "@/components/AuthLayout";
 import GoogleIcon from "@/components/GoogleIcon";
@@ -15,6 +16,7 @@ export default function Login() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [rememberMe, setRememberMe] = useState(true);
   const returnTo = safeReturnTo();
 
   const handleSubmit = async (e) => {
@@ -26,13 +28,16 @@ export default function Login() {
       let dest = returnTo;
       if (dest === "/") {
         try {
-          const me = await base44.auth.me();
+          let me = await base44.auth.me();
+          if (me?.password_created !== true) me = await base44.auth.updateMe({ password_created: true });
           const at = me?.account_type;
-          dest = at === "chaveiro" ? "/painel-chaveiro" : at === "admin" ? "/painel-admin" : "/";
+          dest = me?.role === "admin" ? "/painel-admin" : at === "chaveiro" ? "/painel-chaveiro" : "/";
         } catch {
           dest = "/";
         }
       }
+      localStorage.setItem("remember_login", String(rememberMe));
+      sessionStorage.setItem("active_login_session", "true");
       window.location.href = dest;
     } catch (err) {
       setError(err.message || "Email ou senha inválidos");
@@ -42,6 +47,8 @@ export default function Login() {
   };
 
   const handleGoogle = () => {
+    localStorage.setItem("remember_login", String(rememberMe));
+    sessionStorage.setItem("active_login_session", "true");
     base44.auth.loginWithProvider("google", returnTo);
   };
 
@@ -125,6 +132,10 @@ export default function Login() {
             />
           </div>
         </div>
+        <label className="flex items-center gap-2 text-sm text-foreground cursor-pointer">
+          <Checkbox checked={rememberMe} onCheckedChange={(checked) => setRememberMe(checked === true)} />
+          Manter conectado neste aparelho
+        </label>
         <Button type="submit" className="w-full h-12 font-medium" disabled={loading}>
           {loading ? (
             <>

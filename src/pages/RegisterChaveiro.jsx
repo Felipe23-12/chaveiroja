@@ -202,7 +202,7 @@ export default function RegisterChaveiro() {
           </div>
         </div>
 
-        <CpfInput value={cpf} onChange={setCpf} />
+        <CpfInput value={cpf} onChange={setCpf} email={email} />
 
         <div className="space-y-4 rounded-xl border border-border bg-muted/30 p-4">
           <p className="text-sm font-semibold text-foreground">Dados profissionais</p>

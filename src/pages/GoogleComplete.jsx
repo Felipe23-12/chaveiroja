@@ -4,10 +4,11 @@ import { base44 } from "@/api/base44Client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Loader2, User, UserPlus, Wrench, Phone, CreditCard, AtSign } from "lucide-react";
+import { Loader2, User, UserPlus, Wrench, Phone, AtSign } from "lucide-react";
 import AuthLayout from "@/components/AuthLayout";
-import { cpfError, onlyDigits, formatCpf } from "@/lib/cpf";
+import { cpfError, onlyDigits } from "@/lib/cpf";
 import { claimCpf } from "@/lib/cpfRegistration";
+import CpfInput from "@/components/auth/CpfInput";
 import TermsAcceptance from "@/components/auth/TermsAcceptance";
 import GooglePasswordSetup from "@/components/auth/GooglePasswordSetup";
 import { termsPayload } from "@/lib/termsVersion";
@@ -21,6 +22,7 @@ export default function GoogleComplete() {
   const [username, setUsername] = useState("");
   const [phone, setPhone] = useState("");
   const [cpf, setCpf] = useState("");
+  const [email, setEmail] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -36,6 +38,7 @@ export default function GoogleComplete() {
         if (me?.username) setUsername(me.username);
         if (me?.phone) setPhone(me.phone);
         if (me?.cpf) setCpf(me.cpf);
+        if (me?.email) setEmail(me.email);
       } catch (e) {
         /* ignora — segue com o formulário em branco */
       } finally {
@@ -166,22 +169,7 @@ export default function GoogleComplete() {
           </div>
         </div>
 
-        <div className="space-y-2">
-          <Label htmlFor="cpf">CPF</Label>
-          <div className="relative">
-            <CreditCard className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" aria-hidden="true" />
-            <Input
-              id="cpf"
-              type="text"
-              inputMode="numeric"
-              placeholder="000.000.000-00"
-              value={cpf}
-              onChange={(e) => setCpf(formatCpf(e.target.value))}
-              className="pl-10 h-12"
-              required
-            />
-          </div>
-        </div>
+        <CpfInput value={cpf} onChange={setCpf} email={email} />
 
         <TermsAcceptance accountType={tipo} checked={acceptedTerms} onChange={setAcceptedTerms} />
 

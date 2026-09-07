@@ -20,6 +20,10 @@ export const AuthProvider = ({ children }) => {
 
   const checkAppState = async () => {
     try {
+      if (appParams.token && localStorage.getItem('remember_login') === 'false' && sessionStorage.getItem('active_login_session') !== 'true') {
+        await base44.auth.logout();
+        return;
+      }
       setIsLoadingPublicSettings(true);
       setAuthError(null);
       
@@ -117,6 +121,8 @@ export const AuthProvider = ({ children }) => {
   const logout = (shouldRedirect = true) => {
     setUser(null);
     setIsAuthenticated(false);
+    localStorage.removeItem('remember_login');
+    sessionStorage.removeItem('active_login_session');
     
     if (shouldRedirect) {
       // Use the SDK's logout method which handles token cleanup and redirect

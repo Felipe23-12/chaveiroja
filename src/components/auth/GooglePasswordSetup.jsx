@@ -10,8 +10,23 @@ export default function GooglePasswordSetup({ onComplete }) {
   const [currentPassword, setCurrentPassword] = useState("");
   const [password, setPassword] = useState("");
   const [confirmation, setConfirmation] = useState("");
+  const [emailSent, setEmailSent] = useState(false);
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
+
+  const sendResetLink = async () => {
+    setError("");
+    setSaving(true);
+    try {
+      const user = await base44.auth.me();
+      await base44.auth.resetPasswordRequest(user.email);
+      setEmailSent(true);
+    } catch (err) {
+      setError(err?.message || "Não foi possível enviar o link.");
+    } finally {
+      setSaving(false);
+    }
+  };
 
   const submit = async (event) => {
     event.preventDefault();
@@ -32,6 +47,8 @@ export default function GooglePasswordSetup({ onComplete }) {
     }
   };
 
+  if (emailSent) return <div className="space-y-4 text-center"><p className="rounded-lg bg-primary/10 p-4 text-sm text-foreground">Enviamos um link para seu e-mail. Abra o link, crie a senha e depois entre no aplicativo usando seu e-mail e a nova senha.</p><Link to="/login" className="text-sm font-medium text-primary hover:underline">Ir para a tela de entrada</Link></div>;
+
   return <form onSubmit={submit} className="space-y-4">
     {error && <p className="rounded-lg bg-destructive/10 p-3 text-sm text-destructive">{error}</p>}
     <div className="space-y-2">
@@ -42,5 +59,6 @@ export default function GooglePasswordSetup({ onComplete }) {
     <div className="space-y-2"><Label htmlFor="google-confirmation">Confirmar senha</Label><Input id="google-confirmation" type="password" autoComplete="new-password" value={confirmation} onChange={(e) => setConfirmation(e.target.value)} required /></div>
     <p className="text-xs text-muted-foreground">Mínimo de 8 caracteres, contendo letras e números.</p>
     <Button type="submit" className="w-full h-12" disabled={saving}>{saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Lock className="h-4 w-4" />}Criar senha e continuar</Button>
+    <Button type="button" variant="outline" className="w-full h-12" disabled={saving} onClick={sendResetLink}>Não tenho senha — enviar link por e-mail</Button>
   </form>;
 }
