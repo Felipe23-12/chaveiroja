@@ -33,6 +33,10 @@ export default function GooglePasswordSetup({ onComplete }) {
   const submit = async (event) => {
     event.preventDefault();
     setError("");
+    if (!currentPassword) {
+      await sendResetLink();
+      return;
+    }
     const valid = password.length >= 8 && /[A-Za-z]/.test(password) && /[0-9]/.test(password);
     if (!valid) return setError("Use no mínimo 8 caracteres, com letras e números.");
     if (password !== confirmation) return setError("As senhas não coincidem.");
@@ -45,18 +49,22 @@ export default function GooglePasswordSetup({ onComplete }) {
       sessionStorage.setItem("active_login_session", "true");
       onComplete();
     } catch (err) {
-      setError(err?.message || "Não foi possível criar a senha.");
+      const message = String(err?.message || "");
+      setError(/current password incorrect/i.test(message)
+        ? "A senha atual está incorreta. Confira a senha ou use a opção de enviar um link por e-mail."
+        : message || "Não foi possível criar a senha.");
     } finally {
       setSaving(false);
     }
   };
 
-  if (emailSent) return <div className="space-y-4 text-center"><p className="rounded-lg bg-primary/10 p-4 text-sm text-foreground">Enviamos um link para seu e-mail. Abra o link, crie a senha e depois entre no aplicativo usando seu e-mail e a nova senha.</p><Link to="/login" className="text-sm font-medium text-primary hover:underline">Ir para a tela de entrada</Link></div>;
+  if (emailSent) return <div className="space-y-4 text-center"><p className="rounded-lg bg-primary/10 p-4 text-sm text-foreground">Como esta conta ainda não possui uma senha atual, enviamos um link seguro para seu e-mail. Abra o link, crie a senha e depois entre no aplicativo usando seu e-mail e a nova senha.</p><Link to="/login" className="text-sm font-medium text-primary hover:underline">Ir para a tela de entrada</Link></div>;
 
   return <form onSubmit={submit} className="space-y-4">
     {error && <p className="rounded-lg bg-destructive/10 p-3 text-sm text-destructive">{error}</p>}
     <div className="space-y-2">
       <div className="flex items-center justify-between"><Label htmlFor="current-password">Senha atual, se já tiver</Label><Link to="/forgot-password" className="text-xs font-medium text-primary hover:underline">Esqueci minha senha</Link></div>
+      <p className="text-xs text-muted-foreground">Se você ainda não tem senha, deixe este campo vazio para receber o link de criação por e-mail.</p>
       <Input id="current-password" type="password" autoComplete="current-password" value={currentPassword} onChange={(e) => setCurrentPassword(e.target.value)} />
     </div>
     <div className="space-y-2"><Label htmlFor="google-password">Nova senha</Label><Input id="google-password" type="password" autoComplete="new-password" value={password} onChange={(e) => setPassword(e.target.value)} required /></div>
