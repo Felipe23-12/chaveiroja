@@ -34,10 +34,14 @@ export default async function(req) {
       return Response.json({ error: 'CPF inválido — confira os números digitados' }, { status: 400 });
     }
 
-    const [plainMatches, formattedMatches] = await Promise.all([
+    const [plainMatches, formattedMatches, blockedMatches] = await Promise.all([
       base44.asServiceRole.entities.User.filter({ cpf }),
       base44.asServiceRole.entities.User.filter({ cpf: formatCpf(cpf) }),
+      base44.asServiceRole.entities.BlockedCpf.filter({ cpf }),
     ]);
+    if (blockedMatches.length > 0) {
+      return Response.json({ error: 'Este CPF está impedido de realizar um novo cadastro' }, { status: 403 });
+    }
     const duplicate = [...plainMatches, ...formattedMatches].find((account) => account.id !== user.id);
     if (duplicate) {
       return Response.json({ error: 'Este CPF já está cadastrado em outra conta' }, { status: 409 });

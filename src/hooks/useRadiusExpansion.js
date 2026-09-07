@@ -1,6 +1,7 @@
 import { useEffect, useRef } from "react";
 import { base44 } from "@/api/base44Client";
 import { buildEligibleQueue } from "@/lib/ringRotation";
+import { selectScoreBroadcast } from "@/lib/locksmithScore";
 import { expandRadius, RADIUS_EXPAND_INTERVAL_MS, MAX_RADIUS_KM } from "@/lib/searchRadius";
 
 /**
@@ -30,7 +31,7 @@ export function useRadiusExpansion({ request, service, locksmiths, customerLoc, 
 
         const all = buildEligibleQueue(locksmiths, service, customerLoc);
         // Toca para todos os chaveiros elegíveis dentro do novo raio
-        const queue = all.filter((q) => q.d <= next);
+        const queue = selectScoreBroadcast(all.filter((q) => q.d <= next), fresh.price);
         const ids = queue.map((q) => q.l.id);
         const userIds = queue.map((q) => q.l.created_by_id);
         const added = ids.filter((id) => !(fresh.ringing_locksmith_ids || []).includes(id));

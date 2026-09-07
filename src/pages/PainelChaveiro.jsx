@@ -18,6 +18,9 @@ import IncomingRequestAlert from "@/components/locksmith/IncomingRequestAlert";
 import PendingRequestsList from "@/components/locksmith/PendingRequestsList";
 import NearbyRequestsList from "@/components/locksmith/NearbyRequestsList";
 import InactivityRevalidationCard from "@/components/locksmith/InactivityRevalidationCard";
+import LocksmithScoreCard from "@/components/locksmith/LocksmithScoreCard";
+import LocksmithCaseStatus from "@/components/locksmith/LocksmithCaseStatus";
+import LocksmithCancellationFlow from "@/components/locksmith/LocksmithCancellationFlow";
 import { useToast } from "@/components/ui/use-toast";
 import DarkModeToggle from "@/components/DarkModeToggle";
 import { haversineKm, stepToward, fetchDrivingRoute, etaMinutes, getCustomerLocation } from "@/lib/geo";
@@ -100,6 +103,7 @@ export default function PainelChaveiro() {
   const [chatFocus, setChatFocus] = useState(false);
   const [cancelOpen, setCancelOpen] = useState(false);
   const [profileChecked, setProfileChecked] = useState(false);
+  const [trustScore, setTrustScore] = useState(null);
   const emailedStatus = useRef(new Set());
 
   const selected = locksmiths.find((l) => l.id === selectedId) || me;
@@ -220,6 +224,21 @@ export default function PainelChaveiro() {
     });
     return safeUnsubscribe(unsub);
   }, [selectedId]);
+
+  useEffect(() => {
+    if (!selectedId) return;
+    const load = () => base44.entities.LocksmithScore.filter({ locksmith_id: selectedId }).then((rows) => setTrustScore(rows[0] || null)).catch(() => {});
+    load();
+    return safeUnsubscribe(base44.entities.LocksmithScore.subscribe(load));
+  }, [selectedId]);
+
+  useEffect(() => {
+    if (!active) return;
+    const heartbeat = () => base44.functions.invoke("serviceTrust", { action: "heartbeat" }).catch(() => {});
+    heartbeat();
+    const timer = setInterval(heartbeat, 60000);
+    return () => clearInterval(timer);
+  }, [active?.id]);
 
   // Escuta "toques" (status ringing) direcionados a este chaveiro (modo app)
   useEffect(() => {
@@ -451,6 +470,10 @@ export default function PainelChaveiro() {
 
   const toggleOnline = async () => {
     if (!me) return;
+    if (trustBlocked) {
+      toast({ title: "Conta suspensa", description: "Aguarde o fim da análise de segurança.", variant: "destructive" });
+      return;
+    }
     if (!me.online) {
       const block = getRejectBlock(me);
       if (block.blocked) {
@@ -531,21 +554,13 @@ export default function PainelChaveiro() {
     await rejectRing(req, selectedId);
     setPendingRequests((prev) => prev.filter((r) => r.id !== reqId));
     if (me) {
-      const { count, blocked } = await registerRejection(me);
+      const { count } = await registerRejection(me, reqId);
       const fresh = await base44.entities.Locksmith.get(me.id);
       setMe(fresh);
-      if (blocked) {
-        toast({
-          title: "Você foi bloqueado por 1 hora",
-          description: `Limite de ${DAILY_REJECT_LIMIT} recusas por dia excedido.`,
-          variant: "destructive",
-        });
-      } else {
-        toast({
-          title: "Chamado recusado",
-          description: `${count} de ${DAILY_REJECT_LIMIT} recusas usadas hoje.`,
-        });
-      }
+      toast({
+        title: "Chamado recusado",
+        description: count % 3 === 0 ? "A cada 3 recusas, seu score diminui 1 ponto." : `${count % 3} de 3 recusas para a próxima redução de score.`,
+      });
     }
   };
 
@@ -686,6 +701,7 @@ export default function PainelChaveiro() {
 
   const isAppMode = me?.work_mode === "app";
   const rejectBlock = getRejectBlock(me);
+  const trustBlocked = trustScore?.banned || (trustScore?.suspended_until && new Date(trustScore.suspended_until).getTime() > Date.now());
   const ring = pendingRequests[0] || null;
   const pendingCount = pendingRequests.length;
   const startDone = (active?.start_photos?.length || 0) > 0;
@@ -829,13 +845,19 @@ export default function PainelChaveiro() {
             onClick={toggleOnline}
             variant={me.online ? "destructive" : "default"}
             size="sm"
-            disabled={blockedOnline}
+            disabled={blockedOnline || trustBlocked}
           >
             <Power className="w-4 h-4 mr-1.5" /> {me.online ? "Sair" : "Entrar"}
           </Button>
         </div>
         );
       })()}
+
+      {me && isAppMode && <LocksmithScoreCard score={trustScore} />}
+
+      {trustBlocked && (
+        <div className="p-4 rounded-xl border-2 border-red-400 bg-red-50 text-red-700 mb-5"><p className="font-bold text-sm">Conta temporariamente suspensa</p><p className="text-sm mt-1">Você não receberá chamados até o fim da análise de segurança.</p></div>
+      )}
 
       {/* Perfil desativado automaticamente por 30 dias sem aceitar chamados */}
       {me?.inactive_deactivated && (
@@ -853,9 +875,9 @@ export default function PainelChaveiro() {
         </div>
       )}
 
-      {me && !rejectBlock.blocked && isAppMode && rejectionsToday(me) > 0 && (
+      {me && isAppMode && rejectionsToday(me) > 0 && (
         <p className="text-xs text-muted-foreground mb-5">
-          Recusas hoje: {rejectionsToday(me)} de {DAILY_REJECT_LIMIT}
+          Recusas hoje: {rejectionsToday(me)} · a cada {DAILY_REJECT_LIMIT}, o score cai 1 ponto
         </p>
       )}
 
@@ -894,7 +916,7 @@ export default function PainelChaveiro() {
       )}
 
       {/* Fila de solicitações pendentes — modo app */}
-      {pendingCount > 0 && isAppMode && !rejectBlock.blocked && (
+      {pendingCount > 0 && isAppMode && !rejectBlock.blocked && !trustBlocked && (
         <PendingRequestsList
           requests={pendingRequests}
           onAccept={handleAccept}
@@ -917,6 +939,7 @@ export default function PainelChaveiro() {
           <ArrivalDeadlineCountdown request={active} />
 
           <UrgencyUpgradeAlert request={active} onResolved={setActive} />
+          <LocksmithCaseStatus requestId={active.id} />
 
           {/* Alerta persistente: cliente pagará em dinheiro — confirme o recebimento */}
           {cashPending && (
@@ -1093,32 +1116,19 @@ export default function PainelChaveiro() {
           {active.status !== "completed" && (
             <Button
               variant="outline"
-              onClick={() => setCancelOpen(true)}
+              onClick={() => active.locksmith_arrived ? setCancelOpen(true) : handleCancelActive()}
               className="w-full text-destructive border-destructive/40 hover:bg-destructive/5"
             >
               <X className="w-4 h-4 mr-1.5" /> Cancelar chamado
             </Button>
           )}
 
-          <AlertDialog open={cancelOpen} onOpenChange={setCancelOpen}>
-            <AlertDialogContent>
-              <AlertDialogHeader>
-                <AlertDialogTitle>Cancelar chamado?</AlertDialogTitle>
-                <AlertDialogDescription>
-                  O serviço será cancelado e o cliente liberado para um novo atendimento. Esta ação não pode ser desfeita.
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogCancel>Continuar atendimento</AlertDialogCancel>
-                <AlertDialogAction
-                  onClick={handleCancelActive}
-                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                >
-                  Sim, cancelar
-                </AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
+          <LocksmithCancellationFlow
+            open={cancelOpen}
+            onOpenChange={setCancelOpen}
+            request={active}
+            onSubmitted={() => toast({ title: "Justificativa registrada", description: "O cliente foi notificado e o prazo de espera foi iniciado." })}
+          />
         </div>
       ) : !me ? null : (
         isAppMode ? (

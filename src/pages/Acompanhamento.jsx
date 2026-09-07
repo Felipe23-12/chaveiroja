@@ -8,6 +8,7 @@ import LightMap from "@/components/map/LightMap";
 import QuickMessages from "@/components/chat/QuickMessages";
 import ArrivalDeadlineCountdown from "@/components/locksmith/ArrivalDeadlineCountdown";
 import CancelServiceButton from "@/components/locksmith/CancelServiceButton";
+import CancellationCaseNotice from "@/components/client/CancellationCaseNotice";
 import { fetchDrivingRoute, etaMinutes, haversineKm } from "@/lib/geo";
 import { safeUnsubscribe } from "@/lib/safeUnsubscribe";
 
@@ -170,8 +171,9 @@ export default function Acompanhamento() {
         </div>
       </div>
 
-      <div className="mb-4">
+      <div className="mb-4 space-y-3">
         <ArrivalDeadlineCountdown request={request} />
+        <CancellationCaseNotice requestId={request.id} />
       </div>
 
       {/* Layout: mapa em cima, chat embaixo (mobile) | lado a lado (desktop) */}

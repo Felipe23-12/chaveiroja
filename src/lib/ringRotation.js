@@ -14,8 +14,9 @@ export function buildEligibleQueue(locksmiths, service, customerLoc, radiusKm = 
     .filter((l) => {
       // Precisa de localização válida para calcular a proximidade
       if (!l.lat || !l.lng) return false;
-      // Não toca para quem está bloqueado por excesso de recusas
-      if (l.blocked_until && new Date(l.blocked_until).getTime() > now) return false;
+      const trust = l.trust_status;
+      if (trust?.banned) return false;
+      if (trust?.suspended_until && new Date(trust.suspended_until).getTime() > now) return false;
       // Chaveiro do modo livre só recebe chamados do app se tiver optado por isso
       if (l.work_mode === "livre" && l.receive_app_requests === false) return false;
       if (l.services && l.services.length > 0) return l.services.includes(service.id);
@@ -25,7 +26,10 @@ export function buildEligibleQueue(locksmiths, service, customerLoc, radiusKm = 
     .map((l) => ({ l, d: haversineKm(customerLoc, { lat: l.lat, lng: l.lng }) }))
     // Respeita o raio de atendimento configurado por cada chaveiro
     .filter((q) => q.d <= (q.l.service_radius_km || 15))
-    .sort((a, b) => a.d - b.d);
+    .sort((a, b) => {
+      const scoreDiff = (b.l.trust_score ?? 10) - (a.l.trust_score ?? 10);
+      return scoreDiff || a.d - b.d;
+    });
 
   // Respeita o raio de busca escolhido pelo cliente
   return radiusKm ? queue.filter((q) => q.d <= radiusKm) : queue;

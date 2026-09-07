@@ -25,6 +25,7 @@ import UrgentArrivalCountdown from "@/components/locksmith/UrgentArrivalCountdow
 import { DEFAULT_CENTER, getCustomerLocation, haversineKm, calculateInitialServiceDistance, fetchDrivingRoute, etaMinutes } from "@/lib/geo";
 import { getClientLoyalty, applyLoyaltyDiscount } from "@/lib/loyalty";
 import { buildEligibleQueue } from "@/lib/ringRotation";
+import { loadScoreMap, withScores, selectScoreBroadcast } from "@/lib/locksmithScore";
 import { safeUnsubscribe } from "@/lib/safeUnsubscribe";
 
 import { createLock, locksSummary } from "@/lib/locks";
@@ -47,6 +48,7 @@ import { useToast } from "@/components/ui/use-toast";
 import CancelFeeConfirmDialog from "@/components/client/CancelFeeConfirmDialog";
 import RingingStep from "@/components/client/RingingStep";
 import DebtBlockNotice from "@/components/client/DebtBlockNotice";
+import CancellationCaseNotice from "@/components/client/CancellationCaseNotice";
 import AcceptedStep from "@/components/client/AcceptedStep";
 import ReviewStep from "@/components/client/ReviewStep";
 import useClientDebt from "@/hooks/useClientDebt";
@@ -221,9 +223,11 @@ export default function Home() {
 
   useEffect(() => {
     getCustomerLocation().then(setCustomerLoc);
-    // Inclui chaveiros do modo app e também os do modo livre que aceitam
-    // receber chamados do aplicativo (a elegibilidade é filtrada depois)
-    base44.entities.Locksmith.filter({ available: true }).then(setAppLocksmiths).catch(() => {});
+    // Inclui score e eventuais suspensões na seleção dos profissionais.
+    Promise.all([
+      base44.entities.Locksmith.filter({ available: true }),
+      loadScoreMap(),
+    ]).then(([profiles, scores]) => setAppLocksmiths(withScores(profiles, scores))).catch(() => {});
     base44.auth.me()
       .then((u) => getClientLoyalty(u.id))
       .then(setLoyalty)
@@ -440,11 +444,12 @@ export default function Home() {
         usedRadius = searchRadius;
         queue = allEligible.filter((q) => q.d <= searchRadius);
       }
-      queueRef.current = queue;
+      const broadcast = selectScoreBroadcast(queue, price?.total || 0);
+      queueRef.current = broadcast;
       setCurrentRadius(usedRadius);
-      const nearest = queue[0];
-      // O chamado toca ao mesmo tempo para TODOS os chaveiros dentro do raio
-      const broadcast = queue;
+      const nearest = broadcast[0];
+      // Scores altos recebem primeiro os chamados de maior valor; scores baixos
+      // continuam em recuperação com chamados menores, mais distantes e menos frequentes.
 
       if (!nearest) {
         setSearchError(`Nenhum chaveiro disponível para "${service.label}" no modo aplicativo agora. Tente novamente em instantes.`);
@@ -1121,6 +1126,7 @@ export default function Home() {
           </div>
 
           <UrgentArrivalCountdown request={activeRequest} />
+          <CancellationCaseNotice requestId={activeRequest.id} />
 
           {activeRequest.locksmith_arrived && !activeRequest.client_arrived_confirmed && (
             <div className="p-4 rounded-2xl border-2 border-primary bg-primary/5 space-y-3">

@@ -51,5 +51,11 @@ export async function acceptRing(requestId, locksmith, extra = 0) {
     price: newPrice,
     extra_cost: extra,
   });
+  await base44.functions.invoke("serviceTrust", {
+    action: "score_event",
+    event_type: "accepted",
+    request_id: requestId,
+    locksmith_id: locksmith.id,
+  }).catch(() => null);
   return true;
 }
