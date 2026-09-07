@@ -61,16 +61,10 @@ function isMissingAccountError(error: any) {
   return code === 'resource_missing' || code === 'invalid_request_error';
 }
 
+// As contas são criadas como Express (v1), então a consulta usa sempre a v1 —
+// a v2 devolve um objeto parcial que fazia o status ficar travado em "pendente".
 async function retrieveAccount(accountId: string, stripeKey: string) {
-  try {
-    return await stripeRequestV2(
-      `/core/accounts/${accountId}?include=configuration.merchant&include=configuration.recipient&include=identity&include=requirements`,
-      stripeKey,
-      { method: 'GET' }
-    );
-  } catch (_e) {
-    return await stripeRequest(`/accounts/${accountId}`, stripeKey, { method: 'GET' });
-  }
+  return await stripeRequest(`/accounts/${accountId}`, stripeKey, { method: 'GET' });
 }
 
 function capabilityStatus(account: any, capability: string) {
