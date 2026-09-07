@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { CheckCircle2, ExternalLink, Loader2, CreditCard, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { base44 } from "@/api/base44Client";
+import useOnAppResume from "@/hooks/useOnAppResume";
 
 export default function StripeConnectSetup() {
   const [status, setStatus] = useState(null);
@@ -9,7 +10,7 @@ export default function StripeConnectSetup() {
   const [working, setWorking] = useState(false);
   const [error, setError] = useState("");
 
-  const loadStatus = async () => {
+  const loadStatus = React.useCallback(async () => {
     setLoading(true);
     setError("");
     try {
@@ -20,7 +21,10 @@ export default function StripeConnectSetup() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
+
+  // Revalida o cadastro sempre que o chaveiro volta ao aplicativo
+  useOnAppResume(loadStatus);
 
   useEffect(() => {
     loadStatus();
