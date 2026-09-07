@@ -10,19 +10,23 @@ import StripeSetupSuccess from "@/components/locksmith/StripeSetupSuccess";
 export default function CadastroRecebimentos() {
   const navigate = useNavigate();
   const [active, setActive] = useState(false);
+  const [underReview, setUnderReview] = useState(false);
 
   const handleStatus = useCallback((status) => {
     setActive(!!(status?.charges_enabled && status?.payouts_enabled));
+    setUnderReview(!!status?.under_review);
   }, []);
 
   return (
     <AuthLayout
       icon={Wallet}
-      title={active ? "Recebimentos configurados" : "Receber seus pagamentos"}
+      title={active ? "Recebimentos configurados" : underReview ? "Conta em análise" : "Receber seus pagamentos"}
       subtitle={
         active
           ? "Sua conta Stripe já está vinculada ao ChaveiroJá"
-          : "Cadastre sua conta no Stripe para receber os valores dos atendimentos"
+          : underReview
+            ? "O Stripe está analisando seus dados; o restante do aplicativo continua liberado"
+            : "Cadastre sua conta no Stripe para receber os valores dos atendimentos"
       }
     >
       {active ? (

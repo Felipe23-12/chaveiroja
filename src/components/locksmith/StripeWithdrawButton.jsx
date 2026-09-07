@@ -9,12 +9,16 @@ import { base44 } from "@/api/base44Client";
 export default function StripeWithdrawButton({ className = "" }) {
   const [loading, setLoading] = useState(false);
   const [ready, setReady] = useState(null); // null = verificando
+  const [underReview, setUnderReview] = useState(false);
   const [error, setError] = useState("");
 
   useEffect(() => {
     base44.functions
       .invoke("stripeConnect", { action: "get_status" })
-      .then((res) => setReady(Boolean(res.data?.account_id && res.data?.payouts_enabled)))
+      .then((res) => {
+        setReady(Boolean(res.data?.account_id && res.data?.payouts_enabled));
+        setUnderReview(Boolean(res.data?.under_review));
+      })
       .catch(() => setReady(false));
   }, []);
 
@@ -47,7 +51,7 @@ export default function StripeWithdrawButton({ className = "" }) {
     <div className={className}>
       <button
         onClick={handleClick}
-        disabled={loading || ready === null}
+        disabled={loading || ready === null || underReview}
         className="flex items-center gap-1.5 px-3 py-2 min-h-[44px] rounded-xl bg-white/20 hover:bg-white/30 text-white text-sm font-semibold transition-colors disabled:opacity-60"
       >
         {loading || ready === null ? (
@@ -57,7 +61,7 @@ export default function StripeWithdrawButton({ className = "" }) {
         ) : (
           <ExternalLink className="w-4 h-4" />
         )}
-        {ready ? "Sacar no Stripe" : "Cadastrar no Stripe"}
+        {underReview ? "Em análise no Stripe" : ready ? "Sacar no Stripe" : "Cadastrar no Stripe"}
       </button>
       {error && <p className="mt-1 text-[11px] text-white/90">{error}</p>}
     </div>

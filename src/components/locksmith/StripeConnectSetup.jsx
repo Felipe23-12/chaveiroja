@@ -10,8 +10,8 @@ export default function StripeConnectSetup({ onStatusChange }) {
   const [working, setWorking] = useState(false);
   const [error, setError] = useState("");
 
-  const loadStatus = React.useCallback(async () => {
-    setLoading(true);
+  const loadStatus = React.useCallback(async (silent = false) => {
+    if (!silent) setLoading(true);
     setError("");
     try {
       const res = await base44.functions.invoke("stripeConnect", { action: "get_status" });
@@ -20,7 +20,7 @@ export default function StripeConnectSetup({ onStatusChange }) {
     } catch (e) {
       setError(e?.response?.data?.error || e?.message || "Não foi possível consultar o Stripe.");
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   }, [onStatusChange]);
 
@@ -41,6 +41,12 @@ export default function StripeConnectSetup({ onStatusChange }) {
     }, 4000);
     return () => clearInterval(timer);
   }, []);
+
+  useEffect(() => {
+    if (!status?.under_review) return;
+    const timer = setInterval(() => loadStatus(true), 30000);
+    return () => clearInterval(timer);
+  }, [status?.under_review, loadStatus]);
 
   const setup = async () => {
     setWorking(true);
@@ -99,6 +105,7 @@ export default function StripeConnectSetup({ onStatusChange }) {
   }
 
   const active = status?.charges_enabled && status?.payouts_enabled;
+  const underReview = status?.under_review;
   const pixActive = status?.pix_payments_status === "active";
 
   return (
@@ -116,6 +123,11 @@ export default function StripeConnectSetup({ onStatusChange }) {
       {active ? (
         <div className="flex items-center gap-2 text-sm text-emerald-700 bg-emerald-50 rounded-lg p-3">
           <CheckCircle2 className="w-4 h-4" /> Conta Stripe ativa para receber pagamentos e repasses.
+        </div>
+      ) : underReview ? (
+        <div className="flex items-start gap-2 text-sm text-amber-700 bg-amber-50 rounded-lg p-3">
+          <Loader2 className="w-4 h-4 mt-0.5 animate-spin shrink-0" />
+          <span><strong>Conta em análise pelo Stripe.</strong> Você pode usar o aplicativo normalmente. Os recebimentos serão liberados automaticamente após a aprovação.</span>
         </div>
       ) : (
         <div className="flex items-center gap-2 text-sm text-amber-700 bg-amber-50 rounded-lg p-3">
@@ -137,10 +149,10 @@ export default function StripeConnectSetup({ onStatusChange }) {
       {error && <p className="text-sm text-red-600 bg-red-50 p-3 rounded-lg">{error}</p>}
 
       <div className="flex flex-wrap gap-2">
-        <Button onClick={setup} disabled={working} size="sm">
+        {!underReview && <Button onClick={setup} disabled={working} size="sm">
           {working ? <Loader2 className="w-4 h-4 mr-1.5 animate-spin" /> : <ExternalLink className="w-4 h-4 mr-1.5" />}
           {status?.account_id ? "Continuar cadastro Stripe" : "Configurar recebimentos"}
-        </Button>
+        </Button>}
         {status?.account_id && <Button onClick={refresh} disabled={working} variant="outline" size="sm">Atualizar status</Button>}
         {status?.account_id && active && <Button onClick={openDashboard} disabled={working} variant="outline" size="sm">Abrir painel Stripe</Button>}
         {status?.account_id && !pixActive && <Button onClick={requestPix} disabled={working} variant="outline" size="sm">Solicitar Pix</Button>}

@@ -110,6 +110,14 @@ function isDetailsSubmitted(account: any) {
   return !!account?.details_submitted;
 }
 
+function isUnderReview(account: any) {
+  const requirements = account?.requirements || {};
+  const currentlyDue = requirements.currently_due || [];
+  const pendingVerification = requirements.pending_verification || [];
+  return !isChargesEnabled(account) && !isPayoutsEnabled(account) &&
+    currentlyDue.length === 0 && (pendingVerification.length > 0 || isDetailsSubmitted(account));
+}
+
 async function saveConnectRecord(base44: any, locksmithId: string, account: any) {
   const now = new Date().toISOString();
   const chargesEnabled = isChargesEnabled(account);
@@ -261,6 +269,7 @@ Deno.serve(async (req) => {
           details_submitted: record.details_submitted,
           pix_payments_status: record.pix_payments_status,
           requirements: null,
+          under_review: record.status === 'restricted' && !!record.details_submitted,
           stale: true,
         });
       }
@@ -274,6 +283,7 @@ Deno.serve(async (req) => {
         details_submitted: saved.details_submitted,
         pix_payments_status: saved.pix_payments_status,
         requirements: account.requirements || null,
+        under_review: isUnderReview(account),
       });
     }
 
