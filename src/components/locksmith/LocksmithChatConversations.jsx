@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { base44 } from "@/api/base44Client";
-import { Send, MessageCircle } from "lucide-react";
+import { Send, MessageCircle, ArrowLeft } from "lucide-react";
+import ChatConversationList from "@/components/locksmith/ChatConversationList";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/components/ui/use-toast";
@@ -46,7 +47,6 @@ export default function LocksmithChatConversations({ me }) {
             (a, b) => new Date(b.lastDate) - new Date(a.lastDate)
           );
           setConversations(sorted);
-          if (sorted.length > 0 && !activeTab) setActiveTab(sorted[0].id);
 
           // Notificação em tempo real de novas mensagens de cliente
           if (lastCustomerCountRef.current !== null && customerTotal > lastCustomerCountRef.current) {
@@ -108,9 +108,17 @@ export default function LocksmithChatConversations({ me }) {
   return (
     <div id="chat-conversas">
       <div className="flex items-center gap-2 mb-3">
-        <MessageCircle className="w-4 h-4 text-primary" />
-        <h3 className="font-heading font-semibold text-foreground">Conversas com clientes</h3>
-        {conversations.length > 0 && (
+        {activeTab ? (
+          <button onClick={() => setActiveTab(null)} className="p-1 -ml-1 rounded-lg hover:bg-accent">
+            <ArrowLeft className="w-4 h-4 text-foreground" />
+          </button>
+        ) : (
+          <MessageCircle className="w-4 h-4 text-primary" />
+        )}
+        <h3 className="font-heading font-semibold text-foreground">
+          {activeTab ? conversations.find((c) => c.id === activeTab)?.name || "Conversa" : "Conversas com clientes"}
+        </h3>
+        {!activeTab && conversations.length > 0 && (
           <span className="px-2 py-0.5 rounded-full bg-primary/10 text-primary text-xs font-medium">
             {conversations.length}
           </span>
@@ -124,25 +132,10 @@ export default function LocksmithChatConversations({ me }) {
             Nenhuma conversa ainda. Quando clientes iniciarem chat pelo mapa, aparecerão aqui.
           </p>
         </div>
+      ) : !activeTab ? (
+        <ChatConversationList conversations={conversations} onOpen={setActiveTab} />
       ) : (
         <div className="rounded-xl border border-border overflow-hidden">
-          {/* Abas horizontais */}
-          <div className="flex gap-1 overflow-x-auto p-2 bg-muted/50 border-b border-border">
-            {conversations.map((c) => (
-              <button
-                key={c.id}
-                onClick={() => setActiveTab(c.id)}
-                className={`px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition-all ${
-                  activeTab === c.id
-                    ? "bg-primary text-primary-foreground"
-                    : "text-muted-foreground hover:bg-accent"
-                }`}
-              >
-                {c.name}
-              </button>
-            ))}
-          </div>
-
           {/* Mensagens da conversa ativa */}
           <div className="flex flex-col" style={{ height: 360 }}>
             <div className="flex-1 overflow-y-auto space-y-2 p-3">
