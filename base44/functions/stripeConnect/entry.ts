@@ -55,6 +55,12 @@ async function stripeRequestV2(path: string, stripeKey: string, options: Request
 
 // Busca a conta no Stripe. Contas criadas em versões/APIs diferentes podem não
 // responder na v2 com a chave da plataforma — nesse caso caímos para a v1.
+// Só consideramos o vínculo inválido quando o Stripe confirma que a conta não existe
+function isMissingAccountError(error: any) {
+  const code = error?.stripe?.code || error?.stripe?.type;
+  return code === 'resource_missing' || code === 'invalid_request_error';
+}
+
 async function retrieveAccount(accountId: string, stripeKey: string) {
   try {
     return await stripeRequestV2(
@@ -149,7 +155,8 @@ Deno.serve(async (req) => {
           const account = await retrieveAccount(existing[0].stripe_account_id, stripeKey);
           await saveConnectRecord(base44, locksmithId, account);
           return Response.json({ success: true, account_id: account.id, account });
-        } catch (_e) {
+        } catch (e) {
+          if (!isMissingAccountError(e)) throw e;
           // Vínculo inválido (conta de outro ambiente Stripe) — recria abaixo.
           await base44.asServiceRole.entities.StripeConnectAccount.delete(existing[0].id);
         }
@@ -257,11 +264,24 @@ Deno.serve(async (req) => {
       let account;
       try {
         account = await retrieveAccount(record.stripe_account_id, stripeKey);
-      } catch (_e) {
-        // Conta inexistente para a chave atual (ex.: criada em ambiente de teste).
-        // Removemos o vínculo inválido para o chaveiro poder se cadastrar novamente.
-        await base44.asServiceRole.entities.StripeConnectAccount.delete(record.id);
-        return Response.json({ connected: false, status: 'not_created' });
+      } catch (e) {
+        if (isMissingAccountError(e)) {
+          // Conta inexistente para a chave atual (ex.: criada em outro ambiente Stripe).
+          await base44.asServiceRole.entities.StripeConnectAccount.delete(record.id);
+          return Response.json({ connected: false, status: 'not_created' });
+        }
+        // Falha temporária: mantemos o vínculo e devolvemos o último status salvo.
+        return Response.json({
+          connected: true,
+          account_id: record.stripe_account_id,
+          status: record.status,
+          charges_enabled: record.charges_enabled,
+          payouts_enabled: record.payouts_enabled,
+          details_submitted: record.details_submitted,
+          pix_payments_status: record.pix_payments_status,
+          requirements: null,
+          stale: true,
+        });
       }
       const saved = await saveConnectRecord(base44, locksmithId, account);
       return Response.json({
