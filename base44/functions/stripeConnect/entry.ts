@@ -162,39 +162,18 @@ Deno.serve(async (req) => {
         }
       }
 
-      // Accounts v2: POST /v2/core/accounts (JSON body)
-      // merchant → card_payments | recipient → stripe_balance.stripe_transfers (substitui v1 transfers)
-      const payload: any = {
-        dashboard: 'express',
-        identity: { country: 'br' },
-        configuration: {
-          merchant: {
-            capabilities: {
-              card_payments: { requested: true },
-            },
-          },
-          recipient: {
-            capabilities: {
-              stripe_balance: {
-                payouts: { requested: true },
-                stripe_transfers: { requested: true },
-              },
-            },
-          },
-        },
-        defaults: {
-          responsibilities: {
-            fees_collector: 'application',
-            losses_collector: 'application',
-          },
-        },
-        include: ['configuration.merchant', 'configuration.recipient', 'identity', 'requirements'],
+      // Conta Express (API v1) — modelo estável e compatível com account_links/login_links
+      const fields: Record<string, string | boolean> = {
+        type: 'express',
+        country: 'br',
+        'capabilities[card_payments][requested]': true,
+        'capabilities[transfers][requested]': true,
       };
-      if (user.email) payload.contact_email = user.email;
+      if (user.email) fields.email = user.email;
 
-      const account = await stripeRequestV2('/core/accounts', stripeKey, {
+      const account = await stripeRequest('/accounts', stripeKey, {
         method: 'POST',
-        body: JSON.stringify(payload),
+        body: stripeForm(fields),
       });
 
       await saveConnectRecord(base44, locksmithId, account);
