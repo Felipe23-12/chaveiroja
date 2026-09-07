@@ -33,6 +33,11 @@
       "type": "string",
       "description": "Foto de perfil do usu\u00e1rio (c\u00e2mera ou galeria)"
     },
+    "password_created": {
+      "type": "boolean",
+      "default": false,
+      "description": "Indica que o usu\u00e1rio concluiu a cria\u00e7\u00e3o segura de uma senha do aplicativo"
+    },
     "terms_accepted_at": {
       "type": "string",
       "format": "date-time",

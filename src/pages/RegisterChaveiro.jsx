@@ -81,6 +81,7 @@ export default function RegisterChaveiro() {
           phone,
           full_name: fullName,
           account_type: "chaveiro",
+          password_created: true,
           ...termsPayload(),
         });
         window.location.assign("/cadastro/recebimentos");
@@ -112,11 +113,13 @@ export default function RegisterChaveiro() {
         phone: data.phone,
         full_name: data.fullName,
         account_type: "chaveiro",
+        password_created: true,
         ...termsPayload(),
       });
     } else {
       await base44.auth.updateMe({
         account_type: "chaveiro",
+        password_created: true,
         ...termsPayload(),
       });
     }

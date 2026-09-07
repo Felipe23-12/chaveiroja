@@ -83,6 +83,7 @@ export default function RegisterCliente() {
       await base44.auth.updateMe({
         phone,
         account_type: "cliente",
+        password_created: true,
         ...termsPayload(),
       });
     } catch (e) {

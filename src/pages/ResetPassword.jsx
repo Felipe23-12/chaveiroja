@@ -19,16 +19,29 @@ export default function ResetPassword() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
+    if (newPassword.length < 8) {
+      setError("A senha deve ter pelo menos 8 caracteres");
+      return;
+    }
     if (newPassword !== confirmPassword) {
-      setError("Passwords do not match");
+      setError("As senhas não coincidem");
       return;
     }
     setLoading(true);
     try {
       await base44.auth.resetPassword({ resetToken, newPassword });
+      const pendingRaw = localStorage.getItem("google_password_setup");
+      const pending = pendingRaw ? JSON.parse(pendingRaw) : null;
+      if (pending?.email) {
+        await base44.auth.loginViaEmailPassword(pending.email, newPassword);
+        await base44.auth.updateMe({ password_created: true });
+        localStorage.removeItem("google_password_setup");
+        window.location.href = pending.returnTo || "/";
+        return;
+      }
       window.location.href = "/login";
     } catch (err) {
-      setError(err.message || "Failed to reset password");
+      setError(err.message || "Não foi possível criar a senha");
     } finally {
       setLoading(false);
     }
@@ -38,16 +51,16 @@ export default function ResetPassword() {
     return (
       <AuthLayout
         icon={AlertTriangle}
-        title="Invalid reset link"
-        subtitle="This password reset link is missing or invalid"
+        title="Link de senha inválido"
+        subtitle="Este link está incompleto ou expirou"
         footer={
           <Link to="/forgot-password" className="text-primary font-medium hover:underline">
-            Request a new link
+            Solicitar outro link
           </Link>
         }
       >
         <p className="text-sm text-foreground text-center">
-          The link you used appears to be incomplete. Please request a new password reset email.
+          Solicite um novo e-mail para criar ou redefinir sua senha.
         </p>
       </AuthLayout>
     );
@@ -56,8 +69,8 @@ export default function ResetPassword() {
   return (
     <AuthLayout
       icon={Lock}
-      title="New password"
-      subtitle="Enter your new password below"
+      title="Criar nova senha"
+      subtitle="Informe e confirme sua senha de acesso"
     >
       {error && (
         <div className="mb-4 p-3 rounded-lg bg-destructive/10 text-destructive text-sm">
@@ -66,7 +79,7 @@ export default function ResetPassword() {
       )}
       <form onSubmit={handleSubmit} className="space-y-4">
         <div className="space-y-2">
-          <Label htmlFor="password">New Password</Label>
+          <Label htmlFor="password">Nova senha</Label>
           <div className="relative">
             <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" aria-hidden="true" />
             <Input
@@ -83,7 +96,7 @@ export default function ResetPassword() {
           </div>
         </div>
         <div className="space-y-2">
-          <Label htmlFor="confirm">Confirm Password</Label>
+          <Label htmlFor="confirm">Confirmar senha</Label>
           <div className="relative">
             <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" aria-hidden="true" />
             <Input
@@ -102,10 +115,10 @@ export default function ResetPassword() {
           {loading ? (
             <>
               <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-              Resetting...
+              Salvando...
             </>
           ) : (
-            "Reset password"
+            "Salvar senha"
           )}
         </Button>
       </form>

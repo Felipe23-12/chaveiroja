@@ -9,6 +9,7 @@ import AuthLayout from "@/components/AuthLayout";
 import { cpfError, onlyDigits, formatCpf } from "@/lib/cpf";
 import { claimCpf } from "@/lib/cpfRegistration";
 import TermsAcceptance from "@/components/auth/TermsAcceptance";
+import GooglePasswordSetup from "@/components/auth/GooglePasswordSetup";
 import { termsPayload } from "@/lib/termsVersion";
 
 export default function GoogleComplete() {
@@ -24,11 +25,15 @@ export default function GoogleComplete() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [acceptedTerms, setAcceptedTerms] = useState(false);
+  const [googleEmail, setGoogleEmail] = useState("");
+  const [passwordReady, setPasswordReady] = useState(false);
 
   useEffect(() => {
     const load = async () => {
       try {
         const me = await base44.auth.me();
+        setGoogleEmail(me?.email || "");
+        setPasswordReady(me?.password_created === true);
         if (me?.full_name) setFullName(me.full_name);
         if (me?.username) setUsername(me.username);
         if (me?.phone) setPhone(me.phone);
@@ -90,6 +95,14 @@ export default function GoogleComplete() {
         <Loader2 className="w-8 h-8 animate-spin text-primary" />
         <p className="text-sm text-muted-foreground">Carregando...</p>
       </div>
+    );
+  }
+
+  if (!passwordReady) {
+    return (
+      <AuthLayout icon={tipo === "chaveiro" ? Wrench : UserPlus} title="Proteja sua conta" subtitle="O acesso com Google também exige uma senha">
+        <GooglePasswordSetup email={googleEmail} accountType={tipo} />
+      </AuthLayout>
     );
   }
 
