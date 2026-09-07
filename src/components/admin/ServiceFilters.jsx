@@ -13,13 +13,18 @@ export const SERVICE_TYPES = [
 ];
 
 export const SERVICE_STATUSES = [
-  { value: "searching", label: "Buscando" },
-  { value: "ringing", label: "Chamando" },
-  { value: "accepted", label: "Aceito" },
-  { value: "on_the_way", label: "A caminho" },
-  { value: "completed", label: "Concluído" },
-  { value: "cancelled", label: "Cancelado" },
+  { value: "pending", label: "Pendentes" },
+  { value: "in_progress", label: "Em andamento" },
+  { value: "completed", label: "Concluídos" },
+  { value: "cancelled", label: "Cancelados" },
 ];
+
+const STATUS_GROUPS = {
+  pending: ["searching", "ringing"],
+  in_progress: ["accepted", "on_the_way"],
+  completed: ["completed"],
+  cancelled: ["cancelled"],
+};
 
 export function filterRequests(requests, { date, serviceType, status, locksmithName, search }, customerNameMap) {
   const q = (search || "").trim().toLowerCase();
@@ -30,7 +35,7 @@ export function filterRequests(requests, { date, serviceType, status, locksmithN
       if (key !== date) return false;
     }
     if (serviceType && r.service_type !== serviceType) return false;
-    if (status && r.status !== status) return false;
+    if (status && !STATUS_GROUPS[status]?.includes(r.status)) return false;
     if (locksmithName) {
       const name = (r.locksmith_name || "").toLowerCase();
       if (!name.includes(locksmithName.toLowerCase())) return false;
