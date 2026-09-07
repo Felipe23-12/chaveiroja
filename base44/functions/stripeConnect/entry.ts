@@ -53,6 +53,20 @@ async function stripeRequestV2(path: string, stripeKey: string, options: Request
   return data;
 }
 
+// Busca a conta no Stripe. Contas criadas em versões/APIs diferentes podem não
+// responder na v2 com a chave da plataforma — nesse caso caímos para a v1.
+async function retrieveAccount(accountId: string, stripeKey: string) {
+  try {
+    return await stripeRequestV2(
+      `/core/accounts/${accountId}?include=configuration.merchant&include=configuration.recipient&include=identity&include=requirements`,
+      stripeKey,
+      { method: 'GET' }
+    );
+  } catch (_e) {
+    return await stripeRequest(`/accounts/${accountId}`, stripeKey, { method: 'GET' });
+  }
+}
+
 function capabilityStatus(account: any, capability: string) {
   // v2: configuration.merchant.capabilities.{capability}.status
   const v2Status = account?.configuration?.merchant?.capabilities?.[capability]?.status;
@@ -127,13 +141,14 @@ Deno.serve(async (req) => {
     if (action === 'create_account') {
       const existing = await base44.asServiceRole.entities.StripeConnectAccount.filter({ locksmith_id: locksmithId });
       if (existing?.[0]?.stripe_account_id) {
-        const account = await stripeRequestV2(
-          `/core/accounts/${existing[0].stripe_account_id}?include=configuration.merchant&include=configuration.recipient&include=identity&include=requirements`,
-          stripeKey,
-          { method: 'GET' }
-        );
-        await saveConnectRecord(base44, locksmithId, account);
-        return Response.json({ success: true, account_id: account.id, account });
+        try {
+          const account = await retrieveAccount(existing[0].stripe_account_id, stripeKey);
+          await saveConnectRecord(base44, locksmithId, account);
+          return Response.json({ success: true, account_id: account.id, account });
+        } catch (_e) {
+          // Vínculo inválido (conta de outro ambiente Stripe) — recria abaixo.
+          await base44.asServiceRole.entities.StripeConnectAccount.delete(existing[0].id);
+        }
       }
 
       // Accounts v2: POST /v2/core/accounts (JSON body)
@@ -147,6 +162,14 @@ Deno.serve(async (req) => {
               card_payments: { requested: true },
             },
           },
+          recipient: {
+            capabilities: {
+              stripe_balance: {
+                payouts: { requested: true },
+                stripe_transfers: { requested: true },
+              },
+            },
+          },
         },
         defaults: {
           responsibilities: {
@@ -154,7 +177,7 @@ Deno.serve(async (req) => {
             losses_collector: 'application',
           },
         },
-        include: ['configuration.merchant', 'identity', 'requirements'],
+        include: ['configuration.merchant', 'configuration.recipient', 'identity', 'requirements'],
       };
       if (user.email) payload.contact_email = user.email;
 
@@ -174,8 +197,8 @@ Deno.serve(async (req) => {
         return Response.json({ error: 'Conta Stripe Connect ainda não foi criada' }, { status: 400 });
       }
 
-      const returnUrl = `${APP_URL}/configurar-recebimentos?stripe=return`;
-      const refreshUrl = `${APP_URL}/configurar-recebimentos?stripe=refresh`;
+      const returnUrl = `${APP_URL}/cadastro/recebimentos?stripe=return`;
+      const refreshUrl = `${APP_URL}/cadastro/recebimentos?stripe=refresh`;
       const link = await stripeRequest('/account_links', stripeKey, {
         method: 'POST',
         body: stripeForm({
@@ -227,11 +250,15 @@ Deno.serve(async (req) => {
         return Response.json({ connected: false, status: 'not_created' });
       }
 
-      const account = await stripeRequestV2(
-        `/core/accounts/${record.stripe_account_id}?include=configuration.merchant&include=configuration.recipient&include=identity&include=requirements`,
-        stripeKey,
-        { method: 'GET' }
-      );
+      let account;
+      try {
+        account = await retrieveAccount(record.stripe_account_id, stripeKey);
+      } catch (_e) {
+        // Conta inexistente para a chave atual (ex.: criada em ambiente de teste).
+        // Removemos o vínculo inválido para o chaveiro poder se cadastrar novamente.
+        await base44.asServiceRole.entities.StripeConnectAccount.delete(record.id);
+        return Response.json({ connected: false, status: 'not_created' });
+      }
       const saved = await saveConnectRecord(base44, locksmithId, account);
       return Response.json({
         connected: true,
