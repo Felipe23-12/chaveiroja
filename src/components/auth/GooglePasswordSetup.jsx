@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { Link } from "react-router-dom";
 import { Loader2, Lock } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { Button } from "@/components/ui/button";
@@ -33,7 +34,10 @@ export default function GooglePasswordSetup({ onComplete }) {
 
   return <form onSubmit={submit} className="space-y-4">
     {error && <p className="rounded-lg bg-destructive/10 p-3 text-sm text-destructive">{error}</p>}
-    <div className="space-y-2"><Label htmlFor="current-password">Senha atual, se já tiver</Label><Input id="current-password" type="password" autoComplete="current-password" value={currentPassword} onChange={(e) => setCurrentPassword(e.target.value)} /></div>
+    <div className="space-y-2">
+      <div className="flex items-center justify-between"><Label htmlFor="current-password">Senha atual, se já tiver</Label><Link to="/forgot-password" className="text-xs font-medium text-primary hover:underline">Esqueci minha senha</Link></div>
+      <Input id="current-password" type="password" autoComplete="current-password" value={currentPassword} onChange={(e) => setCurrentPassword(e.target.value)} />
+    </div>
     <div className="space-y-2"><Label htmlFor="google-password">Nova senha</Label><Input id="google-password" type="password" autoComplete="new-password" value={password} onChange={(e) => setPassword(e.target.value)} required /></div>
     <div className="space-y-2"><Label htmlFor="google-confirmation">Confirmar senha</Label><Input id="google-confirmation" type="password" autoComplete="new-password" value={confirmation} onChange={(e) => setConfirmation(e.target.value)} required /></div>
     <p className="text-xs text-muted-foreground">Mínimo de 8 caracteres, contendo letras e números.</p>
