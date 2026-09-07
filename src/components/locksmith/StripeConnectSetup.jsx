@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { base44 } from "@/api/base44Client";
 import useOnAppResume from "@/hooks/useOnAppResume";
 
-export default function StripeConnectSetup() {
+export default function StripeConnectSetup({ onStatusChange }) {
   const [status, setStatus] = useState(null);
   const [loading, setLoading] = useState(true);
   const [working, setWorking] = useState(false);
@@ -16,12 +16,13 @@ export default function StripeConnectSetup() {
     try {
       const res = await base44.functions.invoke("stripeConnect", { action: "get_status" });
       setStatus(res.data);
+      onStatusChange?.(res.data);
     } catch (e) {
       setError(e?.response?.data?.error || e?.message || "Não foi possível consultar o Stripe.");
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [onStatusChange]);
 
   // Revalida o cadastro sempre que o chaveiro volta ao aplicativo
   useOnAppResume(loadStatus);
