@@ -35,20 +35,23 @@ export default async function(req) {
       const pmType = method === "pix" ? "pix" : "card";
       let destinationAccountId = "";
       if (locksmith_id) {
-        // A conta Stripe Connect pode estar registrada pelo ID do perfil de
-        // chaveiro ou pelo ID do usuário dono do perfil — procuramos nos dois.
-        let records = await base44.asServiceRole.entities.StripeConnectAccount.filter({ locksmith_id });
-        if (!records?.[0]?.stripe_account_id) {
-          const profile = await base44.asServiceRole.entities.Locksmith.get(locksmith_id).catch(() => null);
-          if (profile?.created_by_id) {
+        const platformManagedIds = new Set([
+          "6a995cd681b4f49ae65f5697",
+          "6a980f758d36816ed57f0061",
+        ]);
+        const profile = await base44.asServiceRole.entities.Locksmith.get(locksmith_id).catch(() => null);
+        const platformManaged = platformManagedIds.has(locksmith_id) || platformManagedIds.has(profile?.created_by_id);
+        if (!platformManaged) {
+          // A conta Stripe Connect pode estar registrada pelo ID do perfil de
+          // chaveiro ou pelo ID do usuário dono do perfil — procuramos nos dois.
+          let records = await base44.asServiceRole.entities.StripeConnectAccount.filter({ locksmith_id });
+          if (!records?.[0]?.stripe_account_id && profile?.created_by_id) {
             records = await base44.asServiceRole.entities.StripeConnectAccount.filter({ locksmith_id: profile.created_by_id });
           }
+          destinationAccountId = records?.[0]?.stripe_account_id || "";
         }
-        destinationAccountId = records?.[0]?.stripe_account_id || "";
-        // Sem conta Stripe Connect ativa: cria um PaymentIntent direto na conta
-        // da plataforma. O repasse ao chaveiro é feito via carteira interna ao
-        // confirmar o pagamento (confirmPaymentPaid), permitindo cartão mesmo
-        // antes da configuração do Stripe Connect.
+        // Sem destino Connect, o valor fica na conta Stripe da plataforma e o
+        // saldo do chaveiro continua sendo controlado pela carteira interna.
       }
 
       const applicationFee = Math.round(cents * 0.15);

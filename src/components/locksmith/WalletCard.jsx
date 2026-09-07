@@ -2,7 +2,7 @@ import React from "react";
 import { Wallet, ArrowDownToLine, Clock } from "lucide-react";
 import StripeWithdrawButton from "@/components/locksmith/StripeWithdrawButton";
 
-export default function WalletCard({ balance, pending, onWithdraw }) {
+export default function WalletCard({ balance, pending, onWithdraw, platformManaged = false }) {
   return (
     <div className="space-y-3">
       <div className="p-5 rounded-2xl bg-gradient-to-br from-emerald-600 to-emerald-700 text-white">
@@ -14,7 +14,7 @@ export default function WalletCard({ balance, pending, onWithdraw }) {
           <p className="font-heading font-bold text-3xl">
             R$ {(Number(balance) || 0).toFixed(2)}
           </p>
-          <StripeWithdrawButton />
+          {!platformManaged && <StripeWithdrawButton />}
         </div>
         <div className="flex items-center gap-1.5 text-xs opacity-80">
           <Clock className="w-3.5 h-3.5" />

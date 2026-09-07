@@ -153,7 +153,11 @@ export default function PainelFinanceiro() {
       {me && (
         <div className="mb-6">
           <h2 className="font-heading font-semibold text-lg text-foreground mb-3">Carteira digital</h2>
-          <WalletCard balance={me.wallet_balance} pending={me.pending_balance} />
+          <WalletCard
+            balance={me.wallet_balance}
+            pending={me.pending_balance}
+            platformManaged={me.id === "6a995cd681b4f49ae65f5697"}
+          />
           <div className="mt-4">
             <WithdrawalSection locksmith={me} onWithdrawalMade={() => base44.entities.Locksmith.get(selectedId).then(setMe)} />
           </div>
