@@ -57,8 +57,19 @@ async function stripeRequestV2(path: string, stripeKey: string, options: Request
 // responder na v2 com a chave da plataforma — nesse caso caímos para a v1.
 // Só consideramos o vínculo inválido quando o Stripe confirma que a conta não existe
 function isMissingAccountError(error: any) {
-  const code = error?.stripe?.code || error?.stripe?.type;
-  return code === 'resource_missing' || code === 'invalid_request_error';
+  return error?.stripe?.code === 'resource_missing';
+}
+
+async function findConnectRecord(base44: any, userId: string) {
+  const direct = await base44.asServiceRole.entities.StripeConnectAccount.filter({ locksmith_id: userId });
+  if (direct?.[0]) return direct[0];
+
+  const profiles = await base44.asServiceRole.entities.Locksmith.filter({ created_by_id: userId });
+  const profileId = profiles?.[0]?.id;
+  if (!profileId) return null;
+
+  const legacy = await base44.asServiceRole.entities.StripeConnectAccount.filter({ locksmith_id: profileId });
+  return legacy?.[0] || null;
 }
 
 // As contas são criadas como Express (v1), então a consulta usa sempre a v1 —
@@ -115,9 +126,9 @@ async function saveConnectRecord(base44: any, locksmithId: string, account: any)
     updated_at: now,
   };
 
-  const existing = await base44.asServiceRole.entities.StripeConnectAccount.filter({ locksmith_id: locksmithId });
-  if (existing?.[0]?.id) {
-    return await base44.asServiceRole.entities.StripeConnectAccount.update(existing[0].id, record);
+  const existing = await findConnectRecord(base44, locksmithId);
+  if (existing?.id) {
+    return await base44.asServiceRole.entities.StripeConnectAccount.update(existing.id, record);
   }
   return await base44.asServiceRole.entities.StripeConnectAccount.create({ ...record, created_at: now });
 }
@@ -143,16 +154,16 @@ Deno.serve(async (req) => {
     }
 
     if (action === 'create_account') {
-      const existing = await base44.asServiceRole.entities.StripeConnectAccount.filter({ locksmith_id: locksmithId });
-      if (existing?.[0]?.stripe_account_id) {
+      const existing = await findConnectRecord(base44, locksmithId);
+      if (existing?.stripe_account_id) {
         try {
-          const account = await retrieveAccount(existing[0].stripe_account_id, stripeKey);
+          const account = await retrieveAccount(existing.stripe_account_id, stripeKey);
           await saveConnectRecord(base44, locksmithId, account);
           return Response.json({ success: true, account_id: account.id, account });
         } catch (e) {
           if (!isMissingAccountError(e)) throw e;
           // Vínculo inválido (conta de outro ambiente Stripe) — recria abaixo.
-          await base44.asServiceRole.entities.StripeConnectAccount.delete(existing[0].id);
+          await base44.asServiceRole.entities.StripeConnectAccount.delete(existing.id);
         }
       }
 
@@ -175,8 +186,7 @@ Deno.serve(async (req) => {
     }
 
     if (action === 'create_onboarding_link') {
-      const records = await base44.asServiceRole.entities.StripeConnectAccount.filter({ locksmith_id: locksmithId });
-      const record = records?.[0];
+      const record = await findConnectRecord(base44, locksmithId);
       if (!record?.stripe_account_id) {
         return Response.json({ error: 'Conta Stripe Connect ainda não foi criada' }, { status: 400 });
       }
@@ -201,8 +211,7 @@ Deno.serve(async (req) => {
     }
 
     if (action === 'request_pix') {
-      const records = await base44.asServiceRole.entities.StripeConnectAccount.filter({ locksmith_id: locksmithId });
-      const record = records?.[0];
+      const record = await findConnectRecord(base44, locksmithId);
       if (!record?.stripe_account_id) {
         return Response.json({ error: 'Conta Stripe Connect ainda não foi criada' }, { status: 400 });
       }
@@ -228,8 +237,7 @@ Deno.serve(async (req) => {
     }
 
     if (action === 'get_status') {
-      const records = await base44.asServiceRole.entities.StripeConnectAccount.filter({ locksmith_id: locksmithId });
-      const record = records?.[0];
+      const record = await findConnectRecord(base44, locksmithId);
       if (!record?.stripe_account_id) {
         return Response.json({ connected: false, status: 'not_created' });
       }
@@ -270,8 +278,7 @@ Deno.serve(async (req) => {
     }
 
     if (action === 'create_login_link') {
-      const records = await base44.asServiceRole.entities.StripeConnectAccount.filter({ locksmith_id: locksmithId });
-      const record = records?.[0];
+      const record = await findConnectRecord(base44, locksmithId);
       if (!record?.stripe_account_id) return Response.json({ error: 'Conta Stripe Connect não encontrada' }, { status: 400 });
       const link = await stripeRequest(`/accounts/${record.stripe_account_id}/login_links`, stripeKey, { method: 'POST', body: '' });
       return Response.json({ success: true, url: link.url });
