@@ -10,6 +10,7 @@ import GoogleIcon from "@/components/GoogleIcon";
 import { safeReturnTo } from "@/lib/authReturnTo";
 import InlineOtpInput from "@/components/auth/InlineOtpInput";
 import { cpfError } from "@/lib/cpf";
+import { claimCpf } from "@/lib/cpfRegistration";
 import CpfInput from "@/components/auth/CpfInput";
 import TermsAcceptance from "@/components/auth/TermsAcceptance";
 import { termsPayload } from "@/lib/termsVersion";
@@ -77,10 +78,10 @@ export default function RegisterCliente() {
   };
 
   const finishClientRegistration = async () => {
+    await claimCpf(cpf);
     try {
       await base44.auth.updateMe({
         phone,
-        cpf,
         account_type: "cliente",
         ...termsPayload(),
       });

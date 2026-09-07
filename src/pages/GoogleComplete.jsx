@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Loader2, User, UserPlus, Wrench, Phone, CreditCard, AtSign } from "lucide-react";
 import AuthLayout from "@/components/AuthLayout";
 import { cpfError, onlyDigits, formatCpf } from "@/lib/cpf";
+import { claimCpf } from "@/lib/cpfRegistration";
 import TermsAcceptance from "@/components/auth/TermsAcceptance";
 import { termsPayload } from "@/lib/termsVersion";
 
@@ -68,11 +69,11 @@ export default function GoogleComplete() {
     }
     setSaving(true);
     try {
+      await claimCpf(cpfDigits);
       await base44.auth.updateMe({
         full_name: fullName.trim(),
         username: username.trim(),
         phone: phone.trim(),
-        cpf: cpfDigits,
         account_type: tipo,
         ...termsPayload(),
       });

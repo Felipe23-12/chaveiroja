@@ -12,6 +12,7 @@ import GoogleIcon from "@/components/GoogleIcon";
 import { safeReturnTo } from "@/lib/authReturnTo";
 import InlineOtpInput from "@/components/auth/InlineOtpInput";
 import { cpfError } from "@/lib/cpf";
+import { claimCpf } from "@/lib/cpfRegistration";
 import CpfInput from "@/components/auth/CpfInput";
 import TermsAcceptance from "@/components/auth/TermsAcceptance";
 import { termsPayload } from "@/lib/termsVersion";
@@ -75,9 +76,9 @@ export default function RegisterChaveiro() {
       // verificação e deixar o usuário sem onde informar o código.
       if (registration?.access_token) {
         base44.auth.setToken(registration.access_token);
+        await claimCpf(cpf);
         await base44.auth.updateMe({
           phone,
-          cpf,
           full_name: fullName,
           account_type: "chaveiro",
           ...termsPayload(),
@@ -106,9 +107,9 @@ export default function RegisterChaveiro() {
     const raw = sessionStorage.getItem("chaveiro_onboarding");
     const data = raw ? JSON.parse(raw) : null;
     if (data) {
+      await claimCpf(data.cpf);
       await base44.auth.updateMe({
         phone: data.phone,
-        cpf: data.cpf,
         full_name: data.fullName,
         account_type: "chaveiro",
         ...termsPayload(),
