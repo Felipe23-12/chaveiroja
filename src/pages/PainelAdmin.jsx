@@ -9,6 +9,7 @@ import ServiceSearchBar from "@/components/admin/ServiceSearchBar";
 import ServiceGallery from "@/components/locksmith/ServiceGallery";
 import FinancialConsolidation from "@/components/admin/FinancialConsolidation";
 import ResetLocksmithsDialog from "@/components/admin/ResetLocksmithsDialog";
+import WeeklyOperationsPanel from "@/components/admin/WeeklyOperationsPanel";
 import { completeWithdrawal } from "@/lib/payments";
 import { useToast } from "@/components/ui/use-toast";
 import { safeUnsubscribe } from "@/lib/safeUnsubscribe";
@@ -29,6 +30,7 @@ export default function PainelAdmin() {
   const [users, setUsers] = useState([]);
   const [locksmiths, setLocksmiths] = useState([]);
   const [requests, setRequests] = useState([]);
+  const [scores, setScores] = useState([]);
   const [withdrawals, setWithdrawals] = useState([]);
   const [filters, setFilters] = useState({ date: "", serviceType: "", status: "", locksmithName: "", search: "" });
   const [loading, setLoading] = useState(true);
@@ -38,15 +40,17 @@ export default function PainelAdmin() {
   const load = async () => {
     setLoading(true);
     try {
-      const [u, l, r, w] = await Promise.all([
+      const [u, l, r, s, w] = await Promise.all([
         base44.entities.User.list(),
         base44.entities.Locksmith.list(),
         base44.entities.ServiceRequest.list("-created_date", 1000),
+        base44.entities.LocksmithScore.list("-updated_date", 1000),
         base44.entities.Withdrawal.list("-created_date", 100),
       ]);
       setUsers(u);
       setLocksmiths(l);
       setRequests(r);
+      setScores(s);
       // Registra IDs já conhecidos para detectar novos saques em tempo real
       if (knownWithdrawalIds.current.size === 0) {
         w.forEach((wd) => knownWithdrawalIds.current.add(wd.id));
@@ -160,6 +164,8 @@ export default function PainelAdmin() {
         <StatCard icon={ClipboardList} label="Solicitações" value={requests.length} />
         <StatCard icon={Wallet} label="Receita (concluídos)" value={fmtMoney(revenue)} />
       </div>
+
+      <WeeklyOperationsPanel requests={requests} scores={scores} />
 
       <AdminCharts requests={requests} />
 
