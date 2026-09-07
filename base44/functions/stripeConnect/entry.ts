@@ -82,7 +82,11 @@ function isChargesEnabled(account: any) {
 }
 
 function isPayoutsEnabled(account: any) {
-  const v2Payouts = account?.configuration?.merchant?.capabilities?.stripe_balance?.payouts?.status;
+  // v2: os repasses ficam na configuração "recipient" (merchant só cobre cobranças)
+  const balance =
+    account?.configuration?.recipient?.capabilities?.stripe_balance ||
+    account?.configuration?.merchant?.capabilities?.stripe_balance;
+  const v2Payouts = balance?.payouts?.status || balance?.stripe_transfers?.status;
   if (v2Payouts) return v2Payouts === 'active';
   return !!account?.payouts_enabled;
 }

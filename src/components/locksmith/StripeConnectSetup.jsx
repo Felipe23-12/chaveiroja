@@ -24,6 +24,17 @@ export default function StripeConnectSetup() {
 
   useEffect(() => {
     loadStatus();
+    // Ao voltar do Stripe, a liberação das capacidades pode levar alguns segundos:
+    // reconsultamos algumas vezes para vincular a conta automaticamente.
+    const returning = new URLSearchParams(window.location.search).get("stripe");
+    if (!returning) return;
+    let tries = 0;
+    const timer = setInterval(() => {
+      tries += 1;
+      loadStatus();
+      if (tries >= 4) clearInterval(timer);
+    }, 4000);
+    return () => clearInterval(timer);
   }, []);
 
   const setup = async () => {
