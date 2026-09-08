@@ -12,6 +12,7 @@ import CpfInput from "@/components/auth/CpfInput";
 import TermsAcceptance from "@/components/auth/TermsAcceptance";
 import GooglePasswordSetup from "@/components/auth/GooglePasswordSetup";
 import { termsPayload } from "@/lib/termsVersion";
+import { isGoogleAuthSession } from "@/lib/authProvider";
 
 export default function GoogleComplete() {
   const [searchParams] = useSearchParams();
@@ -40,7 +41,7 @@ export default function GoogleComplete() {
             return;
           }
         }
-        setPasswordReady(me?.password_created === true);
+        setPasswordReady(me?.password_created === true || isGoogleAuthSession());
         if (me?.full_name) setFullName(me.full_name);
         if (me?.username) setUsername(me.username);
         if (me?.phone) setPhone(me.phone);

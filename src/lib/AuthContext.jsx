@@ -2,6 +2,7 @@ import React, { createContext, useState, useContext, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
 import { appParams } from '@/lib/app-params';
 import { createAxiosClient } from '@base44/sdk/dist/utils/axios-client';
+import { clearAuthProvider } from '@/lib/authProvider';
 
 const AuthContext = createContext();
 
@@ -123,6 +124,7 @@ export const AuthProvider = ({ children }) => {
     setIsAuthenticated(false);
     localStorage.removeItem('remember_login');
     sessionStorage.removeItem('active_login_session');
+    clearAuthProvider();
     
     if (shouldRedirect) {
       // Use the SDK's logout method which handles token cleanup and redirect

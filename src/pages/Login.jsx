@@ -10,6 +10,7 @@ import AuthLayout from "@/components/AuthLayout";
 import GoogleIcon from "@/components/GoogleIcon";
 import ErrorBanner from "@/components/ui/ErrorBanner";
 import { safeReturnTo } from "@/lib/authReturnTo";
+import { markAuthProvider } from "@/lib/authProvider";
 import { requiresEmailVerification } from "@/lib/emailRegistration";
 import InlineOtpInput from "@/components/auth/InlineOtpInput";
 
@@ -42,6 +43,7 @@ export default function Login() {
     const normalizedEmail = email.trim().toLowerCase();
     try {
       await base44.auth.loginViaEmailPassword(normalizedEmail, password);
+      markAuthProvider("password");
       await completeLogin(true);
     } catch (err) {
       if (requiresEmailVerification(err)) setVerificationEmail(normalizedEmail);
@@ -52,6 +54,7 @@ export default function Login() {
   };
 
   const handleGoogle = () => {
+    markAuthProvider("google");
     localStorage.setItem("remember_login", String(rememberMe));
     sessionStorage.setItem("active_login_session", "true");
     base44.auth.loginWithProvider("google", returnTo);

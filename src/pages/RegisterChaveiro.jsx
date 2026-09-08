@@ -10,6 +10,7 @@ import { Wrench, Mail, Lock, Loader2, User, Phone, CreditCard } from "lucide-rea
 import AuthLayout from "@/components/AuthLayout";
 import GoogleIcon from "@/components/GoogleIcon";
 import { safeReturnTo } from "@/lib/authReturnTo";
+import { markAuthProvider } from "@/lib/authProvider";
 import InlineOtpInput from "@/components/auth/InlineOtpInput";
 import { cpfError } from "@/lib/cpf";
 import { claimCpf } from "@/lib/cpfRegistration";
@@ -86,8 +87,10 @@ export default function RegisterChaveiro() {
     }
   };
 
-  const handleGoogle = () =>
+  const handleGoogle = () => {
+    markAuthProvider("google");
     base44.auth.loginWithProvider("google", "/google-complete?tipo=chaveiro");
+  };
 
   const finishLocksmithRegistration = async () => {
     const raw = sessionStorage.getItem("chaveiro_onboarding");

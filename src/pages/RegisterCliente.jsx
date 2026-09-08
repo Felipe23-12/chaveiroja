@@ -8,6 +8,7 @@ import { UserPlus, Mail, Lock, Loader2, User, Phone, CreditCard } from "lucide-r
 import AuthLayout from "@/components/AuthLayout";
 import GoogleIcon from "@/components/GoogleIcon";
 import { safeReturnTo } from "@/lib/authReturnTo";
+import { markAuthProvider } from "@/lib/authProvider";
 import InlineOtpInput from "@/components/auth/InlineOtpInput";
 import { cpfError } from "@/lib/cpf";
 import { claimCpf } from "@/lib/cpfRegistration";
@@ -85,8 +86,10 @@ export default function RegisterCliente() {
     window.location.assign(returnTo !== "/" ? returnTo : "/");
   };
 
-  const handleGoogle = () =>
+  const handleGoogle = () => {
+    markAuthProvider("google");
     base44.auth.loginWithProvider("google", "/google-complete?tipo=cliente");
+  };
 
   if (showOtp) return (
     <AuthLayout icon={UserPlus} title="Confirme seu email" subtitle="Conclua a verificação para ativar seu cadastro">
