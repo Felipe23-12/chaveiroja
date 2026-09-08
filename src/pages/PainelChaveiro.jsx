@@ -56,6 +56,8 @@ import ModerationActions from "@/components/moderation/ModerationActions";
 import OpeningConditionCorrection from "@/components/locksmith/OpeningConditionCorrection";
 import OpeningChargeSummary from "@/components/client/OpeningChargeSummary";
 import KeyTechnicalDetails from "@/components/locksmith/KeyTechnicalDetails";
+import QueuedRequestCard from "@/components/locksmith/QueuedRequestCard";
+import { filterRingableWhileBusy, getLocksmithQueueState, startNextQueuedRequest } from "@/lib/serviceQueue";
 
 // Raio de cobertura para considerar um pedido "na região" do chaveiro (km)
 const REGION_RADIUS_KM = 15;
@@ -96,6 +98,7 @@ export default function PainelChaveiro() {
   const [me, setMe] = useState(null);
   const [pendingRequests, setPendingRequests] = useState([]); // solicitações aguardando aceitação
   const [active, setActive] = useState(null); // serviço em andamento
+  const [queuedRequest, setQueuedRequest] = useState(null); // segundo serviço reservado
   const [arrived, setArrived] = useState(false);
   const [startPhotos, setStartPhotos] = useState([]);
   const [endPhotos, setEndPhotos] = useState([]);
@@ -254,10 +257,13 @@ export default function PainelChaveiro() {
     // O mesmo chamado toca para vários chaveiros próximos ao mesmo tempo;
     // quem recusou volta a receber depois de 2 minutos (regra de rering).
     const load = () =>
-      base44.entities.ServiceRequest
-        .filter({ ringing_locksmith_ids: selectedId, status: "ringing" }, "-created_date")
-        .then((list) => {
-          const ringing = list.filter((r) => !blocksLoading && !blockedIds.has(r.created_by_id) && isRingingFor(r, selectedId));
+      Promise.all([
+        base44.entities.ServiceRequest.filter({ ringing_locksmith_ids: selectedId, status: "ringing" }, "-created_date"),
+        getLocksmithQueueState(selectedId),
+      ])
+        .then(([list, queueState]) => {
+          const visible = list.filter((r) => !blocksLoading && !blockedIds.has(r.created_by_id) && isRingingFor(r, selectedId));
+          const ringing = filterRingableWhileBusy(visible, queueState);
           setPendingRequests(ringing);
           savePendingRequests(ringing);
         })
@@ -372,6 +378,7 @@ export default function PainelChaveiro() {
             r.status === "on_the_way" ||
             (r.status === "completed" && !dismissedCompletedIds.current.has(r.id))
           );
+          setQueuedRequest(list.find((r) => r.status === "queued") || null);
           if (ongoing) {
             saveLastService(ongoing);
             setActive(ongoing);
@@ -539,17 +546,15 @@ export default function PainelChaveiro() {
   const handleAccept = async (reqId, extra = 0) => {
     if (!me) return;
     // Corrida entre os chaveiros: o primeiro que aceitar fica com o chamado
-    const won = await acceptRing(reqId, me, extra);
-    if (won) {
-      // Registra a atividade — base da regra de desativação por 30 dias sem aceitar
+    const result = await acceptRing(reqId, me, extra);
+    if (result.ok) {
       base44.entities.Locksmith.update(me.id, { last_accepted_at: new Date().toISOString() }).catch(() => {});
-    }
-    if (!won) {
       toast({
-        title: "Chamado já aceito",
-        description: "Outro chaveiro assumiu este atendimento primeiro.",
-        variant: "destructive",
+        title: result.queued ? "Segundo chamado reservado" : "Chamado aceito",
+        description: result.queued ? "Ele começará automaticamente após o atendimento atual." : "O atendimento foi confirmado.",
       });
+    } else {
+      toast({ title: "Não foi possível aceitar", description: result.reason, variant: "destructive" });
       setPendingRequests((prev) => prev.filter((r) => r.id !== reqId));
     }
   };
@@ -675,7 +680,14 @@ export default function PainelChaveiro() {
   // Finaliza o serviço — só permitido após o pagamento do cliente ser confirmado.
   const handleFinish = async () => {
     if (!active || active.payment_status !== "paid" || active.client_confirmed !== true) return;
+    const finished = active;
     await updateStatus({ status: "completed", locksmith_confirmed: true });
+    const next = await startNextQueuedRequest(me?.id, { lat: finished.customer_lat, lng: finished.customer_lng });
+    if (next) {
+      setQueuedRequest(null);
+      setActive(next);
+      toast({ title: "Próxima rota iniciada", description: `Agora siga para ${next.address}.` });
+    }
   };
 
   // Chaveiro confirma que recebeu o pagamento em dinheiro
@@ -933,6 +945,8 @@ export default function PainelChaveiro() {
           onReject={handleReject}
         />
       )}
+
+      <QueuedRequestCard request={queuedRequest} />
 
       {/* Serviço em andamento */}
       {active ? (

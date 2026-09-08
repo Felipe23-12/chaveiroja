@@ -50,6 +50,7 @@ import RingingStep from "@/components/client/RingingStep";
 import DebtBlockNotice from "@/components/client/DebtBlockNotice";
 import CancellationCaseNotice from "@/components/client/CancellationCaseNotice";
 import AcceptedStep from "@/components/client/AcceptedStep";
+import QueuedServiceStep from "@/components/client/QueuedServiceStep";
 import ReviewStep from "@/components/client/ReviewStep";
 import useClientDebt from "@/hooks/useClientDebt";
 import { useRegionalPriceRange } from "@/hooks/useRegionalPriceRange";
@@ -274,7 +275,7 @@ export default function Home() {
         const list = await base44.entities.ServiceRequest.filter({ created_by_id: u.id }, "-created_date", 20);
         if (cancelled) return;
         const active = list.find((r) => {
-          if (r.status === "ringing" || r.status === "accepted" || r.status === "on_the_way") return true;
+          if (r.status === "ringing" || r.status === "queued" || r.status === "accepted" || r.status === "on_the_way") return true;
           if (r.end_photos?.length > 0 && r.status !== "completed") return true;
           if (r.status === "completed" && !r.rating) return true;
           return false;
@@ -287,7 +288,7 @@ export default function Home() {
         }
         let s = 5;
         if (active.status === "ringing") s = 3;
-        else if (active.status === "accepted") s = 4;
+        else if (active.status === "queued" || active.status === "accepted") s = 4;
         else if (active.status === "on_the_way") s = 5;
         else if (active.end_photos?.length > 0 && active.status !== "completed") s = 6;
         else if (active.status === "completed") s = 7;
@@ -721,7 +722,7 @@ export default function Home() {
           if (updated.locksmith_id && updated.locksmith_id !== selectedLocksmith?.id) {
             base44.entities.Locksmith.get(updated.locksmith_id).then(setSelectedLocksmith).catch(() => {});
           }
-          if (updated.status === "accepted" && step === 3) {
+          if ((updated.status === "accepted" || updated.status === "queued") && step === 3) {
             goToStep(4);
           }
           if (updated.status === "accepted" && !notifiedAccepted.current) {
@@ -1165,7 +1166,14 @@ export default function Home() {
         />
       )}
 
-      {/* Step 4: Pedido em andamento (chaveiro aceitou) */}
+      {/* Step 4: Pedido aceito ou aguardando o atendimento anterior */}
+      {step === 4 && activeRequest?.status === "queued" && (
+        <QueuedServiceStep
+          request={activeRequest}
+          locksmith={selectedLocksmith}
+          onCancel={handleCancel}
+        />
+      )}
       {step === 4 && activeRequest && activeRequest.status === "accepted" && (
         <AcceptedStep
           request={activeRequest}

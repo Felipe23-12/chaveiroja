@@ -11,6 +11,7 @@ import { useOnlineStatus } from "@/hooks/useOnlineStatus";
 import OfflineBanner from "@/components/locksmith/OfflineBanner";
 import { safeUnsubscribe } from "@/lib/safeUnsubscribe";
 import useBlockedUsers from "@/hooks/useBlockedUsers";
+import { filterRingableWhileBusy, getLocksmithQueueState } from "@/lib/serviceQueue";
 
 function formatElapsed(seconds) {
   const m = Math.floor(seconds / 60);
@@ -93,10 +94,13 @@ export default function GlobalLocksmithRequestAlert() {
   useEffect(() => {
     if (!locksmithId) return;
     const load = () =>
-      base44.entities.ServiceRequest
-        .filter({ ringing_locksmith_ids: locksmithId, status: "ringing" }, "-created_date")
-        .then((list) => {
-          const ringing = list.filter((r) => !blocksLoading && !blockedIds.has(r.created_by_id) && isRingingFor(r, locksmithId));
+      Promise.all([
+        base44.entities.ServiceRequest.filter({ ringing_locksmith_ids: locksmithId, status: "ringing" }, "-created_date"),
+        getLocksmithQueueState(locksmithId),
+      ])
+        .then(([list, queueState]) => {
+          const visible = list.filter((r) => !blocksLoading && !blockedIds.has(r.created_by_id) && isRingingFor(r, locksmithId));
+          const ringing = filterRingableWhileBusy(visible, queueState);
           setRequests(ringing);
           savePendingRequests(ringing);
         })
@@ -165,9 +169,9 @@ export default function GlobalLocksmithRequestAlert() {
     try {
       if (!locksmith) return;
       // O chamado toca para vários chaveiros — o primeiro que aceitar atende
-      const won = await acceptRing(reqId, locksmith, extra);
+      const result = await acceptRing(reqId, locksmith, extra);
       setRequests((prev) => prev.filter((r) => r.id !== reqId));
-      if (won) navigate("/painel-chaveiro");
+      if (result.ok) navigate("/painel-chaveiro");
     } catch (e) {
       // Sem conexão: guarda o aceite e envia assim que reconectar
       enqueueAction({ type: "accept", requestId: reqId, locksmith, extra });

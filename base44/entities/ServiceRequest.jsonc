@@ -19,6 +19,7 @@
       "enum": [
         "searching",
         "ringing",
+        "queued",
         "accepted",
         "on_the_way",
         "completed",
@@ -169,6 +170,15 @@
       "format": "date-time",
       "description": "Data/hora em que o chaveiro confirmou (aceitou) o servi\u00e7o"
     },
+    "queued_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Data/hora em que o segundo chamado entrou na fila do chaveiro"
+    },
+    "queued_after_request_id": {
+      "type": "string",
+      "description": "Chamado que o chaveiro est\u00e1 finalizando antes de iniciar este atendimento"
+    },
     "cancelled_by": {
       "type": "string",
       "enum": [
@@ -235,7 +245,7 @@
     },
     "payment_id": {
       "type": "string",
-      "description": "ID do registro de Payment associado a este pedido"
+      "description": "ID do registro de Payment associado ao pedido"
     },
     "payment_method": {
       "type": "string",
@@ -295,7 +305,7 @@
         "accepted",
         "declined"
       ],
-      "description": "Status do pedido de mudan\u00e7a para atendimento urgente feito pelo cliente"
+      "description": "Status do pedido de mudan\u00e7a para urgente feito pelo cliente"
     },
     "urgency_upgrade_requested_at": {
       "type": "string",

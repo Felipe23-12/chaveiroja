@@ -1,4 +1,5 @@
 import { base44 } from "@/api/base44Client";
+import { canReceiveWhileBusy, getLocksmithQueueState, SECOND_JOB_MAX_DISTANCE_KM } from "@/lib/serviceQueue";
 
 // Quantos chaveiros próximos recebem o mesmo chamado ao mesmo tempo
 export const BROADCAST_SIZE = 5;
@@ -31,31 +32,41 @@ export async function rejectRing(request, locksmithId) {
   return base44.entities.ServiceRequest.update(request.id, { rejections });
 }
 
-/**
- * Primeiro chaveiro que aceitar fica com o chamado. Retorna false se outro
- * profissional já assumiu.
- */
+/** Aceita o primeiro chamado ou reserva um segundo chamado normal e próximo. */
 export async function acceptRing(requestId, locksmith, extra = 0) {
   const fresh = await base44.entities.ServiceRequest.get(requestId);
-  if (fresh.status !== "ringing") return false;
+  if (fresh.status !== "ringing") return { ok: false, reason: "Outro chaveiro assumiu este atendimento primeiro." };
+
+  const state = await getLocksmithQueueState(locksmith.id);
+  if (!canReceiveWhileBusy(fresh, state)) {
+    const reason = state.queued
+      ? "Você já atingiu o limite de dois chamados."
+      : fresh.urgency === "urgent"
+      ? "Chamados urgentes não podem entrar como segundo atendimento."
+      : `O segundo cliente precisa estar a até ${SECOND_JOB_MAX_DISTANCE_KM} km do atendimento atual.`;
+    return { ok: false, reason };
+  }
+
+  const queued = Boolean(state.active);
+  const now = new Date().toISOString();
   const newPrice = Math.round(((fresh.price || 0) + extra) * 100) / 100;
   await base44.entities.ServiceRequest.update(requestId, {
-    status: "accepted",
-    accepted_at: new Date().toISOString(),
+    status: queued ? "queued" : "accepted",
+    accepted_at: now,
+    queued_at: queued ? now : undefined,
+    queued_after_request_id: queued ? state.active.id : undefined,
     locksmith_id: locksmith.id,
     locksmith_name: locksmith.name,
     locksmith_user_id: locksmith.created_by_id,
     locksmith_lat: locksmith.lat,
     locksmith_lng: locksmith.lng,
     ringing_locksmith_ids: [locksmith.id],
+    ringing_locksmith_user_ids: [locksmith.created_by_id],
     price: newPrice,
     extra_cost: Number(fresh.extra_cost || 0) + Number(extra || 0),
   });
   await base44.functions.invoke("serviceTrust", {
-    action: "score_event",
-    event_type: "accepted",
-    request_id: requestId,
-    locksmith_id: locksmith.id,
+    action: "score_event", event_type: "accepted", request_id: requestId, locksmith_id: locksmith.id,
   }).catch(() => null);
-  return true;
+  return { ok: true, queued };
 }

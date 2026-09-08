@@ -80,7 +80,7 @@ export default function Acompanhamento() {
 
   // Busca a rota de carro entre o chaveiro e o cliente (OSRM)
   useEffect(() => {
-    if (!request?.locksmith_lat || !request?.customer_lat) return;
+    if (request?.status === "queued" || !request?.locksmith_lat || !request?.customer_lat) return;
     const from = { lat: request.locksmith_lat, lng: request.locksmith_lng };
     const to = { lat: request.customer_lat, lng: request.customer_lng };
     setRoutePath(null);
@@ -180,6 +180,7 @@ export default function Acompanhamento() {
   }
 
   const statusLabel = {
+    queued: "Chaveiro finalizando outro chamado próximo",
     accepted: "Chaveiro aceitou — preparando saída",
     on_the_way: "A caminho do seu endereço",
     completed: "Serviço concluído",
@@ -231,7 +232,7 @@ export default function Acompanhamento() {
               },
             ]}
             route={
-              request.status !== "completed"
+              request.status !== "completed" && request.status !== "queued"
                 ? { from: { lat: request.locksmith_lat, lng: request.locksmith_lng }, to: { lat: request.customer_lat, lng: request.customer_lng } }
                 : null
             }
