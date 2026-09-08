@@ -1,5 +1,6 @@
 import React from "react";
 import { Calendar, MapPin, Star, User, Wrench, Wallet } from "lucide-react";
+import { getOpeningConditionFee } from "@/lib/openingCondition";
 
 const STATUS = {
   searching: { label: "Procurando", color: "bg-amber-100 text-amber-700" },
@@ -50,6 +51,7 @@ export default function ServiceHistoryCard({ request: r, perspective = "cliente"
           <p className={`font-heading font-bold text-lg ${isCancelled ? "text-red-600" : "text-foreground"}`}>
             {money(finalValue)}
           </p>
+          {getOpeningConditionFee(r) > 0 && !isCancelled && <p className="text-[11px] text-amber-700">Inclui adicional de condição +{money(getOpeningConditionFee(r))}</p>}
           {r.discount_amount > 0 && !isCancelled && (
             <p className="text-[11px] text-emerald-700">Desconto fidelidade −{money(r.discount_amount)}</p>
           )}

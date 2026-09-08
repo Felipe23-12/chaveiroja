@@ -55,6 +55,8 @@ import useClientDebt from "@/hooks/useClientDebt";
 import { useRegionalPriceRange } from "@/hooks/useRegionalPriceRange";
 import useBlockedUsers from "@/hooks/useBlockedUsers";
 import ModerationActions from "@/components/moderation/ModerationActions";
+import OpeningChargeSummary from "@/components/client/OpeningChargeSummary";
+import { OPENING_CONDITION_FEE, getOpeningConditionFee, hasLocksmithConditionCorrection, locksmithAddedConditionFee } from "@/lib/openingCondition";
 
 export default function Home() {
   const { toast } = useToast();
@@ -88,6 +90,7 @@ export default function Home() {
   const [locks, setLocks] = useState([createLock()]);
   // null = cliente ainda não confirmou se a chave está quebrada na fechadura
   const [brokenKeyInLock, setBrokenKeyInLock] = useState(null);
+  const [openingReason, setOpeningReason] = useState(null);
   // null = "Chaveiro perto de mim" (começa em 10 km e amplia automaticamente)
   const [searchRadius, setSearchRadius] = useState(null);
   const [currentRadius, setCurrentRadius] = useState(DEFAULT_RADIUS_KM);
@@ -120,6 +123,7 @@ export default function Home() {
   const notifiedEnd = useRef(false);
   const notifiedCompleted = useRef(false);
   const notifiedArrived = useRef(false);
+  const notifiedConditionAdjustment = useRef(false);
   const queueRef = useRef([]);
   const debtNotified = useRef(false);
 
@@ -127,6 +131,7 @@ export default function Home() {
   const { debt, refresh: refreshDebt } = useClientDebt();
 
   const service = useMemo(() => SERVICE_CATALOG.find((s) => s.id === serviceId), [serviceId]);
+  const openingConditionFee = isOpeningService(service) && (openingReason === "lock_problem" || brokenKeyInLock === true) ? OPENING_CONDITION_FEE : 0;
 
   // Condição do tempo no local do cliente — chuva aumenta o valor (até 70%)
   const weather = useWeatherSurge(customerLoc.lat, customerLoc.lng);
@@ -225,9 +230,9 @@ export default function Home() {
       hasCodedKey,
       onlineProgrammingFee: programming?.onlineFee || 0,
       weather,
-      brokenKeyInLock: brokenKeyInLock === true,
+      brokenKeyInLock: openingConditionFee > 0,
     });
-  }, [pricingService, service, motoRule, selectedOptions, customAddons, vehicleInfo, locks, onlineLocksmithsCount, activeRequestsCount, urgency, customerLoc, address, pricingDistance, keyValue, fipeValue, carKeyType, hasCodedKey, programming, weather, brokenKeyInLock]);
+  }, [pricingService, service, motoRule, selectedOptions, customAddons, vehicleInfo, locks, onlineLocksmithsCount, activeRequestsCount, urgency, customerLoc, address, pricingDistance, keyValue, fipeValue, carKeyType, hasCodedKey, programming, weather, openingConditionFee]);
 
   useEffect(() => {
     getCustomerLocation().then(setCustomerLoc);
@@ -472,15 +477,16 @@ export default function Home() {
 
       // Resumo das fechaduras enviado ao chaveiro junto com a solicitação
       const locksText = service.hasLocks ? locksSummary(locks) : "";
+      const openingReasonText = isOpeningService(service)
+        ? openingReason === "lock_problem" ? "Cliente informou: fechadura com problema" : "Cliente informou: perdeu a chave"
+        : "";
       const brokenKeyText = isOpeningService(service)
-        ? brokenKeyInLock
-          ? "Chave quebrada dentro da fechadura"
-          : "Chave não está quebrada na fechadura"
+        ? brokenKeyInLock ? "Chave quebrada dentro da fechadura" : "Chave não está quebrada na fechadura"
         : "";
       const base = {
         service_type: service.label,
         address,
-        description: [locksText, brokenKeyText, description].filter(Boolean).join(" — "),
+        description: [locksText, openingReasonText, brokenKeyText, description].filter(Boolean).join(" — "),
         urgency,
         status: "ringing",
         locksmith_id: nearest.l.id,
@@ -523,15 +529,16 @@ export default function Home() {
         });
       } else {
         // Preço dinâmico já inclui ajustes de oferta/demanda, região, bairro e taxa de distância
-        const basePrice = price?.total || 0;
+        const basePrice = Math.max(0, (price?.total || 0) - openingConditionFee);
         const kmFee = calculateLongDistanceFee(initialDistanceKm);
         const disc = useDiscount ? applyLoyaltyDiscount(basePrice) : { amount: 0, final: basePrice };
         const motoModel = service.isMotoKey ? getMotoModel(motoInfo.brandId, motoInfo.modelId) : null;
         req = await base44.entities.ServiceRequest.create({
           ...base,
-          price: disc.final,
+          price: disc.final + openingConditionFee,
           distance_km: initialDistanceKm,
           locomotion_cost: kmFee,
+          extra_cost: openingConditionFee,
           ...(service.isMotoKey
             ? {
                 key_type: motoInfo.keyType,
@@ -693,6 +700,12 @@ export default function Home() {
           }
           if (updated.status === "on_the_way" && step === 4) {
             goToStep(5);
+          }
+          if (hasLocksmithConditionCorrection(updated) && !notifiedConditionAdjustment.current) {
+            notifiedConditionAdjustment.current = true;
+            const charged = locksmithAddedConditionFee(updated);
+            notifyClient(charged ? "Valor do chamado atualizado" : "Condição do chamado atualizada", charged ? "O chaveiro comprovou uma condição diferente com fotos. Foi aplicado o adicional único de R$ 25,00." : "O chaveiro registrou com fotos a condição encontrada no local. Nenhum novo adicional foi aplicado.");
+            toast({ title: charged ? "Valor atualizado em R$ 25,00" : "Condição registrada pelo chaveiro", description: charged ? "As fotos comprobatórias foram anexadas ao chamado." : "A prova fotográfica foi anexada sem nova cobrança." });
           }
           // Chaveiro registrou o final do serviço → cliente paga
           if (updated.end_photos?.length > 0 && step === 5) {
@@ -917,6 +930,7 @@ export default function Home() {
     setVehicleInfo({ make: "", model: "", year: "", doorStatus: "", complexity: "simples" });
     setLocks([createLock()]);
     setBrokenKeyInLock(null);
+    setOpeningReason(null);
     setSearchRadius(null);
     setCurrentRadius(DEFAULT_RADIUS_KM);
     setKeyValue(null);
@@ -937,6 +951,7 @@ export default function Home() {
     notifiedMoving.current = false;
     notifiedNearby.current = false;
     notifiedArrived.current = false;
+    notifiedConditionAdjustment.current = false;
     notifiedEnd.current = false;
     notifiedCompleted.current = false;
   };
@@ -1058,6 +1073,8 @@ export default function Home() {
               setLocks={setLocks}
               brokenKeyInLock={brokenKeyInLock}
               setBrokenKeyInLock={setBrokenKeyInLock}
+              openingReason={openingReason}
+              setOpeningReason={setOpeningReason}
               price={address ? price : null}
             />
           )}
@@ -1082,7 +1099,7 @@ export default function Home() {
                 !address ||
                 submitting ||
                 programming?.dealerOnly ||
-                (isOpeningService(service) && brokenKeyInLock == null) ||
+                (isOpeningService(service) && (openingReason == null || brokenKeyInLock == null)) ||
                 (service?.needsVehicleInfo &&
                   !service?.isCarKey &&
                   (!vehicleInfo.make?.trim() || !vehicleInfo.model?.trim() || !String(vehicleInfo.year || "").trim())) ||
@@ -1225,6 +1242,8 @@ export default function Home() {
             <p className="text-sm text-muted-foreground">{activeRequest.service_type} · {selectedLocksmith?.name}</p>
           </div>
 
+          <OpeningChargeSummary request={activeRequest} />
+
           {!activeRequest.client_confirmed ? (
             <div className="p-4 rounded-2xl border-2 border-primary bg-primary/5 space-y-3">
               <p className="text-sm font-medium text-foreground text-center">O chaveiro registrou a finalização do serviço. Confirme para prosseguir ao pagamento.</p>
@@ -1273,6 +1292,8 @@ export default function Home() {
           ) : (
             <PaymentStep
               amount={activeRequest.price}
+              additionalAmount={getOpeningConditionFee(activeRequest)}
+              additionalLabel="Adicional de condição da abertura"
               description={`${activeRequest.service_type} - ${activeRequest.address}`}
               locksmithId={selectedLocksmith?.id}
               processing={paying}

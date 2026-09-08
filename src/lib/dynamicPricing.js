@@ -265,7 +265,7 @@ export function calculateDynamicPrice({
   // Chave quebrada dentro da fechadura (serviços de abertura): taxa fixa
   const brokenKeyFee = isOpeningService(service) && brokenKeyInLock ? BROKEN_KEY_FEE : 0;
   if (brokenKeyFee > 0) {
-    breakdown.push({ label: "Chave quebrada dentro da fechadura", value: brokenKeyFee });
+    breakdown.push({ label: "Adicional de condição da abertura", value: brokenKeyFee });
   }
 
   // Piso nacional das aberturas residencial e automotiva: R$ 50

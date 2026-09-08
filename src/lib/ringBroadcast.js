@@ -49,7 +49,7 @@ export async function acceptRing(requestId, locksmith, extra = 0) {
     locksmith_lng: locksmith.lng,
     ringing_locksmith_ids: [locksmith.id],
     price: newPrice,
-    extra_cost: extra,
+    extra_cost: Number(fresh.extra_cost || 0) + Number(extra || 0),
   });
   await base44.functions.invoke("serviceTrust", {
     action: "score_event",

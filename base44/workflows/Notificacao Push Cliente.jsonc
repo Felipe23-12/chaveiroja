@@ -1,6 +1,6 @@
 {
   "name": "Notifica\u00e7\u00e3o Push Cliente",
-  "description": "Envia notifica\u00e7\u00e3o push ao celular do cliente a cada etapa do chamado (aceito, a caminho, chegou, finalizado, conclu\u00eddo, cancelado), mesmo com o app fechado",
+  "description": "Envia notifica\u00e7\u00e3o push ao cliente nas etapas do chamado e quando houver ajuste comprovado de condi\u00e7\u00e3o e valor",
   "trigger": {
     "config": {
       "trigger_type": "entity",
@@ -9,7 +9,7 @@
         "update"
       ]
     },
-    "condition": "${ ((.trigger.changed_fields // []) | index(\"status\") != null or index(\"locksmith_arrived\") != null or index(\"end_photos\") != null) }"
+    "condition": "${ ((.trigger.changed_fields // []) | index(\"status\") != null or index(\"locksmith_arrived\") != null or index(\"end_photos\") != null or index(\"description\") != null) }"
   },
   "definition": {
     "document": {
@@ -32,7 +32,7 @@
           "then": "end",
           "x-base44": {
             "title": "Notificar cliente",
-            "description": "Push da etapa atual do chamado"
+            "description": "Etapa ou ajuste do chamado"
           }
         }
       }

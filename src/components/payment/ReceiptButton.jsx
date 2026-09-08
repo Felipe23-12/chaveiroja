@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { FileText, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { jsPDF } from "jspdf";
+import { getOpeningConditionFee } from "@/lib/openingCondition";
 
 const PAYMENT_METHOD_LABEL = {
   credit_card: "Cartão de Crédito",
@@ -44,6 +45,8 @@ export default function ReceiptButton({ serviceRequest, locksmith, customerName 
     setGenerating(true);
     try {
       const sr = serviceRequest;
+      const conditionFee = getOpeningConditionFee(sr);
+      const otherExtras = Math.max(0, Number(sr.extra_cost || 0) - conditionFee);
       const doc = new jsPDF({ unit: "mm", format: "a4" });
       const pageW = doc.internal.pageSize.getWidth();
       const margin = 18;
@@ -149,7 +152,7 @@ export default function ReceiptButton({ serviceRequest, locksmith, customerName 
       // Quadro de valores
       doc.setFillColor(248, 250, 252);
       doc.setDrawColor(226, 232, 240);
-      doc.roundedRect(margin, y, pageW - margin * 2, 56, 2, 2, "FD");
+      doc.roundedRect(margin, y, pageW - margin * 2, 68, 2, 2, "FD");
       let vy = y + 8;
       const colLabel = margin + 6;
       const colValue = pageW - margin - 6;
@@ -158,7 +161,8 @@ export default function ReceiptButton({ serviceRequest, locksmith, customerName 
         ["Valor da chave", formatCurrency(sr.key_value)],
         ["Mão de obra", formatCurrency(sr.labor_cost)],
         ["Locomoção", formatCurrency(sr.locomotion_cost)],
-        ["Custos adicionais", formatCurrency(sr.extra_cost)],
+        ...(conditionFee > 0 ? [["Adicional de condição da abertura", formatCurrency(conditionFee)]] : []),
+        [conditionFee > 0 ? "Outros custos adicionais" : "Custos adicionais", formatCurrency(otherExtras)],
       ];
       priceRows.forEach(([label, value]) => {
         doc.setFont("helvetica", "normal");

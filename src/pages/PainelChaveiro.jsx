@@ -53,6 +53,8 @@ import { notifyStatusByGmail } from "@/lib/gmailStatusEmail";
 import { safeUnsubscribe } from "@/lib/safeUnsubscribe";
 import useBlockedUsers from "@/hooks/useBlockedUsers";
 import ModerationActions from "@/components/moderation/ModerationActions";
+import OpeningConditionCorrection from "@/components/locksmith/OpeningConditionCorrection";
+import OpeningChargeSummary from "@/components/client/OpeningChargeSummary";
 
 // Raio de cobertura para considerar um pedido "na região" do chaveiro (km)
 const REGION_RADIUS_KM = 15;
@@ -1043,19 +1045,24 @@ export default function PainelChaveiro() {
           )}
 
           {phase === "finishing" && (
-            <div className="p-4 rounded-xl border border-border bg-card space-y-3">
-              <PartsChecklist value={active.replaced_parts || []} onChange={handlePartsChange} />
-              <p className="text-sm font-medium text-foreground">Registre as fotos do final do serviço</p>
-              <PhotoUploader
-                label="Fotos do serviço finalizado"
-                photos={endPhotos}
-                onChange={setEndPhotos}
-              />
-              <Button onClick={handleRegisterEnd} disabled={!endPhotos.length} className="w-full">
-                <Check className="w-4 h-4 mr-1.5" /> Registrar finalização do serviço
-              </Button>
+            <div className="space-y-3">
+              <OpeningConditionCorrection request={active} onApplied={setActive} />
+              <div className="p-4 rounded-xl border border-border bg-card space-y-3">
+                <PartsChecklist value={active.replaced_parts || []} onChange={handlePartsChange} />
+                <p className="text-sm font-medium text-foreground">Registre as fotos do final do serviço</p>
+                <PhotoUploader
+                  label="Fotos do serviço finalizado"
+                  photos={endPhotos}
+                  onChange={setEndPhotos}
+                />
+                <Button onClick={handleRegisterEnd} disabled={!endPhotos.length} className="w-full">
+                  <Check className="w-4 h-4 mr-1.5" /> Registrar finalização do serviço
+                </Button>
+              </div>
             </div>
           )}
+
+          <OpeningChargeSummary request={active} />
 
           {phase === "awaiting_client" && (
             <div className="p-4 rounded-xl border border-border bg-card space-y-2 text-center">

@@ -6,7 +6,7 @@ import { calculatePaymentBreakdown, createStripePaymentIntent } from "@/lib/paym
 import StripeCardForm from "@/components/payment/StripeCardForm";
 import StripePixForm from "@/components/payment/StripePixForm";
 
-export default function PaymentStep({ amount, description, locksmithId, onConfirm, onBack, processing, onlineOnly = false }) {
+export default function PaymentStep({ amount, description, locksmithId, onConfirm, onBack, processing, onlineOnly = false, additionalAmount = 0, additionalLabel = "Adicional" }) {
   const [method, setMethod] = useState("");
   const [stripeData, setStripeData] = useState(null);
   const [creating, setCreating] = useState(false);
@@ -94,8 +94,9 @@ export default function PaymentStep({ amount, description, locksmithId, onConfir
         <div className="p-3 rounded-xl bg-muted/50 space-y-1.5">
           <div className="flex justify-between text-sm">
             <span className="text-muted-foreground">Valor do serviço</span>
-            <span className="font-medium text-foreground">R$ {breakdown.amount.toFixed(2)}</span>
+            <span className="font-medium text-foreground">R$ {Math.max(0, breakdown.amount - Number(additionalAmount || 0)).toFixed(2)}</span>
           </div>
+          {Number(additionalAmount || 0) > 0 && <div className="flex justify-between text-sm"><span className="text-amber-700">{additionalLabel}</span><span className="font-medium text-amber-700">R$ {Number(additionalAmount).toFixed(2)}</span></div>}
           <div className="flex justify-between text-sm pt-1.5 border-t border-border">
             <span className="font-medium text-foreground">Total</span>
             <span className="font-heading font-bold text-lg text-foreground">R$ {breakdown.amount.toFixed(2)}</span>

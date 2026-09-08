@@ -25,7 +25,14 @@ export default async function(req) {
     let title = '';
     let content = '';
 
-    if (sr.status === 'cancelled') {
+    if ((sr.description || '').includes('Ajuste no local confirmado pelo chaveiro') && !(sr.client_push_sent || []).includes('condition_adjustment')) {
+      key = 'condition_adjustment';
+      const charged = (sr.description || '').includes('Adicional único de R$ 25,00 aplicado');
+      title = charged ? 'Valor do chamado atualizado' : 'Condição do chamado atualizada';
+      content = charged
+        ? 'O chaveiro anexou fotos comprobatórias e aplicou o adicional único de R$ 25,00.'
+        : 'O chaveiro anexou fotos da condição encontrada. Nenhum novo adicional foi aplicado.';
+    } else if (sr.status === 'cancelled') {
       key = 'cancelled';
       title = '❌ Chamado cancelado';
       content = sr.cancellation_reason || 'Seu chamado foi cancelado.';

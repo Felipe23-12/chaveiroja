@@ -5,7 +5,7 @@ import PriceSummary from "./PriceSummary";
 import AddressAutocomplete from "./AddressAutocomplete";
 import LocksConfig from "./LocksConfig";
 import VehicleMakeModelFields from "./VehicleMakeModelFields";
-import BrokenKeySelector from "./BrokenKeySelector";
+import OpeningConditionQuestions from "@/components/client/OpeningConditionQuestions";
 import { isOpeningService } from "@/lib/pricing";
 
 export default function ServiceConfig({
@@ -25,6 +25,8 @@ export default function ServiceConfig({
   setLocks,
   brokenKeyInLock,
   setBrokenKeyInLock,
+  openingReason,
+  setOpeningReason,
   price,
 }) {
   const vehicleReady = Boolean(
@@ -43,9 +45,8 @@ export default function ServiceConfig({
         <p className="text-sm text-muted-foreground">{service.description}</p>
       </div>
 
-      {/* Chave quebrada dentro da fechadura (obrigatório nas aberturas) */}
       {isOpeningService(service) && (
-        <BrokenKeySelector value={brokenKeyInLock} onChange={setBrokenKeyInLock} />
+        <OpeningConditionQuestions reason={openingReason} onReasonChange={setOpeningReason} brokenKey={brokenKeyInLock} onBrokenKeyChange={setBrokenKeyInLock} />
       )}
 
       {/* Fechaduras: quantas portas abrir e quais miolos trocar */}
@@ -143,9 +144,9 @@ export default function ServiceConfig({
         />
       </div>
 
-      {isOpeningService(service) && brokenKeyInLock == null ? (
+      {isOpeningService(service) && (openingReason == null || brokenKeyInLock == null) ? (
         <div className="rounded-2xl bg-muted p-4 text-sm text-muted-foreground text-center">
-          Informe se a chave está quebrada dentro da fechadura para calcularmos o valor do serviço.
+          Responda as duas perguntas obrigatórias para calcularmos o valor do serviço.
         </div>
       ) : service.needsVehicleInfo && !vehicleReady ? (
         <div className="rounded-2xl bg-muted p-4 text-sm text-muted-foreground text-center">
