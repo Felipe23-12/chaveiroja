@@ -5,6 +5,8 @@ import { MOTO_BRANDS, MOTO_MODELS } from "@/lib/motoKey";
 import { Button } from "@/components/ui/button";
 import VehicleKeyCatalogForm from "./VehicleKeyCatalogForm";
 import VehicleKeyCatalogTable from "./VehicleKeyCatalogTable";
+import UniversalRemoteCatalogPanel from "./UniversalRemoteCatalogPanel";
+import RemoteCompatibilityPanel from "./RemoteCompatibilityPanel";
 
 const empty = { vehicle_type: "carro", make: "", model: "", key_style: "nao_confirmado", transponder_status: "nao_confirmado", programming_machine: "", verified: false, active: false };
 export default function VehicleKeyCatalogPanel() {
@@ -41,5 +43,5 @@ export default function VehicleKeyCatalogPanel() {
     } finally { setSaving(false); }
   };
   const visible = useMemo(() => rows.filter((r) => `${r.make} ${r.model}`.toLowerCase().includes(search.toLowerCase())), [rows, search]);
-  return <section className="space-y-3"><div className="flex flex-wrap items-center justify-between gap-2"><div><h2 className="font-heading font-semibold text-lg">Catálogo técnico de chaves</h2><p className="text-xs text-muted-foreground">Publique somente dados conferidos no equipamento ou fonte oficial.</p></div><Button variant="outline" onClick={initialize}>Adicionar modelos existentes</Button></div><input className="w-full h-10 rounded-md border border-input bg-background px-3 text-sm" placeholder="Buscar veículo" value={search} onChange={(e) => setSearch(e.target.value)} /><div className="rounded-xl border border-border bg-card p-3">{error && <p role="alert" className="mb-3 text-sm text-destructive">{error}</p>}<VehicleKeyCatalogForm value={form} onChange={setForm} onSave={save} saving={saving} /></div><VehicleKeyCatalogTable rows={visible} onEdit={setForm} onDelete={async (id) => { await base44.entities.VehicleKeyCatalog.delete(id); load(); }} /></section>;
+  return <section className="space-y-3"><div className="flex flex-wrap items-center justify-between gap-2"><div><h2 className="font-heading font-semibold text-lg">Catálogo técnico de chaves</h2><p className="text-xs text-muted-foreground">Publique somente dados conferidos no equipamento ou fonte oficial.</p></div><Button variant="outline" onClick={initialize}>Adicionar modelos existentes</Button></div><input className="w-full h-10 rounded-md border border-input bg-background px-3 text-sm" placeholder="Buscar veículo" value={search} onChange={(e) => setSearch(e.target.value)} /><div className="rounded-xl border border-border bg-card p-3">{error && <p role="alert" className="mb-3 text-sm text-destructive">{error}</p>}<VehicleKeyCatalogForm value={form} onChange={setForm} onSave={save} saving={saving} /></div><VehicleKeyCatalogTable rows={visible} onEdit={setForm} onDelete={async (id) => { await base44.entities.VehicleKeyCatalog.delete(id); load(); }} /><UniversalRemoteCatalogPanel /><RemoteCompatibilityPanel vehicles={rows} /></section>;
 }

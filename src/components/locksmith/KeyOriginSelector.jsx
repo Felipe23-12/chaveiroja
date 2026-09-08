@@ -20,7 +20,7 @@ export default function KeyOriginSelector({ value, onChange, catalog }) {
       </div>
       {value === "paralela" && (
         <div className="rounded-xl border border-border bg-muted/40 p-3 text-xs text-muted-foreground">
-          {options.length ? `Arquivos confirmados: ${options.map((o) => o.brand).join(", ")}. O orçamento usa a opção de maior valor.` : "Não há arquivo paralelo confirmado para este veículo e ano."}
+          {options.length ? `Opções confirmadas: ${options.map((o) => `${o.brand}${o.model ? ` ${o.model}` : ""} — ${o.file}`).join("; ")}. O orçamento usa a opção de maior valor.` : "Não há arquivo paralelo confirmado para este veículo e ano."}
         </div>
       )}
     </div>

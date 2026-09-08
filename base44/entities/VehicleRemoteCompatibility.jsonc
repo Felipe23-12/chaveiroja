@@ -1,0 +1,83 @@
+{
+  "name": "VehicleRemoteCompatibility",
+  "type": "object",
+  "properties": {
+    "vehicle_catalog_id": {
+      "type": "string"
+    },
+    "vehicle_label": {
+      "type": "string"
+    },
+    "universal_remote_id": {
+      "type": "string"
+    },
+    "platform": {
+      "type": "string",
+      "enum": [
+        "KD",
+        "VVDI",
+        "KM100"
+      ]
+    },
+    "remote_model": {
+      "type": "string"
+    },
+    "file_name": {
+      "type": "string"
+    },
+    "pairing_method": {
+      "type": "string",
+      "enum": [
+        "manual",
+        "diagnostic",
+        "both",
+        "not_confirmed"
+      ],
+      "default": "not_confirmed"
+    },
+    "procedure": {
+      "type": "string"
+    },
+    "frequency_mhz": {
+      "type": "number",
+      "minimum": 0
+    },
+    "button_count": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "verified": {
+      "type": "boolean",
+      "default": false
+    },
+    "active": {
+      "type": "boolean",
+      "default": false
+    }
+  },
+  "required": [
+    "vehicle_catalog_id",
+    "universal_remote_id",
+    "platform",
+    "remote_model",
+    "file_name"
+  ],
+  "rls": {
+    "read": {},
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

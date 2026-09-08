@@ -4,11 +4,19 @@ export async function findVehicleKeyCatalog(make, model, year, vehicleType = "ca
   if (!make || !model || !year) return null;
   const rows = await base44.entities.VehicleKeyCatalog.filter({ vehicle_type: vehicleType, make, model, active: true, verified: true });
   const y = Number(year);
-  return rows.find((row) => (!row.year_start || y >= row.year_start) && (!row.year_end || y <= row.year_end)) || null;
+  const row = rows.find((item) => (!item.year_start || y >= item.year_start) && (!item.year_end || y <= item.year_end)) || null;
+  if (!row) return null;
+  const links = await base44.entities.VehicleRemoteCompatibility.filter({ vehicle_catalog_id: row.id, active: true, verified: true });
+  const ids = [...new Set(links.map((item) => item.universal_remote_id))];
+  const remotes = ids.length ? await base44.entities.UniversalRemote.filter({ id: { $in: ids }, available: true, verified: true }) : [];
+  const byId = new Map(remotes.map((item) => [item.id, item]));
+  row._remote_options = links.map((link) => ({ ...link, remote: byId.get(link.universal_remote_id) })).filter((item) => item.remote);
+  return row;
 }
 
 export function parallelOptions(row) {
   if (!row) return [];
+  if (row._remote_options?.length) return row._remote_options.map((item) => ({ brand: item.platform, model: item.remote_model, file: item.file_name, price: item.remote.list_price, pairingMethod: item.pairing_method, procedure: item.procedure, frequency: item.frequency_mhz, buttons: item.button_count }));
   return [
     { brand: "VVDI", supported: row.vvdi_supported, file: row.vvdi_file, price: row.vvdi_price },
     { brand: "KD", supported: row.kd_supported, file: row.kd_file, price: row.kd_price },
@@ -33,7 +41,7 @@ export function chipProgrammingDetails(row) {
 export function technicalKeyDescription({ origin, row }) {
   const originLabel = origin === "paralela" ? "Chave paralela" : "Chave original";
   const files = origin === "paralela"
-    ? parallelOptions(row).map((item) => `${item.brand}: ${item.file}`).join("; ")
+    ? parallelOptions(row).map((item) => `${item.brand}${item.model ? ` ${item.model}` : ""}: ${item.file}${item.pairingMethod ? ` — apresentação ${({ manual: "por procedimento manual", diagnostic: "via diagnóstico", both: "manual ou diagnóstico", not_confirmed: "não confirmada" })[item.pairingMethod]}` : ""}`).join("; ")
     : "não se aplica";
   const style = {
     lamina_sem_pcf: "lâmina/chip separados, sem PCF",

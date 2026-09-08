@@ -1,0 +1,76 @@
+{
+  "name": "UniversalRemote",
+  "type": "object",
+  "properties": {
+    "platform": {
+      "type": "string",
+      "enum": [
+        "KD",
+        "VVDI",
+        "KM100"
+      ]
+    },
+    "model": {
+      "type": "string"
+    },
+    "display_name": {
+      "type": "string"
+    },
+    "pcf_type": {
+      "type": "string",
+      "enum": [
+        "sem_pcf",
+        "com_pcf",
+        "nao_confirmado"
+      ],
+      "default": "sem_pcf"
+    },
+    "list_price": {
+      "type": "number",
+      "minimum": 0,
+      "default": 0
+    },
+    "pix_price": {
+      "type": "number",
+      "minimum": 0,
+      "default": 0
+    },
+    "source_url": {
+      "type": "string"
+    },
+    "source_checked_at": {
+      "type": "string",
+      "format": "date"
+    },
+    "available": {
+      "type": "boolean",
+      "default": true
+    },
+    "verified": {
+      "type": "boolean",
+      "default": false
+    }
+  },
+  "required": [
+    "platform",
+    "model"
+  ],
+  "rls": {
+    "read": {},
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}
