@@ -109,10 +109,10 @@ export default function LiveLocksmithsMap({ customerLoc, livreOnly = false }) {
       <div className="flex items-center justify-between">
         <div>
           <h3 className="font-heading font-semibold text-foreground flex items-center gap-2">
-            <MapPin className="w-4 h-4 text-primary" /> Chaveiros disponíveis perto de você
+            <MapPin className="w-4 h-4 text-primary" /> {livreOnly ? "Chaveiros online em todo o Brasil" : "Chaveiros disponíveis perto de você"}
           </h3>
           <p className="text-xs text-muted-foreground">
-            Posição atualizada em tempo real · com tempo estimado de chegada até seu endereço
+            {livreOnly ? "Mapa nacional do Modo Livre · converse diretamente com o profissional" : "Posição atualizada em tempo real · com tempo estimado de chegada até seu endereço"}
           </p>
         </div>
         <div className="flex items-center gap-3 text-xs">

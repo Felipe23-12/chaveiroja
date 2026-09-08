@@ -29,7 +29,7 @@ import { loadScoreMap, withScores, selectScoreBroadcast } from "@/lib/locksmithS
 import { safeUnsubscribe } from "@/lib/safeUnsubscribe";
 
 import { createLock, locksSummary } from "@/lib/locks";
-import { DEFAULT_RADIUS_KM, expandUntilFound } from "@/lib/searchRadius";
+import { DEFAULT_RADIUS_KM, MAX_RADIUS_KM, expandUntilFound } from "@/lib/searchRadius";
 import { useRadiusExpansion } from "@/hooks/useRadiusExpansion";
 import useWeatherSurge from "@/hooks/useWeatherSurge";
 import SearchRadiusSelector from "@/components/locksmith/SearchRadiusSelector";
@@ -461,9 +461,9 @@ export default function Home() {
       // 1. Se o chaveiro configurou serviços específicos, exige o ID do serviço.
       // 2. Se não configurou serviços, usa a especialidade como filtro:
       //    o serviço só vai para chaveiros cuja especialidade inclui a do serviço.
-      // Prioriza quem está dentro do raio escolhido; se ninguém estiver,
-      // o chamado toca nos chaveiros elegíveis mais próximos de qualquer forma.
-      const allEligible = buildEligibleQueue(unblockedAppLocksmiths, service, customerLoc);
+      // Nenhum chamado do modo aplicativo pode alcançar um profissional
+      // localizado a mais de 100 km do cliente.
+      const allEligible = buildEligibleQueue(unblockedAppLocksmiths, service, customerLoc, MAX_RADIUS_KM);
       let queue;
       let usedRadius;
       if (searchRadius == null) {
@@ -486,7 +486,7 @@ export default function Home() {
       // continuam em recuperação com chamados menores, mais distantes e menos frequentes.
 
       if (!nearest) {
-        setSearchError(`Nenhum chaveiro disponível para "${service.label}" no modo aplicativo agora. Tente novamente em instantes.`);
+        setSearchError(`Não há chaveiro disponível em até ${MAX_RADIUS_KM} km da sua localização para "${service.label}". Tente novamente mais tarde ou consulte o mapa do Modo Livre.`);
         setSubmitting(false);
         return;
       }
@@ -622,7 +622,7 @@ export default function Home() {
     queueRef.current = buildEligibleQueue(unblockedAppLocksmiths, svc, {
       lat: activeRequest.customer_lat,
       lng: activeRequest.customer_lng,
-    });
+    }, MAX_RADIUS_KM);
   }, [activeRequest?.id, activeRequest?.status, unblockedAppLocksmiths]);
 
   // Pagamento confirmado via Stripe — acontece após o serviço, antes da finalização
@@ -1044,7 +1044,7 @@ export default function Home() {
               <h2 className="font-heading font-semibold text-lg text-foreground">Modo Livre</h2>
             </div>
             <p className="text-sm text-muted-foreground">
-              Navegue pelo mapa, encontre chaveiros online perto de você e converse diretamente com o profissional para combinar o serviço.
+              Navegue pelo mapa nacional, encontre chaveiros do Modo Livre online em todo o Brasil e converse diretamente com o profissional para combinar o serviço.
             </p>
           </div>
           <LiveLocksmithsMap customerLoc={customerLoc} livreOnly />
