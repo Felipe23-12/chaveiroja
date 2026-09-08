@@ -30,7 +30,7 @@ export default function ReviewStep({ request, locksmith, customerName, onRate, o
         />
       </div>
 
-      <ReceiptButton serviceRequest={request} locksmith={locksmith} customerName={customerName} />
+      <ReceiptButton serviceRequest={request} locksmith={locksmith} customerName={customerName} customerView />
 
       <Button onClick={onNewRequest} variant="outline" className="w-full">
         Solicitar novo serviço

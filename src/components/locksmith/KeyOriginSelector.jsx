@@ -1,7 +1,7 @@
 import React from "react";
 import { parallelOptions } from "@/lib/vehicleKeyCatalog";
 
-export default function KeyOriginSelector({ value, onChange, catalog }) {
+export default function KeyOriginSelector({ value, onChange, catalog, hidePriceDetails = false }) {
   const options = parallelOptions(catalog);
   return (
     <div className="space-y-2">
@@ -20,7 +20,7 @@ export default function KeyOriginSelector({ value, onChange, catalog }) {
       </div>
       {value === "paralela" && (
         <div className="rounded-xl border border-border bg-muted/40 p-3 text-xs text-muted-foreground">
-          {options.length ? `Opções confirmadas: ${options.map((o) => `${o.brand}${o.model ? ` ${o.model}` : ""} — ${o.file}`).join("; ")}. O orçamento usa a opção de maior valor.` : "Não há arquivo paralelo confirmado para este veículo e ano."}
+          {options.length ? `Opções confirmadas: ${options.map((o) => `${o.brand}${o.model ? ` ${o.model}` : ""} — ${o.file}`).join("; ")}.${hidePriceDetails ? "" : " O orçamento usa a opção de maior valor."}` : "Não há arquivo paralelo confirmado para este veículo e ano."}
         </div>
       )}
     </div>

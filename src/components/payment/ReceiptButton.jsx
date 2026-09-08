@@ -37,7 +37,7 @@ function formatCurrency(v) {
  * locksmith: dados do chaveiro (opcional)
  * customerName: nome do cliente (opcional)
  */
-export default function ReceiptButton({ serviceRequest, locksmith, customerName }) {
+export default function ReceiptButton({ serviceRequest, locksmith, customerName, customerView = false }) {
   const [generating, setGenerating] = useState(false);
 
   const handleGenerate = () => {
@@ -45,6 +45,7 @@ export default function ReceiptButton({ serviceRequest, locksmith, customerName 
     setGenerating(true);
     try {
       const sr = serviceRequest;
+      const totalOnly = customerView && ["Confecção de Chave de Carro", "Confecção de Chave de Moto"].includes(sr.service_type);
       const conditionFee = getOpeningConditionFee(sr);
       const otherExtras = Math.max(0, Number(sr.extra_cost || 0) - conditionFee);
       const doc = new jsPDF({ unit: "mm", format: "a4" });
@@ -152,12 +153,12 @@ export default function ReceiptButton({ serviceRequest, locksmith, customerName 
       // Quadro de valores
       doc.setFillColor(248, 250, 252);
       doc.setDrawColor(226, 232, 240);
-      doc.roundedRect(margin, y, pageW - margin * 2, 68, 2, 2, "FD");
+      doc.roundedRect(margin, y, pageW - margin * 2, totalOnly ? 30 : 68, 2, 2, "FD");
       let vy = y + 8;
       const colLabel = margin + 6;
       const colValue = pageW - margin - 6;
 
-      const priceRows = [
+      const priceRows = totalOnly ? [] : [
         ["Valor da chave", formatCurrency(sr.key_value)],
         ["Mão de obra", formatCurrency(sr.labor_cost)],
         ["Locomoção", formatCurrency(sr.locomotion_cost)],
@@ -173,7 +174,7 @@ export default function ReceiptButton({ serviceRequest, locksmith, customerName 
         vy += 6;
       });
 
-      if (sr.discount_applied) {
+      if (sr.discount_applied && !totalOnly) {
         doc.setTextColor(22, 163, 74);
         doc.text(`Desconto de fidelidade (10%)`, colLabel, vy);
         doc.text(`- ${formatCurrency(sr.discount_amount)}`, colValue, vy, { align: "right" });

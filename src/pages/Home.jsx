@@ -413,7 +413,7 @@ export default function Home() {
       setHasCodedKey(res.hasCodedKey);
       if (!res.keyValueTrusted && carKeyType !== "simples") {
         setSearchError(
-          "Não foi possível confirmar o valor da chave original deste modelo. O chaveiro informará esse valor ao aceitar o serviço."
+          "Não foi possível confirmar o orçamento completo deste modelo. O chaveiro informará o valor total ao aceitar o serviço."
         );
       }
     } catch (e) {
@@ -1072,7 +1072,7 @@ export default function Home() {
               setCarKeyType={setCarKeyType}
               fipeValue={fipeValue}
               programming={programming}
-              price={null}
+              price={address && fipeValue != null && !programming?.dealerOnly ? price : null}
               keyOrigin={keyOrigin}
               setKeyOrigin={setKeyOrigin}
               keyCatalog={keyCatalog}
@@ -1088,7 +1088,7 @@ export default function Home() {
               onAddressSelect={handleAddressSelect}
               description={description}
               setDescription={setDescription}
-              price={null}
+              price={address ? price : null}
               keyOrigin={keyOrigin}
               setKeyOrigin={setKeyOrigin}
               keyCatalog={keyCatalog}
@@ -1322,6 +1322,7 @@ export default function Home() {
               </div>
               <div className="w-full max-w-xs">
                 <ReceiptButton
+                  customerView
                   serviceRequest={activeRequest}
                   locksmith={selectedLocksmith}
                   customerName={customerName}

@@ -102,15 +102,15 @@ export default function CarKeyConfig({
         <div className="p-4 rounded-xl border border-border bg-muted/40 text-center">
           <p className="text-sm font-medium text-foreground">Veículo e chave consultados</p>
           <p className="text-xs text-muted-foreground mt-1">
-            O valor do serviço será informado após a confirmação da solicitação.
+            Confira abaixo o valor total estimado do serviço.
           </p>
         </div>
       )}
 
-      <CarKeyProgrammingNotice programming={programming} />
+      <CarKeyProgrammingNotice programming={programming} hidePriceDetails />
 
       {fipeValue != null && (
-        <KeyOriginSelector value={keyOrigin} onChange={setKeyOrigin} catalog={keyCatalog} />
+        <KeyOriginSelector value={keyOrigin} onChange={setKeyOrigin} catalog={keyCatalog} hidePriceDetails />
       )}
 
       {/* Tipo de chave escolhido pelo cliente */}

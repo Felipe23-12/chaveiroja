@@ -87,7 +87,7 @@ export default function MotoKeyConfig({
             />
           </div>
 
-          <KeyOriginSelector value={keyOrigin} onChange={setKeyOrigin} catalog={keyCatalog} />
+          <KeyOriginSelector value={keyOrigin} onChange={setKeyOrigin} catalog={keyCatalog} hidePriceDetails />
 
           <div>
             <label className="text-sm font-medium text-foreground mb-1.5 block">Tipo de chave</label>

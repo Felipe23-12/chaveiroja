@@ -5,7 +5,7 @@ import { AlertTriangle, Wifi } from "lucide-react";
  * Avisa o cliente quando o veículo exige programação online paga (adicional
  * fixo de R$ 250) ou quando a chave só pode ser programada na concessionária.
  */
-export default function CarKeyProgrammingNotice({ programming }) {
+export default function CarKeyProgrammingNotice({ programming, hidePriceDetails = false }) {
   if (!programming || (!programming.dealerOnly && !programming.onlineFee)) return null;
 
   if (programming.dealerOnly) {
@@ -25,9 +25,9 @@ export default function CarKeyProgrammingNotice({ programming }) {
       <Wifi className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
       <div>
         <p className="text-sm font-medium text-amber-700">
-          Programação online: + R$ {programming.onlineFee.toFixed(2)}
+          {hidePriceDetails ? "Programação online necessária" : `Programação online: + R$ ${programming.onlineFee.toFixed(2)}`}
         </p>
-        <p className="text-xs text-amber-600 mt-0.5">{programming.reason}</p>
+        <p className="text-xs text-amber-600 mt-0.5">{hidePriceDetails ? "Este veículo exige programação online para confeccionar a chave." : programming.reason}</p>
       </div>
     </div>
   );
