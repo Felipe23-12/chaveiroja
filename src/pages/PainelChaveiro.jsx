@@ -51,6 +51,8 @@ import GmailConnectCard from "@/components/gmail/GmailConnectCard";
 import PartsChecklist from "@/components/locksmith/PartsChecklist";
 import { notifyStatusByGmail } from "@/lib/gmailStatusEmail";
 import { safeUnsubscribe } from "@/lib/safeUnsubscribe";
+import useBlockedUsers from "@/hooks/useBlockedUsers";
+import ModerationActions from "@/components/moderation/ModerationActions";
 
 // Raio de cobertura para considerar um pedido "na região" do chaveiro (km)
 const REGION_RADIUS_KM = 15;
@@ -85,6 +87,7 @@ export default function PainelChaveiro() {
   const navigate = useNavigate();
   const location = useLocation();
   const { user } = useAuth();
+  const { blockedIds, loading: blocksLoading } = useBlockedUsers();
   const [locksmiths, setLocksmiths] = useState([]);
   const [selectedId, setSelectedId] = useState("");
   const [me, setMe] = useState(null);
@@ -251,7 +254,7 @@ export default function PainelChaveiro() {
       base44.entities.ServiceRequest
         .filter({ ringing_locksmith_ids: selectedId, status: "ringing" }, "-created_date")
         .then((list) => {
-          const ringing = list.filter((r) => isRingingFor(r, selectedId));
+          const ringing = list.filter((r) => !blocksLoading && !blockedIds.has(r.created_by_id) && isRingingFor(r, selectedId));
           setPendingRequests(ringing);
           savePendingRequests(ringing);
         })
@@ -267,7 +270,7 @@ export default function PainelChaveiro() {
       clearInterval(timer);
       unsub();
     };
-  }, [selectedId]);
+  }, [selectedId, blockedIds, blocksLoading]);
 
   // Notificação imediata de novos pedidos: prioritária para solicitações
   // recebidas no modo aplicativo (direcionadas ao chaveiro) e de proximidade
@@ -276,7 +279,7 @@ export default function PainelChaveiro() {
     if (!selectedId || !me) return;
     const unsub = base44.entities.ServiceRequest.subscribe((event) => {
       const r = event.data;
-      if (!r || notifiedIds.current.has(r.id)) return;
+      if (!r || blockedIds.has(r.created_by_id) || notifiedIds.current.has(r.id)) return;
 
       if ((r.ringing_locksmith_ids || []).includes(selectedId)) {
         // Chamado tocando para este chaveiro (junto com outros próximos)
@@ -321,7 +324,7 @@ export default function PainelChaveiro() {
       });
     });
     return safeUnsubscribe(unsub);
-  }, [selectedId, me]);
+  }, [selectedId, me, blockedIds]);
 
   // Busca a rota de carro entre o chaveiro e o cliente (OSRM) — com cache offline
   useEffect(() => {
@@ -693,7 +696,7 @@ export default function PainelChaveiro() {
       if (selectedId) {
         await base44.entities.ServiceRequest
           .filter({ ringing_locksmith_ids: selectedId, status: "ringing" }, "-created_date")
-          .then((list) => setPendingRequests(list.filter((r) => isRingingFor(r, selectedId))))
+          .then((list) => setPendingRequests(list.filter((r) => !blockedIds.has(r.created_by_id) && isRingingFor(r, selectedId))))
           .catch(() => {});
       }
     } catch (e) { /* ignora */ }
@@ -941,6 +944,15 @@ export default function PainelChaveiro() {
           </div>
 
           <ArrivalDeadlineCountdown request={active} />
+
+          <ModerationActions
+            targetUserId={active.created_by_id}
+            targetType="cliente"
+            targetName="Cliente"
+            contextType="service"
+            requestId={active.id}
+            locksmithId={me?.id}
+          />
 
           <UrgencyUpgradeAlert request={active} onResolved={setActive} />
           <LocksmithCaseStatus requestId={active.id} />

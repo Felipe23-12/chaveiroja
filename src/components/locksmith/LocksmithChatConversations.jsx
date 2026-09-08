@@ -7,6 +7,8 @@ import { Input } from "@/components/ui/input";
 import { useToast } from "@/components/ui/use-toast";
 import { playNotificationSound } from "@/lib/notificationSound";
 import { safeUnsubscribe } from "@/lib/safeUnsubscribe";
+import useBlockedUsers from "@/hooks/useBlockedUsers";
+import ModerationActions from "@/components/moderation/ModerationActions";
 
 /**
  * Abas de conversas com clientes + resposta, para o chaveiro no modo livre.
@@ -22,6 +24,7 @@ export default function LocksmithChatConversations({ me }) {
   const scrollRef = useRef(null);
   const lastCustomerCountRef = useRef(null);
   const { toast } = useToast();
+  const { blockedIds } = useBlockedUsers();
 
   // Carrega todas as conversas (clientes que enviaram mensagens para este chaveiro)
   useEffect(() => {
@@ -32,7 +35,7 @@ export default function LocksmithChatConversations({ me }) {
         .then((list) => {
           const groups = {};
           let customerTotal = 0;
-          list.forEach((m) => {
+          list.filter((m) => !blockedIds.has(m.client_id)).forEach((m) => {
             if (!m.client_id) return;
             if (m.sender_type === "customer") customerTotal++;
             if (m.sender_type !== "customer" && m.sender_type !== "system") return;
@@ -63,7 +66,7 @@ export default function LocksmithChatConversations({ me }) {
     load();
     const unsub = base44.entities.ChatMessage.subscribe(() => load());
     return safeUnsubscribe(unsub);
-  }, [me?.id, me?.created_by_id]);
+  }, [me?.id, me?.created_by_id, blockedIds]);
 
   // Carrega mensagens da conversa ativa
   useEffect(() => {
@@ -71,12 +74,12 @@ export default function LocksmithChatConversations({ me }) {
     const load = () =>
       base44.entities.ChatMessage
         .filter({ locksmith_id: me.id, client_id: activeTab }, "created_date")
-        .then(setMessages)
+        .then((list) => setMessages(list.filter((m) => !blockedIds.has(m.client_id))))
         .catch(() => {});
     load();
     const unsub = base44.entities.ChatMessage.subscribe(() => load());
     return safeUnsubscribe(unsub);
-  }, [me?.id, me?.created_by_id, activeTab]);
+  }, [me?.id, me?.created_by_id, activeTab, blockedIds]);
 
   useEffect(() => {
     scrollRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -84,7 +87,7 @@ export default function LocksmithChatConversations({ me }) {
 
   const handleSend = async (e) => {
     e.preventDefault();
-    if (!text.trim() || sending || !activeTab) return;
+    if (!text.trim() || sending || !activeTab || blockedIds.has(activeTab)) return;
     setSending(true);
     const msg = text.trim();
     setText("");
@@ -124,6 +127,8 @@ export default function LocksmithChatConversations({ me }) {
           </span>
         )}
       </div>
+
+      {activeTab && <div className="mb-3"><ModerationActions targetUserId={activeTab} targetType="cliente" targetName={conversations.find((c) => c.id === activeTab)?.name} contextType="chat" locksmithId={me.id} onBlocked={() => setActiveTab(null)} /></div>}
 
       {conversations.length === 0 ? (
         <div className="text-center py-10 rounded-xl border border-dashed border-border">

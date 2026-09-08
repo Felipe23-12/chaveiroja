@@ -5,6 +5,7 @@ import { X } from "lucide-react";
 import LightMap from "@/components/map/LightMap";
 import OpenInNavAppsButton from "@/components/map/OpenInNavAppsButton";
 import { safeUnsubscribe } from "@/lib/safeUnsubscribe";
+import useBlockedUsers from "@/hooks/useBlockedUsers";
 
 // Raio de cobertura para exibir clientes no mapa (km)
 const RADIUS_KM = 30;
@@ -17,6 +18,7 @@ const RADIUS_KM = 30;
 export default function LivreDashboardMap({ me }) {
   const [requests, setRequests] = useState([]);
   const [loading, setLoading] = useState(true);
+  const { blockedIds } = useBlockedUsers();
 
   useEffect(() => {
     let active = true;
@@ -24,7 +26,7 @@ export default function LivreDashboardMap({ me }) {
       base44.entities.ServiceRequest
         .filter({ status: "searching" }, "-created_date", 100)
         .then((list) => {
-          if (active) setRequests(list.filter((r) => r.customer_lat && r.customer_lng));
+          if (active) setRequests(list.filter((r) => !blockedIds.has(r.created_by_id) && r.customer_lat && r.customer_lng));
         })
         .catch(() => {});
     load().finally(() => active && setLoading(false));
@@ -33,7 +35,7 @@ export default function LivreDashboardMap({ me }) {
       active = false;
       unsub();
     };
-  }, []);
+  }, [blockedIds]);
 
   const nearby = useMemo(() => {
     if (!me) return requests;

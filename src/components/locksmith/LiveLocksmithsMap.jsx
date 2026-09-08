@@ -7,6 +7,7 @@ import LightMap from "@/components/map/LightMap";
 import MapLocationSearch from "@/components/map/MapLocationSearch";
 import { safeUnsubscribe } from "@/lib/safeUnsubscribe";
 import { estimateEtaMinutes, formatEta } from "@/lib/etaEstimate";
+import useBlockedUsers from "@/hooks/useBlockedUsers";
 
 /**
  * Tela principal do cliente: mostra TODOS os chaveiros disponíveis
@@ -25,6 +26,7 @@ export default function LiveLocksmithsMap({ customerLoc, livreOnly = false }) {
   const [searchLoc, setSearchLoc] = useState(null);
   const [searchLabel, setSearchLabel] = useState("");
   const [minRating, setMinRating] = useState(0);
+  const { blockedIds, loading: blocksLoading } = useBlockedUsers();
 
   const SPECIALTY_OPTIONS = ["Residencial", "Automotivo", "Comercial", "Emergencial"];
 
@@ -55,12 +57,13 @@ export default function LiveLocksmithsMap({ customerLoc, livreOnly = false }) {
   const withDist = useMemo(
     () =>
       locksmiths
+        .filter((l) => !blocksLoading && !blockedIds.has(l.created_by_id))
         .map((l) => {
           const distance = haversineKm(refLoc, { lat: l.lat, lng: l.lng });
           return { ...l, distance, eta: estimateEtaMinutes(distance) };
         })
         .sort((a, b) => a.distance - b.distance),
-    [locksmiths, refLoc.lat, refLoc.lng]
+    [locksmiths, blockedIds, blocksLoading, refLoc.lat, refLoc.lng]
   );
 
   const center = refLoc;

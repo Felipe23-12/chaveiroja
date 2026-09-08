@@ -9,6 +9,8 @@ import ReviewsList from "@/components/locksmith/ReviewsList";
 import RatingSummary from "@/components/locksmith/RatingSummary";
 import { saveLocksmithProfile, getLocksmithProfile } from "@/lib/offlineCache";
 import { WifiOff } from "lucide-react";
+import useBlockedUsers from "@/hooks/useBlockedUsers";
+import ModerationActions from "@/components/moderation/ModerationActions";
 
 export default function LocksmithPublicProfile() {
   const { id } = useParams();
@@ -16,6 +18,7 @@ export default function LocksmithPublicProfile() {
   const [locksmith, setLocksmith] = useState(null);
   const [center, setCenter] = useState(DEFAULT_CENTER);
   const [offline, setOffline] = useState(false);
+  const { blockedIds, loading: blocksLoading } = useBlockedUsers();
 
   useEffect(() => {
     base44.entities.Locksmith.get(id)
@@ -34,9 +37,18 @@ export default function LocksmithPublicProfile() {
     getCustomerLocation().then(setCenter);
   }, [id]);
 
-  if (!locksmith) {
+  if (!locksmith || blocksLoading) {
     return <div className="p-10 text-center text-muted-foreground">Carregando...</div>;
   }
+
+  if (blockedIds.has(locksmith.created_by_id)) return (
+    <div className="max-w-md mx-auto px-4 py-10 space-y-4 text-center">
+      <h1 className="font-heading font-bold text-xl">Perfil indisponível</h1>
+      <p className="text-sm text-muted-foreground">Este usuário não pode visualizar os dados deste profissional.</p>
+      <ModerationActions targetUserId={locksmith.created_by_id} targetType="chaveiro" targetName={locksmith.name} allowReport={false} />
+      <Button variant="outline" onClick={() => navigate("/mapa")}>Voltar ao mapa</Button>
+    </div>
+  );
 
   const dist = haversineKm(center, { lat: locksmith.lat, lng: locksmith.lng });
   const isLivre = locksmith.work_mode === "livre";
@@ -75,7 +87,7 @@ export default function LocksmithPublicProfile() {
 
       {locksmith.bio && <p className="text-sm text-muted-foreground mb-5">{locksmith.bio}</p>}
 
-      <div className="flex items-center gap-2 mb-6">
+      <div className="flex items-center gap-2 mb-4">
         <span className={`px-2.5 py-1 rounded-full text-xs font-medium ${isLivre ? "bg-emerald-50 text-emerald-700" : "bg-blue-50 text-blue-700"}`}>
           {isLivre ? "Modo Livre" : "Modo Aplicativo"}
         </span>
@@ -84,6 +96,10 @@ export default function LocksmithPublicProfile() {
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" /> online
           </span>
         )}
+      </div>
+
+      <div className="mb-4">
+        <ModerationActions targetUserId={locksmith.created_by_id} targetType="chaveiro" targetName={locksmith.name} contextType="chat" locksmithId={locksmith.id} allowReport={false} />
       </div>
 
       {isLivre ? (

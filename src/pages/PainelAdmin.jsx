@@ -10,6 +10,7 @@ import ServiceGallery from "@/components/locksmith/ServiceGallery";
 import FinancialConsolidation from "@/components/admin/FinancialConsolidation";
 import ResetLocksmithsDialog from "@/components/admin/ResetLocksmithsDialog";
 import WeeklyOperationsPanel from "@/components/admin/WeeklyOperationsPanel";
+import ConductReportsPanel from "@/components/admin/ConductReportsPanel";
 import { completeWithdrawal } from "@/lib/payments";
 import { useToast } from "@/components/ui/use-toast";
 import { safeUnsubscribe } from "@/lib/safeUnsubscribe";
@@ -166,6 +167,8 @@ export default function PainelAdmin() {
       </div>
 
       <WeeklyOperationsPanel requests={requests} scores={scores} />
+
+      <ConductReportsPanel />
 
       <AdminCharts requests={requests} />
 

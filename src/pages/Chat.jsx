@@ -10,12 +10,15 @@ import QuickMessages from "@/components/chat/QuickMessages";
 import { safeUnsubscribe } from "@/lib/safeUnsubscribe";
 import useClientDebt from "@/hooks/useClientDebt";
 import DebtBlockNotice from "@/components/client/DebtBlockNotice";
+import useBlockedUsers from "@/hooks/useBlockedUsers";
+import ModerationActions from "@/components/moderation/ModerationActions";
 
 export default function Chat() {
   const { locksmithId } = useParams();
   const navigate = useNavigate();
   // Taxa de cancelamento em aberto bloqueia o envio de mensagens
   const { debt } = useClientDebt();
+  const { blockedIds, loading: blocksLoading } = useBlockedUsers();
   const [locksmith, setLocksmith] = useState(null);
   const [messages, setMessages] = useState([]);
   const [text, setText] = useState("");
@@ -50,7 +53,7 @@ export default function Chat() {
 
   const handleSend = async (e) => {
     e.preventDefault();
-    if (!text.trim() || sending || debt) return;
+    if (!text.trim() || sending || debt || blockedIds.has(locksmith?.created_by_id)) return;
     setSending(true);
     const msg = text.trim();
     setText("");
@@ -82,7 +85,7 @@ export default function Chat() {
   };
 
   const handleQuickSend = async (msg) => {
-    if (sending || debt) return;
+    if (sending || debt || blockedIds.has(locksmith?.created_by_id)) return;
     setSending(true);
     const tempId = `temp-${Date.now()}`;
     setPendingMessages((prev) => [
@@ -110,6 +113,17 @@ export default function Chat() {
     }
   };
 
+  if (blocksLoading) return <div className="p-10 text-center text-muted-foreground">Carregando...</div>;
+  const blocked = blockedIds.has(locksmith?.created_by_id);
+  if (locksmith && blocked) return (
+    <div className="max-w-md mx-auto px-4 py-10 space-y-4 text-center">
+      <h1 className="font-heading font-bold text-xl">Contato indisponível</h1>
+      <p className="text-sm text-muted-foreground">Este perfil e o envio de mensagens estão bloqueados.</p>
+      <ModerationActions targetUserId={locksmith.created_by_id} targetType="chaveiro" targetName={locksmith.name} contextType="chat" locksmithId={locksmith.id} />
+      <Button variant="outline" onClick={() => navigate("/mapa")}>Voltar ao mapa</Button>
+    </div>
+  );
+
   return (
     <div className="max-w-2xl mx-auto px-4 py-6 md:py-8 flex flex-col" style={{ height: "calc(100vh - 0px)" }}>
       <div className="flex items-center gap-3 mb-4 pb-3 border-b border-border">
@@ -125,6 +139,7 @@ export default function Chat() {
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" /> online · {locksmith?.specialty}
           </p>
         </div>
+        <ModerationActions targetUserId={locksmith?.created_by_id} targetType="chaveiro" targetName={locksmith?.name} contextType="chat" locksmithId={locksmithId} />
         <Button variant="outline" size="sm" onClick={() => setReviewOpen(true)}>
           <Star className="w-4 h-4 mr-1.5" /> Avaliar
         </Button>

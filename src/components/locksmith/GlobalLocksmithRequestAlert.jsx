@@ -10,6 +10,7 @@ import { enqueueAction, flushActionQueue, queuedActionsCount, bindAutoFlush } fr
 import { useOnlineStatus } from "@/hooks/useOnlineStatus";
 import OfflineBanner from "@/components/locksmith/OfflineBanner";
 import { safeUnsubscribe } from "@/lib/safeUnsubscribe";
+import useBlockedUsers from "@/hooks/useBlockedUsers";
 
 function formatElapsed(seconds) {
   const m = Math.floor(seconds / 60);
@@ -53,6 +54,7 @@ export default function GlobalLocksmithRequestAlert() {
   const [accepting, setAccepting] = useState(null);
   const [queuedCount, setQueuedCount] = useState(queuedActionsCount());
   const online = useOnlineStatus();
+  const { blockedIds, loading: blocksLoading } = useBlockedUsers();
 
   const accountType = user?.account_type || (user?.role === "admin" ? "admin" : "cliente");
   const isChaveiro = accountType === "chaveiro";
@@ -94,13 +96,13 @@ export default function GlobalLocksmithRequestAlert() {
       base44.entities.ServiceRequest
         .filter({ ringing_locksmith_ids: locksmithId, status: "ringing" }, "-created_date")
         .then((list) => {
-          const ringing = list.filter((r) => isRingingFor(r, locksmithId));
+          const ringing = list.filter((r) => !blocksLoading && !blockedIds.has(r.created_by_id) && isRingingFor(r, locksmithId));
           setRequests(ringing);
           savePendingRequests(ringing);
         })
         .catch(() => {
           // Oscilação de internet: mantém visível o último chamado em cache
-          const cached = getPendingRequests().filter((r) => isRingingFor(r, locksmithId));
+          const cached = getPendingRequests().filter((r) => !blockedIds.has(r.created_by_id) && isRingingFor(r, locksmithId));
           if (cached.length > 0) setRequests((prev) => (prev.length > 0 ? prev : cached));
         });
     load();
@@ -110,7 +112,7 @@ export default function GlobalLocksmithRequestAlert() {
       clearInterval(timer);
       unsub();
     };
-  }, [locksmithId]);
+  }, [locksmithId, blockedIds, blocksLoading]);
 
   // Abre automaticamente quando chega a primeira solicitação
   useEffect(() => {

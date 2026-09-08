@@ -1,0 +1,83 @@
+{
+  "name": "UserBlock",
+  "type": "object",
+  "properties": {
+    "blocker_id": {
+      "type": "string"
+    },
+    "blocked_id": {
+      "type": "string"
+    },
+    "blocker_type": {
+      "type": "string",
+      "enum": [
+        "cliente",
+        "chaveiro"
+      ]
+    },
+    "blocked_type": {
+      "type": "string",
+      "enum": [
+        "cliente",
+        "chaveiro"
+      ]
+    },
+    "blocked_name": {
+      "type": "string"
+    },
+    "active": {
+      "type": "boolean",
+      "default": true
+    }
+  },
+  "required": [
+    "blocker_id",
+    "blocked_id",
+    "blocker_type",
+    "blocked_type"
+  ],
+  "rls": {
+    "read": {
+      "$or": [
+        {
+          "data.blocker_id": "{{user.id}}"
+        },
+        {
+          "data.blocked_id": "{{user.id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "create": {
+      "data.blocker_id": "{{user.id}}"
+    },
+    "update": {
+      "$or": [
+        {
+          "created_by_id": "{{user.id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "$or": [
+        {
+          "created_by_id": "{{user.id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    }
+  }
+}

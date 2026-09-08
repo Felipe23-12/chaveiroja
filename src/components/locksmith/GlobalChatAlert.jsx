@@ -7,6 +7,7 @@ import { setChatUnread, incrementChatUnread } from "@/lib/chatUnreadStore";
 import { playNotificationSound } from "@/lib/notificationSound";
 import { ensureNotificationPermission, notifyClient } from "@/lib/clientNotifications";
 import { safeUnsubscribe } from "@/lib/safeUnsubscribe";
+import useBlockedUsers from "@/hooks/useBlockedUsers";
 
 const lastSeenKey = (id) => `chat_last_seen_${id}`;
 
@@ -23,6 +24,7 @@ export default function GlobalChatAlert() {
   const { toast } = useToast();
   const [locksmith, setLocksmith] = useState(null);
   const [unread, setUnread] = useState(0);
+  const { blockedIds, loading: blocksLoading } = useBlockedUsers();
   const seenIds = useRef(new Set());
   const initialized = useRef(false);
 
@@ -61,7 +63,7 @@ export default function GlobalChatAlert() {
       base44.entities.ChatMessage
         .filter({ locksmith_id: locksmith.id }, "created_date")
         .then((list) => {
-          const customerMsgs = list.filter((m) => m.sender_type === "customer");
+          const customerMsgs = list.filter((m) => !blocksLoading && m.sender_type === "customer" && !blockedIds.has(m.client_id));
           if (!initialized.current) {
             // Primeira carga: conta mensagens recebidas enquanto o chaveiro
             // estava fora (created_date > lastSeen) como não lidas, e marca
@@ -101,7 +103,7 @@ export default function GlobalChatAlert() {
     load();
     const unsub = base44.entities.ChatMessage.subscribe(() => load());
     return safeUnsubscribe(unsub);
-  }, [locksmith?.id]);
+  }, [locksmith?.id, blockedIds, blocksLoading]);
 
   // Zera o contador e persiste lastSeen quando o chaveiro está no painel
   useEffect(() => {

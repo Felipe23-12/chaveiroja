@@ -11,6 +11,8 @@ import CancelServiceButton from "@/components/locksmith/CancelServiceButton";
 import CancellationCaseNotice from "@/components/client/CancellationCaseNotice";
 import { fetchDrivingRoute, etaMinutes, haversineKm } from "@/lib/geo";
 import { safeUnsubscribe } from "@/lib/safeUnsubscribe";
+import useBlockedUsers from "@/hooks/useBlockedUsers";
+import ModerationActions from "@/components/moderation/ModerationActions";
 
 export default function Acompanhamento() {
   const { requestId } = useParams();
@@ -24,6 +26,7 @@ export default function Acompanhamento() {
   const [routePath, setRoutePath] = useState(null);
   const [routeEta, setRouteEta] = useState(null);
   const [loading, setLoading] = useState(true);
+  const { blockedIds } = useBlockedUsers();
   const scrollRef = useRef(null);
 
   // Carrega a solicitação e assina atualizações em tempo real
@@ -94,7 +97,7 @@ export default function Acompanhamento() {
 
   const handleSend = async (e) => {
     e?.preventDefault();
-    if (!text.trim() || sending || !request?.locksmith_id) return;
+    if (!text.trim() || sending || !request?.locksmith_id || blockedIds.has(request?.locksmith_user_id || locksmith?.created_by_id)) return;
     setSending(true);
     const msg = text.trim();
     setText("");
@@ -112,7 +115,7 @@ export default function Acompanhamento() {
   };
 
   const handleQuickSend = async (msg) => {
-    if (sending || !request?.locksmith_id) return;
+    if (sending || !request?.locksmith_id || blockedIds.has(request?.locksmith_user_id || locksmith?.created_by_id)) return;
     setSending(true);
     try {
       await base44.entities.ChatMessage.create({
@@ -174,6 +177,7 @@ export default function Acompanhamento() {
       <div className="mb-4 space-y-3">
         <ArrivalDeadlineCountdown request={request} />
         <CancellationCaseNotice requestId={request.id} />
+        <ModerationActions targetUserId={request.locksmith_user_id || locksmith?.created_by_id} targetType="chaveiro" targetName={request.locksmith_name || locksmith?.name} contextType="service" requestId={request.id} locksmithId={request.locksmith_id} />
       </div>
 
       {/* Layout: mapa em cima, chat embaixo (mobile) | lado a lado (desktop) */}
@@ -272,15 +276,15 @@ export default function Acompanhamento() {
           </div>
 
           <div className="border-t border-border">
-            <QuickMessages onSend={handleQuickSend} disabled={sending} />
+            <QuickMessages onSend={handleQuickSend} disabled={sending || blockedIds.has(request?.locksmith_user_id || locksmith?.created_by_id)} />
             <form onSubmit={handleSend} className="flex gap-2 p-3">
               <Input
                 value={text}
                 onChange={(e) => setText(e.target.value)}
                 placeholder="Escreva sua mensagem..."
-                disabled={sending}
+                disabled={sending || blockedIds.has(request?.locksmith_user_id || locksmith?.created_by_id)}
               />
-              <Button type="submit" size="icon" disabled={!text.trim() || sending}>
+              <Button type="submit" size="icon" disabled={!text.trim() || sending || blockedIds.has(request?.locksmith_user_id || locksmith?.created_by_id)}>
                 <Send className="w-4 h-4" />
               </Button>
             </form>

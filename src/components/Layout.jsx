@@ -12,6 +12,7 @@ import ServiceFinishAlert from "@/components/client/ServiceFinishAlert";
 import DeleteAccountModal from "@/components/DeleteAccountModal";
 import UserPhotoModal from "@/components/profile/UserPhotoModal";
 import MobileTabBar from "@/components/MobileTabBar";
+import BlockedContactsButton from "@/components/moderation/BlockedContactsButton";
 import { useChatUnread } from "@/lib/chatUnreadStore";
 import { AnimatePresence } from "framer-motion";
 import PageTransition from "@/components/PageTransition";
@@ -135,6 +136,7 @@ function SidebarContent({ onNavigate }) {
           <Camera className="w-3 h-3" />
           Foto de perfil
         </button>
+        <BlockedContactsButton />
         <button
           onClick={() => setDeleteOpen(true)}
           className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-md text-xs font-medium text-destructive hover:bg-destructive/10 transition-colors min-h-[36px]"

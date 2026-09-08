@@ -53,10 +53,13 @@ import AcceptedStep from "@/components/client/AcceptedStep";
 import ReviewStep from "@/components/client/ReviewStep";
 import useClientDebt from "@/hooks/useClientDebt";
 import { useRegionalPriceRange } from "@/hooks/useRegionalPriceRange";
+import useBlockedUsers from "@/hooks/useBlockedUsers";
+import ModerationActions from "@/components/moderation/ModerationActions";
 
 export default function Home() {
   const { toast } = useToast();
   const navigate = useNavigate();
+  const { blockedIds, loading: blocksLoading } = useBlockedUsers();
   const [step, setStepState] = useState(1);
   const [module, setModule] = useState("app");
   const [searchParams, setSearchParams] = useSearchParams();
@@ -165,12 +168,17 @@ export default function Home() {
       .catch(() => setKeyBlock(null));
   }, [activeRequest?.status]);
 
+  const unblockedAppLocksmiths = useMemo(
+    () => blocksLoading ? [] : appLocksmiths.filter((l) => !blockedIds.has(l.created_by_id)),
+    [appLocksmiths, blockedIds, blocksLoading]
+  );
+
   // Distância do chaveiro elegível mais próximo DENTRO do raio escolhido.
   // Chaveiros além do raio não entram na busca nem no cálculo do valor.
   const nearestDistance = useMemo(() => {
-    if (!service || appLocksmiths.length === 0) return null;
+    if (!service || unblockedAppLocksmiths.length === 0) return null;
     const limit = searchRadius == null ? DEFAULT_RADIUS_KM : searchRadius;
-    const distances = appLocksmiths
+    const distances = unblockedAppLocksmiths
       .filter((l) => {
         if (l.services && l.services.length > 0) return l.services.includes(service.id);
         const locksmithSpecialties =
@@ -181,7 +189,7 @@ export default function Home() {
       .filter((d) => d <= limit);
     if (distances.length === 0) return null;
     return Math.min(...distances);
-  }, [service, appLocksmiths, customerLoc, searchRadius]);
+  }, [service, unblockedAppLocksmiths, customerLoc, searchRadius]);
 
   // Distância usada na estimativa de valor: sempre limitada ao raio escolhido.
   // Se não houver chaveiro online dentro do raio, o cálculo assume um chaveiro
@@ -192,7 +200,7 @@ export default function Home() {
   }, [searchRadius, nearestDistance]);
 
   // Supply: chaveiros online no modo app
-  const onlineLocksmithsCount = appLocksmiths.filter((l) => l.online).length;
+  const onlineLocksmithsCount = unblockedAppLocksmiths.filter((l) => l.online).length;
 
   // Preço dinâmico (modo aplicativo): oferta/demanda + urgência + região + bairro + distância
   const price = useMemo(() => {
@@ -323,18 +331,18 @@ export default function Home() {
   const inRadiusCount = useMemo(() => {
     if (!service) return null;
     return buildEligibleQueue(
-      appLocksmiths,
+      unblockedAppLocksmiths,
       service,
       customerLoc,
       searchRadius == null ? DEFAULT_RADIUS_KM : searchRadius
     ).length;
-  }, [service, appLocksmiths, customerLoc, searchRadius]);
+  }, [service, unblockedAppLocksmiths, customerLoc, searchRadius]);
 
   // Sem resposta em 5 minutos: aumenta o raio em 20% e toca em mais chaveiros
   useRadiusExpansion({
     request: activeRequest,
     service,
-    locksmiths: appLocksmiths,
+    locksmiths: unblockedAppLocksmiths,
     customerLoc,
     radiusKm: currentRadius,
     // A ampliação automática só vale na opção "Chaveiro perto de mim";
@@ -429,7 +437,7 @@ export default function Home() {
       //    o serviço só vai para chaveiros cuja especialidade inclui a do serviço.
       // Prioriza quem está dentro do raio escolhido; se ninguém estiver,
       // o chamado toca nos chaveiros elegíveis mais próximos de qualquer forma.
-      const allEligible = buildEligibleQueue(appLocksmiths, service, customerLoc);
+      const allEligible = buildEligibleQueue(unblockedAppLocksmiths, service, customerLoc);
       let queue;
       let usedRadius;
       if (searchRadius == null) {
@@ -573,12 +581,12 @@ export default function Home() {
     if (!activeRequest || activeRequest.status !== "ringing") return;
     if (queueRef.current.length > 0) return;
     const svc = SERVICE_CATALOG.find((s) => s.label === activeRequest.service_type);
-    if (!svc || appLocksmiths.length === 0) return;
-    queueRef.current = buildEligibleQueue(appLocksmiths, svc, {
+    if (!svc || unblockedAppLocksmiths.length === 0) return;
+    queueRef.current = buildEligibleQueue(unblockedAppLocksmiths, svc, {
       lat: activeRequest.customer_lat,
       lng: activeRequest.customer_lng,
     });
-  }, [activeRequest?.id, activeRequest?.status, appLocksmiths]);
+  }, [activeRequest?.id, activeRequest?.status, unblockedAppLocksmiths]);
 
   // Pagamento confirmado via Stripe — acontece após o serviço, antes da finalização
   const handleServicePayment = async (method, stripePaymentIntentId) => {
@@ -1127,6 +1135,14 @@ export default function Home() {
 
           <UrgentArrivalCountdown request={activeRequest} />
           <CancellationCaseNotice requestId={activeRequest.id} />
+          <ModerationActions
+            targetUserId={activeRequest.locksmith_user_id || selectedLocksmith?.created_by_id}
+            targetType="chaveiro"
+            targetName={activeRequest.locksmith_name || selectedLocksmith?.name}
+            contextType="service"
+            requestId={activeRequest.id}
+            locksmithId={selectedLocksmith?.id}
+          />
 
           {activeRequest.locksmith_arrived && !activeRequest.client_arrived_confirmed && (
             <div className="p-4 rounded-2xl border-2 border-primary bg-primary/5 space-y-3">

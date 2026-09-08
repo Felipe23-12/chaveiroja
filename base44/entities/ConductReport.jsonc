@@ -1,0 +1,116 @@
+{
+  "name": "ConductReport",
+  "type": "object",
+  "properties": {
+    "reporter_id": {
+      "type": "string"
+    },
+    "reporter_name": {
+      "type": "string"
+    },
+    "reported_id": {
+      "type": "string"
+    },
+    "reported_name": {
+      "type": "string"
+    },
+    "reporter_type": {
+      "type": "string",
+      "enum": [
+        "cliente",
+        "chaveiro"
+      ]
+    },
+    "reported_type": {
+      "type": "string",
+      "enum": [
+        "cliente",
+        "chaveiro"
+      ]
+    },
+    "context_type": {
+      "type": "string",
+      "enum": [
+        "service",
+        "chat"
+      ]
+    },
+    "request_id": {
+      "type": "string"
+    },
+    "locksmith_id": {
+      "type": "string"
+    },
+    "category": {
+      "type": "string",
+      "enum": [
+        "pornography",
+        "violence",
+        "harassment",
+        "discrimination",
+        "illegal_activity",
+        "human_dignity",
+        "other"
+      ]
+    },
+    "description": {
+      "type": "string"
+    },
+    "photos": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "default": []
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "reviewing",
+        "resolved",
+        "dismissed"
+      ],
+      "default": "pending"
+    },
+    "admin_notes": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "reporter_id",
+    "reported_id",
+    "reporter_type",
+    "reported_type",
+    "context_type",
+    "category",
+    "description"
+  ],
+  "rls": {
+    "read": {
+      "$or": [
+        {
+          "data.reporter_id": "{{user.id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "create": {
+      "data.reporter_id": "{{user.id}}"
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

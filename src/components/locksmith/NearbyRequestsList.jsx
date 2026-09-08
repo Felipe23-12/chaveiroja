@@ -7,6 +7,7 @@ import NativeSelectDrawer from "@/components/ui/NativeSelectDrawer";
 import { resyncRingingForRadius } from "@/lib/radiusResync";
 
 import { DEFAULT_SERVICE_RADIUS_KM } from "@/components/locksmith/ServiceRadiusConfig";
+import useBlockedUsers from "@/hooks/useBlockedUsers";
 
 const RADIUS_OPTIONS = [1, 3, 5, 10, 15, 20, 30, 40, 50].map((km) => ({
   value: String(km),
@@ -21,6 +22,7 @@ const RADIUS_OPTIONS = [1, 3, 5, 10, 15, 20, 30, 40, 50].map((km) => ({
 export default function NearbyRequestsList({ locksmith }) {
   const [allRequests, setAllRequests] = useState([]);
   const [loading, setLoading] = useState(true);
+  const { blockedIds } = useBlockedUsers();
   // O estado do filtro fica guardado no aparelho — ao fechar e reabrir o app
   // o chaveiro encontra a mesma configuração ativa.
   const [filterEnabled, setFilterEnabled] = useState(
@@ -58,7 +60,7 @@ export default function NearbyRequestsList({ locksmith }) {
       base44.entities.ServiceRequest
         .filter({ status: "searching" }, "-created_date")
         .then((list) => {
-          setAllRequests(list);
+          setAllRequests(list.filter((r) => !blockedIds.has(r.created_by_id)));
           setLoading(false);
         })
         .catch(() => setLoading(false));
@@ -70,7 +72,7 @@ export default function NearbyRequestsList({ locksmith }) {
         unsub.then((fn) => typeof fn === "function" && fn()).catch(() => {});
       }
     };
-  }, []);
+  }, [blockedIds]);
 
   if (!locksmith || !locksmith.online) return null;
 
