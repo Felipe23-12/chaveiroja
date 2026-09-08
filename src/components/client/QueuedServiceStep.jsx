@@ -2,6 +2,7 @@ import React from "react";
 import { Clock3, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import LocksmithMiniProfile from "@/components/locksmith/LocksmithMiniProfile";
+import KeyServicePrice from "@/components/client/KeyServicePrice";
 
 export default function QueuedServiceStep({ request, locksmith, onCancel }) {
   return (
@@ -18,6 +19,7 @@ export default function QueuedServiceStep({ request, locksmith, onCancel }) {
       <div className="flex items-center gap-2 p-3 rounded-xl border border-amber-300 bg-amber-50 text-amber-800 text-sm">
         <CheckCircle2 className="w-5 h-5 shrink-0" /> Seu chamado está confirmado como o próximo da fila.
       </div>
+      <KeyServicePrice request={request} />
       <LocksmithMiniProfile locksmith={locksmith} />
       <p className="text-xs text-muted-foreground text-center">{request.service_type} · {request.address}</p>
       <Button variant="outline" onClick={onCancel} className="w-full text-destructive border-destructive/40">

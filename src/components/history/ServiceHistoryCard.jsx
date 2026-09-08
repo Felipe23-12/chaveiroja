@@ -26,6 +26,8 @@ export default function ServiceHistoryCard({ request: r, perspective = "cliente"
   const isCancelled = r.status === "cancelled";
   const finalValue = isCancelled ? r.cancellation_fee : r.price;
   const personLabel = perspective === "cliente" ? r.locksmith_name : r.client_name;
+  const isKeyService = ["Confecção de Chave de Carro", "Confecção de Chave de Moto"].includes(r.service_type);
+  const hideValueUntilAccepted = perspective === "cliente" && isKeyService && !r.accepted_at && ["searching", "ringing", "cancelled"].includes(r.status);
 
   return (
     <div className="p-4 rounded-2xl bg-card border border-border fade-in-up">
@@ -49,7 +51,7 @@ export default function ServiceHistoryCard({ request: r, perspective = "cliente"
             {isCancelled ? "Taxa cobrada" : "Valor final"}
           </p>
           <p className={`font-heading font-bold text-lg ${isCancelled ? "text-red-600" : "text-foreground"}`}>
-            {money(finalValue)}
+            {hideValueUntilAccepted ? "Após aceite" : money(finalValue)}
           </p>
           {getOpeningConditionFee(r) > 0 && !isCancelled && <p className="text-[11px] text-amber-700">Inclui adicional de condição +{money(getOpeningConditionFee(r))}</p>}
           {r.discount_amount > 0 && !isCancelled && (

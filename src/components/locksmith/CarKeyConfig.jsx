@@ -3,7 +3,7 @@ import { Search, Loader2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
-import PriceSummary from "./PriceSummary";
+import KeyServicePrice from "@/components/client/KeyServicePrice";
 import AddressAutocomplete from "./AddressAutocomplete";
 import { CAR_KEY_TYPES } from "@/lib/pricing";
 import CarKeyProgrammingNotice from "./CarKeyProgrammingNotice";
@@ -97,13 +97,11 @@ export default function CarKeyConfig({
         {searchError && <p className="text-sm text-red-600">{searchError}</p>}
       </div>
 
-      {/* O sistema mantém os dados necessários para calcular o serviço, mas não expõe valores nesta etapa. */}
+      {/* O sistema calcula o serviço sem expor o valor antes do aceite. */}
       {fipeValue != null && (
         <div className="p-4 rounded-xl border border-border bg-muted/40 text-center">
           <p className="text-sm font-medium text-foreground">Veículo e chave consultados</p>
-          <p className="text-xs text-muted-foreground mt-1">
-            Confira abaixo o valor total estimado do serviço.
-          </p>
+          <p className="text-xs text-muted-foreground mt-1">Disponibilidade confirmada para continuar o chamado.</p>
         </div>
       )}
 
@@ -156,7 +154,7 @@ export default function CarKeyConfig({
         />
       </div>
 
-      <PriceSummary price={price} />
+      <KeyServicePrice pending />
     </div>
   );
 }

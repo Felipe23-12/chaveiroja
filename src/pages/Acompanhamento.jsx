@@ -15,6 +15,7 @@ import useBlockedUsers from "@/hooks/useBlockedUsers";
 import ModerationActions from "@/components/moderation/ModerationActions";
 import ChatPhotoButton from "@/components/chat/ChatPhotoButton";
 import ChatMessageContent from "@/components/chat/ChatMessageContent";
+import KeyServicePrice from "@/components/client/KeyServicePrice";
 
 export default function Acompanhamento() {
   const { requestId } = useParams();
@@ -210,6 +211,7 @@ export default function Acompanhamento() {
       <div className="mb-4 space-y-3">
         <ArrivalDeadlineCountdown request={request} />
         <CancellationCaseNotice requestId={request.id} />
+        <KeyServicePrice request={request} />
         <ModerationActions targetUserId={request.locksmith_user_id || locksmith?.created_by_id} targetType="chaveiro" targetName={request.locksmith_name || locksmith?.name} contextType="service" requestId={request.id} locksmithId={request.locksmith_id} />
       </div>
 

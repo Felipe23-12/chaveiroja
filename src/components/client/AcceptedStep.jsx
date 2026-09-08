@@ -5,6 +5,7 @@ import LightMap from "@/components/map/LightMap";
 import LocksmithMiniProfile from "@/components/locksmith/LocksmithMiniProfile";
 import UpgradeToUrgentButton from "@/components/locksmith/UpgradeToUrgentButton";
 import UrgentArrivalCountdown from "@/components/locksmith/UrgentArrivalCountdown";
+import KeyServicePrice from "@/components/client/KeyServicePrice";
 
 /** Etapa 4: chaveiro aceitou o pedido — mapa, perfil e ações de acompanhamento */
 export default function AcceptedStep({ request, locksmith, serviceLabel, routePath, routeEta, onTrack, onChat, onUpdated }) {
@@ -22,6 +23,7 @@ export default function AcceptedStep({ request, locksmith, serviceLabel, routePa
       </div>
 
       <UrgentArrivalCountdown request={request} />
+      <KeyServicePrice request={request} />
 
       <LightMap
         center={{ lat: request.customer_lat, lng: request.customer_lng }}

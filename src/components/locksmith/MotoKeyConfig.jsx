@@ -2,7 +2,7 @@ import React from "react";
 import { AlertTriangle } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import PriceSummary from "./PriceSummary";
+import KeyServicePrice from "@/components/client/KeyServicePrice";
 import AddressAutocomplete from "./AddressAutocomplete";
 import { MOTO_BRANDS, MOTO_MODELS, MOTO_KEY_TYPES, getMotoModel } from "@/lib/motoKey";
 import KeyOriginSelector from "./KeyOriginSelector";
@@ -145,7 +145,7 @@ export default function MotoKeyConfig({
         />
       </div>
 
-      <PriceSummary price={price} />
+      <KeyServicePrice pending />
     </div>
   );
 }
