@@ -529,7 +529,7 @@ export default function Home() {
       let req;
       if (service.isCarKey) {
         // Preço dinâmico: valor da chave + mão de obra pela faixa de ano/codificação da FIPE
-        const effectiveKeyValue = selectedKeyValue;
+        const effectiveKeyValue = carKeyType === "simples" ? 0 : selectedKeyValue;
         const onlineFee = programming?.onlineFee || 0;
         const basePrice = price?.total || 0;
         const adjustedLabor = price

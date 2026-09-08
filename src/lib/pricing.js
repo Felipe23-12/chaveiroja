@@ -55,7 +55,7 @@ export function carKeyComponents({ fipeValue = 0, keyValue = 0, keyType = "simpl
   return {
     fipeLabor,
     laborCost: Math.round((fipeLabor + CAR_KEY_SIMPLE_FIXED) * 100) / 100,
-    keyValue: Number(keyValue) || 0,
+    keyValue: 0,
     type,
   };
 }
