@@ -115,7 +115,7 @@ export default function StripeConnectSetup({ onStatusChange }) {
           <CreditCard className="w-5 h-5 text-primary" />
         </div>
         <div className="flex-1">
-          <p className="font-semibold text-foreground">Recebimentos pelo ChaveiroNow</p>
+          <p className="font-semibold text-foreground">Recebimentos pelo Chaveiro Já</p>
           <p className="text-sm text-muted-foreground mt-0.5">Configure sua conta Stripe para receber automaticamente os pagamentos dos clientes.</p>
         </div>
       </div>

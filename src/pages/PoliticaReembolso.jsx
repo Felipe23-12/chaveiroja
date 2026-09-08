@@ -17,7 +17,7 @@ export default function PoliticaReembolso() {
             </div>
             <h1 className="text-2xl sm:text-3xl font-bold">Política de Reembolso e Garantia de Serviço</h1>
             <p className="mt-2 text-slate-300 text-sm sm:text-base">
-              ChaveiroNow — regras para serviços não executados ou executados de forma inadequada.
+              Chaveiro Já — regras para serviços não executados ou executados de forma inadequada.
             </p>
           </div>
 
@@ -72,7 +72,7 @@ export default function PoliticaReembolso() {
             <section>
               <h2 className="text-lg font-bold text-slate-900 mb-3">5. Situações que podem exigir análise</h2>
               <p>
-                Quando houver divergência entre as versões do cliente e do chaveiro, o ChaveiroNow poderá solicitar
+                Quando houver divergência entre as versões do cliente e do chaveiro, o Chaveiro Já poderá solicitar
                 informações adicionais antes de concluir a análise. Isso não impede o consumidor de exercer os direitos
                 garantidos pela legislação brasileira.
               </p>
@@ -116,7 +116,7 @@ export default function PoliticaReembolso() {
         </div>
 
         <div className="text-center mt-6">
-          <Link to="/register" className="text-sm text-primary hover:underline">Criar uma conta no ChaveiroNow</Link>
+          <Link to="/register" className="text-sm text-primary hover:underline">Criar uma conta no Chaveiro Já</Link>
         </div>
       </div>
     </div>
