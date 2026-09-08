@@ -14,6 +14,8 @@ import { claimCpf } from "@/lib/cpfRegistration";
 import CpfInput from "@/components/auth/CpfInput";
 import TermsAcceptance from "@/components/auth/TermsAcceptance";
 import { termsPayload } from "@/lib/termsVersion";
+import { registerEmailAccount, registrationErrorMessage } from "@/lib/emailRegistration";
+import ExistingAccountNotice from "@/components/auth/ExistingAccountNotice";
 
 export default function RegisterCliente() {
   const [fullName, setFullName] = useState("");
@@ -32,6 +34,7 @@ export default function RegisterCliente() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (loading || showOtp) return;
     setError("");
     if (!fullName.trim()) {
       setError("Informe seu nome");
@@ -56,53 +59,42 @@ export default function RegisterCliente() {
     }
     setLoading(true);
     try {
-      const registration = await base44.auth.register({ email, password });
-
-      sessionStorage.setItem("cliente_onboarding", JSON.stringify({
-        fullName, phone, cpf,
-      }));
-
-      if (registration?.access_token) {
-        base44.auth.setToken(registration.access_token);
-        await finishClientRegistration();
-      } else {
-        setShowOtp(true);
-      }
+      const normalizedEmail = email.trim().toLowerCase();
+      await registerEmailAccount(normalizedEmail, password);
+      setEmail(normalizedEmail);
+      sessionStorage.setItem("cliente_onboarding", JSON.stringify({ fullName, phone, cpf }));
+      setShowOtp(true);
     } catch (err) {
-      const message = String(err?.message || "");
-      const requiresVerification = /verif|confirm|otp|c[oó]digo|email/i.test(message);
-
-      if (requiresVerification) {
-        setShowOtp(true);
-      } else {
-        setError(message || "Falha no cadastro");
-        setLoading(false);
-      }
+      setError(registrationErrorMessage(err));
+    } finally {
+      setLoading(false);
     }
   };
 
   const finishClientRegistration = async () => {
     await claimCpf(cpf);
-    try {
-      await base44.auth.updateMe({
-        phone,
-        account_type: "cliente",
-        password_created: true,
-        ...termsPayload(),
-      });
-    } catch (e) {
-      /* não bloqueia o cadastro se um campo opcional não puder ser salvo */
-    }
-    try {
-      await base44.auth.updateMe({ full_name: fullName });
-    } catch (e) {
-      /* ignora se a plataforma não permitir editar este campo */
-    }
+    await base44.auth.updateMe({
+      phone,
+      account_type: "cliente",
+      password_created: true,
+      ...termsPayload(),
+    });
+    localStorage.setItem("remember_login", "true");
+    sessionStorage.setItem("active_login_session", "true");
+    sessionStorage.removeItem("cliente_onboarding");
     window.location.assign(returnTo !== "/" ? returnTo : "/");
   };
 
   const handleGoogle = () =>
     base44.auth.loginWithProvider("google", "/google-complete?tipo=cliente");
+
+  if (showOtp) return (
+    <AuthLayout icon={UserPlus} title="Confirme seu email" subtitle="Conclua a verificação para ativar seu cadastro">
+      <InlineOtpInput key={email} email={email} onSuccess={finishClientRegistration} />
+      <Button type="button" variant="ghost" className="w-full mt-3" onClick={() => setShowOtp(false)}>Voltar e corrigir os dados</Button>
+      <ExistingAccountNotice query={qs} />
+    </AuthLayout>
+  );
 
   return (
     <AuthLayout
@@ -118,6 +110,7 @@ export default function RegisterCliente() {
         </>
       }
     >
+      <ExistingAccountNotice query={qs} />
       <Button
         variant="outline"
         className="w-full h-12 text-sm font-medium mb-6"
@@ -242,9 +235,7 @@ export default function RegisterCliente() {
           )}
         </Button>
 
-        {showOtp && (
-          <InlineOtpInput email={email} onSuccess={finishClientRegistration} />
-        )}
+
       </form>
 
       <p className="text-center text-sm text-muted-foreground mt-4">

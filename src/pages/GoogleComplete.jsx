@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Loader2, User, UserPlus, Wrench, Phone, AtSign } from "lucide-react";
 import AuthLayout from "@/components/AuthLayout";
-import { cpfError, onlyDigits } from "@/lib/cpf";
+import { cpfError, onlyDigits, isValidCpf } from "@/lib/cpf";
 import { claimCpf } from "@/lib/cpfRegistration";
 import CpfInput from "@/components/auth/CpfInput";
 import TermsAcceptance from "@/components/auth/TermsAcceptance";
@@ -15,7 +15,7 @@ import { termsPayload } from "@/lib/termsVersion";
 
 export default function GoogleComplete() {
   const [searchParams] = useSearchParams();
-  const tipo = searchParams.get("tipo") === "chaveiro" ? "chaveiro" : "cliente";
+  const [tipo, setTipo] = useState(searchParams.get("tipo") === "chaveiro" ? "chaveiro" : "cliente");
   const dest = tipo === "chaveiro" ? "/painel-chaveiro" : "/";
 
   const [fullName, setFullName] = useState("");
@@ -33,6 +33,13 @@ export default function GoogleComplete() {
     const load = async () => {
       try {
         const me = await base44.auth.me();
+        if (me.account_type === "cliente" || me.account_type === "chaveiro") {
+          setTipo(me.account_type);
+          if (isValidCpf(me.cpf) && onlyDigits(me.phone || "").length >= 10) {
+            window.location.assign(me.role === "admin" ? "/painel-admin" : me.account_type === "chaveiro" ? "/painel-chaveiro" : "/");
+            return;
+          }
+        }
         setPasswordReady(me?.password_created === true);
         if (me?.full_name) setFullName(me.full_name);
         if (me?.username) setUsername(me.username);
@@ -77,7 +84,6 @@ export default function GoogleComplete() {
     try {
       await claimCpf(cpfDigits);
       await base44.auth.updateMe({
-        full_name: fullName.trim(),
         username: username.trim(),
         phone: phone.trim(),
         account_type: tipo,

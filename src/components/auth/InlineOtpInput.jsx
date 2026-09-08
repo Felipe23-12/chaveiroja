@@ -10,6 +10,7 @@ export default function InlineOtpInput({ email, onSuccess }) {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [resending, setResending] = useState(false);
+  const [verified, setVerified] = useState(false);
   const [resendCooldown, setResendCooldown] = useState(0);
 
   useEffect(() => {
@@ -21,16 +22,19 @@ export default function InlineOtpInput({ email, onSuccess }) {
   }, [resendCooldown]);
 
   const handleVerify = async () => {
-    if (otpCode.length < 6) {
+    if (loading || resending) return;
+    if (!verified && otpCode.length < 6) {
       setError("Digite o código completo de 6 dígitos.");
       return;
     }
     setError("");
     setLoading(true);
     try {
-      const result = await base44.auth.verifyOtp({ email, otpCode });
-      if (result?.access_token) {
+      if (!verified) {
+        const result = await base44.auth.verifyOtp({ email, otpCode });
+        if (!result?.access_token) throw new Error('Não foi possível confirmar o acesso. Tente novamente.');
         base44.auth.setToken(result.access_token);
+        setVerified(true);
       }
       await onSuccess();
     } catch (err) {
@@ -41,7 +45,7 @@ export default function InlineOtpInput({ email, onSuccess }) {
   };
 
   const handleResend = async () => {
-    if (resendCooldown > 0 || resending) return;
+    if (resendCooldown > 0 || resending || loading || verified) return;
     setError("");
     setResending(true);
     try {
@@ -64,7 +68,7 @@ export default function InlineOtpInput({ email, onSuccess }) {
         </div>
         <div>
           <p className="text-sm font-semibold text-foreground">Confirme seu email</p>
-          <p className="text-xs text-muted-foreground">Código de 6 dígitos enviado para {email}</p>
+          <p className="text-xs text-muted-foreground">Digite o código de 6 dígitos para {email}</p>
         </div>
       </div>
 
@@ -97,22 +101,23 @@ export default function InlineOtpInput({ email, onSuccess }) {
         type="button"
         className="w-full h-11 font-medium"
         onClick={handleVerify}
-        disabled={loading || otpCode.length < 6}
+        disabled={loading || resending || (!verified && otpCode.length < 6)}
       >
         {loading ? (
           <>
             <Loader2 className="w-4 h-4 mr-2 animate-spin" /> Verificando...
           </>
         ) : (
-          "Confirmar email"
+          verified ? "Tentar concluir cadastro novamente" : "Confirmar email"
         )}
       </Button>
 
+      <p className="text-xs text-muted-foreground">Não recebeu? Confira o endereço, aguarde alguns minutos e verifique o spam. Se o reenvio também não chegar, contate o suporte da Base44.</p>
       <div className="text-center">
         <button
           type="button"
           onClick={handleResend}
-          disabled={resending || resendCooldown > 0}
+          disabled={resending || loading || verified || resendCooldown > 0}
           className="text-sm text-primary font-medium hover:underline disabled:opacity-50 disabled:no-underline"
         >
           {resending ? "Enviando..." : resendCooldown > 0 ? `Reenviar em ${resendCooldown}s` : "Reenviar código"}

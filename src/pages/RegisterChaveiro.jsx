@@ -16,6 +16,8 @@ import { claimCpf } from "@/lib/cpfRegistration";
 import CpfInput from "@/components/auth/CpfInput";
 import TermsAcceptance from "@/components/auth/TermsAcceptance";
 import { termsPayload } from "@/lib/termsVersion";
+import { registerEmailAccount, registrationErrorMessage } from "@/lib/emailRegistration";
+import ExistingAccountNotice from "@/components/auth/ExistingAccountNotice";
 
 export default function RegisterChaveiro() {
   const [fullName, setFullName] = useState("");
@@ -37,6 +39,7 @@ export default function RegisterChaveiro() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (loading || showOtp) return;
     setError("");
     if (!fullName.trim()) {
       setError("Informe seu nome");
@@ -69,39 +72,17 @@ export default function RegisterChaveiro() {
     }
     setLoading(true);
     try {
-      const registration = await base44.auth.register({ email, password });
-
+      const normalizedEmail = email.trim().toLowerCase();
+      await registerEmailAccount(normalizedEmail, password);
+      setEmail(normalizedEmail);
       sessionStorage.setItem("chaveiro_onboarding", JSON.stringify({
         fullName, phone, cpf, specialty: specialties[0] || "Residencial", specialties, vehicle, bio,
       }));
-
-      // O cadastro por email do Base44 envia um código OTP. Mostramos a etapa
-      // de confirmação imediatamente, em vez de tentar fazer login antes da
-      // verificação e deixar o usuário sem onde informar o código.
-      if (registration?.access_token) {
-        base44.auth.setToken(registration.access_token);
-        await claimCpf(cpf);
-        await base44.auth.updateMe({
-          phone,
-          full_name: fullName,
-          account_type: "chaveiro",
-          password_created: true,
-          ...termsPayload(),
-        });
-        window.location.assign("/cadastro/recebimentos");
-      } else {
-        setShowOtp(true);
-      }
+      setShowOtp(true);
     } catch (err) {
-      const message = String(err?.message || "");
-      const requiresVerification = /verif|confirm|otp|c[oó]digo|email/i.test(message);
-
-      if (requiresVerification) {
-        setShowOtp(true);
-      } else {
-        setError(message || "Falha no cadastro");
-        setLoading(false);
-      }
+      setError(registrationErrorMessage(err));
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -115,7 +96,6 @@ export default function RegisterChaveiro() {
       await claimCpf(data.cpf);
       await base44.auth.updateMe({
         phone: data.phone,
-        full_name: data.fullName,
         account_type: "chaveiro",
         password_created: true,
         ...termsPayload(),
@@ -127,8 +107,18 @@ export default function RegisterChaveiro() {
         ...termsPayload(),
       });
     }
+    localStorage.setItem("remember_login", "true");
+    sessionStorage.setItem("active_login_session", "true");
     window.location.assign("/cadastro/recebimentos");
   };
+
+  if (showOtp) return (
+    <AuthLayout icon={Wrench} title="Confirme seu email" subtitle="Conclua a verificação para ativar seu cadastro">
+      <InlineOtpInput key={email} email={email} onSuccess={finishLocksmithRegistration} />
+      <Button type="button" variant="ghost" className="w-full mt-3" onClick={() => setShowOtp(false)}>Voltar e corrigir os dados</Button>
+      <ExistingAccountNotice query={qs} />
+    </AuthLayout>
+  );
 
   return (
     <AuthLayout
@@ -144,6 +134,7 @@ export default function RegisterChaveiro() {
         </>
       }
     >
+      <ExistingAccountNotice query={qs} />
       <Button
         variant="outline"
         className="w-full h-12 text-sm font-medium mb-6"
@@ -295,9 +286,7 @@ export default function RegisterChaveiro() {
           )}
         </Button>
 
-        {showOtp && (
-          <InlineOtpInput email={email} onSuccess={finishLocksmithRegistration} />
-        )}
+
       </form>
 
       <p className="text-center text-sm text-muted-foreground mt-4">

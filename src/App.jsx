@@ -67,9 +67,12 @@ const AuthenticatedApp = () => {
     if (authError.type === 'user_not_registered') {
       return <UserNotRegisteredError />;
     } else if (authError.type === 'auth_required') {
-      // Redirect to login automatically
-      navigateToLogin();
-      return null;
+      // Uma sessão expirada não pode redirecionar a própria tela de entrada.
+      const authPaths = ['/login', '/register', '/forgot-password', '/reset-password', '/cadastro/cliente', '/cadastro/chaveiro'];
+      if (!authPaths.includes(window.location.pathname)) {
+        navigateToLogin();
+        return null;
+      }
     }
   }
 
@@ -87,7 +90,7 @@ const AuthenticatedApp = () => {
         <Route path="/politica-reembolso" element={<PoliticaReembolso />} />
         <Route path="/termos-privacidade" element={<TermosPrivacidade />} />
         <Route path="/exclusao-de-conta" element={<ExclusaoConta />} />
-        <Route element={<ProtectedRoute unauthenticatedElement={<Navigate to="/register" replace />} />}>
+        <Route element={<ProtectedRoute unauthenticatedElement={<Navigate to="/login" replace />} />}>
           <Route path="/criar-senha" element={<CreatePassword />} />
           <Route element={<PasswordCreationGuard />}>
           <Route element={<ProfileCompletionGuard />}>

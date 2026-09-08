@@ -10,6 +10,8 @@ import AuthLayout from "@/components/AuthLayout";
 import GoogleIcon from "@/components/GoogleIcon";
 import ErrorBanner from "@/components/ui/ErrorBanner";
 import { safeReturnTo } from "@/lib/authReturnTo";
+import { requiresEmailVerification } from "@/lib/emailRegistration";
+import InlineOtpInput from "@/components/auth/InlineOtpInput";
 
 export default function Login() {
   const [email, setEmail] = useState("");
@@ -17,31 +19,33 @@ export default function Login() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [rememberMe, setRememberMe] = useState(true);
+  const [verificationEmail, setVerificationEmail] = useState("");
   const returnTo = safeReturnTo();
+
+  const completeLogin = async (passwordAuthenticated = false) => {
+    let me = await base44.auth.me();
+    // Só uma entrada com senha bem-sucedida comprova que a senha existe.
+    if (passwordAuthenticated && me.password_created !== true) {
+      me = await base44.auth.updateMe({ password_created: true });
+    }
+    const dest = returnTo !== "/" ? returnTo : me.role === "admin" ? "/painel-admin" : me.account_type === "chaveiro" ? "/painel-chaveiro" : "/";
+    localStorage.setItem("remember_login", String(rememberMe));
+    sessionStorage.setItem("active_login_session", "true");
+    window.location.href = dest;
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (loading) return;
     setError("");
     setLoading(true);
+    const normalizedEmail = email.trim().toLowerCase();
     try {
-      await base44.auth.loginViaEmailPassword(email, password);
-      let dest = returnTo;
-      if (dest === "/") {
-        try {
-          let me = await base44.auth.me();
-          // Entrar com uma senha válida comprova que ela já foi cadastrada.
-          if (me?.password_created !== true) me = await base44.auth.updateMe({ password_created: true });
-          const at = me?.account_type;
-          dest = me?.role === "admin" ? "/painel-admin" : at === "chaveiro" ? "/painel-chaveiro" : "/";
-        } catch {
-          dest = "/";
-        }
-      }
-      localStorage.setItem("remember_login", String(rememberMe));
-      sessionStorage.setItem("active_login_session", "true");
-      window.location.href = dest;
+      await base44.auth.loginViaEmailPassword(normalizedEmail, password);
+      await completeLogin(true);
     } catch (err) {
-      setError(err.message || "Email ou senha inválidos");
+      if (requiresEmailVerification(err)) setVerificationEmail(normalizedEmail);
+      else setError(err.message || "Email ou senha inválidos. Use Esqueceu a senha? para recuperar o acesso.");
     } finally {
       setLoading(false);
     }
@@ -52,6 +56,14 @@ export default function Login() {
     sessionStorage.setItem("active_login_session", "true");
     base44.auth.loginWithProvider("google", returnTo);
   };
+
+  if (verificationEmail) return (
+    <AuthLayout icon={Mail} title="Verificação pendente" subtitle="Esta conta ainda precisa confirmar o email">
+      <p className="mb-4 text-sm text-muted-foreground">Não é necessário cadastrar novamente. Se não tiver um código, toque em Reenviar código.</p>
+      <InlineOtpInput key={verificationEmail} email={verificationEmail} onSuccess={() => completeLogin(false)} />
+      <Button type="button" variant="ghost" className="w-full mt-3" onClick={() => setVerificationEmail("")}>Voltar para entrar</Button>
+    </AuthLayout>
+  );
 
   return (
     <AuthLayout
@@ -101,7 +113,9 @@ export default function Login() {
             <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" aria-hidden="true" />
             <Input
               id="email"
-              type="text"
+              type="email"
+              autoCapitalize="none"
+              autoCorrect="off"
               autoComplete="username"
               autoFocus
               placeholder="voce@email.com"
