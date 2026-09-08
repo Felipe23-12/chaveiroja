@@ -13,7 +13,7 @@ export default function TermosPrivacidade() {
         </div>
         <div>
           <h1 className="font-heading font-bold text-2xl text-foreground">Termos de Uso e Privacidade</h1>
-          <p className="text-sm text-muted-foreground">Chaveiro Já · atualizado em 04/09/2026</p>
+          <p className="text-sm text-muted-foreground">Chaveiro Já · atualizado em 08/09/2026</p>
         </div>
       </div>
 
@@ -95,7 +95,14 @@ export default function TermosPrivacidade() {
           <li>solicitar serviços apenas para imóveis e veículos de sua posse ou com autorização do proprietário;</li>
           <li>não usar o app para fins ilícitos, fraudes ou acesso indevido a bens de terceiros;</li>
           <li>tratar chaveiros e clientes com respeito no chat e durante o atendimento.</li>
+          <li>não enviar mensagens com ameaças, violência, racismo, homofobia, discriminação ou qualquer outra forma de preconceito;</li>
+          <li>não compartilhar nudez, conteúdo sexual ou imagens de violência contra pessoas ou animais.</li>
         </ul>
+        <p>
+          O Chaveiro Já adota <strong className="text-foreground">tolerância zero</strong> para esses conteúdos.
+          Mensagens e fotos podem ser denunciadas; a violação poderá resultar em remoção do conteúdo, suspensão
+          ou encerramento da conta e, quando necessário, comunicação às autoridades competentes.
+        </p>
         <p>
           Os chaveiros são profissionais independentes, responsáveis por sua habilitação técnica, ferramentas,
           tributos e pela qualidade do serviço executado. A plataforma pode suspender contas que violem estas

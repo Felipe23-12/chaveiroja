@@ -9,6 +9,8 @@ import { playNotificationSound } from "@/lib/notificationSound";
 import { safeUnsubscribe } from "@/lib/safeUnsubscribe";
 import useBlockedUsers from "@/hooks/useBlockedUsers";
 import ModerationActions from "@/components/moderation/ModerationActions";
+import ChatPhotoButton from "@/components/chat/ChatPhotoButton";
+import ChatMessageContent from "@/components/chat/ChatMessageContent";
 
 /**
  * Abas de conversas com clientes + resposta, para o chaveiro no modo livre.
@@ -84,6 +86,27 @@ export default function LocksmithChatConversations({ me }) {
   useEffect(() => {
     scrollRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages.length]);
+
+  const handlePhotoSend = async (photoUrl) => {
+    if (sending || !activeTab || blockedIds.has(activeTab)) return;
+    setSending(true);
+    try {
+      const activeConv = conversations.find((c) => c.id === activeTab);
+      await base44.entities.ChatMessage.create({
+        locksmith_id: me.id,
+        locksmith_name: me.name,
+        locksmith_user_id: me.created_by_id,
+        client_id: activeTab,
+        client_name: activeConv?.name,
+        sender_type: "locksmith",
+        sender_name: me.name,
+        message: "Foto",
+        photo_url: photoUrl,
+      });
+    } finally {
+      setSending(false);
+    }
+  };
 
   const handleSend = async (e) => {
     e.preventDefault();
@@ -164,7 +187,7 @@ export default function LocksmithChatConversations({ me }) {
                           : "bg-secondary text-secondary-foreground rounded-bl-sm"
                       }`}
                     >
-                      {m.message}
+                      <ChatMessageContent message={m} />
                     </div>
                   </div>
                 );
@@ -173,6 +196,7 @@ export default function LocksmithChatConversations({ me }) {
             </div>
 
             <form onSubmit={handleSend} className="flex gap-2 p-3 border-t border-border">
+              <ChatPhotoButton onUploaded={handlePhotoSend} disabled={sending || blockedIds.has(activeTab)} />
               <Input
                 value={text}
                 onChange={(e) => setText(e.target.value)}

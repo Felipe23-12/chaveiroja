@@ -12,6 +12,8 @@ import useClientDebt from "@/hooks/useClientDebt";
 import DebtBlockNotice from "@/components/client/DebtBlockNotice";
 import useBlockedUsers from "@/hooks/useBlockedUsers";
 import ModerationActions from "@/components/moderation/ModerationActions";
+import ChatPhotoButton from "@/components/chat/ChatPhotoButton";
+import ChatMessageContent from "@/components/chat/ChatMessageContent";
 
 export default function Chat() {
   const { locksmithId } = useParams();
@@ -79,6 +81,26 @@ export default function Chat() {
       setPendingMessages((prev) =>
         prev.map((m) => (m.id === tempId ? { ...m, _pending: false, _error: true } : m))
       );
+    } finally {
+      setSending(false);
+    }
+  };
+
+  const handlePhotoSend = async (photoUrl) => {
+    if (sending || debt || blockedIds.has(locksmith?.created_by_id)) return;
+    setSending(true);
+    try {
+      await base44.entities.ChatMessage.create({
+        locksmith_id: locksmithId,
+        locksmith_name: locksmith?.name,
+        locksmith_user_id: locksmith?.created_by_id,
+        client_id: user?.id,
+        client_name: customerName,
+        sender_type: "customer",
+        sender_name: customerName,
+        message: "Foto",
+        photo_url: photoUrl,
+      });
     } finally {
       setSending(false);
     }
@@ -197,7 +219,7 @@ export default function Chat() {
                     : "bg-secondary text-secondary-foreground rounded-bl-sm"
                 } ${m._pending ? "opacity-60" : ""}`}
               >
-                {m.message}
+                <ChatMessageContent message={m} />
                 {m._error && <div className="text-[10px] mt-0.5">Falha ao enviar</div>}
               </div>
             </div>
@@ -214,6 +236,7 @@ export default function Chat() {
         <>
           <QuickMessages onSend={handleQuickSend} disabled={sending} />
           <form onSubmit={handleSend} className="flex gap-2 pt-3 border-t border-border">
+            <ChatPhotoButton onUploaded={handlePhotoSend} disabled={sending || blocked} />
             <Input
               value={text}
               onChange={(e) => setText(e.target.value)}

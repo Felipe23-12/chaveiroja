@@ -1,5 +1,5 @@
 // Versão vigente das regras/termos.
-export const TERMS_VERSION = "2026-09-06";
+export const TERMS_VERSION = "2026-09-08";
 
 // O aceite dos termos é obrigatório apenas UMA vez, no cadastro.
 export const needsTermsAcceptance = (user) => {

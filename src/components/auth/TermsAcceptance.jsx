@@ -45,6 +45,7 @@ export default function TermsAcceptance({ accountType = "cliente", checked, onCh
       </div>
 
       <ul className="list-disc pl-5 space-y-1 text-xs text-muted-foreground">
+        <li>não enviar violência, racismo, homofobia, preconceito, nudez ou violência contra pessoas e animais em mensagens ou fotos</li>
         {RULES[accountType].map((r) => (
           <li key={r}>{r}</li>
         ))}

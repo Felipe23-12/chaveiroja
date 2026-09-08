@@ -35,6 +35,10 @@
     },
     "message": {
       "type": "string"
+    },
+    "photo_url": {
+      "type": "string",
+      "description": "URL da foto enviada pela c\u00e2mera ou galeria no chat"
     }
   },
   "required": [

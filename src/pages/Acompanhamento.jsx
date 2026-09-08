@@ -13,6 +13,8 @@ import { fetchDrivingRoute, etaMinutes, haversineKm } from "@/lib/geo";
 import { safeUnsubscribe } from "@/lib/safeUnsubscribe";
 import useBlockedUsers from "@/hooks/useBlockedUsers";
 import ModerationActions from "@/components/moderation/ModerationActions";
+import ChatPhotoButton from "@/components/chat/ChatPhotoButton";
+import ChatMessageContent from "@/components/chat/ChatMessageContent";
 
 export default function Acompanhamento() {
   const { requestId } = useParams();
@@ -23,6 +25,7 @@ export default function Acompanhamento() {
   const [text, setText] = useState("");
   const [sending, setSending] = useState(false);
   const [customerName, setCustomerName] = useState("");
+  const [customerId, setCustomerId] = useState("");
   const [routePath, setRoutePath] = useState(null);
   const [routeEta, setRouteEta] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -65,7 +68,10 @@ export default function Acompanhamento() {
   }, [requestId]);
 
   useEffect(() => {
-    base44.auth.me().then((u) => setCustomerName(u?.full_name || "Cliente")).catch(() => {});
+    base44.auth.me().then((u) => {
+      setCustomerId(u?.id || "");
+      setCustomerName(u?.full_name || "Cliente");
+    }).catch(() => {});
   }, []);
 
   useEffect(() => {
@@ -105,9 +111,32 @@ export default function Acompanhamento() {
       await base44.entities.ChatMessage.create({
         locksmith_id: request.locksmith_id,
         locksmith_name: locksmith?.name,
+        locksmith_user_id: request.locksmith_user_id || locksmith?.created_by_id,
+        client_id: customerId,
+        client_name: customerName,
         sender_type: "customer",
         sender_name: customerName,
         message: msg,
+      });
+    } finally {
+      setSending(false);
+    }
+  };
+
+  const handlePhotoSend = async (photoUrl) => {
+    if (sending || !request?.locksmith_id || blockedIds.has(request?.locksmith_user_id || locksmith?.created_by_id)) return;
+    setSending(true);
+    try {
+      await base44.entities.ChatMessage.create({
+        locksmith_id: request.locksmith_id,
+        locksmith_name: locksmith?.name,
+        locksmith_user_id: request.locksmith_user_id || locksmith?.created_by_id,
+        client_id: customerId,
+        client_name: customerName,
+        sender_type: "customer",
+        sender_name: customerName,
+        message: "Foto",
+        photo_url: photoUrl,
       });
     } finally {
       setSending(false);
@@ -121,6 +150,9 @@ export default function Acompanhamento() {
       await base44.entities.ChatMessage.create({
         locksmith_id: request.locksmith_id,
         locksmith_name: locksmith?.name,
+        locksmith_user_id: request.locksmith_user_id || locksmith?.created_by_id,
+        client_id: customerId,
+        client_name: customerName,
         sender_type: "customer",
         sender_name: customerName,
         message: msg,
@@ -267,7 +299,7 @@ export default function Acompanhamento() {
                         : "bg-secondary text-secondary-foreground rounded-bl-sm"
                     }`}
                   >
-                    {m.message}
+                    <ChatMessageContent message={m} />
                   </div>
                 </div>
               );
@@ -278,6 +310,7 @@ export default function Acompanhamento() {
           <div className="border-t border-border">
             <QuickMessages onSend={handleQuickSend} disabled={sending || blockedIds.has(request?.locksmith_user_id || locksmith?.created_by_id)} />
             <form onSubmit={handleSend} className="flex gap-2 p-3">
+              <ChatPhotoButton onUploaded={handlePhotoSend} disabled={sending || blockedIds.has(request?.locksmith_user_id || locksmith?.created_by_id)} />
               <Input
                 value={text}
                 onChange={(e) => setText(e.target.value)}
