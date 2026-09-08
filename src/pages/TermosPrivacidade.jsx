@@ -157,7 +157,8 @@ export default function TermosPrivacidade() {
         <p>
           Dúvidas, solicitações relativas a dados pessoais ou reclamações podem ser enviadas pelo suporte do
           aplicativo. Estes termos podem ser atualizados para refletir mudanças legais ou de funcionalidades,
-          com aviso no app.
+          com aviso no app. Consulte também a página de{" "}
+          <Link to="/exclusao-de-conta" className="text-primary underline">exclusão da conta e dos dados</Link>.
         </p>
         <p>
           Aplica-se a legislação brasileira, sendo competente o foro do domicílio do consumidor para dirimir
