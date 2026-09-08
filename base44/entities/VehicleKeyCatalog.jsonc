@@ -35,6 +35,20 @@
     "transponder": {
       "type": "string"
     },
+    "transponder_status": {
+      "type": "string",
+      "enum": [
+        "nao_confirmado",
+        "presente",
+        "ausente"
+      ],
+      "default": "nao_confirmado",
+      "description": "Presen\u00e7a de transponder confirmada para o ve\u00edculo e intervalo de anos. Ausente exibe sem cod; n\u00e3o inferir pela arquitetura sem PCF ou chave simples."
+    },
+    "programming_machine": {
+      "type": "string",
+      "description": "Marca e modelo das m\u00e1quinas de codifica\u00e7\u00e3o compat\u00edveis, conferidas para este ve\u00edculo e intervalo de anos. N\u00e3o confundir com os arquivos de gera\u00e7\u00e3o da chave paralela."
+    },
     "blade": {
       "type": "string"
     },

@@ -20,6 +20,16 @@ export function parallelKeyPrice(row) {
   return Math.max(0, ...parallelOptions(row).map((item) => Number(item.price) || 0));
 }
 
+export function chipProgrammingDetails(row) {
+  if (row?.transponder_status === "ausente") {
+    return { coding: "sem cod — veículo sem transponder", machine: "não se aplica", transponder: "sem transponder" };
+  }
+  if (row?.transponder_status === "presente") {
+    return { coding: "com transponder — requer codificação", machine: row.programming_machine?.trim() || "não confirmada no catálogo", transponder: row.transponder || "modelo do chip não informado" };
+  }
+  return { coding: "não confirmada — verificar presença de transponder", machine: "não confirmada no catálogo", transponder: row?.transponder || "não informado" };
+}
+
 export function technicalKeyDescription({ origin, row }) {
   const originLabel = origin === "paralela" ? "Chave paralela" : "Chave original";
   const files = origin === "paralela"
@@ -31,5 +41,6 @@ export function technicalKeyDescription({ origin, row }) {
     pcf_integrado: "telecomando com PCF/transponder integrado",
     presenca: "chave presença",
   }[row?.key_style] || "arquitetura não confirmada";
-  return `${originLabel} — Arquitetura: ${style} — Arquivos: ${files || "nenhum arquivo confirmado"} — Transponder: ${row?.transponder || "não informado"} — Lâmina: ${row?.blade || "não informada"}`;
+  const chip = chipProgrammingDetails(row);
+  return `${originLabel} — Arquitetura: ${style} — Arquivos: ${files || "nenhum arquivo confirmado"} — Transponder: ${chip.transponder} — Lâmina: ${row?.blade || "não informada"}\nCodificação: ${chip.coding}\nMáquina de codificação: ${chip.machine}`;
 }

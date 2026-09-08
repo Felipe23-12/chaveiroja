@@ -948,7 +948,7 @@ export default function PainelChaveiro() {
 
           <ArrivalDeadlineCountdown request={active} />
 
-          <KeyTechnicalDetails description={active.description} />
+          <KeyTechnicalDetails description={active.description} request={active} />
 
           <ModerationActions
             targetUserId={active.created_by_id}

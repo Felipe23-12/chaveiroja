@@ -504,8 +504,14 @@ export default function Home() {
       const brokenKeyText = isOpeningService(service)
         ? brokenKeyInLock ? "Chave quebrada dentro da fechadura" : "Chave não está quebrada na fechadura"
         : "";
+      // Confere o veículo/ano atual e grava a ficha no chamado, inclusive offline após o aceite.
+      const requestCatalog = service.isCarKey
+        ? await findVehicleKeyCatalog(vehicleInfo.make, vehicleInfo.model, vehicleInfo.year, "carro")
+        : service.isMotoKey
+          ? await findVehicleKeyCatalog(MOTO_BRANDS.find((b) => b.id === motoInfo.brandId)?.label, getMotoModel(motoInfo.brandId, motoInfo.modelId)?.label, motoInfo.year, "moto")
+          : null;
       const keyTechnicalText = service.isCarKey || service.isMotoKey
-        ? technicalKeyDescription({ origin: keyOrigin, row: keyCatalog })
+        ? technicalKeyDescription({ origin: keyOrigin, row: requestCatalog })
         : "";
       const base = {
         service_type: service.label,
