@@ -57,6 +57,7 @@ import useBlockedUsers from "@/hooks/useBlockedUsers";
 import ModerationActions from "@/components/moderation/ModerationActions";
 import OpeningChargeSummary from "@/components/client/OpeningChargeSummary";
 import { OPENING_CONDITION_FEE, getOpeningConditionFee, hasLocksmithConditionCorrection, locksmithAddedConditionFee } from "@/lib/openingCondition";
+import { findVehicleKeyCatalog, parallelKeyPrice, parallelOptions, technicalKeyDescription } from "@/lib/vehicleKeyCatalog";
 
 export default function Home() {
   const { toast } = useToast();
@@ -98,6 +99,8 @@ export default function Home() {
   const [fipeValue, setFipeValue] = useState(null);
   const [hasCodedKey, setHasCodedKey] = useState(false);
   const [carKeyType, setCarKeyType] = useState("simples");
+  const [keyOrigin, setKeyOrigin] = useState("original");
+  const [keyCatalog, setKeyCatalog] = useState(null);
   const [motoInfo, setMotoInfo] = useState({ brandId: "", modelId: "", year: "", keyType: "", hasPassword: null });
   const [searching, setSearching] = useState(false);
 
@@ -148,6 +151,17 @@ export default function Home() {
     [service, vehicleInfo.make, vehicleInfo.model, vehicleInfo.year]
   );
 
+  const selectedKeyValue = keyOrigin === "paralela"
+    ? parallelKeyPrice(keyCatalog)
+    : Number(keyCatalog?.original_price) || Number(keyValue) || 0;
+
+  useEffect(() => {
+    if (!service?.isMotoKey || !motoInfo.brandId || !motoInfo.modelId || !motoInfo.year) return;
+    const make = MOTO_BRANDS.find((b) => b.id === motoInfo.brandId)?.label;
+    const model = getMotoModel(motoInfo.brandId, motoInfo.modelId)?.label;
+    findVehicleKeyCatalog(make, model, motoInfo.year, "moto").then(setKeyCatalog).catch(() => setKeyCatalog(null));
+  }, [service?.isMotoKey, motoInfo.brandId, motoInfo.modelId, motoInfo.year]);
+
   // Faixa de referência do estado/capital mais próximo (ajustada pela distância
   // até a capital: perto = médias maiores, longe = médias menores)
   const regional = useRegionalPriceRange(serviceId, customerLoc.lat, customerLoc.lng);
@@ -155,10 +169,12 @@ export default function Home() {
   // Serviço usado no cálculo: para moto, a faixa vem da tabela de regras;
   // para os serviços de abertura, a faixa vem da referência regional.
   const pricingService = useMemo(() => {
-    if (service?.isMotoKey && motoRule?.range) return { ...service, baseRange: motoRule.range };
+    if (service?.isMotoKey && motoRule?.range) {
+      return { ...service, baseRange: motoRule.range.map((value) => value + selectedKeyValue) };
+    }
     if (service && regional?.range) return { ...service, baseRange: regional.range };
     return service;
-  }, [service, motoRule, regional]);
+  }, [service, motoRule, regional, selectedKeyValue]);
 
   useEffect(() => {
     base44.auth.me().then((u) => setCustomerName(u?.full_name || "")).catch(() => {});
@@ -224,7 +240,7 @@ export default function Home() {
       customerLng: customerLoc.lng,
       address,
       nearestDistanceKm: pricingDistance,
-      keyValue,
+      keyValue: selectedKeyValue,
       fipeValue,
       carKeyType,
       hasCodedKey,
@@ -232,7 +248,7 @@ export default function Home() {
       weather,
       brokenKeyInLock: openingConditionFee > 0,
     });
-  }, [pricingService, service, motoRule, selectedOptions, customAddons, vehicleInfo, locks, onlineLocksmithsCount, activeRequestsCount, urgency, customerLoc, address, pricingDistance, keyValue, fipeValue, carKeyType, hasCodedKey, programming, weather, openingConditionFee]);
+  }, [pricingService, service, motoRule, selectedOptions, customAddons, vehicleInfo, locks, onlineLocksmithsCount, activeRequestsCount, urgency, customerLoc, address, pricingDistance, selectedKeyValue, fipeValue, carKeyType, hasCodedKey, programming, weather, openingConditionFee]);
 
   useEffect(() => {
     getCustomerLocation().then(setCustomerLoc);
@@ -387,9 +403,13 @@ export default function Home() {
     setSearchError("");
     try {
       const vehicleName = `${vehicleInfo.make} ${vehicleInfo.model}`.trim();
-      const res = await searchFipeAndKeyValue(vehicleName, vehicleInfo.year);
+      const [res, catalog] = await Promise.all([
+        searchFipeAndKeyValue(vehicleName, vehicleInfo.year),
+        findVehicleKeyCatalog(vehicleInfo.make, vehicleInfo.model, vehicleInfo.year, "carro"),
+      ]);
+      setKeyCatalog(catalog);
       setFipeValue(res.fipeValue);
-      setKeyValue(res.keyValue);
+      setKeyValue(catalog?.original_price || res.keyValue);
       setHasCodedKey(res.hasCodedKey);
       if (!res.keyValueTrusted && carKeyType !== "simples") {
         setSearchError(
@@ -399,6 +419,7 @@ export default function Home() {
     } catch (e) {
       setFipeValue(null);
       setKeyValue(null);
+      setKeyCatalog(null);
       setHasCodedKey(false);
       setSearchError(e.message || "Falha ao consultar os dados do veículo");
     } finally {
@@ -483,10 +504,13 @@ export default function Home() {
       const brokenKeyText = isOpeningService(service)
         ? brokenKeyInLock ? "Chave quebrada dentro da fechadura" : "Chave não está quebrada na fechadura"
         : "";
+      const keyTechnicalText = service.isCarKey || service.isMotoKey
+        ? technicalKeyDescription({ origin: keyOrigin, row: keyCatalog })
+        : "";
       const base = {
         service_type: service.label,
         address,
-        description: [locksText, openingReasonText, brokenKeyText, description].filter(Boolean).join(" — "),
+        description: [locksText, openingReasonText, brokenKeyText, keyTechnicalText, description].filter(Boolean).join(" — "),
         urgency,
         status: "ringing",
         locksmith_id: nearest.l.id,
@@ -505,7 +529,7 @@ export default function Home() {
       let req;
       if (service.isCarKey) {
         // Preço dinâmico: valor da chave + mão de obra pela faixa de ano/codificação da FIPE
-        const effectiveKeyValue = carKeyType === "simples" ? 0 : keyValue || 0;
+        const effectiveKeyValue = selectedKeyValue;
         const onlineFee = programming?.onlineFee || 0;
         const basePrice = price?.total || 0;
         const adjustedLabor = price
@@ -937,6 +961,8 @@ export default function Home() {
     setFipeValue(null);
     setHasCodedKey(false);
     setCarKeyType("simples");
+    setKeyOrigin("original");
+    setKeyCatalog(null);
     setMotoInfo({ brandId: "", modelId: "", year: "", keyType: "", hasPassword: null });
     setSearching(false);
     setSearchError("");
@@ -1041,6 +1067,9 @@ export default function Home() {
               fipeValue={fipeValue}
               programming={programming}
               price={null}
+              keyOrigin={keyOrigin}
+              setKeyOrigin={setKeyOrigin}
+              keyCatalog={keyCatalog}
             />
           ) : service.isMotoKey ? (
             <MotoKeyConfig
@@ -1054,6 +1083,9 @@ export default function Home() {
               description={description}
               setDescription={setDescription}
               price={null}
+              keyOrigin={keyOrigin}
+              setKeyOrigin={setKeyOrigin}
+              keyCatalog={keyCatalog}
             />
           ) : (
             <ServiceConfig
@@ -1104,6 +1136,7 @@ export default function Home() {
                   !service?.isCarKey &&
                   (!vehicleInfo.make?.trim() || !vehicleInfo.model?.trim() || !String(vehicleInfo.year || "").trim())) ||
                 (service?.isCarKey && (!fipeValue || !vehicleInfo.doorStatus)) ||
+                ((service?.isCarKey || service?.isMotoKey) && keyOrigin === "paralela" && (parallelOptions(keyCatalog).length === 0 || selectedKeyValue <= 0)) ||
                 (service?.isMotoKey && !motoRule?.range)
               }
               className="flex-1"

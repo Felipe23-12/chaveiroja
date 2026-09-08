@@ -1,6 +1,7 @@
 import React from "react";
 import { Check, X } from "lucide-react";
 import IncomingRequestAlert from "@/components/locksmith/IncomingRequestAlert";
+import KeyTechnicalDetails from "@/components/locksmith/KeyTechnicalDetails";
 
 // Renderiza a fila de solicitações pendentes. A primeira (mais recente)
 // recebe o alerta completo com som/vibração; as demais aparecem em cards
@@ -74,6 +75,8 @@ function CompactRequestCard({ request, onAccept, onReject }) {
           {expanded ? "Recolher" : "Detalhes"}
         </button>
       </div>
+
+      {expanded && <div className="mt-2"><KeyTechnicalDetails description={request.description} /></div>}
 
       {expanded && hasCarKey && (
         <div className="mt-2 space-y-1 text-xs bg-white rounded-lg p-2 border border-border">

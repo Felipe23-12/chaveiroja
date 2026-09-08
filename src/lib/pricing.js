@@ -35,6 +35,12 @@ export const CAR_KEY_TYPES = [
     description: "Chave com controle de trava e destrava",
     usesOriginalKey: true,
   },
+  {
+    id: "presenca",
+    label: "Chave presença (Smart Key)",
+    description: "Chave de aproximação sem lâmina de ignição",
+    usesOriginalKey: true,
+  },
 ];
 
 // Mão de obra e valor da chave conforme o tipo escolhido pelo cliente
@@ -49,7 +55,7 @@ export function carKeyComponents({ fipeValue = 0, keyValue = 0, keyType = "simpl
   return {
     fipeLabor,
     laborCost: Math.round((fipeLabor + CAR_KEY_SIMPLE_FIXED) * 100) / 100,
-    keyValue: 0,
+    keyValue: Number(keyValue) || 0,
     type,
   };
 }
@@ -114,7 +120,7 @@ export const SERVICE_CATALOG = [
   {
     id: "confeccao_chave_carro",
     label: "Confecção de Chave de Carro",
-    description: "Cópia/original de chave do veículo (modo aplicativo)",
+    description: "Chave original ou paralela para o veículo (modo aplicativo)",
     specialty: "Automotivo",
     needsVehicleInfo: true,
     isCarKey: true,
@@ -124,7 +130,7 @@ export const SERVICE_CATALOG = [
   {
     id: "confeccao_chave_moto",
     label: "Confecção de Chave de Moto",
-    description: "Chave simples ou presença para motos até 300cc (modo aplicativo)",
+    description: "Chave original ou paralela, simples ou presença (modo aplicativo)",
     specialty: "Automotivo",
     isMotoKey: true,
     baseRange: [200, 500],
@@ -284,7 +290,7 @@ export function calculateCarKeyPrice({
   const total = Math.round((kv + labor + locomotion + extra + onlineFee) * 100) / 100;
 
   const breakdown = [
-    { label: "Valor da chave original", value: kv },
+    { label: "Valor da chave", value: kv },
     { label: "Mão de obra", value: labor },
   ];
   if (onlineFee > 0) {

@@ -190,7 +190,7 @@ export function calculateDynamicPrice({
     addonsTotal = 0;
 
     if (baseResult.keyValue > 0) {
-      breakdown.push({ label: "Valor da chave original", value: baseResult.keyValue });
+      breakdown.push({ label: "Valor da chave", value: baseResult.keyValue });
     }
     breakdown.push({
       label: `Mão de obra (ajuste dinâmico ×${combinedMultiplier})`,

@@ -1,0 +1,117 @@
+{
+  "name": "VehicleKeyCatalog",
+  "type": "object",
+  "properties": {
+    "vehicle_type": {
+      "type": "string",
+      "enum": [
+        "carro",
+        "moto"
+      ]
+    },
+    "make": {
+      "type": "string"
+    },
+    "model": {
+      "type": "string"
+    },
+    "year_start": {
+      "type": "integer"
+    },
+    "year_end": {
+      "type": "integer"
+    },
+    "key_style": {
+      "type": "string",
+      "enum": [
+        "lamina_sem_pcf",
+        "canivete_sem_pcf",
+        "pcf_integrado",
+        "presenca",
+        "nao_confirmado"
+      ],
+      "default": "nao_confirmado"
+    },
+    "transponder": {
+      "type": "string"
+    },
+    "blade": {
+      "type": "string"
+    },
+    "original_price": {
+      "type": "number",
+      "minimum": 0,
+      "default": 0
+    },
+    "vvdi_supported": {
+      "type": "boolean",
+      "default": false
+    },
+    "vvdi_file": {
+      "type": "string"
+    },
+    "vvdi_price": {
+      "type": "number",
+      "minimum": 0,
+      "default": 0
+    },
+    "kd_supported": {
+      "type": "boolean",
+      "default": false
+    },
+    "kd_file": {
+      "type": "string"
+    },
+    "kd_price": {
+      "type": "number",
+      "minimum": 0,
+      "default": 0
+    },
+    "km100_supported": {
+      "type": "boolean",
+      "default": false
+    },
+    "km100_file": {
+      "type": "string"
+    },
+    "km100_price": {
+      "type": "number",
+      "minimum": 0,
+      "default": 0
+    },
+    "source_url": {
+      "type": "string"
+    },
+    "verified": {
+      "type": "boolean",
+      "default": false
+    },
+    "active": {
+      "type": "boolean",
+      "default": false
+    }
+  },
+  "required": [
+    "vehicle_type",
+    "make",
+    "model"
+  ],
+  "rls": {
+    "read": {},
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

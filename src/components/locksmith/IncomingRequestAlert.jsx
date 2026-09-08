@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Bell, Check, X, MapPin, Clock, AlertCircle } from "lucide-react";
+import KeyTechnicalDetails from "./KeyTechnicalDetails";
 
 function formatElapsed(seconds) {
   const m = Math.floor(seconds / 60);
@@ -82,6 +83,8 @@ export default function IncomingRequestAlert({ request, onAccept, onReject }) {
             <p className="text-sm font-semibold text-foreground">{request.vehicle_info}</p>
           </div>
         )}
+
+        <KeyTechnicalDetails description={request.description} />
 
         {/* Resumo financeiro */}
         {hasCarKey ? (

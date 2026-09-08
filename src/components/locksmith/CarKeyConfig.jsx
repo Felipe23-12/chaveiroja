@@ -8,6 +8,7 @@ import AddressAutocomplete from "./AddressAutocomplete";
 import { CAR_KEY_TYPES } from "@/lib/pricing";
 import CarKeyProgrammingNotice from "./CarKeyProgrammingNotice";
 import VehicleMakeModelFields from "./VehicleMakeModelFields";
+import KeyOriginSelector from "./KeyOriginSelector";
 
 export default function CarKeyConfig({
   service,
@@ -27,6 +28,9 @@ export default function CarKeyConfig({
   onSearch,
   programming,
   price,
+  keyOrigin,
+  setKeyOrigin,
+  keyCatalog,
 }) {
   const updateVehicle = (field, value) =>
     setVehicleInfo((v) => ({ ...v, [field]: value }));
@@ -104,6 +108,10 @@ export default function CarKeyConfig({
       )}
 
       <CarKeyProgrammingNotice programming={programming} />
+
+      {fipeValue != null && (
+        <KeyOriginSelector value={keyOrigin} onChange={setKeyOrigin} catalog={keyCatalog} />
+      )}
 
       {/* Tipo de chave escolhido pelo cliente */}
       {fipeValue != null && !programming?.dealerOnly && (

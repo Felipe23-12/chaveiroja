@@ -55,6 +55,7 @@ import useBlockedUsers from "@/hooks/useBlockedUsers";
 import ModerationActions from "@/components/moderation/ModerationActions";
 import OpeningConditionCorrection from "@/components/locksmith/OpeningConditionCorrection";
 import OpeningChargeSummary from "@/components/client/OpeningChargeSummary";
+import KeyTechnicalDetails from "@/components/locksmith/KeyTechnicalDetails";
 
 // Raio de cobertura para considerar um pedido "na região" do chaveiro (km)
 const REGION_RADIUS_KM = 15;
@@ -946,6 +947,8 @@ export default function PainelChaveiro() {
           </div>
 
           <ArrivalDeadlineCountdown request={active} />
+
+          <KeyTechnicalDetails description={active.description} />
 
           <ModerationActions
             targetUserId={active.created_by_id}

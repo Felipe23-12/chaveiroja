@@ -11,6 +11,7 @@ import FinancialConsolidation from "@/components/admin/FinancialConsolidation";
 import ResetLocksmithsDialog from "@/components/admin/ResetLocksmithsDialog";
 import WeeklyOperationsPanel from "@/components/admin/WeeklyOperationsPanel";
 import ConductReportsPanel from "@/components/admin/ConductReportsPanel";
+import VehicleKeyCatalogPanel from "@/components/admin/VehicleKeyCatalogPanel";
 import { completeWithdrawal } from "@/lib/payments";
 import { useToast } from "@/components/ui/use-toast";
 import { safeUnsubscribe } from "@/lib/safeUnsubscribe";
@@ -169,6 +170,8 @@ export default function PainelAdmin() {
       <WeeklyOperationsPanel requests={requests} scores={scores} />
 
       <ConductReportsPanel />
+
+      <VehicleKeyCatalogPanel />
 
       <AdminCharts requests={requests} />
 

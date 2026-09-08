@@ -5,6 +5,7 @@ import { Textarea } from "@/components/ui/textarea";
 import PriceSummary from "./PriceSummary";
 import AddressAutocomplete from "./AddressAutocomplete";
 import { MOTO_BRANDS, MOTO_MODELS, MOTO_KEY_TYPES, getMotoModel } from "@/lib/motoKey";
+import KeyOriginSelector from "./KeyOriginSelector";
 
 function Chip({ active, onClick, children }) {
   return (
@@ -31,6 +32,9 @@ export default function MotoKeyConfig({
   description,
   setDescription,
   price,
+  keyOrigin,
+  setKeyOrigin,
+  keyCatalog,
 }) {
   const update = (field, value) => setMotoInfo((v) => ({ ...v, [field]: value }));
   const models = MOTO_MODELS[motoInfo.brandId] || [];
@@ -82,6 +86,8 @@ export default function MotoKeyConfig({
               onChange={(e) => update("year", e.target.value)}
             />
           </div>
+
+          <KeyOriginSelector value={keyOrigin} onChange={setKeyOrigin} catalog={keyCatalog} />
 
           <div>
             <label className="text-sm font-medium text-foreground mb-1.5 block">Tipo de chave</label>
