@@ -14,7 +14,6 @@ import UserPhotoModal from "@/components/profile/UserPhotoModal";
 import MobileTabBar from "@/components/MobileTabBar";
 import BlockedContactsButton from "@/components/moderation/BlockedContactsButton";
 import { useChatUnread } from "@/lib/chatUnreadStore";
-import { AnimatePresence } from "framer-motion";
 import PageTransition from "@/components/PageTransition";
 
 const ALL_NAV = [
@@ -218,11 +217,9 @@ export default function Layout() {
         <SidebarContent onNavigate={() => {}} />
       </aside>
       <main className="flex-1 md:h-screen md:overflow-y-auto pb-[calc(4rem+env(safe-area-inset-bottom))] md:pb-0">
-        <AnimatePresence mode="wait">
-          <PageTransition key={location.pathname}>
-            <Outlet />
-          </PageTransition>
-        </AnimatePresence>
+        <PageTransition key={location.pathname}>
+          <Outlet />
+        </PageTransition>
       </main>
       <MobileTabBar />
     </div>

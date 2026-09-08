@@ -5,6 +5,9 @@ export const queryClientInstance = new QueryClient({
 	defaultOptions: {
 		queries: {
 			refetchOnWindowFocus: false,
+			refetchOnReconnect: true,
+			staleTime: 30_000,
+			gcTime: 5 * 60_000,
 			retry: 1,
 		},
 	},

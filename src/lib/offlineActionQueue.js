@@ -33,7 +33,7 @@ export function queuedActionsCount() {
 /** Guarda a ação para envio posterior. */
 export function enqueueAction(action) {
   const list = readQueue();
-  list.push({ ...action, _queued_at: new Date().toISOString() });
+  list.push({ ...action, _queue_id: `${Date.now()}_${Math.random().toString(36).slice(2)}`, _queued_at: new Date().toISOString() });
   writeQueue(list);
 }
 
@@ -59,7 +59,10 @@ export async function flushActionQueue() {
       remaining.push(action);
     }
   }
-  writeQueue(remaining);
+  // Preserva ações adicionadas enquanto o envio estava em andamento.
+  const processedIds = new Set(list.map((item) => item._queue_id).filter(Boolean));
+  const addedDuringFlush = readQueue().filter((item) => item._queue_id && !processedIds.has(item._queue_id));
+  writeQueue([...remaining, ...addedDuringFlush]);
   flushing = false;
   return sent;
 }
