@@ -1,10 +1,23 @@
 import { base44 } from "@/api/base44Client";
 
+const normalizeVehicleText = (value) => String(value || "")
+  .normalize("NFD")
+  .replace(/[\u0300-\u036f]/g, "")
+  .toLowerCase()
+  .replace(/[^a-z0-9]+/g, " ")
+  .trim();
+
 export async function findVehicleKeyCatalog(make, model, year, vehicleType = "carro") {
   if (!make || !model || !year) return null;
-  const rows = await base44.entities.VehicleKeyCatalog.filter({ vehicle_type: vehicleType, make, model, active: true, verified: true });
+  const rows = await base44.entities.VehicleKeyCatalog.filter({ vehicle_type: vehicleType, make, active: true });
   const y = Number(year);
-  const row = rows.find((item) => (!item.year_start || y >= item.year_start) && (!item.year_end || y <= item.year_end)) || null;
+  const wanted = normalizeVehicleText(model);
+  const candidates = rows.filter((item) =>
+    (!item.year_start || y >= item.year_start) &&
+    (!item.year_end || y <= item.year_end) &&
+    (normalizeVehicleText(item.model).includes(wanted) || wanted.includes(normalizeVehicleText(item.model)))
+  );
+  const row = candidates.sort((a, b) => Number(b.verified) - Number(a.verified))[0] || null;
   if (!row) return null;
   const links = await base44.entities.VehicleRemoteCompatibility.filter({ vehicle_catalog_id: row.id, active: true, verified: true });
   const ids = [...new Set(links.map((item) => item.universal_remote_id))];
