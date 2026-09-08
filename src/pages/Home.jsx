@@ -120,6 +120,7 @@ export default function Home() {
   const [cancelConfirmOpen, setCancelConfirmOpen] = useState(false);
   const [keyBlock, setKeyBlock] = useState(null);
   const [customerName, setCustomerName] = useState("");
+  const [canPreviewKeyPrice, setCanPreviewKeyPrice] = useState(false);
   const reqRef = useRef(null);
   const notifiedAccepted = useRef(false);
   const notifiedMoving = useRef(false);
@@ -178,7 +179,10 @@ export default function Home() {
   }, [service, motoRule, regional, selectedKeyValue]);
 
   useEffect(() => {
-    base44.auth.me().then((u) => setCustomerName(u?.full_name || "")).catch(() => {});
+    base44.auth.me().then((u) => {
+      setCustomerName(u?.full_name || "");
+      setCanPreviewKeyPrice(u?.email?.toLowerCase() === "felipemotacs1@gmail.com");
+    }).catch(() => {});
   }, []);
 
   // Verificação no início da solicitação: bloqueio de 3 horas após 3 cancelamentos
@@ -1077,6 +1081,7 @@ export default function Home() {
               keyOrigin={keyOrigin}
               setKeyOrigin={setKeyOrigin}
               keyCatalog={keyCatalog}
+              showPriceBeforeAcceptance={canPreviewKeyPrice}
             />
           ) : service.isMotoKey ? (
             <MotoKeyConfig
@@ -1093,6 +1098,7 @@ export default function Home() {
               keyOrigin={keyOrigin}
               setKeyOrigin={setKeyOrigin}
               keyCatalog={keyCatalog}
+              showPriceBeforeAcceptance={canPreviewKeyPrice}
             />
           ) : (
             <ServiceConfig

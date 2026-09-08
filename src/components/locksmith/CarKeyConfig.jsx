@@ -4,6 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import KeyServicePrice from "@/components/client/KeyServicePrice";
+import PriceSummary from "./PriceSummary";
 import AddressAutocomplete from "./AddressAutocomplete";
 import { CAR_KEY_TYPES } from "@/lib/pricing";
 import CarKeyProgrammingNotice from "./CarKeyProgrammingNotice";
@@ -31,6 +32,7 @@ export default function CarKeyConfig({
   keyOrigin,
   setKeyOrigin,
   keyCatalog,
+  showPriceBeforeAcceptance = false,
 }) {
   const updateVehicle = (field, value) =>
     setVehicleInfo((v) => ({ ...v, [field]: value }));
@@ -154,7 +156,7 @@ export default function CarKeyConfig({
         />
       </div>
 
-      <KeyServicePrice pending />
+      {showPriceBeforeAcceptance ? <PriceSummary price={price} /> : <KeyServicePrice pending />}
     </div>
   );
 }

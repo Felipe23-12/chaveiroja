@@ -3,6 +3,7 @@ import { AlertTriangle } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import KeyServicePrice from "@/components/client/KeyServicePrice";
+import PriceSummary from "./PriceSummary";
 import AddressAutocomplete from "./AddressAutocomplete";
 import { MOTO_BRANDS, MOTO_MODELS, MOTO_KEY_TYPES, getMotoModel } from "@/lib/motoKey";
 import KeyOriginSelector from "./KeyOriginSelector";
@@ -35,6 +36,7 @@ export default function MotoKeyConfig({
   keyOrigin,
   setKeyOrigin,
   keyCatalog,
+  showPriceBeforeAcceptance = false,
 }) {
   const update = (field, value) => setMotoInfo((v) => ({ ...v, [field]: value }));
   const models = MOTO_MODELS[motoInfo.brandId] || [];
@@ -145,7 +147,7 @@ export default function MotoKeyConfig({
         />
       </div>
 
-      <KeyServicePrice pending />
+      {showPriceBeforeAcceptance ? <PriceSummary price={price} /> : <KeyServicePrice pending />}
     </div>
   );
 }
