@@ -1,0 +1,41 @@
+{
+  "name": "VehiclePriceImport",
+  "type": "object",
+  "properties": {
+    "preco_id": {
+      "type": "string"
+    },
+    "marca_modelo": {
+      "type": "string"
+    },
+    "anos": {
+      "type": "string"
+    },
+    "marketplace": {
+      "type": "string"
+    },
+    "tipo_item": {
+      "type": "string"
+    },
+    "descricao": {
+      "type": "string"
+    },
+    "preco_brl": {
+      "type": "number"
+    },
+    "data_coleta": {
+      "type": "string"
+    },
+    "fonte_url": {
+      "type": "string"
+    },
+    "observacao": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "preco_id",
+    "marca_modelo",
+    "preco_brl"
+  ]
+}
