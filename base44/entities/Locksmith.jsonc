@@ -254,11 +254,8 @@
     "read": {
       "$or": [
         {
-          "created_by_id": "{{user.id}}"
-        },
-        {
           "user_condition": {
-            "account_type": "cliente"
+            "role": "user"
           }
         },
         {
