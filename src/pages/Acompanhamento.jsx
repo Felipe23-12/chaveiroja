@@ -58,7 +58,13 @@ export default function Acompanhamento() {
     const unsub = safeUnsubscribe(
       base44.entities.ServiceRequest.subscribe((event) => {
         if (event.data?.id === requestId) {
-          base44.entities.ServiceRequest.get(requestId).then(setRequest).catch(() => {});
+          base44.entities.ServiceRequest.get(requestId).then((updated) => {
+            if (updated.status === "cancelled") {
+              navigate("/", { replace: true });
+              return;
+            }
+            setRequest(updated);
+          }).catch(() => {});
         }
       })
     );

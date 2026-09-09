@@ -736,6 +736,16 @@ export default function Home() {
         base44.entities.ServiceRequest.get(activeRequest.id).catch(() => null).then((updated) => {
           if (!updated) return; // falha de rede momentânea — ignora e espera o próximo evento
           setActiveRequest(updated);
+          if (updated.status === "cancelled" && updated.cancelled_by !== "cliente") {
+            notifyClient("Chamado cancelado", updated.cancelled_by === "chaveiro" ? "O chaveiro cancelou o atendimento." : "O atendimento foi cancelado automaticamente.");
+            toast({
+              title: "Chamado cancelado",
+              description: updated.cancelled_by === "chaveiro" ? "O chaveiro cancelou o atendimento. Você já pode solicitar outro serviço." : "O atendimento foi encerrado. Você já pode solicitar outro serviço.",
+              variant: "destructive",
+            });
+            handleNewRequest();
+            return;
+          }
           // O chamado toca para vários chaveiros — carrega quem realmente aceitou
           if (updated.locksmith_id && updated.locksmith_id !== selectedLocksmith?.id) {
             base44.entities.Locksmith.get(updated.locksmith_id).then(setSelectedLocksmith).catch(() => {});
