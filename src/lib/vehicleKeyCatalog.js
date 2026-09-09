@@ -72,7 +72,11 @@ export function chipProgrammingDetails(row) {
   if (row?.transponder_status === "presente") {
     return { coding: "com transponder — requer codificação", machine: row.programming_machine?.trim() || "não confirmada no catálogo", transponder: row.transponder || "modelo do chip não informado" };
   }
-  return { coding: "não confirmada — verificar presença de transponder", machine: "não confirmada no catálogo", transponder: row?.transponder || "não informado" };
+  return {
+    coding: "não confirmada — verificar presença de transponder",
+    machine: row?.programming_machine?.trim() || "não confirmada no catálogo",
+    transponder: row?.transponder || "não informado",
+  };
 }
 
 export function technicalKeyDescription({ origin, row }) {
