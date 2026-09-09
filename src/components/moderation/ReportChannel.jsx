@@ -18,7 +18,9 @@ export default function ReportChannel({ report, currentUser }) {
     load();
     return safeUnsubscribe(base44.entities.ReportMessage.subscribe(load));
   }, [report.id]);
-  useEffect(() => endRef.current?.scrollIntoView({ behavior: "smooth" }), [messages.length]);
+  useEffect(() => {
+    endRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages.length]);
   const sendPayload = async (message, mediaUrl, mediaType) => {
     setSending(true);
     setError("");
