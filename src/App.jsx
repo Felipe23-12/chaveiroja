@@ -93,7 +93,9 @@ const AuthenticatedApp = () => {
         <Route path="/termos-privacidade" element={<TermosPrivacidade />} />
         <Route path="/exclusao-de-conta" element={<ExclusaoConta />} />
         <Route path="/sobre" element={<Sobre />} />
+        <Route path="/about" element={<Sobre />} />
         <Route path="/contato" element={<Contato />} />
+        <Route path="/contact" element={<Contato />} />
         <Route element={<ProtectedRoute unauthenticatedElement={<Navigate to="/login" replace />} />}>
           <Route path="/criar-senha" element={<CreatePassword />} />
           <Route element={<PasswordCreationGuard />}>

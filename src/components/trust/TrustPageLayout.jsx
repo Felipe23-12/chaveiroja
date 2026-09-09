@@ -21,7 +21,11 @@ export default function TrustPageLayout({ children }) {
       </header>
       <main className="mx-auto max-w-4xl px-4 py-10">{children}</main>
       <footer className="border-t border-border py-6 text-center text-sm text-muted-foreground">
-        <Link to="/termos-privacidade" className="hover:text-foreground">Termos e Privacidade</Link>
+        <nav className="flex flex-wrap justify-center gap-5" aria-label="Links institucionais do rodapé">
+          <Link to="/sobre" className="hover:text-foreground">Sobre</Link>
+          <Link to="/contato" className="hover:text-foreground">Contato</Link>
+          <Link to="/termos-privacidade" className="hover:text-foreground">Termos e Privacidade</Link>
+        </nav>
       </footer>
     </div>
   );
