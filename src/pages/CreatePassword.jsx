@@ -11,7 +11,11 @@ export default function CreatePassword() {
     ? "/painel-admin"
     : user?.account_type === "chaveiro" ? "/painel-chaveiro" : "/";
 
-  if (user?.password_created === true) return <Navigate to={destination} replace />;
+  const alreadyRegistered = Boolean(
+    user?.account_type && user?.phone && (user?.legal_name || user?.full_name)
+  );
+
+  if (user?.password_created === true || alreadyRegistered) return <Navigate to={destination} replace />;
 
   return (
     <AuthLayout icon={Lock} title="Cadastre sua senha" subtitle="Crie uma senha para continuar usando o aplicativo">
