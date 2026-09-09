@@ -58,7 +58,7 @@ import useBlockedUsers from "@/hooks/useBlockedUsers";
 import ModerationActions from "@/components/moderation/ModerationActions";
 import OpeningChargeSummary from "@/components/client/OpeningChargeSummary";
 import { OPENING_CONDITION_FEE, getOpeningConditionFee, hasLocksmithConditionCorrection, locksmithAddedConditionFee } from "@/lib/openingCondition";
-import { findVehicleKeyCatalog, parallelKeyPrice, parallelOptions, technicalKeyDescription } from "@/lib/vehicleKeyCatalog";
+import { findVehicleKeyCatalog, parallelKeyPrice, parallelOptions, requiresParallelKey, technicalKeyDescription } from "@/lib/vehicleKeyCatalog";
 
 export default function Home() {
   const { toast } = useToast();
@@ -154,7 +154,7 @@ export default function Home() {
   );
 
   const selectedKeyValue = keyOrigin === "paralela"
-    ? parallelKeyPrice(keyCatalog)
+    ? parallelKeyPrice(keyCatalog, keyValue)
     : Number(keyCatalog?.original_price) || Number(keyValue) || 0;
 
   useEffect(() => {
@@ -413,6 +413,7 @@ export default function Home() {
         findVehicleKeyCatalog(vehicleInfo.make, vehicleInfo.model, vehicleInfo.year, "carro"),
       ]);
       setKeyCatalog(catalog);
+      setKeyOrigin(requiresParallelKey(catalog) ? "paralela" : "original");
       setFipeValue(res.fipeValue);
       setKeyValue(catalog?.original_price || res.keyValue);
       setHasCodedKey(res.hasCodedKey);
@@ -442,6 +443,14 @@ export default function Home() {
     }
     if (programming?.dealerOnly) {
       setSearchError(programming.reason);
+      return;
+    }
+    if ((service?.isCarKey || service?.isMotoKey) && keyOrigin === "paralela" && parallelOptions(keyCatalog).length === 0) {
+      setSearchError("Não há chave paralela confirmada para este veículo e ano. Escolha uma opção disponível.");
+      return;
+    }
+    if (service?.isCarKey && requiresParallelKey(keyCatalog) && keyOrigin !== "paralela") {
+      setSearchError("Este veículo não possui alarme original de fábrica e aceita somente uma chave paralela VVDI ou KD confirmada.");
       return;
     }
     setSubmitting(true);
@@ -1149,6 +1158,7 @@ export default function Home() {
                   !service?.isCarKey &&
                   (!vehicleInfo.make?.trim() || !vehicleInfo.model?.trim() || !String(vehicleInfo.year || "").trim())) ||
                 (service?.isCarKey && (!fipeValue || !vehicleInfo.doorStatus)) ||
+                (service?.isCarKey && requiresParallelKey(keyCatalog) && keyOrigin !== "paralela") ||
                 ((service?.isCarKey || service?.isMotoKey) && keyOrigin === "paralela" && (parallelOptions(keyCatalog).length === 0 || selectedKeyValue <= 0)) ||
                 (service?.isMotoKey && !motoRule?.range)
               }

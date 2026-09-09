@@ -8,7 +8,7 @@ import VehicleKeyCatalogTable from "./VehicleKeyCatalogTable";
 import UniversalRemoteCatalogPanel from "./UniversalRemoteCatalogPanel";
 import RemoteCompatibilityPanel from "./RemoteCompatibilityPanel";
 
-const empty = { vehicle_type: "carro", make: "", model: "", key_style: "nao_confirmado", transponder_status: "nao_confirmado", programming_machine: "", verified: false, active: false };
+const empty = { vehicle_type: "carro", make: "", model: "", key_style: "nao_confirmado", factory_alarm_status: "nao_confirmado", transponder_status: "nao_confirmado", programming_machine: "", verified: false, active: false };
 export default function VehicleKeyCatalogPanel() {
   const [rows, setRows] = useState([]); const [form, setForm] = useState(empty); const [saving, setSaving] = useState(false); const [search, setSearch] = useState("");
   const [error, setError] = useState("");
@@ -31,6 +31,7 @@ export default function VehicleKeyCatalogPanel() {
     setSaving(true);
     try {
       const data = { vehicle_type: form.vehicle_type, make: form.make, model: form.model, year_start: Number(form.year_start) || undefined, year_end: Number(form.year_end) || undefined, key_style: form.key_style, transponder: form.transponder || "", blade: form.blade || "", original_price: Number(form.original_price) || 0, vvdi_supported: !!form.vvdi_supported, vvdi_file: form.vvdi_file || "", vvdi_price: Number(form.vvdi_price) || 0, kd_supported: !!form.kd_supported, kd_file: form.kd_file || "", kd_price: Number(form.kd_price) || 0, km100_supported: !!form.km100_supported, km100_file: form.km100_file || "", km100_price: Number(form.km100_price) || 0, source_url: form.source_url || "", verified: !!form.verified, active: !!form.active,
+        factory_alarm_status: form.factory_alarm_status || "nao_confirmado",
         transponder_status: form.transponder_status || "nao_confirmado",
         programming_machine: form.transponder_status === "presente" ? form.programming_machine?.trim() || "" : "",
       };

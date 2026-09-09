@@ -32,6 +32,16 @@
       ],
       "default": "nao_confirmado"
     },
+    "factory_alarm_status": {
+      "type": "string",
+      "enum": [
+        "nao_confirmado",
+        "original",
+        "ausente"
+      ],
+      "default": "nao_confirmado",
+      "description": "Confirma se o ve\u00edculo e intervalo de anos possuem alarme original de f\u00e1brica. Quando ausente, somente chaves paralelas VVDI/KD confirmadas podem ser solicitadas."
+    },
     "transponder": {
       "type": "string"
     },

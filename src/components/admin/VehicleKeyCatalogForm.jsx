@@ -19,6 +19,9 @@ export default function VehicleKeyCatalogForm({ value, onChange, onSave, saving 
       <select value={value.key_style || "nao_confirmado"} onChange={(e) => onChange({ ...value, key_style: e.target.value })} className="h-10 rounded-md border border-input bg-background px-3 text-sm">
         <option value="nao_confirmado">Arquitetura não confirmada</option><option value="lamina_sem_pcf">Lâmina sem PCF</option><option value="canivete_sem_pcf">Canivete sem PCF</option><option value="pcf_integrado">PCF integrado</option><option value="presenca">Presença</option>
       </select>
+      <select value={value.factory_alarm_status || "nao_confirmado"} onChange={(e) => onChange({ ...value, factory_alarm_status: e.target.value })} className="h-10 rounded-md border border-input bg-background px-3 text-sm">
+        <option value="nao_confirmado">Alarme de fábrica não confirmado</option><option value="original">Possui alarme original</option><option value="ausente">Sem alarme original</option>
+      </select>
       <KeyProgrammingFields value={value} onChange={onChange} />
       {fields.map(([name, label]) => <Input key={name} type={name.includes("price") || name.includes("year") ? "number" : "text"} placeholder={label} value={value[name] ?? ""} onChange={(e) => onChange({ ...value, [name]: e.target.value })} />)}
       {["vvdi", "kd", "km100"].map((brand) => <label key={brand} className="flex items-center gap-2 text-sm"><input type="checkbox" checked={value[`${brand}_supported`] || false} onChange={(e) => onChange({ ...value, [`${brand}_supported`]: e.target.checked })} /> {brand.toUpperCase()} possui arquivo</label>)}

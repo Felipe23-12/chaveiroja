@@ -27,18 +27,32 @@ export async function findVehicleKeyCatalog(make, model, year, vehicleType = "ca
   return row;
 }
 
+export const requiresParallelKey = (row) => row?.factory_alarm_status === "ausente";
+
 export function parallelOptions(row) {
   if (!row) return [];
-  if (row._remote_options?.length) return row._remote_options.map((item) => ({ brand: item.platform, model: item.remote_model, file: item.file_name, price: item.remote.list_price, pairingMethod: item.pairing_method, procedure: item.procedure, frequency: item.frequency_mhz, buttons: item.button_count }));
+  const onlyAftermarketAlarm = requiresParallelKey(row);
+  if (row._remote_options?.length) {
+    const confirmedRemotes = row._remote_options
+      .map((item) => ({ brand: item.platform, model: item.remote_model, file: item.file_name, price: item.remote.list_price, pairingMethod: item.pairing_method, procedure: item.procedure, frequency: item.frequency_mhz, buttons: item.button_count }))
+      .filter((item) => !onlyAftermarketAlarm || item.brand === "VVDI" || item.brand === "KD");
+    if (confirmedRemotes.length) return confirmedRemotes;
+  }
   return [
     { brand: "VVDI", supported: row.vvdi_supported, file: row.vvdi_file, price: row.vvdi_price },
     { brand: "KD", supported: row.kd_supported, file: row.kd_file, price: row.kd_price },
     { brand: "KM100", supported: row.km100_supported, file: row.km100_file, price: row.km100_price },
-  ].filter((item) => item.supported && item.file);
+  ].filter((item) => item.supported && item.file && (!onlyAftermarketAlarm || item.brand !== "KM100"));
 }
 
-export function parallelKeyPrice(row) {
-  return Math.max(0, ...parallelOptions(row).map((item) => Number(item.price) || 0));
+export function parallelKeyPrice(row, fallbackOriginalPrice = 0) {
+  const options = parallelOptions(row);
+  if (!options.length) return 0;
+  if (!requiresParallelKey(row)) {
+    const originalPrice = Number(row?.original_price) || Number(fallbackOriginalPrice) || 0;
+    if (originalPrice > 0) return Math.round(originalPrice * 0.65 * 100) / 100;
+  }
+  return Math.max(0, ...options.map((item) => Number(item.price) || 0));
 }
 
 export function chipProgrammingDetails(row) {
@@ -63,5 +77,6 @@ export function technicalKeyDescription({ origin, row }) {
     presenca: "chave presença",
   }[row?.key_style] || "arquitetura não confirmada";
   const chip = chipProgrammingDetails(row);
-  return `${originLabel} — Arquitetura: ${style} — Arquivos: ${files || "nenhum arquivo confirmado"} — Transponder: ${chip.transponder} — Lâmina: ${row?.blade || "não informada"}\nCodificação: ${chip.coding}\nMáquina de codificação: ${chip.machine}`;
+  const alarm = requiresParallelKey(row) ? "sem alarme original de fábrica — usar opção VVDI/KD confirmada" : row?.factory_alarm_status === "original" ? "alarme original de fábrica" : "alarme de fábrica não confirmado";
+  return `${originLabel} — Arquitetura: ${style} — Arquivos: ${files || "nenhum arquivo confirmado"} — Transponder: ${chip.transponder} — Lâmina: ${row?.blade || "não informada"}\nAlarme: ${alarm}\nCodificação: ${chip.coding}\nMáquina de codificação: ${chip.machine}`;
 }
