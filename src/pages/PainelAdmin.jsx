@@ -12,6 +12,7 @@ import ResetLocksmithsDialog from "@/components/admin/ResetLocksmithsDialog";
 import WeeklyOperationsPanel from "@/components/admin/WeeklyOperationsPanel";
 import ConductReportsPanel from "@/components/admin/ConductReportsPanel";
 import VehicleKeyCatalogPanel from "@/components/admin/VehicleKeyCatalogPanel";
+import AdminPanelTabs from "@/components/admin/AdminPanelTabs";
 import { completeWithdrawal } from "@/lib/payments";
 import { useToast } from "@/components/ui/use-toast";
 import { safeUnsubscribe } from "@/lib/safeUnsubscribe";
@@ -34,6 +35,7 @@ export default function PainelAdmin() {
   const [requests, setRequests] = useState([]);
   const [scores, setScores] = useState([]);
   const [withdrawals, setWithdrawals] = useState([]);
+  const [activeTab, setActiveTab] = useState("overview");
   const [filters, setFilters] = useState({ date: "", serviceType: "", status: "", locksmithName: "", search: "" });
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
@@ -138,7 +140,9 @@ export default function PainelAdmin() {
         </div>
       </div>
 
-      {pendingWithdrawals.length > 0 && (
+      <AdminPanelTabs value={activeTab} onChange={setActiveTab} />
+
+      {activeTab === "finance" && pendingWithdrawals.length > 0 && (
         <div className="flex items-center gap-3 p-4 rounded-xl bg-amber-50 border border-amber-200 animate-alert-slide">
           <div className="w-10 h-10 rounded-full bg-amber-100 flex items-center justify-center shrink-0">
             <Bell className="w-5 h-5 text-amber-600 animate-bounce" />
@@ -156,30 +160,30 @@ export default function PainelAdmin() {
         </div>
       )}
 
-      <div className="flex justify-end">
+      {activeTab === "overview" && <div className="flex justify-end">
         <ResetLocksmithsDialog onReset={load} />
-      </div>
+      </div>}
 
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+      {activeTab === "overview" && <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <StatCard icon={Users} label="Usuários" value={users.length} />
         <StatCard icon={Wrench} label="Chaveiros" value={locksmiths.length} />
         <StatCard icon={ClipboardList} label="Solicitações" value={requests.length} />
         <StatCard icon={Wallet} label="Receita (concluídos)" value={fmtMoney(revenue)} />
-      </div>
+      </div>}
 
-      <WeeklyOperationsPanel requests={requests} scores={scores} />
+      {activeTab === "overview" && <WeeklyOperationsPanel requests={requests} scores={scores} />}
 
-      <ConductReportsPanel />
+      {activeTab === "reports" && <ConductReportsPanel />}
 
-      <VehicleKeyCatalogPanel />
+      {activeTab === "catalog" && <VehicleKeyCatalogPanel />}
 
-      <AdminCharts requests={requests} />
+      {activeTab === "overview" && <AdminCharts requests={requests} />}
 
-      <RevenueCommissionChart requests={requests} />
+      {activeTab === "finance" && <RevenueCommissionChart requests={requests} />}
 
-      <FinancialConsolidation requests={requests} locksmiths={locksmiths} />
+      {activeTab === "finance" && <FinancialConsolidation requests={requests} locksmiths={locksmiths} />}
 
-      <section>
+      <section className={activeTab === "people" ? "" : "hidden"}>
         <h2 className="font-heading font-semibold text-lg text-foreground mb-3">Usuários</h2>
         <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 mb-3 flex items-start gap-2">
           <Info className="w-4 h-4 text-amber-600 mt-0.5 shrink-0" />
@@ -234,7 +238,7 @@ export default function PainelAdmin() {
         </div>
       </section>
 
-      <section>
+      <section className={activeTab === "people" ? "" : "hidden"}>
         <h2 className="font-heading font-semibold text-lg text-foreground mb-3">Chaveiros</h2>
         <div className="rounded-xl border border-border overflow-hidden bg-white">
           <div className="overflow-x-auto">
@@ -296,7 +300,7 @@ export default function PainelAdmin() {
         </div>
       </section>
 
-      <section>
+      <section className={activeTab === "finance" ? "" : "hidden"}>
           <h2 className="font-heading font-semibold text-lg text-foreground mb-3 flex items-center gap-2">
             <ArrowDownToLine className="w-5 h-5" /> Saques solicitados
             {pendingWithdrawals.length > 0 && (
@@ -362,7 +366,7 @@ export default function PainelAdmin() {
           )}
         </section>
 
-      <section>
+      <section className={activeTab === "requests" ? "" : "hidden"}>
         <h2 className="font-heading font-semibold text-lg text-foreground mb-3">Solicitações</h2>
         <div className="mb-3">
           <ServiceSearchBar
