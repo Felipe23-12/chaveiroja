@@ -39,6 +39,10 @@
     "photo_url": {
       "type": "string",
       "description": "URL da foto enviada pela c\u00e2mera ou galeria no chat"
+    },
+    "description": {
+      "type": "string",
+      "maxLength": 1000
     }
   },
   "required": [
