@@ -128,10 +128,10 @@ function SidebarContent({ onNavigate }) {
           <ShieldCheck className="w-3 h-3" />
           Termos e Privacidade
         </Link>
-        <Link to="/sobre" onClick={onNavigate} className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-md text-xs font-medium text-muted-foreground hover:bg-accent min-h-[36px]">
+        <Link to="/about" onClick={onNavigate} className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-md text-xs font-medium text-muted-foreground hover:bg-accent min-h-[36px]">
           <Info className="w-3 h-3" /> Sobre
         </Link>
-        <Link to="/contato" onClick={onNavigate} className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-md text-xs font-medium text-muted-foreground hover:bg-accent min-h-[36px]">
+        <Link to="/contact" onClick={onNavigate} className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-md text-xs font-medium text-muted-foreground hover:bg-accent min-h-[36px]">
           <Mail className="w-3 h-3" /> Contato
         </Link>
         <button

@@ -27,8 +27,8 @@ export default function AuthLayout({ icon: Icon, title, subtitle, footer, childr
           <p className="text-center text-sm text-muted-foreground mt-6">{footer}</p>
         )}
         <nav className="mt-5 flex justify-center gap-5 text-xs text-muted-foreground" aria-label="Páginas institucionais">
-          <Link to="/sobre" className="hover:text-foreground">Sobre</Link>
-          <Link to="/contato" className="hover:text-foreground">Contato</Link>
+          <Link to="/about" className="hover:text-foreground">Sobre</Link>
+          <Link to="/contact" className="hover:text-foreground">Contato</Link>
           <Link to="/termos-privacidade" className="hover:text-foreground">Privacidade</Link>
         </nav>
       </div>
