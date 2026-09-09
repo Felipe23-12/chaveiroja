@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { WORK_MODES } from "@/lib/pricing";
 import PaymentStep from "@/components/payment/PaymentStep";
 import NativeSelectDrawer from "@/components/ui/NativeSelectDrawer";
+import { getStripePaymentStatus } from "@/lib/payments";
 
 export default function MonthlySubscriptionConfig({ locksmith, onUpdate }) {
   const [dueDay, setDueDay] = useState(locksmith.monthly_fee_due_day || 1);
@@ -17,11 +18,13 @@ export default function MonthlySubscriptionConfig({ locksmith, onUpdate }) {
     onUpdate({ [field]: value });
   };
 
-  const handlePaymentConfirm = async (paymentMethod) => {
+  const handlePaymentConfirm = async (paymentMethod, stripePaymentIntentId) => {
     setPaying(true);
     setPayError("");
     try {
-      onUpdate({
+      const status = await getStripePaymentStatus(stripePaymentIntentId);
+      if (status !== "succeeded") throw new Error("Pagamento ainda não confirmado pelo Stripe");
+      await onUpdate({
         monthly_fee_paid: true,
         monthly_fee_last_paid: new Date().toISOString().slice(0, 10),
         monthly_fee_method: paymentMethod,

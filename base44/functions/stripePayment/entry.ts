@@ -35,23 +35,16 @@ export default async function(req) {
       const pmType = method === "pix" ? "pix" : "card";
       let destinationAccountId = "";
       if (locksmith_id) {
-        const platformManagedIds = new Set([
-          "6a995cd681b4f49ae65f5697",
-          "6a980f758d36816ed57f0061",
-        ]);
         const profile = await base44.asServiceRole.entities.Locksmith.get(locksmith_id).catch(() => null);
-        const platformManaged = platformManagedIds.has(locksmith_id) || platformManagedIds.has(profile?.created_by_id);
-        if (!platformManaged) {
-          // A conta Stripe Connect pode estar registrada pelo ID do perfil de
-          // chaveiro ou pelo ID do usuário dono do perfil — procuramos nos dois.
-          let records = await base44.asServiceRole.entities.StripeConnectAccount.filter({ locksmith_id });
-          if (!records?.[0]?.stripe_account_id && profile?.created_by_id) {
-            records = await base44.asServiceRole.entities.StripeConnectAccount.filter({ locksmith_id: profile.created_by_id });
-          }
-          destinationAccountId = records?.[0]?.stripe_account_id || "";
+        let records = await base44.asServiceRole.entities.StripeConnectAccount.filter({ locksmith_id });
+        if (!records?.[0]?.stripe_account_id && profile?.created_by_id) {
+          records = await base44.asServiceRole.entities.StripeConnectAccount.filter({ locksmith_id: profile.created_by_id });
         }
-        // Sem destino Connect, o valor fica na conta Stripe da plataforma e o
-        // saldo do chaveiro continua sendo controlado pela carteira interna.
+        const connect = records?.[0];
+        if (!connect?.stripe_account_id || !connect.charges_enabled || !connect.payouts_enabled) {
+          return Response.json({ error: 'O chaveiro precisa concluir a ativação dos recebimentos antes do pagamento.' }, { status: 400 });
+        }
+        destinationAccountId = connect.stripe_account_id;
       }
 
       const applicationFee = Math.round(cents * 0.15);
@@ -113,6 +106,45 @@ export default async function(req) {
       }
 
       return Response.json({ status: intent.status });
+    }
+
+    // Confirma o pagamento no servidor e registra a divisão feita pelo Stripe Connect.
+    if (action === "finalize_payment") {
+      const payment = await base44.asServiceRole.entities.Payment.get(body.payment_id).catch(() => null);
+      if (!payment || (user.role !== "admin" && payment.client_id !== user.id)) {
+        return Response.json({ error: "Pagamento não encontrado" }, { status: 404 });
+      }
+      const statusRes = await fetch(`${STRIPE_API}/payment_intents/${payment.stripe_payment_intent_id}`, {
+        headers: { "Authorization": `Bearer ${stripeKey}` },
+      });
+      const intent = await statusRes.json();
+      if (!statusRes.ok || intent.status !== "succeeded") {
+        return Response.json({ error: "O pagamento ainda não foi confirmado pelo Stripe" }, { status: 400 });
+      }
+
+      await base44.asServiceRole.entities.Payment.update(payment.id, {
+        status: "paid",
+        captured_at: new Date().toISOString(),
+      });
+
+      const transferredDirectly = !!intent.transfer_data?.destination;
+      if (!transferredDirectly && payment.locksmith_id && payment.net_amount) {
+        const locksmith = await base44.asServiceRole.entities.Locksmith.get(payment.locksmith_id);
+        const pendingCash = locksmith.pending_cash_commission || 0;
+        const creditAmount = Math.max(0, Math.round((payment.net_amount - pendingCash) * 100) / 100);
+        await base44.asServiceRole.entities.Locksmith.update(payment.locksmith_id, {
+          wallet_balance: Math.round(((locksmith.wallet_balance || 0) + creditAmount) * 100) / 100,
+          ...(pendingCash > 0 ? { pending_cash_commission: 0 } : {}),
+        });
+      }
+
+      if (payment.service_request_id) {
+        await base44.asServiceRole.entities.ServiceRequest.update(payment.service_request_id, {
+          payment_status: "paid",
+          commission_status: "paid",
+        });
+      }
+      return Response.json({ success: true, transferred_directly: transferredDirectly });
     }
 
     // Cancela um PaymentIntent

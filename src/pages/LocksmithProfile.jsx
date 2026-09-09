@@ -90,9 +90,9 @@ export default function LocksmithProfile() {
   };
 
   const updateLocksmith = (data) => {
-    if (!myLocksmith) return;
+    if (!myLocksmith) return Promise.resolve(null);
     setSaving(true);
-    base44.entities.Locksmith.update(myLocksmith.id, data)
+    return base44.entities.Locksmith.update(myLocksmith.id, data)
       .then((updated) => setMyLocksmith(updated))
       .finally(() => setSaving(false));
   };

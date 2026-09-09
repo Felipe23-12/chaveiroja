@@ -1,0 +1,47 @@
+{
+  "name": "Atualizar Modo Livre Inadimplente",
+  "trigger": {
+    "condition": null,
+    "config": {
+      "trigger_type": "scheduled",
+      "events": [],
+      "schedule_mode": "recurring",
+      "cron_expression": "10 0 * * *",
+      "one_time_date": null,
+      "timezone": "America/Sao_Paulo",
+      "interval_value": null,
+      "interval_unit": null,
+      "interval_anchor": null,
+      "ends_type": "never",
+      "ends_on_date": null,
+      "ends_after_count": null
+    }
+  },
+  "description": "Todos os dias muda para o modo Aplicativo os chaveiros do Modo Livre que n\u00e3o pagaram a mensalidade at\u00e9 o vencimento.",
+  "definition": {
+    "document": {
+      "dsl": "1.0.0",
+      "name": "atualizar_modo_livre_inadimplente",
+      "version": "1.0",
+      "namespace": "base44"
+    },
+    "do": [
+      {
+        "verificar_mensalidades": {
+          "call": "invoke_backend_function",
+          "with": {
+            "function_name": "processOverdueLivreSubscriptions",
+            "args": {
+              "_internal_token": "cj_wf_int_7d2e5a1f9b8c4e30"
+            }
+          },
+          "then": "end",
+          "x-base44": {
+            "title": "Verificar mensalidades",
+            "description": "Move inadimplentes para o modo Aplicativo"
+          }
+        }
+      }
+    ]
+  }
+}

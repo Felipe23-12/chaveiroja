@@ -87,46 +87,14 @@ export async function createPaymentRecord({ serviceRequestId, amount, method, lo
   return payment;
 }
 
-// Marca o pagamento como pago e credita a carteira do chaveiro.
-// Se o chaveiro tem comissão acumulada de serviços pagos em dinheiro, desconta do líquido.
+// Confirma no servidor que o Stripe recebeu e dividiu o pagamento.
 export async function confirmPaymentPaid(paymentId) {
   if (!paymentId) return;
-  const payment = await base44.entities.Payment.get(paymentId);
-  if (!payment) return;
-
-  await base44.entities.Payment.update(paymentId, {
-    status: "paid",
-    captured_at: new Date().toISOString(),
+  const res = await base44.functions.invoke("stripePayment", {
+    action: "finalize_payment",
+    payment_id: paymentId,
   });
-
-  // Com Stripe Connect, o repasse líquido já é direcionado automaticamente ao chaveiro.
-  // A carteira interna continua sendo usada apenas para pagamentos legados sem Connect.
-  if (payment.locksmith_id && payment.net_amount) {
-    const locksmith = await base44.entities.Locksmith.get(payment.locksmith_id);
-    // O cadastro do Stripe Connect pode estar vinculado ao perfil ou ao usuário
-    const connect = await base44.entities.StripeConnectAccount.filter({
-      locksmith_id: locksmith?.created_by_id || payment.locksmith_id,
-    }).catch(() => []);
-    const connectAtivo = !!connect?.[0]?.stripe_account_id && connect?.[0]?.charges_enabled && connect?.[0]?.payouts_enabled;
-    if (!connectAtivo) {
-      // Desconta a comissão acumulada de serviços anteriores pagos em dinheiro
-      const pendingCash = locksmith.pending_cash_commission || 0;
-      const creditAmount = Math.max(0, Math.round((payment.net_amount - pendingCash) * 100) / 100);
-      const newBalance = Math.round(((locksmith.wallet_balance || 0) + creditAmount) * 100) / 100;
-      const updateData = { wallet_balance: newBalance };
-      if (pendingCash > 0) {
-        updateData.pending_cash_commission = 0;
-      }
-      await base44.entities.Locksmith.update(payment.locksmith_id, updateData);
-    }
-  }
-
-  if (payment.service_request_id) {
-    await base44.entities.ServiceRequest.update(payment.service_request_id, {
-      payment_status: "paid",
-      commission_status: "paid",
-    });
-  }
+  return res.data;
 }
 
 // Confirma o recebimento em dinheiro pelo chaveiro: marca o pedido como pago
