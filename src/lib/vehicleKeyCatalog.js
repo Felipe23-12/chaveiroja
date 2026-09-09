@@ -17,7 +17,12 @@ export async function findVehicleKeyCatalog(make, model, year, vehicleType = "ca
     (!item.year_end || y <= item.year_end) &&
     (normalizeVehicleText(item.model).includes(wanted) || wanted.includes(normalizeVehicleText(item.model)))
   );
-  const row = candidates.sort((a, b) => Number(b.verified) - Number(a.verified))[0] || null;
+  const qualityScore = (item) =>
+    Number(item.verified) * 100 +
+    Number(Number(item.original_price) > 0) * 20 +
+    Number(item.vvdi_supported || item.kd_supported || item.km100_supported) * 10 +
+    ({ alto: 5, "médio": 3, baixo: 1 }[item.confidence_level] || 0);
+  const row = candidates.sort((a, b) => qualityScore(b) - qualityScore(a))[0] || null;
   if (!row) return null;
   const links = await base44.entities.VehicleRemoteCompatibility.filter({ vehicle_catalog_id: row.id, active: true, verified: true });
   const ids = [...new Set(links.map((item) => item.universal_remote_id))];

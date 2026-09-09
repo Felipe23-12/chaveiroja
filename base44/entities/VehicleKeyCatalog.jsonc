@@ -21,6 +21,69 @@
     "year_end": {
       "type": "integer"
     },
+    "catalog_code": {
+      "type": "string",
+      "description": "C\u00f3digo \u00fanico da fonte importada"
+    },
+    "generation_or_years": {
+      "type": "string",
+      "description": "Gera\u00e7\u00e3o ou faixa de anos exatamente como informada pela fonte"
+    },
+    "market": {
+      "type": "string"
+    },
+    "key_type_detail": {
+      "type": "string"
+    },
+    "frequency_mhz": {
+      "type": "string"
+    },
+    "quoted_product": {
+      "type": "string"
+    },
+    "collected_at": {
+      "type": "string"
+    },
+    "technical_source_1": {
+      "type": "string"
+    },
+    "technical_source_2": {
+      "type": "string"
+    },
+    "confidence_level": {
+      "type": "string",
+      "enum": [
+        "alto",
+        "m\u00e9dio",
+        "baixo",
+        "n\u00e3o informado"
+      ],
+      "default": "n\u00e3o informado"
+    },
+    "technical_notes": {
+      "type": "string"
+    },
+    "remote_programming_machine": {
+      "type": "string"
+    },
+    "marketplace_price_ml": {
+      "type": "string"
+    },
+    "marketplace_url_ml": {
+      "type": "string"
+    },
+    "marketplace_price_aliexpress": {
+      "type": "string"
+    },
+    "marketplace_url_aliexpress": {
+      "type": "string"
+    },
+    "marketplace_price_shopee": {
+      "type": "string"
+    },
+    "marketplace_url_shopee": {
+      "type": "string"
+    },
     "key_style": {
       "type": "string",
       "enum": [
