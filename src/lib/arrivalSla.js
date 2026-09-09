@@ -4,16 +4,43 @@ import { base44 } from "@/api/base44Client";
 import { haversineKm } from "@/lib/geo";
 
 export const ARRIVAL_SLA_MINUTES = { normal: 90, urgent: 35 };
+export const NIGHT_CAR_KEY_SLA_MINUTES = 60;
+export const NIGHT_OPENING_SLA_MINUTES = 55;
+export const NIGHT_CAR_KEY_MAX_KM = 25;
+export const NIGHT_OPENING_MAX_KM = 20;
 
 // Tolerância extra no modo emergencial: se o chaveiro já está a até 5 km do
 // cliente quando o prazo estoura, ele ganha 10 minutos adicionais.
 export const NEARBY_TOLERANCE_KM = 5;
 export const NEARBY_TOLERANCE_MINUTES = 10;
 
+function saoPauloHour(value) {
+  const parts = new Intl.DateTimeFormat("pt-BR", {
+    timeZone: "America/Sao_Paulo",
+    hour: "2-digit",
+    hourCycle: "h23",
+  }).formatToParts(new Date(value));
+  return Number(parts.find((part) => part.type === "hour")?.value);
+}
+
+function isNightRequest(request) {
+  const hour = saoPauloHour(request?.accepted_at || request?.created_date || Date.now());
+  return hour >= 18 || hour < 6;
+}
+
 export function slaMinutes(request) {
-  return request?.urgency === "urgent"
-    ? ARRIVAL_SLA_MINUTES.urgent
-    : ARRIVAL_SLA_MINUTES.normal;
+  if (request?.urgency === "urgent") return ARRIVAL_SLA_MINUTES.urgent;
+  if (!isNightRequest(request)) return ARRIVAL_SLA_MINUTES.normal;
+
+  const distanceKm = Number(request?.distance_km);
+  if (!Number.isFinite(distanceKm) || distanceKm < 0) return ARRIVAL_SLA_MINUTES.normal;
+  if (request?.service_type === "Confecção de Chave de Carro" && distanceKm <= NIGHT_CAR_KEY_MAX_KM) {
+    return NIGHT_CAR_KEY_SLA_MINUTES;
+  }
+  if (request?.service_type?.startsWith("Abertura") && distanceKm <= NIGHT_OPENING_MAX_KM) {
+    return NIGHT_OPENING_SLA_MINUTES;
+  }
+  return ARRIVAL_SLA_MINUTES.normal;
 }
 
 // Chaveiro está dentro do raio de tolerância (5 km) do cliente?
