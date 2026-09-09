@@ -40,7 +40,9 @@ export default async function(req: Request): Promise<Response> {
       const isParticipant = report.reporter_id === user.id || report.reported_id === user.id;
       if (!isAdmin && !isParticipant) return Response.json({ error: 'Forbidden' }, { status: 403 });
       const message = String(body.message || '').trim();
-      if (!message) return Response.json({ error: 'Mensagem obrigatória' }, { status: 400 });
+      const mediaUrl = String(body.media_url || '').trim();
+      const mediaType = body.media_type === 'video' ? 'video' : 'image';
+      if (!message && !mediaUrl) return Response.json({ error: 'Mensagem ou arquivo obrigatório' }, { status: 400 });
       const created = await base44.asServiceRole.entities.ReportMessage.create({
         report_id: report.id,
         sender_id: user.id,
@@ -49,6 +51,8 @@ export default async function(req: Request): Promise<Response> {
         reporter_id: report.reporter_id,
         reported_id: report.reported_id,
         message,
+        media_url: mediaUrl || undefined,
+        media_type: mediaUrl ? mediaType : undefined,
       });
       if (report.reported_id === user.id && !report.defense_submitted_at) {
         await base44.asServiceRole.entities.ConductReport.update(report.id, { defense_submitted_at: new Date().toISOString(), status: 'reviewing' });

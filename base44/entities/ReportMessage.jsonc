@@ -29,6 +29,17 @@
     "message": {
       "type": "string",
       "maxLength": 3000
+    },
+    "media_url": {
+      "type": "string",
+      "description": "Foto ou v\u00eddeo anexado \u00e0 mensagem"
+    },
+    "media_type": {
+      "type": "string",
+      "enum": [
+        "image",
+        "video"
+      ]
     }
   },
   "required": [
