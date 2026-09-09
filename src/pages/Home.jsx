@@ -155,7 +155,7 @@ export default function Home() {
 
   const selectedKeyValue = keyOrigin === "paralela"
     ? parallelKeyPrice(keyCatalog, keyValue)
-    : Number(keyCatalog?.original_price) || Number(keyValue) || 0;
+    : Number(keyValue) || 250;
 
   useEffect(() => {
     if (!service?.isMotoKey || !motoInfo.brandId || !motoInfo.modelId || !motoInfo.year) return;
@@ -407,21 +407,15 @@ export default function Home() {
     setSearching(true);
     setSearchError("");
     try {
-      const vehicleName = `${vehicleInfo.make} ${vehicleInfo.model}`.trim();
       const [res, catalog] = await Promise.all([
-        searchFipeAndKeyValue(vehicleName, vehicleInfo.year),
+        searchFipeAndKeyValue(vehicleInfo.make, vehicleInfo.model, vehicleInfo.year),
         findVehicleKeyCatalog(vehicleInfo.make, vehicleInfo.model, vehicleInfo.year, "carro"),
       ]);
       setKeyCatalog(catalog);
       setKeyOrigin(requiresParallelKey(catalog) ? "paralela" : "original");
       setFipeValue(res.fipeValue);
-      setKeyValue(catalog?.original_price || res.keyValue);
+      setKeyValue(res.keyValue);
       setHasCodedKey(res.hasCodedKey);
-      if (!res.keyValueTrusted && carKeyType !== "simples") {
-        setSearchError(
-          "Não foi possível confirmar o orçamento completo deste modelo. O chaveiro informará o valor total ao aceitar o serviço."
-        );
-      }
     } catch (e) {
       setFipeValue(null);
       setKeyValue(null);

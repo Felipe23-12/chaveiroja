@@ -19,7 +19,6 @@ export async function findVehicleKeyCatalog(make, model, year, vehicleType = "ca
   );
   const qualityScore = (item) =>
     Number(item.verified) * 100 +
-    Number(Number(item.original_price) > 0) * 20 +
     Number(item.vvdi_supported || item.kd_supported || item.km100_supported) * 10 +
     ({ alto: 5, "médio": 3, baixo: 1 }[item.confidence_level] || 0);
   const row = candidates.sort((a, b) => qualityScore(b) - qualityScore(a))[0] || null;
@@ -60,7 +59,7 @@ export function parallelKeyPrice(row, fallbackOriginalPrice = 0) {
   const options = parallelOptions(row);
   if (!options.length) return 0;
   if (!requiresParallelKey(row)) {
-    const originalPrice = Number(row?.original_price) || Number(fallbackOriginalPrice) || 0;
+    const originalPrice = Number(fallbackOriginalPrice) || Number(row?.original_price) || 0;
     if (originalPrice > 0) return Math.round(originalPrice * 0.65 * 100) / 100;
   }
   return Math.max(0, ...options.map((item) => Number(item.price) || 0));

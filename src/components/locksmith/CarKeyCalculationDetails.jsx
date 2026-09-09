@@ -7,7 +7,7 @@ const multiplier = (value) => `×${(Number(value) || 1).toFixed(2)}`;
 
 export default function CarKeyCalculationDetails({ price, fipeValue, year, hasCodedKey, keyValue, keyType, keyOrigin, catalog }) {
   if (!price) return null;
-  const original = Number(catalog?.original_price) || Number(keyValue) || 0;
+  const original = Number(keyValue) || 250;
   const selected = keyOrigin === "paralela" ? parallelKeyPrice(catalog, original) : original;
   const components = carKeyComponents({ fipeValue, keyValue: selected, keyType, year, hasCodedKey });
   const rate = getCarKeyFipeLaborRate(year, hasCodedKey);
