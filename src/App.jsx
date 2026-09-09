@@ -44,6 +44,8 @@ const CreatePassword = lazy(() => import('@/pages/CreatePassword'));
 const ExclusaoConta = lazy(() => import('@/pages/ExclusaoConta'));
 const Sobre = lazy(() => import('@/pages/Sobre'));
 const Contato = lazy(() => import('@/pages/Contato'));
+const About = lazy(() => import('@/pages/About'));
+const Contact = lazy(() => import('@/pages/Contact'));
 // Add page imports here
 
 const PageFallback = () => (
@@ -93,9 +95,9 @@ const AuthenticatedApp = () => {
         <Route path="/termos-privacidade" element={<TermosPrivacidade />} />
         <Route path="/exclusao-de-conta" element={<ExclusaoConta />} />
         <Route path="/sobre" element={<Sobre />} />
-        <Route path="/about" element={<Sobre />} />
+        <Route path="/about" element={<About />} />
         <Route path="/contato" element={<Contato />} />
-        <Route path="/contact" element={<Contato />} />
+        <Route path="/contact" element={<Contact />} />
         <Route element={<ProtectedRoute unauthenticatedElement={<Navigate to="/login" replace />} />}>
           <Route path="/criar-senha" element={<CreatePassword />} />
           <Route element={<PasswordCreationGuard />}>
