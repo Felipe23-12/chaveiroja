@@ -17,6 +17,7 @@ import TermsAcceptance from "@/components/auth/TermsAcceptance";
 import { termsPayload } from "@/lib/termsVersion";
 import { registerEmailAccount, registrationErrorMessage } from "@/lib/emailRegistration";
 import ExistingAccountNotice from "@/components/auth/ExistingAccountNotice";
+import { isFullName } from "@/lib/fullName";
 
 export default function RegisterCliente() {
   const [fullName, setFullName] = useState("");
@@ -37,8 +38,8 @@ export default function RegisterCliente() {
     e.preventDefault();
     if (loading || showOtp) return;
     setError("");
-    if (!fullName.trim()) {
-      setError("Informe seu nome");
+    if (!isFullName(fullName)) {
+      setError("Informe seu nome completo, com nome e sobrenome");
       return;
     }
     if (!/^(?=.*[A-Za-z])(?=.*\d).{8,}$/.test(password)) {
@@ -75,6 +76,7 @@ export default function RegisterCliente() {
   const finishClientRegistration = async () => {
     await claimCpf(cpf);
     await base44.auth.updateMe({
+      legal_name: fullName.trim(),
       phone,
       account_type: "cliente",
       password_created: true,

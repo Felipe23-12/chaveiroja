@@ -25,6 +25,10 @@
       "type": "string",
       "description": "CPF do usu\u00e1rio"
     },
+    "legal_name": {
+      "type": "string",
+      "description": "Nome completo obrigat\u00f3rio informado junto ao CPF"
+    },
     "username": {
       "type": "string",
       "description": "Nome de usu\u00e1rio escolhido pelo usu\u00e1rio (exibido no app)"

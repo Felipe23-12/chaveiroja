@@ -76,7 +76,7 @@ function CompactRequestCard({ request, onAccept, onReject }) {
         </button>
       </div>
 
-      {expanded && <div className="mt-2"><KeyTechnicalDetails description={request.description} /></div>}
+      {expanded && <div className="mt-2"><KeyTechnicalDetails description={request.description} request={request} /></div>}
 
       {expanded && hasCarKey && (
         <div className="mt-2 space-y-1 text-xs bg-white rounded-lg p-2 border border-border">

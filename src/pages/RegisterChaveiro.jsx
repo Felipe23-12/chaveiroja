@@ -19,6 +19,7 @@ import TermsAcceptance from "@/components/auth/TermsAcceptance";
 import { termsPayload } from "@/lib/termsVersion";
 import { registerEmailAccount, registrationErrorMessage } from "@/lib/emailRegistration";
 import ExistingAccountNotice from "@/components/auth/ExistingAccountNotice";
+import { isFullName } from "@/lib/fullName";
 
 export default function RegisterChaveiro() {
   const [fullName, setFullName] = useState("");
@@ -42,8 +43,8 @@ export default function RegisterChaveiro() {
     e.preventDefault();
     if (loading || showOtp) return;
     setError("");
-    if (!fullName.trim()) {
-      setError("Informe seu nome");
+    if (!isFullName(fullName)) {
+      setError("Informe seu nome completo, com nome e sobrenome");
       return;
     }
     if (!/^(?=.*[A-Za-z])(?=.*\d).{8,}$/.test(password)) {
@@ -98,6 +99,7 @@ export default function RegisterChaveiro() {
     if (data) {
       await claimCpf(data.cpf);
       await base44.auth.updateMe({
+        legal_name: data.fullName.trim(),
         phone: data.phone,
         account_type: "chaveiro",
         password_created: true,

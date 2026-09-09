@@ -189,7 +189,7 @@ export default function Home() {
 
   useEffect(() => {
     base44.auth.me().then((u) => {
-      setCustomerName(u?.full_name || "");
+      setCustomerName(u?.legal_name || u?.full_name || "");
       setCanPreviewKeyPrice(u?.email?.toLowerCase() === "felipemotacs1@gmail.com");
     }).catch(() => {});
   }, []);
@@ -535,7 +535,7 @@ export default function Home() {
       const base = {
         service_type: service.label,
         address,
-        description: [locksText, openingReasonText, brokenKeyText, keyTechnicalText, description].filter(Boolean).join(" — "),
+        description: [`Cliente: ${customerName}`, locksText, openingReasonText, brokenKeyText, keyTechnicalText, description].filter(Boolean).join(" — "),
         urgency,
         status: "ringing",
         locksmith_id: nearest.l.id,

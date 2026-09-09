@@ -13,6 +13,7 @@ import TermsAcceptance from "@/components/auth/TermsAcceptance";
 import GooglePasswordSetup from "@/components/auth/GooglePasswordSetup";
 import { termsPayload } from "@/lib/termsVersion";
 import { isGoogleAuthSession } from "@/lib/authProvider";
+import { isFullName } from "@/lib/fullName";
 
 export default function GoogleComplete() {
   const [searchParams] = useSearchParams();
@@ -36,13 +37,13 @@ export default function GoogleComplete() {
         const me = await base44.auth.me();
         if (me.account_type === "cliente" || me.account_type === "chaveiro") {
           setTipo(me.account_type);
-          if (isValidCpf(me.cpf) && onlyDigits(me.phone || "").length >= 10) {
+          if (isValidCpf(me.cpf) && onlyDigits(me.phone || "").length >= 10 && isFullName(me.legal_name || me.full_name)) {
             window.location.assign(me.role === "admin" ? "/painel-admin" : me.account_type === "chaveiro" ? "/painel-chaveiro" : "/");
             return;
           }
         }
         setPasswordReady(me?.password_created === true || isGoogleAuthSession());
-        if (me?.full_name) setFullName(me.full_name);
+        if (me?.legal_name || me?.full_name) setFullName(me.legal_name || me.full_name);
         if (me?.username) setUsername(me.username);
         if (me?.phone) setPhone(me.phone);
         if (me?.cpf) setCpf(me.cpf);
@@ -59,8 +60,8 @@ export default function GoogleComplete() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
-    if (!fullName.trim()) {
-      setError("Informe seu nome completo");
+    if (!isFullName(fullName)) {
+      setError("Informe seu nome completo, com nome e sobrenome");
       return;
     }
     if (!username.trim()) {
@@ -85,6 +86,7 @@ export default function GoogleComplete() {
     try {
       await claimCpf(cpfDigits);
       await base44.auth.updateMe({
+        legal_name: fullName.trim(),
         username: username.trim(),
         phone: phone.trim(),
         account_type: tipo,

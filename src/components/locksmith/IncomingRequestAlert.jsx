@@ -84,7 +84,7 @@ export default function IncomingRequestAlert({ request, onAccept, onReject }) {
           </div>
         )}
 
-        <KeyTechnicalDetails description={request.description} />
+        <KeyTechnicalDetails description={request.description} request={request} />
 
         {/* Resumo financeiro */}
         {hasCarKey ? (
