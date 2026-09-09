@@ -24,6 +24,7 @@ export async function findVehicleKeyCatalog(make, model, year, vehicleType = "ca
   const remotes = ids.length ? await base44.entities.UniversalRemote.filter({ id: { $in: ids }, available: true, verified: true }) : [];
   const byId = new Map(remotes.map((item) => [item.id, item]));
   row._remote_options = links.map((link) => ({ ...link, remote: byId.get(link.universal_remote_id) })).filter((item) => item.remote);
+  row._selected_year = y;
   return row;
 }
 
@@ -41,7 +42,12 @@ export function parallelOptions(row) {
   return [
     { brand: "VVDI", supported: row.vvdi_supported, file: row.vvdi_file, price: row.vvdi_price },
     { brand: "KD", supported: row.kd_supported, file: row.kd_file, price: row.kd_price },
-    { brand: "KM100", supported: row.km100_supported, file: row.km100_file, price: row.km100_price },
+    {
+      brand: "KM100",
+      supported: row.km100_supported && (!row.km100_years?.length || row.km100_years.includes(Number(row._selected_year))),
+      file: row.km100_file?.trim() || "arquivo não informado pela fonte",
+      price: row.km100_price,
+    },
   ].filter((item) => item.supported && item.file && (!onlyAftermarketAlarm || item.brand !== "KM100"));
 }
 

@@ -103,6 +103,22 @@
       "minimum": 0,
       "default": 0
     },
+    "km100_years": {
+      "type": "array",
+      "items": {
+        "type": "integer"
+      },
+      "default": [],
+      "description": "Anos explicitamente confirmados como compat\u00edveis com AUTEL KM100. Vazio indica aplica\u00e7\u00e3o sem ano delimitado na fonte."
+    },
+    "km100_notes": {
+      "type": "string",
+      "description": "Aplica\u00e7\u00f5es, procedimentos, chips e ressalvas KM100 descritos pela fonte."
+    },
+    "km100_source_url": {
+      "type": "string",
+      "description": "Fonte espec\u00edfica da compatibilidade AUTEL KM100."
+    },
     "source_url": {
       "type": "string"
     },
