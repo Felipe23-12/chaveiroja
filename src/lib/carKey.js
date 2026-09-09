@@ -1,6 +1,31 @@
 import { base44 } from "@/api/base44Client";
 import { validateVehicleQuery, validateFipeResult } from "@/lib/fipeValidation";
 
+const KEY_FALLBACK_BY_MAKE = {
+  fiat: 400,
+  chevrolet: 350,
+  volkswagen: 550,
+  vw: 550,
+  ford: 300,
+  hyundai: 300,
+  jeep: 400,
+};
+
+const normalizeMake = (value) => String(value || "")
+  .normalize("NFD")
+  .replace(/[\u0300-\u036f]/g, "")
+  .toLowerCase()
+  .replace(/[^a-z0-9]+/g, " ")
+  .trim();
+
+export function resolveCarKeyValue({ make, year, keyType, keyValue, fallbackUsed }) {
+  const current = Number(keyValue) || 250;
+  if (!fallbackUsed || Number(year) <= 2020 || !["canivete", "telecomando"].includes(keyType)) return current;
+  const normalized = normalizeMake(make);
+  const makeKey = Object.keys(KEY_FALLBACK_BY_MAKE).find((name) => normalized === name || normalized.includes(name));
+  return makeKey ? KEY_FALLBACK_BY_MAKE[makeKey] : current;
+}
+
 // Consulta as novas fontes e usa o maior preço comprovado de chave original.
 // Sem oferta original confirmada, a função retorna o valor padrão de R$ 250.
 export async function searchCarKeyValue(make, model, year) {

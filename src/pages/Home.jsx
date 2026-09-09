@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { SERVICE_CATALOG, calculateCancellationFee, CANCELLATION_THRESHOLD_MINUTES, calculateLongDistanceFee, isOpeningService } from "@/lib/pricing";
 import { calculateDynamicPrice } from "@/lib/dynamicPricing";
 import { getCancellationWindow } from "@/lib/cancellationWindow";
-import { searchFipeAndKeyValue } from "@/lib/carKey";
+import { resolveCarKeyValue, searchFipeAndKeyValue } from "@/lib/carKey";
 import { detectCarKeyProgramming } from "@/lib/carKeyProgramming";
 import { getKeyCancelBlock } from "@/lib/keyCancelBlock";
 import KeyBlockBanner from "@/components/locksmith/KeyBlockBanner";
@@ -97,6 +97,7 @@ export default function Home() {
   const [searchRadius, setSearchRadius] = useState(null);
   const [currentRadius, setCurrentRadius] = useState(DEFAULT_RADIUS_KM);
   const [keyValue, setKeyValue] = useState(null);
+  const [keyValueFallback, setKeyValueFallback] = useState(false);
   const [fipeValue, setFipeValue] = useState(null);
   const [hasCodedKey, setHasCodedKey] = useState(false);
   const [carKeyType, setCarKeyType] = useState("simples");
@@ -153,9 +154,17 @@ export default function Home() {
     [service, vehicleInfo.make, vehicleInfo.model, vehicleInfo.year]
   );
 
+  const catalogOriginalValue = Number(keyCatalog?.original_price) || 0;
+  const originalKeyValue = resolveCarKeyValue({
+    make: vehicleInfo.make,
+    year: vehicleInfo.year,
+    keyType: carKeyType,
+    keyValue: catalogOriginalValue || keyValue,
+    fallbackUsed: keyValueFallback && catalogOriginalValue <= 0,
+  });
   const selectedKeyValue = keyOrigin === "paralela"
-    ? parallelKeyPrice(keyCatalog, keyValue)
-    : Number(keyValue) || 250;
+    ? parallelKeyPrice(keyCatalog, originalKeyValue)
+    : originalKeyValue;
 
   useEffect(() => {
     if (!service?.isMotoKey || !motoInfo.brandId || !motoInfo.modelId || !motoInfo.year) return;
@@ -415,10 +424,12 @@ export default function Home() {
       setKeyOrigin(requiresParallelKey(catalog) ? "paralela" : "original");
       setFipeValue(res.fipeValue);
       setKeyValue(res.keyValue);
+      setKeyValueFallback(res.keyValueFallback);
       setHasCodedKey(res.hasCodedKey);
     } catch (e) {
       setFipeValue(null);
       setKeyValue(null);
+      setKeyValueFallback(false);
       setKeyCatalog(null);
       setHasCodedKey(false);
       setSearchError(e.message || "Falha ao consultar os dados do veículo");
@@ -972,6 +983,7 @@ export default function Home() {
     setSearchRadius(null);
     setCurrentRadius(DEFAULT_RADIUS_KM);
     setKeyValue(null);
+    setKeyValueFallback(false);
     setFipeValue(null);
     setHasCodedKey(false);
     setCarKeyType("simples");
@@ -1072,7 +1084,7 @@ export default function Home() {
               onAddressSelect={handleAddressSelect}
               description={description}
               setDescription={setDescription}
-              keyValue={keyValue}
+              keyValue={originalKeyValue}
               searching={searching}
               searchError={searchError}
               onSearch={handleSearchKey}
