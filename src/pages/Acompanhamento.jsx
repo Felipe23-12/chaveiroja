@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useMemo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
-import { ArrowLeft, Send, MessageCircle, Navigation, MapPin, Clock, Loader2 } from "lucide-react";
+import { ArrowLeft, Send, MessageCircle, Navigation, MapPin, Clock, Loader2, CheckCircle2, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import LightMap from "@/components/map/LightMap";
@@ -31,6 +31,8 @@ export default function Acompanhamento() {
   const [routeEta, setRouteEta] = useState(null);
   const [loading, setLoading] = useState(true);
   const [chatOpen, setChatOpen] = useState(false);
+  const [arrivalUpdating, setArrivalUpdating] = useState(false);
+  const [arrivalError, setArrivalError] = useState("");
   const { blockedIds } = useBlockedUsers();
   const scrollRef = useRef(null);
 
@@ -170,6 +172,22 @@ export default function Acompanhamento() {
     }
   };
 
+  const updateArrival = async (confirmed) => {
+    if (!request || arrivalUpdating) return;
+    setArrivalUpdating(true);
+    setArrivalError("");
+    try {
+      const updated = await base44.entities.ServiceRequest.update(request.id, confirmed
+        ? { client_arrived_confirmed: true }
+        : { locksmith_arrived: false });
+      setRequest(updated);
+    } catch (error) {
+      setArrivalError(error?.message || "Não foi possível registrar sua resposta. Tente novamente.");
+    } finally {
+      setArrivalUpdating(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center" style={{ height: "calc(100vh - 80px)" }}>
@@ -219,6 +237,23 @@ export default function Acompanhamento() {
         <ArrivalDeadlineCountdown request={request} />
         <CancellationCaseNotice requestId={request.id} />
         <KeyServicePrice request={request} />
+        {request.locksmith_arrived && !request.client_arrived_confirmed && (
+          <div className="p-4 rounded-2xl border-2 border-primary bg-primary/5 space-y-3">
+            <div className="flex items-center gap-2 text-primary">
+              <MapPin className="w-5 h-5" />
+              <p className="font-medium text-sm">O chaveiro informou que chegou!</p>
+            </div>
+            <p className="text-xs text-muted-foreground">Confirme somente se o profissional já estiver no local.</p>
+            {arrivalError && <p className="text-xs font-medium text-destructive">{arrivalError}</p>}
+            <Button onClick={() => updateArrival(true)} disabled={arrivalUpdating} className="w-full">
+              {arrivalUpdating ? <Loader2 className="w-4 h-4 mr-1.5 animate-spin" /> : <CheckCircle2 className="w-4 h-4 mr-1.5" />}
+              Confirmar chegada do chaveiro
+            </Button>
+            <Button onClick={() => updateArrival(false)} disabled={arrivalUpdating} variant="outline" className="w-full text-destructive border-destructive/40">
+              <AlertTriangle className="w-4 h-4 mr-1.5" /> Ele ainda não chegou
+            </Button>
+          </div>
+        )}
         <ModerationActions targetUserId={request.locksmith_user_id || locksmith?.created_by_id} targetType="chaveiro" targetName={request.locksmith_name || locksmith?.name} contextType="service" requestId={request.id} locksmithId={request.locksmith_id} />
       </div>
 
