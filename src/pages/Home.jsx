@@ -205,7 +205,7 @@ export default function Home() {
   }, [activeRequest?.status]);
 
   const unblockedAppLocksmiths = useMemo(
-    () => blocksLoading ? [] : appLocksmiths.filter((l) => !blockedIds.has(l.created_by_id)),
+    () => blocksLoading ? appLocksmiths : appLocksmiths.filter((l) => !blockedIds.has(l.created_by_id)),
     [appLocksmiths, blockedIds, blocksLoading]
   );
 

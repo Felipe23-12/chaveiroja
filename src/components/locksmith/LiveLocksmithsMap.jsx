@@ -32,20 +32,24 @@ export default function LiveLocksmithsMap({ customerLoc, livreOnly = false }) {
 
   useEffect(() => {
     let active = true;
+    const isVisible = (profile) =>
+      profile?.online === true && (!livreOnly || profile.work_mode === "livre");
     const load = () =>
-      base44.entities.Locksmith.list().then((list) => {
-        if (active) {
-          setLocksmiths(
-            list.filter((l) =>
-              livreOnly
-                ? l.work_mode === "livre" && l.online
-                : (l.work_mode === "livre" && l.online) || (l.work_mode === "app" && l.available)
-            )
-          );
-        }
+      base44.entities.Locksmith.filter({ online: true }, "-updated_date", 500).then((list) => {
+        if (active) setLocksmiths(list.filter(isVisible));
       });
+    const onEvent = (event) => {
+      const profile = event.data;
+      if (!active || !profile?.id) return;
+      setLocksmiths((current) => {
+        const others = current.filter((item) => item.id !== profile.id);
+        if (event.type === "delete" || !isVisible(profile)) return others;
+        const previous = current.find((item) => item.id === profile.id);
+        return [{ ...previous, ...profile }, ...others];
+      });
+    };
     load().finally(() => active && setLoading(false));
-    const unsub = safeUnsubscribe(base44.entities.Locksmith.subscribe(() => load()));
+    const unsub = safeUnsubscribe(base44.entities.Locksmith.subscribe(onEvent));
     return () => {
       active = false;
       unsub();
@@ -57,7 +61,7 @@ export default function LiveLocksmithsMap({ customerLoc, livreOnly = false }) {
   const withDist = useMemo(
     () =>
       locksmiths
-        .filter((l) => !blocksLoading && !blockedIds.has(l.created_by_id))
+        .filter((l) => blocksLoading || !blockedIds.has(l.created_by_id))
         .map((l) => {
           const distance = haversineKm(refLoc, { lat: l.lat, lng: l.lng });
           return { ...l, distance, eta: estimateEtaMinutes(distance) };
