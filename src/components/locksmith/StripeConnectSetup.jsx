@@ -149,7 +149,7 @@ export default function StripeConnectSetup({ onStatusChange }) {
       {error && <p className="text-sm text-red-600 bg-red-50 p-3 rounded-lg">{error}</p>}
 
       <div className="flex flex-wrap gap-2">
-        {!underReview && <Button onClick={setup} disabled={working} size="sm">
+        {!active && !underReview && <Button onClick={setup} disabled={working} size="sm">
           {working ? <Loader2 className="w-4 h-4 mr-1.5 animate-spin" /> : <ExternalLink className="w-4 h-4 mr-1.5" />}
           {status?.account_id ? "Continuar cadastro Stripe" : "Configurar recebimentos"}
         </Button>}
