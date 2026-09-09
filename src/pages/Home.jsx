@@ -923,7 +923,11 @@ export default function Home() {
       const window = getCancellationWindow(activeRequest);
       if (window.free) {
         try {
-          await base44.entities.ServiceRequest.update(activeRequest.id, { status: "cancelled", cancelled_by: "cliente" });
+          await base44.functions.invoke("serviceTrust", {
+            action: "cancel_request",
+            request_id: activeRequest.id,
+            actor: "cliente",
+          });
           handleNewRequest();
         } catch (e) {
           toast({ title: "Falha ao cancelar", description: e.message || "Tente novamente", variant: "destructive" });
@@ -954,15 +958,13 @@ export default function Home() {
   const handleConfirmCancelWithFee = async () => {
     if (!activeRequest || !cancelFeeData) return;
     try {
-      const updated = await base44.entities.ServiceRequest.update(activeRequest.id, {
-        status: "cancelled",
-        cancelled_by: "cliente",
-        cancellation_fee: cancelFeeData.fee,
-        cancellation_locksmith_amount: cancelFeeData.locksmithAmount,
-        cancellation_app_fee: cancelFeeData.appFee,
-        payment_status: "pending",
+      const response = await base44.functions.invoke("serviceTrust", {
+        action: "cancel_request",
+        request_id: activeRequest.id,
+        actor: "cliente",
+        confirmed_fee: true,
       });
-      setActiveRequest(updated);
+      setActiveRequest(response.data.request);
       refreshDebt();
     } catch (e) {
       toast({ title: "Falha ao cancelar", description: e.message || "Tente novamente", variant: "destructive" });

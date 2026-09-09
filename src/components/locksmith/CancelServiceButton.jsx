@@ -40,18 +40,18 @@ export default function CancelServiceButton({ request }) {
 
   const handleConfirm = async () => {
     if (loading) return;
-    if (!free) {
-      // A taxa é paga online no fluxo da tela inicial
-      navigate("/?cancel=1");
-      return;
-    }
     setLoading(true);
     try {
-      await base44.entities.ServiceRequest.update(request.id, {
-        status: "cancelled",
-        cancelled_by: "cliente",
+      await base44.functions.invoke("serviceTrust", {
+        action: "cancel_request",
+        request_id: request.id,
+        actor: "cliente",
+        confirmed_fee: !free,
       });
-      toast({ title: "Serviço cancelado", description: "Sua solicitação foi cancelada sem custo." });
+      toast({
+        title: "Serviço cancelado",
+        description: free ? "Sua solicitação foi cancelada sem custo." : "O chamado foi cancelado e a taxa ficou disponível para pagamento.",
+      });
       navigate("/");
     } catch (e) {
       toast({ title: "Falha ao cancelar", description: e.message || "Tente novamente", variant: "destructive" });

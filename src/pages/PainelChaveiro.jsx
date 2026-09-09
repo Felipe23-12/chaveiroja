@@ -580,7 +580,11 @@ export default function PainelChaveiro() {
   const handleCancelActive = async () => {
     if (!active) return;
     try {
-      await base44.entities.ServiceRequest.update(active.id, { status: "cancelled", cancelled_by: "chaveiro" });
+      await base44.functions.invoke("serviceTrust", {
+        action: "cancel_request",
+        request_id: active.id,
+        actor: "chaveiro",
+      });
       notifyStatusByGmail(active.id, "cancelled");
       dismissedCompletedIds.current.add(active.id);
       clearLastService();

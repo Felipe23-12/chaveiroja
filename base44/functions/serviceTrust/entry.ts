@@ -72,6 +72,36 @@ export default async function(req) {
       return Response.json({ success: true });
     }
 
+    if (action === 'cancel_request') {
+      const request = await base44.asServiceRole.entities.ServiceRequest.get(body.request_id);
+      if (!request) return Response.json({ error: 'Chamado não encontrado' }, { status: 404 });
+      if (request.status === 'completed') return Response.json({ error: 'Um chamado concluído não pode ser cancelado' }, { status: 409 });
+
+      const actor = body.actor;
+      const isClient = actor === 'cliente' && request.created_by_id === user.id;
+      const isLocksmith = actor === 'chaveiro' && request.locksmith_user_id === user.id;
+      if (!isClient && !isLocksmith) return Response.json({ error: 'Você não pode cancelar este chamado' }, { status: 403 });
+      if (request.status === 'cancelled') return Response.json({ success: true, request, duplicate: true });
+
+      const update = { status: 'cancelled', cancelled_by: actor };
+      if (isClient && ['accepted', 'on_the_way', 'queued'].includes(request.status)) {
+        const reference = request.accepted_at || request.created_date;
+        const elapsed = reference ? Date.now() - new Date(reference).getTime() : 0;
+        if (elapsed >= 5 * 60 * 1000) {
+          if (body.confirmed_fee !== true) return Response.json({ error: 'Confirme a taxa de cancelamento para continuar', requires_fee: true }, { status: 409 });
+          const fixed = { 'Confecção de Chave de Carro': request.urgency === 'urgent' ? 220 : 150, 'Confecção de Chave de Moto': request.urgency === 'urgent' ? 150 : 100 }[request.service_type];
+          const fee = fixed || Math.round(Number(request.price || 0) * 25) / 100;
+          update.cancellation_fee = fee;
+          update.cancellation_locksmith_amount = Math.round(fee * 80) / 100;
+          update.cancellation_app_fee = Math.round(fee * 20) / 100;
+          update.payment_status = 'pending';
+        }
+      }
+
+      const updated = await base44.asServiceRole.entities.ServiceRequest.update(request.id, update);
+      return Response.json({ success: true, request: updated });
+    }
+
     if (action === 'open_case') {
       const request = await base44.asServiceRole.entities.ServiceRequest.get(body.request_id);
       if (!request || request.locksmith_user_id !== user.id || !request.locksmith_arrived) return Response.json({ error: 'Confirme sua chegada antes de justificar o cancelamento' }, { status: 403 });
