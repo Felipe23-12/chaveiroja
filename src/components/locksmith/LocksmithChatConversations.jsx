@@ -92,7 +92,7 @@ export default function LocksmithChatConversations({ me }) {
     setSending(true);
     try {
       const activeConv = conversations.find((c) => c.id === activeTab);
-      await base44.entities.ChatMessage.create({
+      const created = await base44.entities.ChatMessage.create({
         locksmith_id: me.id,
         locksmith_name: me.name,
         locksmith_user_id: me.created_by_id,
@@ -103,6 +103,9 @@ export default function LocksmithChatConversations({ me }) {
         message: "Foto",
         photo_url: photoUrl,
       });
+      setMessages((prev) => prev.some((item) => item.id === created.id) ? prev : [...prev, created]);
+    } catch (e) {
+      toast({ title: "Falha ao enviar foto", description: e.message || "Tente novamente", variant: "destructive" });
     } finally {
       setSending(false);
     }
@@ -116,7 +119,7 @@ export default function LocksmithChatConversations({ me }) {
     setText("");
     try {
       const activeConv = conversations.find((c) => c.id === activeTab);
-      await base44.entities.ChatMessage.create({
+      const created = await base44.entities.ChatMessage.create({
         locksmith_id: me.id,
         locksmith_name: me.name,
         locksmith_user_id: me.created_by_id,
@@ -126,6 +129,10 @@ export default function LocksmithChatConversations({ me }) {
         sender_name: me.name,
         message: msg,
       });
+      setMessages((prev) => prev.some((item) => item.id === created.id) ? prev : [...prev, created]);
+    } catch (e) {
+      setText(msg);
+      toast({ title: "Falha ao enviar mensagem", description: e.message || "Tente novamente", variant: "destructive" });
     } finally {
       setSending(false);
     }
