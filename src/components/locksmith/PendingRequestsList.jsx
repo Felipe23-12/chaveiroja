@@ -2,6 +2,7 @@ import React from "react";
 import { Check, X } from "lucide-react";
 import IncomingRequestAlert from "@/components/locksmith/IncomingRequestAlert";
 import KeyTechnicalDetails from "@/components/locksmith/KeyTechnicalDetails";
+import { clientNameFromRequest } from "@/lib/clientName";
 
 // Renderiza a fila de solicitações pendentes. A primeira (mais recente)
 // recebe o alerta completo com som/vibração; as demais aparecem em cards
@@ -57,6 +58,7 @@ function CompactRequestCard({ request, onAccept, onReject }) {
     <div className="p-3 rounded-xl border-2 border-amber-300 bg-amber-50">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0 flex-1">
+          <p className="text-xs font-bold text-foreground truncate">Cliente: {clientNameFromRequest(request)}</p>
           <p className="font-medium text-sm text-foreground truncate">
             {request.service_type}
           </p>

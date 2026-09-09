@@ -1,5 +1,6 @@
 import React from "react";
 import { Clock3, MapPin } from "lucide-react";
+import { clientNameFromRequest } from "@/lib/clientName";
 
 export default function QueuedRequestCard({ request }) {
   if (!request) return null;
@@ -9,6 +10,7 @@ export default function QueuedRequestCard({ request }) {
         <Clock3 className="w-5 h-5" />
         <p className="font-bold text-sm">Próximo atendimento confirmado</p>
       </div>
+      <p className="text-sm font-bold text-foreground">Cliente: {clientNameFromRequest(request)}</p>
       <p className="text-sm font-medium text-foreground">{request.service_type}</p>
       <p className="text-xs text-muted-foreground flex items-center gap-1 mt-1">
         <MapPin className="w-3.5 h-3.5" /> {request.address}

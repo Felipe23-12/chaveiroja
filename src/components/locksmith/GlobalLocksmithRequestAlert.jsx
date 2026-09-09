@@ -12,6 +12,7 @@ import OfflineBanner from "@/components/locksmith/OfflineBanner";
 import { safeUnsubscribe } from "@/lib/safeUnsubscribe";
 import useBlockedUsers from "@/hooks/useBlockedUsers";
 import { filterRingableWhileBusy, getLocksmithQueueState } from "@/lib/serviceQueue";
+import { clientNameFromRequest } from "@/lib/clientName";
 
 function formatElapsed(seconds) {
   const m = Math.floor(seconds / 60);
@@ -293,6 +294,7 @@ function RequestCard({ request, onAccept, onReject, accepting, showDivider }) {
           <Wrench className="w-4 h-4 text-primary" />
         </div>
         <div className="flex-1 min-w-0">
+          <p className="text-xs font-bold text-foreground">Cliente: {clientNameFromRequest(request)}</p>
           <p className="font-heading font-semibold text-sm text-foreground">
             {request.service_type}
           </p>

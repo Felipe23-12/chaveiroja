@@ -109,6 +109,7 @@ export default function PainelChaveiro() {
   const moveTimer = useRef(null);
   const notifiedIds = useRef(new Set());
   const dismissedCompletedIds = useRef(new Set());
+  const promotingQueuedId = useRef(null);
   const { toast } = useToast();
   const [chatFocus, setChatFocus] = useState(false);
   const [cancelOpen, setCancelOpen] = useState(false);
@@ -377,11 +378,26 @@ export default function PainelChaveiro() {
             r.status === "accepted" ||
             r.status === "on_the_way"
           );
-          setQueuedRequest(list.find((r) => r.status === "queued") || null);
+          const queued = list.find((r) => r.status === "queued") || null;
+          setQueuedRequest(queued);
           if (ongoing) {
             saveLastService(ongoing);
             setActive(ongoing);
-          } else {
+          } else if (queued && promotingQueuedId.current !== queued.id) {
+            promotingQueuedId.current = queued.id;
+            startNextQueuedRequest(selectedId, {
+              lat: queued.locksmith_lat ?? me?.lat,
+              lng: queued.locksmith_lng ?? me?.lng,
+            }).then((next) => {
+              if (!next) return;
+              setQueuedRequest(null);
+              saveLastService(next);
+              setActive(next);
+              toast({ title: "Próxima rota iniciada", description: `Agora siga para ${next.address}.` });
+            }).finally(() => {
+              promotingQueuedId.current = null;
+            });
+          } else if (!queued) {
             clearLastService();
             setActive(null);
           }
@@ -579,6 +595,7 @@ export default function PainelChaveiro() {
   // Chaveiro cancela o serviço em andamento a qualquer momento (modo app)
   const handleCancelActive = async () => {
     if (!active) return;
+    if (queuedRequest) promotingQueuedId.current = queuedRequest.id;
     try {
       await base44.functions.invoke("serviceTrust", {
         action: "cancel_request",
@@ -587,15 +604,24 @@ export default function PainelChaveiro() {
       });
       notifyStatusByGmail(active.id, "cancelled");
       dismissedCompletedIds.current.add(active.id);
+      const next = await startNextQueuedRequest(active.locksmith_id || me?.id, {
+        lat: active.locksmith_lat ?? me?.lat,
+        lng: active.locksmith_lng ?? me?.lng,
+      });
       clearLastService();
-      setActive(null);
+      setQueuedRequest(null);
+      setActive(next);
       setStartPhotos([]);
       setEndPhotos([]);
       setArrived(false);
-      toast({ title: "Chamado cancelado", description: "O serviço foi cancelado e o cliente foi liberado." });
+      toast({
+        title: next ? "Próxima rota iniciada" : "Chamado cancelado",
+        description: next ? `Agora siga para ${next.address}.` : "O serviço foi cancelado e o cliente foi liberado.",
+      });
     } catch (e) {
       toast({ title: "Falha ao cancelar", description: e.message || "Tente novamente", variant: "destructive" });
     } finally {
+      promotingQueuedId.current = null;
       setCancelOpen(false);
     }
   };

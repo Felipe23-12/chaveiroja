@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Bell, Check, X, MapPin, Clock, AlertCircle } from "lucide-react";
 import KeyTechnicalDetails from "./KeyTechnicalDetails";
+import { clientNameFromRequest } from "@/lib/clientName";
 
 function formatElapsed(seconds) {
   const m = Math.floor(seconds / 60);
@@ -69,6 +70,7 @@ export default function IncomingRequestAlert({ request, onAccept, onReject }) {
       {/* Corpo */}
       <div className="p-4 space-y-3">
         <div>
+          <p className="text-sm font-bold text-foreground">Cliente: {clientNameFromRequest(request)}</p>
           <p className="font-heading font-semibold text-base text-foreground">
             {request.service_type}
           </p>
