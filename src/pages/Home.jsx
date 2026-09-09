@@ -25,7 +25,7 @@ import UrgentArrivalCountdown from "@/components/locksmith/UrgentArrivalCountdow
 import { DEFAULT_CENTER, getCustomerLocation, haversineKm, calculateInitialServiceDistance, fetchDrivingRoute, etaMinutes } from "@/lib/geo";
 import { getClientLoyalty, applyLoyaltyDiscount } from "@/lib/loyalty";
 import { buildEligibleQueue } from "@/lib/ringRotation";
-import { loadScoreMap, withScores, selectScoreBroadcast } from "@/lib/locksmithScore";
+import { selectScoreBroadcast } from "@/lib/locksmithScore";
 import { safeUnsubscribe } from "@/lib/safeUnsubscribe";
 
 import { createLock, locksSummary } from "@/lib/locks";
@@ -55,6 +55,7 @@ import ReviewStep from "@/components/client/ReviewStep";
 import useClientDebt from "@/hooks/useClientDebt";
 import { useRegionalPriceRange } from "@/hooks/useRegionalPriceRange";
 import useBlockedUsers from "@/hooks/useBlockedUsers";
+import useLiveLocksmiths from "@/hooks/useLiveLocksmiths";
 import ModerationActions from "@/components/moderation/ModerationActions";
 import OpeningChargeSummary from "@/components/client/OpeningChargeSummary";
 import { OPENING_CONDITION_FEE, getOpeningConditionFee, hasLocksmithConditionCorrection, locksmithAddedConditionFee } from "@/lib/openingCondition";
@@ -107,7 +108,7 @@ export default function Home() {
   const [searching, setSearching] = useState(false);
 
   const [customerLoc, setCustomerLoc] = useState(DEFAULT_CENTER);
-  const [appLocksmiths, setAppLocksmiths] = useState([]);
+  const appLocksmiths = useLiveLocksmiths();
   const [activeRequestsCount, setActiveRequestsCount] = useState(0);
   const [activeRequest, setActiveRequest] = useState(null);
   const [selectedLocksmith, setSelectedLocksmith] = useState(null);
@@ -266,23 +267,10 @@ export default function Home() {
 
   useEffect(() => {
     getCustomerLocation().then(setCustomerLoc);
-
-    // Mantém a disponibilidade sincronizada em tempo real. Uma falha na
-    // pontuação não pode esconder os profissionais online do cliente.
-    const loadLocksmiths = async () => {
-      const profiles = await base44.entities.Locksmith.filter({ available: true, online: true });
-      const scores = await loadScoreMap().catch(() => new Map());
-      setAppLocksmiths(withScores(profiles, scores));
-    };
-    loadLocksmiths().catch(() => setAppLocksmiths([]));
-    const unsub = base44.entities.Locksmith.subscribe(() => loadLocksmiths().catch(() => {}));
-
     base44.auth.me()
       .then((u) => getClientLoyalty(u.id))
       .then(setLoyalty)
       .catch(() => setLoyalty(null));
-
-    return safeUnsubscribe(unsub);
   }, []);
 
   // Restaura um serviço em andamento ao reentrar na Home — garante que o
