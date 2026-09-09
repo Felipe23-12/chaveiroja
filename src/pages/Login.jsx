@@ -13,6 +13,7 @@ import { safeReturnTo } from "@/lib/authReturnTo";
 import { markAuthProvider } from "@/lib/authProvider";
 import { requiresEmailVerification } from "@/lib/emailRegistration";
 import InlineOtpInput from "@/components/auth/InlineOtpInput";
+import useGoogleLoginReturn from "@/components/auth/useGoogleLoginReturn";
 
 export default function Login() {
   const [email, setEmail] = useState("");
@@ -22,6 +23,7 @@ export default function Login() {
   const [rememberMe, setRememberMe] = useState(true);
   const [verificationEmail, setVerificationEmail] = useState("");
   const returnTo = safeReturnTo();
+  useGoogleLoginReturn(returnTo);
 
   const completeLogin = async (passwordAuthenticated = false) => {
     let me = await base44.auth.me();
@@ -53,11 +55,20 @@ export default function Login() {
     }
   };
 
-  const handleGoogle = () => {
-    markAuthProvider("google");
-    localStorage.setItem("remember_login", String(rememberMe));
-    sessionStorage.setItem("active_login_session", "true");
-    base44.auth.loginWithProvider("google", returnTo);
+  const handleGoogle = async () => {
+    if (loading) return;
+    setError("");
+    setLoading(true);
+    try {
+      markAuthProvider("google");
+      localStorage.setItem("remember_login", String(rememberMe));
+      sessionStorage.setItem("active_login_session", "true");
+      await base44.auth.loginWithProvider("google", returnTo);
+    } catch (err) {
+      setError(err.message || "Não foi possível entrar com Google. Tente novamente.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   if (verificationEmail) return (
@@ -89,6 +100,7 @@ export default function Login() {
         variant="outline"
         className="w-full h-12 text-sm font-medium mb-6"
         onClick={handleGoogle}
+        disabled={loading}
       >
         <GoogleIcon className="w-5 h-5 mr-2" />
         Continuar com Google

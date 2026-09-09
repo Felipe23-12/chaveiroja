@@ -35,10 +35,20 @@ const getAppParamValue = (paramName, { defaultValue = undefined, removeFromUrl =
 }
 
 const getAppParams = () => {
-	if (getAppParamValue("clear_access_token") === 'true') {
+	// Limpar a sessão é uma ação única, não uma preferência persistente.
+	const callbackParams = new URLSearchParams(window.location.search);
+	const incomingToken = callbackParams.get('access_token');
+	storage.removeItem('base44_clear_access_token');
+	if (callbackParams.get('clear_access_token') === 'true' && !incomingToken) {
 		storage.removeItem('base44_access_token');
 		storage.removeItem('token');
 	}
+	if (callbackParams.has('clear_access_token')) {
+		callbackParams.delete('clear_access_token');
+		window.history.replaceState({}, document.title, `${window.location.pathname}${callbackParams.size ? `?${callbackParams}` : ''}${window.location.hash}`);
+	}
+	// Um retorno autenticado inicia uma nova sessão mesmo se o Android recriou a janela.
+	if (incomingToken) window.sessionStorage.setItem('active_login_session', 'true');
 	return {
 		appId: getAppParamValue("app_id", { defaultValue: import.meta.env.VITE_BASE44_APP_ID }),
 		token: getAppParamValue("access_token", { removeFromUrl: true }),
