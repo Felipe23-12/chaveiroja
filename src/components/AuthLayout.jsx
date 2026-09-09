@@ -1,4 +1,5 @@
 import React from "react";
+import { Link } from "react-router-dom";
 import { Image } from "@/components/ui/image";
 
 const LOGO_URL = "https://media.base44.com/images/public/6a975d266a8000184833026a/d4717d1d4_ChatGPTImage4desetde202604_02_02.png";
@@ -25,6 +26,11 @@ export default function AuthLayout({ icon: Icon, title, subtitle, footer, childr
         {footer && (
           <p className="text-center text-sm text-muted-foreground mt-6">{footer}</p>
         )}
+        <nav className="mt-5 flex justify-center gap-5 text-xs text-muted-foreground" aria-label="Páginas institucionais">
+          <Link to="/sobre" className="hover:text-foreground">Sobre</Link>
+          <Link to="/contato" className="hover:text-foreground">Contato</Link>
+          <Link to="/termos-privacidade" className="hover:text-foreground">Privacidade</Link>
+        </nav>
       </div>
     </div>
   );

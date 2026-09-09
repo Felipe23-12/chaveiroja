@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { Link, useLocation, Outlet } from "react-router-dom";
-import { Home as HomeIcon, Clock, LogOut, Briefcase, MapPin, RadioTower, Wallet, User, ShieldCheck, Menu, X, Trash2, Camera, CreditCard } from "lucide-react";
+import { Home as HomeIcon, Clock, LogOut, Briefcase, MapPin, RadioTower, Wallet, User, ShieldCheck, Menu, X, Trash2, Camera, CreditCard, Info, Mail } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { useAuth } from "@/lib/AuthContext";
 import { Image } from "@/components/ui/image";
@@ -127,6 +127,12 @@ function SidebarContent({ onNavigate }) {
         >
           <ShieldCheck className="w-3 h-3" />
           Termos e Privacidade
+        </Link>
+        <Link to="/sobre" onClick={onNavigate} className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-md text-xs font-medium text-muted-foreground hover:bg-accent min-h-[36px]">
+          <Info className="w-3 h-3" /> Sobre
+        </Link>
+        <Link to="/contato" onClick={onNavigate} className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-md text-xs font-medium text-muted-foreground hover:bg-accent min-h-[36px]">
+          <Mail className="w-3 h-3" /> Contato
         </Link>
         <button
           onClick={() => setPhotoOpen(true)}
