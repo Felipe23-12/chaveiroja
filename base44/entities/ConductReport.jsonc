@@ -67,11 +67,20 @@
       "type": "string",
       "enum": [
         "pending",
+        "awaiting_defense",
         "reviewing",
         "resolved",
         "dismissed"
       ],
-      "default": "pending"
+      "default": "awaiting_defense"
+    },
+    "defense_deadline": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "defense_submitted_at": {
+      "type": "string",
+      "format": "date-time"
     },
     "admin_notes": {
       "type": "string"
@@ -91,6 +100,9 @@
       "$or": [
         {
           "data.reporter_id": "{{user.id}}"
+        },
+        {
+          "data.reported_id": "{{user.id}}"
         },
         {
           "user_condition": {

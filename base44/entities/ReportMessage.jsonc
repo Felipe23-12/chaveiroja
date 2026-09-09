@@ -1,0 +1,74 @@
+{
+  "name": "ReportMessage",
+  "type": "object",
+  "properties": {
+    "report_id": {
+      "type": "string"
+    },
+    "sender_id": {
+      "type": "string"
+    },
+    "sender_name": {
+      "type": "string"
+    },
+    "sender_role": {
+      "type": "string",
+      "enum": [
+        "admin",
+        "cliente",
+        "chaveiro",
+        "system"
+      ]
+    },
+    "reporter_id": {
+      "type": "string"
+    },
+    "reported_id": {
+      "type": "string"
+    },
+    "message": {
+      "type": "string",
+      "maxLength": 3000
+    }
+  },
+  "required": [
+    "report_id",
+    "sender_id",
+    "sender_role",
+    "reporter_id",
+    "reported_id",
+    "message"
+  ],
+  "rls": {
+    "read": {
+      "$or": [
+        {
+          "data.reporter_id": "{{user.id}}"
+        },
+        {
+          "data.reported_id": "{{user.id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}
