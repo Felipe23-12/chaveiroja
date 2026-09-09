@@ -266,15 +266,23 @@ export default function Home() {
 
   useEffect(() => {
     getCustomerLocation().then(setCustomerLoc);
-    // Inclui score e eventuais suspensões na seleção dos profissionais.
-    Promise.all([
-      base44.entities.Locksmith.filter({ available: true }),
-      loadScoreMap(),
-    ]).then(([profiles, scores]) => setAppLocksmiths(withScores(profiles, scores))).catch(() => {});
+
+    // Mantém a disponibilidade sincronizada em tempo real. Uma falha na
+    // pontuação não pode esconder os profissionais online do cliente.
+    const loadLocksmiths = async () => {
+      const profiles = await base44.entities.Locksmith.filter({ available: true, online: true });
+      const scores = await loadScoreMap().catch(() => new Map());
+      setAppLocksmiths(withScores(profiles, scores));
+    };
+    loadLocksmiths().catch(() => setAppLocksmiths([]));
+    const unsub = base44.entities.Locksmith.subscribe(() => loadLocksmiths().catch(() => {}));
+
     base44.auth.me()
       .then((u) => getClientLoyalty(u.id))
       .then(setLoyalty)
       .catch(() => setLoyalty(null));
+
+    return safeUnsubscribe(unsub);
   }, []);
 
   // Restaura um serviço em andamento ao reentrar na Home — garante que o
