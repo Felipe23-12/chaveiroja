@@ -1085,6 +1085,7 @@ export default function Home() {
               carKeyType={carKeyType}
               setCarKeyType={setCarKeyType}
               fipeValue={fipeValue}
+              hasCodedKey={hasCodedKey}
               programming={programming}
               price={address && fipeValue != null && !programming?.dealerOnly ? price : null}
               keyOrigin={keyOrigin}

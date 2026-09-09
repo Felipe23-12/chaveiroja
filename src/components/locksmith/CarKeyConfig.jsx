@@ -4,7 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import KeyServicePrice from "@/components/client/KeyServicePrice";
-import PriceSummary from "./PriceSummary";
+import CarKeyCalculationDetails from "./CarKeyCalculationDetails";
 import AddressAutocomplete from "./AddressAutocomplete";
 import { CAR_KEY_TYPES } from "@/lib/pricing";
 import CarKeyProgrammingNotice from "./CarKeyProgrammingNotice";
@@ -32,6 +32,7 @@ export default function CarKeyConfig({
   keyOrigin,
   setKeyOrigin,
   keyCatalog,
+  hasCodedKey,
   showPriceBeforeAcceptance = false,
 }) {
   const updateVehicle = (field, value) =>
@@ -156,7 +157,18 @@ export default function CarKeyConfig({
         />
       </div>
 
-      {showPriceBeforeAcceptance ? <PriceSummary price={price} /> : <KeyServicePrice pending />}
+      {showPriceBeforeAcceptance ? (
+        <CarKeyCalculationDetails
+          price={price}
+          fipeValue={fipeValue}
+          year={vehicleInfo.year}
+          hasCodedKey={hasCodedKey}
+          keyValue={keyValue}
+          keyType={carKeyType}
+          keyOrigin={keyOrigin}
+          catalog={keyCatalog}
+        />
+      ) : <KeyServicePrice pending />}
     </div>
   );
 }
