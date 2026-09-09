@@ -3,7 +3,7 @@ import { useNavigate, useLocation, Link } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
 import { useAuth } from "@/lib/AuthContext";
 import { fetchMyLocksmith } from "@/lib/myLocksmith";
-import { Wrench, Bell, Check, X, Navigation, Power, Loader2, MapPin, WifiOff, CheckCircle2, Wallet, ArrowLeft } from "lucide-react";
+import { Wrench, Bell, Check, X, Navigation, Power, Loader2, MapPin, WifiOff, CheckCircle2, Wallet, ArrowLeft, MessageCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { usePullToRefresh, PullToRefreshIndicator } from "@/components/ui/PullToRefresh";
 import LightMap from "@/components/map/LightMap";
@@ -958,6 +958,16 @@ export default function PainelChaveiro() {
             </div>
             <p className="text-sm font-medium text-foreground">{phaseLabel}</p>
             <p className="text-xs text-muted-foreground mt-0.5">{active.address}</p>
+          </div>
+
+          <div className="flex items-center justify-between gap-3 rounded-xl border border-border bg-card p-4">
+            <div>
+              <p className="text-xs text-muted-foreground">Valor do atendimento</p>
+              <p className="font-heading text-2xl font-bold text-foreground">R$ {Number(active.price || 0).toFixed(2)}</p>
+            </div>
+            <Button onClick={() => setChatFocus(true)} size="icon" aria-label="Abrir mensagens do cliente">
+              <MessageCircle className="h-5 w-5" />
+            </Button>
           </div>
 
           <ArrivalDeadlineCountdown request={active} />

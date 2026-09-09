@@ -30,6 +30,7 @@ export default function Acompanhamento() {
   const [routePath, setRoutePath] = useState(null);
   const [routeEta, setRouteEta] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [chatOpen, setChatOpen] = useState(false);
   const { blockedIds } = useBlockedUsers();
   const scrollRef = useRef(null);
 
@@ -221,8 +222,8 @@ export default function Acompanhamento() {
         <ModerationActions targetUserId={request.locksmith_user_id || locksmith?.created_by_id} targetType="chaveiro" targetName={request.locksmith_name || locksmith?.name} contextType="service" requestId={request.id} locksmithId={request.locksmith_id} />
       </div>
 
-      {/* Layout: mapa em cima, chat embaixo (mobile) | lado a lado (desktop) */}
-      <div className="grid lg:grid-cols-2 gap-4">
+      {/* Atendimento reunido: mapa, preço e ações permanecem visíveis; chat abre sobre a tela */}
+      <div className="space-y-4">
         {/* Mapa de rastreamento */}
         <div className="space-y-3">
           <LightMap
@@ -269,8 +270,25 @@ export default function Acompanhamento() {
           <CancelServiceButton request={request} />
         </div>
 
-        {/* Chat em tempo real */}
-        <div className="flex flex-col rounded-xl border border-border bg-card overflow-hidden" style={{ minHeight: 400 }}>
+        <button
+          onClick={() => setChatOpen(true)}
+          className="fixed bottom-20 right-4 z-[60] flex h-12 items-center gap-2 rounded-full bg-primary px-4 font-heading text-sm font-bold text-primary-foreground shadow-2xl md:bottom-6"
+          aria-label="Abrir mensagens com o chaveiro"
+        >
+          <MessageCircle className="h-5 w-5" /> Mensagens
+        </button>
+
+        {/* Chat em tempo real aberto sem sair do acompanhamento */}
+        {chatOpen && (
+        <div className="fixed inset-0 z-[80] flex flex-col bg-background pt-safe">
+          <div className="flex items-center gap-2 border-b border-border p-3">
+            <button onClick={() => setChatOpen(false)} className="rounded-lg p-2 hover:bg-accent" aria-label="Fechar mensagens">
+              <ArrowLeft className="h-5 w-5" />
+            </button>
+            <MessageCircle className="h-5 w-5 text-primary" />
+            <p className="font-heading font-semibold text-foreground">Chat com {locksmith?.name || "chaveiro"}</p>
+          </div>
+          <div className="flex flex-1 flex-col overflow-hidden">
           <div className="flex items-center gap-2 px-4 py-3 border-b border-border bg-muted/50">
             <MessageCircle className="w-4 h-4 text-primary" />
             <p className="font-medium text-sm text-foreground">Chat com {locksmith?.name || "chaveiro"}</p>
@@ -331,7 +349,9 @@ export default function Acompanhamento() {
               </Button>
             </form>
           </div>
+          </div>
         </div>
+        )}
       </div>
     </div>
   );

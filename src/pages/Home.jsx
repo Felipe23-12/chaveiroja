@@ -299,6 +299,10 @@ export default function Home() {
         if (active.locksmith_id) {
           base44.entities.Locksmith.get(active.locksmith_id).then(setSelectedLocksmith).catch(() => {});
         }
+        if (active.status === "accepted" || active.status === "on_the_way") {
+          navigate(`/acompanhamento/${active.id}`, { replace: true });
+          return;
+        }
         let s = 5;
         if (active.status === "ringing") s = 3;
         else if (active.status === "queued" || active.status === "accepted") s = 4;
@@ -750,12 +754,15 @@ export default function Home() {
           if (updated.locksmith_id && updated.locksmith_id !== selectedLocksmith?.id) {
             base44.entities.Locksmith.get(updated.locksmith_id).then(setSelectedLocksmith).catch(() => {});
           }
-          if ((updated.status === "accepted" || updated.status === "queued") && step === 3) {
+          if (updated.status === "queued" && step === 3) {
             goToStep(4);
           }
           if (updated.status === "accepted" && !notifiedAccepted.current) {
             notifiedAccepted.current = true;
             sendServiceStatusMessage("accepted", { request: updated, locksmith: selectedLocksmith });
+            notifyClient("Chaveiro aceitou seu pedido!", `${updated.locksmith_name || selectedLocksmith?.name || "O chaveiro"} confirmou o atendimento.`);
+            toast({ title: "Chaveiro aceitou!", description: "Preço, rota, cancelamento e conversa estão reunidos no acompanhamento." });
+            navigate(`/acompanhamento/${updated.id}`);
           }
           if (updated.status === "on_the_way" && step === 4) {
             goToStep(5);
@@ -1214,7 +1221,7 @@ export default function Home() {
           serviceLabel={service?.label}
           routePath={routePath}
           routeEta={routeEta}
-          onTrack={() => { handleAdvance(); goToStep(5); }}
+          onTrack={() => navigate(`/acompanhamento/${activeRequest.id}`)}
           onChat={() => navigate(`/acompanhamento/${activeRequest.id}`)}
           onUpdated={setActiveRequest}
         />
