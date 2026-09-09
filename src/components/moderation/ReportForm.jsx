@@ -22,8 +22,11 @@ export default function ReportForm({ data, onDone }) {
     setSaving(true);
     setError("");
     try {
-      await base44.entities.ConductReport.create({ ...data, category, description: description.trim(), photos, status: "pending" });
-      onDone();
+      const response = await base44.functions.invoke("reportChannel", {
+        action: "createReport",
+        data: { ...data, category, description: description.trim(), photos },
+      });
+      onDone(response.data.report);
     } catch (e) {
       setError(e?.message || "Não foi possível enviar a denúncia.");
       setSaving(false);

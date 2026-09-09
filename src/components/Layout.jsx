@@ -13,6 +13,7 @@ import DeleteAccountModal from "@/components/DeleteAccountModal";
 import UserPhotoModal from "@/components/profile/UserPhotoModal";
 import MobileTabBar from "@/components/MobileTabBar";
 import BlockedContactsButton from "@/components/moderation/BlockedContactsButton";
+import ReportCaseCenter from "@/components/moderation/ReportCaseCenter";
 import { useChatUnread } from "@/lib/chatUnreadStore";
 import PageTransition from "@/components/PageTransition";
 
@@ -216,6 +217,7 @@ export default function Layout() {
       <GlobalLocksmithRequestAlert />
       <GlobalChatAlert />
       <LocksmithChatFab />
+      <ReportCaseCenter />
       <ServiceFinishAlert />
       <MobileTopBar onMenu={() => setDrawerOpen(true)} />
       <MobileDrawer open={drawerOpen} onClose={() => setDrawerOpen(false)} />
