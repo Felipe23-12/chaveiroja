@@ -375,8 +375,7 @@ export default function PainelChaveiro() {
         .then((list) => {
           const ongoing = list.find((r) =>
             r.status === "accepted" ||
-            r.status === "on_the_way" ||
-            (r.status === "completed" && !dismissedCompletedIds.current.has(r.id))
+            r.status === "on_the_way"
           );
           setQueuedRequest(list.find((r) => r.status === "queued") || null);
           if (ongoing) {
@@ -687,6 +686,10 @@ export default function PainelChaveiro() {
       setQueuedRequest(null);
       setActive(next);
       toast({ title: "Próxima rota iniciada", description: `Agora siga para ${next.address}.` });
+    } else {
+      dismissedCompletedIds.current.add(finished.id);
+      clearLastService();
+      setActive(null);
     }
   };
 
