@@ -1,0 +1,89 @@
+{
+  "name": "AutomotiveKeyImport",
+  "type": "object",
+  "properties": {
+    "codigo_registro": {
+      "type": "string"
+    },
+    "marca": {
+      "type": "string"
+    },
+    "modelo": {
+      "type": "string"
+    },
+    "geracao_ou_anos": {
+      "type": "string"
+    },
+    "mercado": {
+      "type": "string"
+    },
+    "tipo_chave": {
+      "type": "string"
+    },
+    "lamina_perfil": {
+      "type": "string"
+    },
+    "transponder_chip": {
+      "type": "string"
+    },
+    "frequencia_mhz": {
+      "type": "string"
+    },
+    "perfil_arquivo_kd": {
+      "type": "string"
+    },
+    "perfil_arquivo_vvdi": {
+      "type": "string"
+    },
+    "perfil_arquivo_km100": {
+      "type": "string"
+    },
+    "programadores_codificacao": {
+      "type": "string"
+    },
+    "programadores_telecomando": {
+      "type": "string"
+    },
+    "preco_mercado_livre_brl": {
+      "type": "string"
+    },
+    "url_mercado_livre": {
+      "type": "string"
+    },
+    "preco_aliexpress_brl": {
+      "type": "string"
+    },
+    "url_aliexpress": {
+      "type": "string"
+    },
+    "preco_shopee_brl": {
+      "type": "string"
+    },
+    "url_shopee": {
+      "type": "string"
+    },
+    "produto_cotado": {
+      "type": "string"
+    },
+    "data_coleta": {
+      "type": "string"
+    },
+    "fonte_tecnica_1": {
+      "type": "string"
+    },
+    "fonte_tecnica_2": {
+      "type": "string"
+    },
+    "nivel_confianca": {
+      "type": "string"
+    },
+    "observacoes": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "codigo_registro",
+    "marca",
+    "modelo"
+  ]
+}
