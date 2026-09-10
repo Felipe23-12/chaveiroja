@@ -13,6 +13,7 @@ import WeeklyOperationsPanel from "@/components/admin/WeeklyOperationsPanel";
 import ConductReportsPanel from "@/components/admin/ConductReportsPanel";
 import VehicleKeyCatalogPanel from "@/components/admin/VehicleKeyCatalogPanel";
 import AdminPanelTabs from "@/components/admin/AdminPanelTabs";
+import LocksmithQualityTable from "@/components/admin/LocksmithQualityTable";
 import { completeWithdrawal } from "@/lib/payments";
 import { useToast } from "@/components/ui/use-toast";
 import { safeUnsubscribe } from "@/lib/safeUnsubscribe";
@@ -79,6 +80,13 @@ export default function PainelAdmin() {
       }
     });
     return safeUnsubscribe(unsub);
+  }, []);
+
+  useEffect(() => {
+    const unsubscribe = base44.entities.LocksmithScore.subscribe(() => {
+      base44.entities.LocksmithScore.list("-updated_date", 1000).then(setScores);
+    });
+    return safeUnsubscribe(unsubscribe);
   }, []);
 
   const revenue = requests
@@ -238,67 +246,9 @@ export default function PainelAdmin() {
         </div>
       </section>
 
-      <section className={activeTab === "people" ? "" : "hidden"}>
-        <h2 className="font-heading font-semibold text-lg text-foreground mb-3">Chaveiros</h2>
-        <div className="rounded-xl border border-border overflow-hidden bg-white">
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead className="bg-muted/50 text-muted-foreground text-left">
-                <tr>
-                  <th className="px-4 py-2 font-medium">Nome</th>
-                  <th className="px-4 py-2 font-medium">Especialidade</th>
-                  <th className="px-4 py-2 font-medium">Modo</th>
-                  <th className="px-4 py-2 font-medium">Status</th>
-                  <th className="px-4 py-2 font-medium">Ações</th>
-                </tr>
-              </thead>
-              <tbody>
-                {locksmiths.map((l) => (
-                  <tr key={l.id} className="border-t border-border">
-                    <td className="px-4 py-2 text-foreground">{l.name}</td>
-                    <td className="px-4 py-2 text-muted-foreground">{l.specialty}</td>
-                    <td className="px-4 py-2 capitalize">{l.work_mode}</td>
-                    <td className="px-4 py-2">
-                      {l.available ? (
-                        <span className="text-emerald-600">Disponível</span>
-                      ) : (
-                        <span className="text-muted-foreground">Indisponível</span>
-                      )}
-                    </td>
-                    <td className="px-4 py-2">
-                      <div className="flex gap-1">
-                        <Button
-                          size="icon"
-                          variant="ghost"
-                          onClick={() => toggleAvailable(l)}
-                          title="Alternar disponibilidade"
-                        >
-                          <Power className="w-4 h-4" />
-                        </Button>
-                        <Button
-                          size="icon"
-                          variant="ghost"
-                          onClick={() => removeLocksmith(l)}
-                          title="Remover"
-                        >
-                          <Trash2 className="w-4 h-4 text-destructive" />
-                        </Button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-                {locksmiths.length === 0 && (
-                  <tr>
-                    <td colSpan={5} className="px-4 py-6 text-center text-muted-foreground">
-                      Nenhum chaveiro
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      </section>
+      <div className={activeTab === "people" ? "" : "hidden"}>
+        <LocksmithQualityTable locksmiths={locksmiths} scores={scores} onToggle={toggleAvailable} onRemove={removeLocksmith} />
+      </div>
 
       <section className={activeTab === "finance" ? "" : "hidden"}>
           <h2 className="font-heading font-semibold text-lg text-foreground mb-3 flex items-center gap-2">
