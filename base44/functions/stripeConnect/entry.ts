@@ -320,6 +320,21 @@ export default async function(req) {
       });
     }
 
+    if (action === 'get_balance') {
+      const record = await findConnectRecord(base44, locksmithId);
+      if (!record?.stripe_account_id) return Response.json({ connected: false });
+      // Nunca substitui uma falha do Stripe pelo saldo interno ou por zero.
+      const balance = await stripeRequest('/balance', stripeKey, {
+        method: 'GET', headers: { 'Stripe-Account': record.stripe_account_id },
+      });
+      const brlTotal = (rows) => (rows || []).filter((row) => row.currency === 'brl').reduce((total, row) => total + row.amount, 0) / 100;
+      return Response.json({
+        connected: true, account_id: record.stripe_account_id, currency: 'brl',
+        available: brlTotal(balance.available), pending: brlTotal(balance.pending),
+        livemode: balance.livemode, checked_at: new Date().toISOString(),
+      });
+    }
+
     if (action === 'create_login_link') {
       const record = await findConnectRecord(base44, locksmithId);
       if (!record?.stripe_account_id) return Response.json({ error: 'Conta Stripe Connect não encontrada' }, { status: 400 });

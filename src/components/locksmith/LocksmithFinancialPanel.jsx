@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo } from "react";
 import { base44 } from "@/api/base44Client";
 import { Wallet, TrendingUp, Percent, Receipt, BadgeCheck, Clock, Loader2, ChevronDown, ChevronUp } from "lucide-react";
 import { calculateRepasse, WORK_MODES } from "@/lib/pricing";
+import StripeBalanceCard from "@/components/locksmith/StripeBalanceCard";
 
 const fmtMoney = (n) =>
   (Number(n) || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
@@ -205,20 +206,21 @@ export default function LocksmithFinancialPanel({ locksmith }) {
         </div>
       )}
 
-      {/* Carteira digital — modo app */}
+      {isAppMode && <StripeBalanceCard />}
+      {/* Saldos internos não são o saldo da conta Stripe. */}
       {isAppMode && (
         <div className="grid grid-cols-2 gap-3">
           <div className="p-3 rounded-xl bg-emerald-50 border border-emerald-100">
             <div className="flex items-center gap-1.5 text-emerald-700 mb-1">
               <Wallet className="w-3.5 h-3.5" />
-              <span className="text-[11px] font-medium">Carteira disponível</span>
+              <span className="text-[11px] font-medium">Saldo interno a repassar</span>
             </div>
             <p className="font-heading font-bold text-base text-emerald-700">{fmtMoney(locksmith?.wallet_balance)}</p>
           </div>
           <div className="p-3 rounded-xl bg-amber-50 border border-amber-100">
             <div className="flex items-center gap-1.5 text-amber-700 mb-1">
               <Clock className="w-3.5 h-3.5" />
-              <span className="text-[11px] font-medium">Em processamento</span>
+              <span className="text-[11px] font-medium">Saque interno solicitado</span>
             </div>
             <p className="font-heading font-bold text-base text-amber-700">{fmtMoney(locksmith?.pending_balance)}</p>
           </div>
