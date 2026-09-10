@@ -81,6 +81,17 @@ async function retrieveAccount(accountId: string, stripeKey: string) {
   return await stripeRequest(`/accounts/${accountId}`, stripeKey, { method: 'GET' });
 }
 
+async function enableRecipientTransfers(accountId: string, stripeKey: string) {
+  return await stripeRequestV2(`/core/accounts/${accountId}`, stripeKey, {
+    method: 'POST',
+    headers: { 'Idempotency-Key': `recipient-transfers-${accountId}` },
+    body: JSON.stringify({
+      configuration: { recipient: { capabilities: { stripe_balance: { stripe_transfers: { requested: true } } } } },
+      include: ['configuration.recipient', 'requirements'],
+    }),
+  });
+}
+
 function capabilityStatus(account: any, capability: string) {
   // v2: configuration.merchant.capabilities.{capability}.status
   const v2Status = account?.configuration?.merchant?.capabilities?.[capability]?.status;
@@ -218,6 +229,7 @@ export default async function(req) {
         body: stripeForm(fields),
       });
 
+      await enableRecipientTransfers(account.id, stripeKey);
       await saveConnectRecord(base44, locksmithId, account);
       return Response.json({ success: true, account_id: account.id, account });
     }
