@@ -18,6 +18,7 @@ export default async function(req) {
     }
     const rows = await base44.asServiceRole.entities.ServiceCancellationCase.list('-created_date', 500);
     const due = rows.filter((item) => item.deadline && new Date(item.deadline).getTime() <= Date.now() && !['resolved', 'cancelled'].includes(item.status));
+    if (body.dry_run === true) return Response.json({ checked: rows.length, due: due.length, dry_run: true });
     const processed = [];
     for (const item of due) {
       const request = await base44.asServiceRole.entities.ServiceRequest.get(item.request_id).catch(() => null);
