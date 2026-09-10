@@ -11,6 +11,7 @@ import useBlockedUsers from "@/hooks/useBlockedUsers";
 import ModerationActions from "@/components/moderation/ModerationActions";
 import ChatPhotoButton from "@/components/chat/ChatPhotoButton";
 import ChatMessageContent from "@/components/chat/ChatMessageContent";
+import QuickMessages from "@/components/chat/QuickMessages";
 
 /**
  * Abas de conversas com clientes + resposta, para o chaveiro no modo livre.
@@ -111,11 +112,11 @@ export default function LocksmithChatConversations({ me }) {
     }
   };
 
-  const handleSend = async (e) => {
-    e.preventDefault();
-    if (!text.trim() || sending || !activeTab || blockedIds.has(activeTab)) return;
+  const handleSend = async (e, quickMessage = "") => {
+    e?.preventDefault();
+    const msg = quickMessage || text.trim();
+    if (!msg || sending || !activeTab || blockedIds.has(activeTab)) return;
     setSending(true);
-    const msg = text.trim();
     setText("");
     try {
       const activeConv = conversations.find((c) => c.id === activeTab);
@@ -202,6 +203,7 @@ export default function LocksmithChatConversations({ me }) {
               <div ref={scrollRef} />
             </div>
 
+            <QuickMessages audience="locksmith" onSend={(message) => handleSend(null, message)} disabled={sending || blockedIds.has(activeTab)} />
             <form onSubmit={handleSend} className="flex gap-2 p-3 border-t border-border">
               <ChatPhotoButton onUploaded={handlePhotoSend} disabled={sending || blockedIds.has(activeTab)} />
               <Input

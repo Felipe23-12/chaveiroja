@@ -234,7 +234,7 @@ export default function Chat() {
         </div>
       ) : (
         <>
-          <QuickMessages onSend={handleQuickSend} disabled={sending} />
+          <QuickMessages audience="customer" onSend={handleQuickSend} disabled={sending} />
           <form onSubmit={handleSend} className="flex gap-2 pt-3 border-t border-border">
             <ChatPhotoButton onUploaded={handlePhotoSend} disabled={sending || blocked} />
             <Input
