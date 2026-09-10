@@ -1,6 +1,7 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.46';
 import { verifyInternalCall } from '../../shared/internalCall.ts';
 import { notifyRingingLocksmiths } from '../../shared/locksmithRingPush.ts';
+import { notifyLocksmithStatus } from '../../shared/locksmithStatusPush.ts';
 
 export default async function(req) {
   try {
@@ -19,6 +20,10 @@ export default async function(req) {
     const sr = await base44.asServiceRole.entities.ServiceRequest.get(serviceRequestId);
     if (!sr) {
       return Response.json({ error: "Pedido não encontrado" }, { status: 404 });
+    }
+
+    if (body.event_type === 'client_cancelled' || body.event_type === 'arrival_confirmed') {
+      return Response.json(await notifyLocksmithStatus(base44, sr, body.event_type, body.dry_run === true));
     }
 
     // Só notifica pedidos que ainda estão procurando chaveiro

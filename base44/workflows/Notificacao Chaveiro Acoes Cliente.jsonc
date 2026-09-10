@@ -1,0 +1,42 @@
+{
+  "name": "Notifica\u00e7\u00e3o Chaveiro A\u00e7\u00f5es do Cliente",
+  "description": "Avisa o chaveiro quando o cliente cancela o chamado ou confirma sua chegada, preservando os alertas j\u00e1 existentes.",
+  "trigger": {
+    "config": {
+      "trigger_type": "entity",
+      "entity_name": "ServiceRequest",
+      "events": [
+        "update"
+      ]
+    },
+    "condition": "${ (.trigger.data.status == \"cancelled\" and .trigger.data.cancelled_by == \"cliente\" and (.trigger.old_data.status != \"cancelled\" or .trigger.old_data.cancelled_by != \"cliente\")) or (.trigger.data.client_arrived_confirmed == true and .trigger.old_data.client_arrived_confirmed != true and .trigger.data.locksmith_arrived == true and (.trigger.data.status == \"accepted\" or .trigger.data.status == \"on_the_way\")) }"
+  },
+  "definition": {
+    "document": {
+      "dsl": "1.0.0",
+      "name": "notificacao_chaveiro_acoes_cliente",
+      "version": "1.0",
+      "namespace": "base44"
+    },
+    "do": [
+      {
+        "notificar_chaveiro": {
+          "call": "invoke_backend_function",
+          "with": {
+            "function_name": "sendLocksmithPushNotification",
+            "args": {
+              "service_request_id": "${ .trigger.entity_id }",
+              "event_type": "${ if .trigger.data.status == \"cancelled\" then \"client_cancelled\" else \"arrival_confirmed\" end }",
+              "_internal_token": "cj_wf_int_7d2e5a1f9b8c4e30"
+            }
+          },
+          "then": "end",
+          "x-base44": {
+            "title": "Avisar chaveiro",
+            "description": "Cancelamento do cliente ou chegada confirmada"
+          }
+        }
+      }
+    ]
+  }
+}

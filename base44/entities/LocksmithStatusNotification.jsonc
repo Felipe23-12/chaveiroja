@@ -1,0 +1,55 @@
+{
+  "name": "LocksmithStatusNotification",
+  "type": "object",
+  "properties": {
+    "request_id": {
+      "type": "string"
+    },
+    "locksmith_id": {
+      "type": "string"
+    },
+    "user_id": {
+      "type": "string"
+    },
+    "event_type": {
+      "type": "string",
+      "enum": [
+        "client_cancelled",
+        "arrival_confirmed"
+      ]
+    },
+    "sent_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "required": [
+    "request_id",
+    "locksmith_id",
+    "user_id",
+    "event_type",
+    "sent_at"
+  ],
+  "rls": {
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}
