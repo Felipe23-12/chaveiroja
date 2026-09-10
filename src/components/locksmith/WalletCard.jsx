@@ -18,7 +18,7 @@ export default function WalletCard({ balance, pending, onWithdraw, platformManag
         </div>
         <div className="flex items-center gap-1.5 text-xs opacity-80">
           <Clock className="w-3.5 h-3.5" />
-          <span>R$ {(Number(pending) || 0).toFixed(2)} em processamento</span>
+          <span>R$ {(Number(pending) || 0).toFixed(2)} em saque solicitado</span>
         </div>
       </div>
 

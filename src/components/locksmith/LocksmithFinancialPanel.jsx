@@ -83,6 +83,11 @@ export default function LocksmithFinancialPanel({ locksmith }) {
       net += repasse.locksmithAmount;
     });
 
+    if (isAppMode) {
+      commissionPending = Math.min(commission, Number(locksmith?.pending_cash_commission || 0));
+      commissionPaid = Math.max(0, commission - commissionPending);
+    }
+
     return {
       gross,
       commission,
@@ -95,7 +100,7 @@ export default function LocksmithFinancialPanel({ locksmith }) {
       cancellationAppFee,
       cancelledCount: cancelled.length,
     };
-  }, [completed, cancelled, isAppMode, locksmith?.work_mode]);
+  }, [completed, cancelled, isAppMode, locksmith?.work_mode, locksmith?.pending_cash_commission]);
 
   if (loading) {
     return (

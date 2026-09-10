@@ -178,8 +178,11 @@ export default async function(req) {
       if (!String(body.pix_key_value || "").trim()) {
         return Response.json({ error: "Informe uma chave Pix válida" }, { status: 400 });
       }
-      const active = await base44.asServiceRole.entities.Withdrawal.filter({ locksmith_id: locksmith.id, status: "requested" });
-      if (active?.length) {
+      const [requested, processing] = await Promise.all([
+        base44.asServiceRole.entities.Withdrawal.filter({ locksmith_id: locksmith.id, status: "requested" }),
+        base44.asServiceRole.entities.Withdrawal.filter({ locksmith_id: locksmith.id, status: "processing" }),
+      ]);
+      if (requested?.length || processing?.length) {
         return Response.json({ error: "Já existe um saque aguardando processamento" }, { status: 409 });
       }
 
@@ -281,23 +284,33 @@ export default async function(req) {
       return Response.json({ success: true, transferred_directly: transferredDirectly });
     }
 
-    // Cancela um PaymentIntent
+    // Cancela somente uma cobrança pertencente ao cliente autenticado.
     if (action === "cancel") {
       const { payment_intent_id } = body;
+      const checkRes = await fetch(`${STRIPE_API}/payment_intents/${payment_intent_id}`, {
+        headers: { "Authorization": `Bearer ${stripeKey}` },
+      });
+      const current = await checkRes.json();
+      if (!checkRes.ok) return Response.json({ error: current.error?.message || "Cobrança não encontrada" }, { status: 404 });
+      if (current.metadata?.client_user_id !== user.id && user.role !== "admin") {
+        return Response.json({ error: "Cobrança não encontrada" }, { status: 404 });
+      }
+      if (current.status === "succeeded") {
+        return Response.json({ error: "Um pagamento confirmado não pode ser cancelado por esta tela" }, { status: 409 });
+      }
+      if (current.status === "canceled") return Response.json({ status: "canceled" });
+
       const res = await fetch(`${STRIPE_API}/payment_intents/${payment_intent_id}/cancel`, {
         method: "POST",
-        headers: {
-          "Authorization": `Bearer ${stripeKey}`,
-          "Content-Type": "application/x-www-form-urlencoded",
-        },
+        headers: { "Authorization": `Bearer ${stripeKey}`, "Content-Type": "application/x-www-form-urlencoded" },
       });
-
       const intent = await res.json();
+      if (!res.ok) return Response.json({ error: intent.error?.message || "Erro no Stripe" }, { status: 400 });
 
-      if (!res.ok) {
-        return Response.json({ error: intent.error?.message || "Erro no Stripe" }, { status: 400 });
+      const payments = await base44.asServiceRole.entities.Payment.filter({ stripe_payment_intent_id: payment_intent_id });
+      if (payments?.[0]?.id) {
+        await base44.asServiceRole.entities.Payment.update(payments[0].id, { status: "cancelled" });
       }
-
       return Response.json({ status: intent.status });
     }
 

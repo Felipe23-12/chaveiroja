@@ -188,6 +188,9 @@ export default function WithdrawalSection({ locksmith, onWithdrawalMade }) {
           <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
         </div>
       )}
+      {!loading && withdrawals.length === 0 && (
+        <p className="text-center text-xs text-muted-foreground py-3">Nenhum saque solicitado ainda.</p>
+      )}
     </div>
   );
 }

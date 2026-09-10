@@ -47,7 +47,13 @@ export default function PainelFinanceiro() {
         .finally(() => setLoading(false));
     load();
     const unsub = base44.entities.ServiceRequest.subscribe(() => load());
-    return unsub;
+    const unsubBalance = base44.entities.Locksmith.subscribe((event) => {
+      if (event.data?.id === selectedId) base44.entities.Locksmith.get(selectedId).then(setMe);
+    });
+    return () => {
+      if (typeof unsub === "function") unsub();
+      if (typeof unsubBalance === "function") unsubBalance();
+    };
   }, [selectedId]);
 
   const isAppMode = me?.work_mode === "app";
@@ -88,6 +94,10 @@ export default function PainelFinanceiro() {
       });
       cancellationTotal += repasse.locksmithAmount;
     });
+    if (isAppMode) {
+      commissionPending = Math.min(commission, Number(me?.pending_cash_commission || 0));
+      commissionPaid = Math.max(0, commission - commissionPending);
+    }
     const net = gross - commission + cancellationTotal;
     return {
       gross,
@@ -100,15 +110,7 @@ export default function PainelFinanceiro() {
       cancellationTotal,
       cancelledCount: cancelled.length,
     };
-  }, [completed, cancelled, isAppMode, me?.work_mode]);
-
-  const handleToggleCommission = async (r) => {
-    const newStatus = (r.commission_status || "pending") === "paid" ? "pending" : "paid";
-    await base44.entities.ServiceRequest.update(r.id, { commission_status: newStatus });
-    setCompleted((prev) =>
-      prev.map((x) => (x.id === r.id ? { ...x, commission_status: newStatus } : x))
-    );
-  };
+  }, [completed, cancelled, isAppMode, me?.work_mode, me?.pending_cash_commission]);
 
   const handleToggleFee = async () => {
     if (!me) return;
@@ -423,16 +425,7 @@ export default function PainelFinanceiro() {
                       <p className="text-[11px] text-red-500">- R$ {comm.toFixed(2)} (15%)</p>
                     )}
                     <p className="text-sm font-semibold text-emerald-600">R$ {net.toFixed(2)}</p>
-                    {isAppMode && (
-                      <Button
-                        size="sm"
-                        variant={(r.commission_status || "pending") === "paid" ? "outline" : "default"}
-                        className="h-7 text-xs"
-                        onClick={() => handleToggleCommission(r)}
-                      >
-                        {(r.commission_status || "pending") === "paid" ? "Reverter" : "Marcar compensada"}
-                      </Button>
-                    )}
+
                   </div>
                 </div>
               </div>
