@@ -97,26 +97,16 @@ export async function confirmPaymentPaid(paymentId) {
   return res.data;
 }
 
-// Confirma o recebimento em dinheiro pelo chaveiro: marca o pedido como pago
-// e acumula a comissão de 15% para descontar do próximo pagamento via app.
+// Confirma o recebimento fora do app e compensa os 15% no saldo atual;
+// qualquer diferença fica reservada para o próximo recebimento online.
 export async function confirmCashReceived({ serviceRequestId, locksmithId, amount }) {
-  const breakdown = calculatePaymentBreakdown(amount);
-
-  await base44.entities.ServiceRequest.update(serviceRequestId, {
-    cash_received: true,
-    payment_method: "dinheiro",
-    payment_status: "paid",
-    commission_status: "paid",
+  const res = await base44.functions.invoke("stripePayment", {
+    action: "confirm_cash",
+    service_request_id: serviceRequestId,
+    locksmith_id: locksmithId,
+    amount,
   });
-
-  // Acumula a comissão no campo do chaveiro
-  if (locksmithId) {
-    const locksmith = await base44.entities.Locksmith.get(locksmithId);
-    const newPending = Math.round(((locksmith.pending_cash_commission || 0) + breakdown.commission) * 100) / 100;
-    await base44.entities.Locksmith.update(locksmithId, { pending_cash_commission: newPending });
-  }
-
-  return { commission: breakdown.commission };
+  return res.data;
 }
 
 // Solicita saque via Pix: move saldo da carteira para pendente

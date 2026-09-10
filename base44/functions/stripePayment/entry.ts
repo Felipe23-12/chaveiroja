@@ -34,8 +34,9 @@ export default async function(req) {
 
       const pmType = method === "pix" ? "pix" : "card";
       let destinationAccountId = "";
+      let profile = null;
       if (locksmith_id) {
-        const profile = await base44.asServiceRole.entities.Locksmith.get(locksmith_id).catch(() => null);
+        profile = await base44.asServiceRole.entities.Locksmith.get(locksmith_id).catch(() => null);
         let records = await base44.asServiceRole.entities.StripeConnectAccount.filter({ locksmith_id });
         if (!records?.[0]?.stripe_account_id && profile?.created_by_id) {
           records = await base44.asServiceRole.entities.StripeConnectAccount.filter({ locksmith_id: profile.created_by_id });
@@ -47,7 +48,11 @@ export default async function(req) {
         destinationAccountId = connect.stripe_account_id;
       }
 
-      const applicationFee = Math.round(cents * 0.15);
+      const baseApplicationFee = Math.round(cents * 0.15);
+      const pendingOffset = destinationAccountId
+        ? Math.min(Math.round(Number(profile?.pending_cash_commission || 0) * 100), Math.max(0, cents - baseApplicationFee))
+        : 0;
+      const applicationFee = baseApplicationFee + pendingOffset;
       const params: Record<string, string> = {
         amount: String(cents),
         currency: "brl",
@@ -57,6 +62,7 @@ export default async function(req) {
       if (destinationAccountId) {
         params["transfer_data[destination]"] = destinationAccountId;
         params["application_fee_amount"] = String(applicationFee);
+        params["metadata[pending_cash_offset_cents]"] = String(pendingOffset);
       }
       const bodyStr = stripeForm(params);
 
@@ -90,6 +96,36 @@ export default async function(req) {
       }
 
       return Response.json(result);
+    }
+
+    // Confirma pagamento recebido fora do aplicativo e compensa a comissão.
+    if (action === "confirm_cash") {
+      const service = await base44.asServiceRole.entities.ServiceRequest.get(body.service_request_id).catch(() => null);
+      const locksmith = await base44.asServiceRole.entities.Locksmith.get(body.locksmith_id).catch(() => null);
+      if (!service || !locksmith || service.locksmith_id !== locksmith.id || locksmith.created_by_id !== user.id) {
+        return Response.json({ error: "Atendimento não encontrado" }, { status: 404 });
+      }
+      if (service.cash_received === true) {
+        return Response.json({ success: true, already_confirmed: true });
+      }
+
+      const commission = Math.round(Number(body.amount || service.price || 0) * 0.15 * 100) / 100;
+      const available = Math.max(0, Number(locksmith.wallet_balance || 0));
+      const deductedNow = Math.min(available, commission);
+      const pendingBefore = Math.max(0, Number(locksmith.pending_cash_commission || 0));
+      const pendingAfter = Math.round((pendingBefore + commission - deductedNow) * 100) / 100;
+
+      await base44.asServiceRole.entities.Locksmith.update(locksmith.id, {
+        wallet_balance: Math.round((available - deductedNow) * 100) / 100,
+        pending_cash_commission: pendingAfter,
+      });
+      await base44.asServiceRole.entities.ServiceRequest.update(service.id, {
+        cash_received: true,
+        payment_method: "dinheiro",
+        payment_status: "paid",
+        commission_status: pendingAfter > pendingBefore ? "pending" : "paid",
+      });
+      return Response.json({ success: true, commission, deducted_now: deductedNow, pending: pendingAfter });
     }
 
     // Consulta o status de um PaymentIntent
@@ -128,13 +164,22 @@ export default async function(req) {
       });
 
       const transferredDirectly = !!intent.transfer_data?.destination;
+      const pendingOffset = Number(intent.metadata?.pending_cash_offset_cents || 0) / 100;
+      if (transferredDirectly && payment.locksmith_id && pendingOffset > 0) {
+        const locksmith = await base44.asServiceRole.entities.Locksmith.get(payment.locksmith_id);
+        await base44.asServiceRole.entities.Locksmith.update(payment.locksmith_id, {
+          pending_cash_commission: Math.max(0, Math.round((Number(locksmith.pending_cash_commission || 0) - pendingOffset) * 100) / 100),
+        });
+      }
       if (!transferredDirectly && payment.locksmith_id && payment.net_amount) {
         const locksmith = await base44.asServiceRole.entities.Locksmith.get(payment.locksmith_id);
-        const pendingCash = locksmith.pending_cash_commission || 0;
-        const creditAmount = Math.max(0, Math.round((payment.net_amount - pendingCash) * 100) / 100);
+        const pendingCash = Number(locksmith.pending_cash_commission || 0);
+        const netAmount = Number(payment.net_amount || 0);
+        const creditAmount = Math.max(0, Math.round((netAmount - pendingCash) * 100) / 100);
+        const pendingAfter = Math.max(0, Math.round((pendingCash - netAmount) * 100) / 100);
         await base44.asServiceRole.entities.Locksmith.update(payment.locksmith_id, {
           wallet_balance: Math.round(((locksmith.wallet_balance || 0) + creditAmount) * 100) / 100,
-          ...(pendingCash > 0 ? { pending_cash_commission: 0 } : {}),
+          pending_cash_commission: pendingAfter,
         });
       }
 

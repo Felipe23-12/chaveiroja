@@ -730,7 +730,7 @@ export default function PainelChaveiro() {
       await confirmCashReceived({ serviceRequestId: active.id, locksmithId: me.id, amount: active.price });
       toast({
         title: "Recebimento confirmado",
-        description: "Pagamento em dinheiro registrado. A comissão será descontada do próximo pagamento via app.",
+        description: "Os 15% foram abatidos do saldo disponível; qualquer restante será descontado do próximo recebimento online.",
       });
     } catch (e) {
       toast({ title: "Erro", description: e.message || "Falha ao confirmar recebimento", variant: "destructive" });
