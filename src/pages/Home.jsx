@@ -8,7 +8,8 @@ import { calculateDynamicPrice } from "@/lib/dynamicPricing";
 import { getCancellationWindow } from "@/lib/cancellationWindow";
 import { resolveCarKeyValue, searchFipeAndKeyValue } from "@/lib/carKey";
 import { detectCarKeyProgramming } from "@/lib/carKeyProgramming";
-import { getKeyCancelBlock } from "@/lib/keyCancelBlock";
+import { getKeyCancelBlock, createAppServiceRequest } from "@/lib/keyCancelBlock";
+import useAppCancellationBlock from "@/hooks/useAppCancellationBlock";
 import KeyBlockBanner from "@/components/locksmith/KeyBlockBanner";
 import { getMotoKeyRange, getMotoModel, MOTO_BRANDS } from "@/lib/motoKey";
 import MotoKeyConfig from "@/components/locksmith/MotoKeyConfig";
@@ -120,7 +121,7 @@ export default function Home() {
   const [routeEta, setRouteEta] = useState(null);
   const [cancelFeeData, setCancelFeeData] = useState(null);
   const [cancelConfirmOpen, setCancelConfirmOpen] = useState(false);
-  const [keyBlock, setKeyBlock] = useState(null);
+  const keyBlock = useAppCancellationBlock(activeRequest?.status);
   const [customerName, setCustomerName] = useState("");
   const [canPreviewKeyPrice, setCanPreviewKeyPrice] = useState(false);
   const reqRef = useRef(null);
@@ -195,14 +196,7 @@ export default function Home() {
     }).catch(() => {});
   }, []);
 
-  // Verificação no início da solicitação: bloqueio de 3 horas após 3 cancelamentos
-  useEffect(() => {
-    base44.auth
-      .me()
-      .then((u) => getKeyCancelBlock(u?.id))
-      .then(setKeyBlock)
-      .catch(() => setKeyBlock(null));
-  }, [activeRequest?.status]);
+
 
   const unblockedAppLocksmiths = useMemo(
     () => blocksLoading ? appLocksmiths : appLocksmiths.filter((l) => !blockedIds.has(l.created_by_id)),
@@ -461,15 +455,15 @@ export default function Home() {
     setSubmitting(true);
     setSearchError("");
     try {
-      // Bloqueio por cancelamentos repetidos em confecção de chaves
-      if (service?.isCarKey || service?.isMotoKey) {
+      // O limite diário vale para todos os serviços do modo aplicativo.
+      {
         const user = await base44.auth.me().catch(() => null);
         const block = await getKeyCancelBlock(user?.id);
         if (block.blocked) {
           const h = Math.floor(block.minutesLeft / 60);
           const m = block.minutesLeft % 60;
           setSearchError(
-            `Você cancelou 3 solicitações de confecção de chave. Novas solicitações estarão liberadas em ${h > 0 ? `${h}h ` : ""}${m}min.`
+            `Você atingiu o limite de 3 cancelamentos no dia. O modo aplicativo estará liberado em ${h > 0 ? `${h}h ` : ""}${m}min.`
           );
           setSubmitting(false);
           return;
@@ -562,7 +556,7 @@ export default function Home() {
           : 0;
         const kmFee = calculateLongDistanceFee(initialDistanceKm);
         const disc = useDiscount ? applyLoyaltyDiscount(basePrice) : { amount: 0, final: basePrice };
-        req = await base44.entities.ServiceRequest.create({
+        req = await createAppServiceRequest({
           ...base,
           price: disc.final,
           key_value: effectiveKeyValue,
@@ -582,7 +576,7 @@ export default function Home() {
         const kmFee = calculateLongDistanceFee(initialDistanceKm);
         const disc = useDiscount ? applyLoyaltyDiscount(basePrice) : { amount: 0, final: basePrice };
         const motoModel = service.isMotoKey ? getMotoModel(motoInfo.brandId, motoInfo.modelId) : null;
-        req = await base44.entities.ServiceRequest.create({
+        req = await createAppServiceRequest({
           ...base,
           price: disc.final + openingConditionFee,
           distance_km: initialDistanceKm,
@@ -627,6 +621,8 @@ export default function Home() {
       setActiveRequest(req);
       reqRef.current = req.id;
       goToStep(3);
+    } catch (error) {
+      setSearchError(error?.response?.data?.error || error.message || "Não foi possível solicitar o serviço.");
     } finally {
       setSubmitting(false);
     }
@@ -923,7 +919,7 @@ export default function Home() {
     }
     // Antes do aceite: cancela livremente
     try {
-      await base44.entities.ServiceRequest.update(activeRequest.id, { status: "cancelled", cancelled_by: "cliente" });
+      await base44.functions.invoke("serviceTrust", { action: "cancel_request", request_id: activeRequest.id, actor: "cliente" });
       handleNewRequest();
     } catch (e) {
       toast({ title: "Falha ao cancelar", description: e.message || "Tente novamente", variant: "destructive" });
@@ -1042,7 +1038,7 @@ export default function Home() {
               <ServiceCard key={s.id} service={s} selected={serviceId === s.id} onClick={() => setServiceId(s.id)} />
             ))}
           </div>
-          <Button onClick={() => goToStep(2)} disabled={!serviceId || keyBlock?.blocked} size="lg" className="w-full">
+          <Button onClick={() => goToStep(2)} disabled={!serviceId || !keyBlock || keyBlock.blocked} size="lg" className="w-full">
             Continuar <ArrowRight className="w-4 h-4 ml-2" />
           </Button>
         </div>
@@ -1152,6 +1148,7 @@ export default function Home() {
               disabled={
                 !address ||
                 submitting ||
+                !keyBlock || keyBlock.blocked ||
                 programming?.dealerOnly ||
                 (isOpeningService(service) && (openingReason == null || brokenKeyInLock == null)) ||
                 (service?.needsVehicleInfo &&

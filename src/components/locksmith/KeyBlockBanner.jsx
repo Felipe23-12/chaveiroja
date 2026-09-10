@@ -3,7 +3,7 @@ import { Ban, Clock } from "lucide-react";
 
 /**
  * Aviso de bloqueio temporário do modo aplicativo após 3 cancelamentos
- * de solicitações de confecção de chave (carro ou moto).
+ * no mesmo dia, em qualquer serviço do modo aplicativo.
  */
 export default function KeyBlockBanner({ block }) {
   if (!block?.blocked) return null;
@@ -16,8 +16,8 @@ export default function KeyBlockBanner({ block }) {
         <p className="font-heading font-semibold text-sm">Modo aplicativo bloqueado</p>
       </div>
       <p className="text-xs text-red-700">
-        Você cancelou {block.cancelCount} solicitações de confecção de chave. Para
-        proteger os chaveiros, novas solicitações ficam bloqueadas por 3 horas.
+        O limite de 3 cancelamentos no mesmo dia foi atingido. Novas solicitações
+        no modo aplicativo ficam bloqueadas por 6 horas, mesmo se o dia virar.
       </p>
       <p className="text-xs font-medium text-red-800 flex items-center gap-1.5">
         <Clock className="w-3.5 h-3.5" /> Liberação em {h > 0 ? `${h}h ` : ""}

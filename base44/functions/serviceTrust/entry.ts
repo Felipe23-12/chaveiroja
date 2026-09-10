@@ -1,20 +1,7 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.46';
+import { scoreFor, penalizeLocksmithCancellation, recordClientCancellation, getClientCancelBlock } from '../../shared/cancellationRules.ts';
 
 const waitMinutes = (minutes) => new Date(Date.now() + minutes * 60000).toISOString();
-
-async function scoreFor(base44, locksmith) {
-  const rows = await base44.asServiceRole.entities.LocksmithScore.filter({ locksmith_id: locksmith.id });
-  if (rows[0]) return rows[0];
-  return await base44.asServiceRole.entities.LocksmithScore.create({
-    locksmith_id: locksmith.id,
-    locksmith_user_id: locksmith.created_by_id,
-    score: 10,
-    accepted_count: 0,
-    rejected_count: 0,
-    abandonment_count: 0,
-    banned: false,
-  });
-}
 
 async function notify(base44, userId, title, content, requestId) {
   if (!userId) return;
@@ -35,6 +22,21 @@ export default async function(req) {
     const body = await req.json().catch(() => ({}));
     const action = body.action;
 
+    if (action === 'client_block_status') {
+      return Response.json(await getClientCancelBlock(base44, user.id));
+    }
+
+    if (action === 'create_request') {
+      const block = await getClientCancelBlock(base44, user.id);
+      if (block.blocked) return Response.json({ error: `Limite diário de cancelamentos atingido. Modo aplicativo bloqueado por mais ${block.minutesLeft} min.`, ...block }, { status: 403 });
+      const data = body.data || {};
+      if (!data.service_type || !String(data.address || '').trim()) return Response.json({ error: 'Informe o serviço e o endereço' }, { status: 400 });
+      const allowed = ['service_type', 'address', 'description', 'urgency', 'locksmith_id', 'locksmith_name', 'locksmith_user_id', 'ringing_locksmith_ids', 'ringing_locksmith_user_ids', 'customer_lat', 'customer_lng', 'locksmith_lat', 'locksmith_lng', 'price', 'key_value', 'fipe_value', 'key_type', 'vehicle_info', 'labor_cost', 'locomotion_cost', 'distance_km', 'extra_cost', 'discount_applied', 'discount_amount'];
+      const values = Object.fromEntries(allowed.filter((key) => data[key] !== undefined).map((key) => [key, data[key]]));
+      const request = await base44.entities.ServiceRequest.create({ ...values, status: 'ringing' });
+      return Response.json({ request });
+    }
+
     if (action === 'score_event') {
       const request = await base44.asServiceRole.entities.ServiceRequest.get(body.request_id);
       const profiles = await base44.asServiceRole.entities.Locksmith.filter({ created_by_id: user.id });
@@ -42,7 +44,7 @@ export default async function(req) {
       if (!request || !locksmith) return Response.json({ error: 'Chamado ou perfil não encontrado' }, { status: 404 });
       const eventType = body.event_type;
       const allowed = eventType === 'accepted'
-        ? request.locksmith_user_id === user.id && ['accepted', 'on_the_way', 'completed'].includes(request.status)
+        ? request.locksmith_user_id === user.id && ['accepted', 'queued', 'on_the_way', 'completed'].includes(request.status)
         : (request.ringing_locksmith_user_ids || []).includes(user.id);
       if (!allowed || !['accepted', 'rejected'].includes(eventType)) return Response.json({ error: 'Evento inválido' }, { status: 403 });
       const existing = await base44.asServiceRole.entities.LocksmithScoreEvent.filter({ request_id: request.id, locksmith_id: locksmith.id, event_type: eventType });
@@ -51,15 +53,14 @@ export default async function(req) {
       let nextScore = Number(score.score ?? 10);
       const update = {};
       if (eventType === 'accepted') {
-        nextScore += 0.5;
         update.accepted_count = Number(score.accepted_count || 0) + 1;
       } else {
         const rejected = Number(score.rejected_count || 0) + 1;
         update.rejected_count = rejected;
         if (rejected % 3 === 0) nextScore -= 1;
       }
-      update.score = Math.max(0, Math.round(nextScore * 10) / 10);
-      await base44.asServiceRole.entities.LocksmithScoreEvent.create({ request_id: request.id, locksmith_id: locksmith.id, locksmith_user_id: user.id, event_type: eventType, points: eventType === 'accepted' ? 0.5 : (update.rejected_count % 3 === 0 ? -1 : 0) });
+      update.score = Math.max(0, Math.min(10, Math.round(nextScore * 10) / 10));
+      await base44.asServiceRole.entities.LocksmithScoreEvent.create({ request_id: request.id, locksmith_id: locksmith.id, locksmith_user_id: user.id, event_type: eventType, points: eventType === 'accepted' ? 0 : (update.rejected_count % 3 === 0 ? -1 : 0) });
       await base44.asServiceRole.entities.LocksmithScore.update(score.id, update);
       return Response.json({ success: true, score: update.score });
     }
@@ -81,7 +82,11 @@ export default async function(req) {
       const isClient = actor === 'cliente' && request.created_by_id === user.id;
       const isLocksmith = actor === 'chaveiro' && request.locksmith_user_id === user.id;
       if (!isClient && !isLocksmith) return Response.json({ error: 'Você não pode cancelar este chamado' }, { status: 403 });
-      if (request.status === 'cancelled') return Response.json({ success: true, request, duplicate: true });
+      if (request.status === 'cancelled') {
+        await recordClientCancellation(base44, request, request.updated_date);
+        await penalizeLocksmithCancellation(base44, request);
+        return Response.json({ success: true, request, duplicate: true });
+      }
 
       const update = { status: 'cancelled', cancelled_by: actor };
       if (isClient && ['accepted', 'on_the_way', 'queued'].includes(request.status)) {
@@ -99,6 +104,8 @@ export default async function(req) {
       }
 
       const updated = await base44.asServiceRole.entities.ServiceRequest.update(request.id, update);
+      await recordClientCancellation(base44, updated);
+      await penalizeLocksmithCancellation(base44, { ...updated, accepted_at: request.accepted_at || (['accepted', 'queued', 'on_the_way'].includes(request.status) ? request.created_date : null) });
       return Response.json({ success: true, request: updated });
     }
 
@@ -119,7 +126,8 @@ export default async function(req) {
         const score = await scoreFor(base44, profiles[0]);
         await base44.asServiceRole.entities.LocksmithScore.update(score.id, { suspended_until: deadline });
         await base44.asServiceRole.entities.Locksmith.update(request.locksmith_id, { online: false });
-        await base44.asServiceRole.entities.ServiceRequest.update(request.id, { status: 'cancelled', cancelled_by: 'chaveiro', cancellation_reason: 'Relato de ameaça ou agressão em análise' });
+        const cancelled = await base44.asServiceRole.entities.ServiceRequest.update(request.id, { status: 'cancelled', cancelled_by: 'chaveiro', cancellation_reason: 'Relato de ameaça ou agressão em análise' });
+        await penalizeLocksmithCancellation(base44, cancelled);
         await notify(base44, request.created_by_id, 'Atendimento em análise', 'O chaveiro relatou uma situação de segurança. Informe sua versão no aplicativo.', request.id);
       } else {
         const text = reason === 'address_incorrect' ? 'O chaveiro está no endereço informado e aguardará 6 minutos. Encontre-o no local.' : 'O chaveiro informou que você cancelou. Confirme ou negue em até 5 minutos.';
@@ -146,7 +154,8 @@ export default async function(req) {
         const request = await base44.asServiceRole.entities.ServiceRequest.get(item.request_id);
         const fixed = { 'Confecção de Chave de Carro': request.urgency === 'urgent' ? 220 : 150, 'Confecção de Chave de Moto': request.urgency === 'urgent' ? 150 : 100 }[request.service_type];
         const fee = fixed || Math.round(Number(request.price || 0) * 25) / 100;
-        await base44.asServiceRole.entities.ServiceRequest.update(request.id, { status: 'cancelled', cancelled_by: 'cliente', cancellation_fee: fee, cancellation_locksmith_amount: Math.round(fee * 80) / 100, cancellation_app_fee: Math.round(fee * 20) / 100, payment_status: 'pending' });
+        const cancelled = await base44.asServiceRole.entities.ServiceRequest.update(request.id, { status: 'cancelled', cancelled_by: 'cliente', cancellation_fee: fee, cancellation_locksmith_amount: Math.round(fee * 80) / 100, cancellation_app_fee: Math.round(fee * 20) / 100, payment_status: 'pending' });
+        await recordClientCancellation(base44, cancelled);
       } else if (item.reason === 'client_cancelled' && body.response === 'denied') {
         const deadline = waitMinutes(10);
         await base44.asServiceRole.entities.ServiceCancellationCase.update(item.id, { client_response: 'denied', status: 'monitoring_service', deadline });

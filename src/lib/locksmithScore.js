@@ -11,7 +11,7 @@ export async function loadScoreMap() {
 export function withScores(locksmiths, scoreMap) {
   return locksmiths.map((locksmith) => ({
     ...locksmith,
-    trust_score: scoreMap.get(locksmith.id)?.score ?? SCORE_START,
+    trust_score: Math.max(0, Math.min(SCORE_START, Number(scoreMap.get(locksmith.id)?.score ?? SCORE_START))),
     trust_status: scoreMap.get(locksmith.id) || null,
   }));
 }

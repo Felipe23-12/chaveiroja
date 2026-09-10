@@ -1,43 +1,28 @@
 {
-  "name": "LocksmithScoreEvent",
+  "name": "ClientCancellationEvent",
   "type": "object",
   "properties": {
     "request_id": {
       "type": "string"
     },
-    "locksmith_id": {
+    "client_id": {
       "type": "string"
     },
-    "locksmith_user_id": {
-      "type": "string"
-    },
-    "event_type": {
+    "cancelled_at": {
       "type": "string",
-      "enum": [
-        "accepted",
-        "rejected",
-        "cancelled"
-      ]
-    },
-    "points": {
-      "type": "number"
-    },
-    "description": {
-      "type": "string",
-      "maxLength": 1000
+      "format": "date-time"
     }
   },
   "required": [
     "request_id",
-    "locksmith_id",
-    "locksmith_user_id",
-    "event_type"
+    "client_id",
+    "cancelled_at"
   ],
   "rls": {
     "read": {
       "$or": [
         {
-          "data.locksmith_user_id": "{{user.id}}"
+          "data.client_id": "{{user.id}}"
         },
         {
           "user_condition": {
