@@ -131,10 +131,10 @@ export default function LocksmithFinancialPanel({ locksmith }) {
         <div className="p-3 rounded-xl bg-muted/50">
           <div className="flex items-center gap-1.5 text-muted-foreground mb-1">
             <Wallet className="w-3.5 h-3.5 text-emerald-600" />
-            <span className="text-[11px] font-medium">Líquido recebido</span>
+            <span className="text-[11px] font-medium">Líquido acumulado</span>
           </div>
           <p className="font-heading font-bold text-lg text-emerald-600">{fmtMoney(stats.net)}</p>
-          <p className="text-[11px] text-muted-foreground mt-0.5">Já creditado</p>
+          <p className="text-[11px] text-muted-foreground mt-0.5">Histórico dos serviços</p>
         </div>
       </div>
 

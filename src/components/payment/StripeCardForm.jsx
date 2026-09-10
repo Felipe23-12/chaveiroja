@@ -8,21 +8,27 @@ function CardForm({ clientSecret, onConfirm, processing }) {
   const stripe = useStripe();
   const elements = useElements();
   const [error, setError] = useState("");
+  const [confirming, setConfirming] = useState(false);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!stripe || !elements) return;
+    if (!stripe || !elements || confirming) return;
     setError("");
-    const cardElement = elements.getElement(CardElement);
-    const result = await stripe.confirmCardPayment(clientSecret, {
-      payment_method: { card: cardElement },
-    });
-    if (result.error) {
-      setError(result.error.message);
-    } else if (result.paymentIntent.status === "succeeded") {
-      onConfirm();
-    } else if (result.paymentIntent.status === "requires_action") {
-      setError("Pagamento requer autenticação adicional. Tente outro cartão.");
+    setConfirming(true);
+    try {
+      const cardElement = elements.getElement(CardElement);
+      const result = await stripe.confirmCardPayment(clientSecret, {
+        payment_method: { card: cardElement },
+      });
+      if (result.error) {
+        setError(result.error.message || "O cartão não pôde ser confirmado. Confira os dados e tente novamente.");
+      } else if (result.paymentIntent.status === "succeeded") {
+        await onConfirm();
+      } else {
+        setError("O pagamento não foi concluído. Tente novamente ou use outro cartão.");
+      }
+    } finally {
+      setConfirming(false);
     }
   };
 
@@ -50,9 +56,9 @@ function CardForm({ clientSecret, onConfirm, processing }) {
 
       {error && <p className="text-sm text-red-600">{error}</p>}
 
-      <Button type="submit" disabled={!stripe || processing} size="lg" className="w-full">
-        {processing ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Lock className="w-4 h-4 mr-2" />}
-        Pagar agora
+      <Button type="submit" disabled={!stripe || processing || confirming} size="lg" className="w-full">
+        {processing || confirming ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Lock className="w-4 h-4 mr-2" />}
+        {processing || confirming ? "Processando pagamento..." : "Pagar agora"}
       </Button>
     </form>
   );

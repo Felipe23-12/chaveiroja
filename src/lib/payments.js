@@ -17,7 +17,7 @@ export function calculatePaymentBreakdown(amount) {
 
 // Cria um PaymentIntent no Stripe via backend function.
 // Retorna { payment_intent_id, client_secret, publishable_key, pix_data? }
-export async function createStripePaymentIntent({ amount, method, description, locksmithId }) {
+export async function createStripePaymentIntent({ amount, method, description, locksmithId, serviceRequestId }) {
   try {
     const res = await base44.functions.invoke("stripePayment", {
       action: "create_intent",
@@ -25,6 +25,7 @@ export async function createStripePaymentIntent({ amount, method, description, l
       method,
       description,
       locksmith_id: locksmithId,
+      service_request_id: serviceRequestId,
     });
     return res.data;
   } catch (e) {
@@ -109,35 +110,22 @@ export async function confirmCashReceived({ serviceRequestId, locksmithId, amoun
   return res.data;
 }
 
-// Solicita saque via Pix: move saldo da carteira para pendente
-export async function requestWithdrawal({ locksmithId, locksmithName, amount, pixKeyType, pixKeyValue, bankName }) {
-  const locksmith = await base44.entities.Locksmith.get(locksmithId);
-  const amt = Number(amount) || 0;
-
-  if (amt <= 0) throw new Error("Valor inválido");
-  if (amt > (locksmith.wallet_balance || 0)) {
-    throw new Error("Saldo insuficiente para saque");
+// Solicita saque via Pix com saldo e duplicidade validados no servidor.
+export async function requestWithdrawal({ locksmithId, amount, pixKeyType, pixKeyValue, bankName }) {
+  try {
+    const res = await base44.functions.invoke("stripePayment", {
+      action: "request_withdrawal",
+      locksmith_id: locksmithId,
+      amount,
+      pix_key_type: pixKeyType,
+      pix_key_value: pixKeyValue,
+      bank_name: bankName,
+    });
+    return res.data?.withdrawal;
+  } catch (e) {
+    const data = e?.response?.data || e?.data || e;
+    throw new Error(data?.error || data?.message || e?.message || "Erro ao solicitar saque");
   }
-
-  const withdrawal = await base44.entities.Withdrawal.create({
-    locksmith_id: locksmithId,
-    locksmith_name: locksmithName,
-    amount: amt,
-    pix_key_type: pixKeyType,
-    pix_key_value: pixKeyValue,
-    bank_name: bankName,
-    status: "requested",
-    requested_at: new Date().toISOString(),
-  });
-
-  const newBalance = Math.round(((locksmith.wallet_balance || 0) - amt) * 100) / 100;
-  const newPending = Math.round(((locksmith.pending_balance || 0) + amt) * 100) / 100;
-  await base44.entities.Locksmith.update(locksmithId, {
-    wallet_balance: newBalance,
-    pending_balance: newPending,
-  });
-
-  return withdrawal;
 }
 
 // Marca saque como concluído (admin processa a transferência Pix manualmente)

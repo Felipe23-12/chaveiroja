@@ -12,7 +12,7 @@ const METHODS = [
   { id: "dinheiro", label: "Dinheiro", icon: "Banknote", description: "Pagar em espécie ao chaveiro" },
 ];
 
-export default function PaymentMethodSelector({ selected, onSelect, onlineOnly = false }) {
+export default function PaymentMethodSelector({ selected, onSelect, onlineOnly = false, disabled = false }) {
   const methods = onlineOnly ? METHODS.filter((m) => m.id !== "dinheiro") : METHODS;
   return (
     <div className="space-y-2.5">
@@ -22,9 +22,11 @@ export default function PaymentMethodSelector({ selected, onSelect, onlineOnly =
         return (
           <button
             key={m.id}
+            type="button"
             onClick={() => onSelect(m.id)}
+            disabled={disabled}
             className={cn(
-              "w-full flex items-center gap-3 p-3.5 rounded-xl border-2 text-left transition-all",
+              "w-full flex items-center gap-3 p-3.5 rounded-xl border-2 text-left transition-all disabled:cursor-wait disabled:opacity-60",
               isSel ? "border-primary bg-primary/5" : "border-border hover:border-muted-foreground/30"
             )}
           >

@@ -195,12 +195,12 @@ export default function PainelFinanceiro() {
         <div className="p-4 rounded-xl bg-emerald-50 border border-emerald-100">
           <div className="flex items-center gap-2 text-emerald-700 mb-1">
             <Wallet className="w-4 h-4" />
-            <span className="text-xs font-medium">Saldo atual</span>
+            <span className="text-xs font-medium">Líquido acumulado</span>
           </div>
           <p className="font-heading font-bold text-2xl text-emerald-700">
             R$ {stats.net.toFixed(2)}
           </p>
-          <p className="text-[11px] text-emerald-600/80 mt-0.5">Líquido recebido</p>
+          <p className="text-[11px] text-emerald-600/80 mt-0.5">Histórico dos serviços concluídos</p>
         </div>
 
         <div className="p-4 rounded-xl bg-card border border-border">

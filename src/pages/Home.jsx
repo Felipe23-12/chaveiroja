@@ -36,7 +36,7 @@ import SearchRadiusSelector from "@/components/locksmith/SearchRadiusSelector";
 import PointsProgressCard from "@/components/locksmith/PointsProgressCard";
 import PaymentStep from "@/components/payment/PaymentStep";
 import ReceiptButton from "@/components/payment/ReceiptButton";
-import { createPaymentRecord, confirmPaymentPaid } from "@/lib/payments";
+import { confirmPaymentPaid } from "@/lib/payments";
 import { ensureNotificationPermission, notifyClient } from "@/lib/clientNotifications";
 import { sendServiceStatusMessage } from "@/lib/serviceStatusMessages";
 import { Image } from "@/components/ui/image";
@@ -645,7 +645,7 @@ export default function Home() {
   }, [activeRequest?.id, activeRequest?.status, unblockedAppLocksmiths]);
 
   // Pagamento confirmado via Stripe — acontece após o serviço, antes da finalização
-  const handleServicePayment = async (method, stripePaymentIntentId) => {
+  const handleServicePayment = async (method, stripePaymentIntentId, paymentId) => {
     if (!activeRequest) return;
 
     // Dinheiro: não cria PaymentIntent no Stripe — o chaveiro confirma o recebimento
@@ -666,54 +666,32 @@ export default function Home() {
     setPaying(true);
     setSearchError("");
     try {
-      const user = await base44.auth.me();
-      const payment = await createPaymentRecord({
-        serviceRequestId: activeRequest.id,
-        amount: activeRequest.price,
-        method,
-        locksmithId: selectedLocksmith?.id,
-        locksmithName: selectedLocksmith?.name,
-        clientId: user?.id,
-        clientName: user?.full_name,
-        stripePaymentIntentId,
-      });
-      await confirmPaymentPaid(payment.id);
-      setActiveRequest((prev) => ({ ...prev, payment_id: payment.id, payment_status: "paid" }));
+      await confirmPaymentPaid(paymentId);
+      setActiveRequest((prev) => ({ ...prev, payment_id: paymentId, payment_status: "paid" }));
       base44.auth.me()
         .then((u) => getClientLoyalty(u.id))
         .then(setLoyalty)
         .catch(() => {});
     } catch (e) {
-      setSearchError(e.message || "Falha ao processar pagamento");
+      setSearchError(e?.response?.data?.error || e.message || "Falha ao processar pagamento");
     } finally {
       setPaying(false);
     }
   };
 
   // Pagamento da taxa de cancelamento
-  const handleCancelFeePayment = async (method, stripePaymentIntentId) => {
+  const handleCancelFeePayment = async (method, stripePaymentIntentId, paymentId) => {
     if (!activeRequest || !cancelFeeData) return;
     setPaying(true);
     try {
-      const user = await base44.auth.me();
-      const payment = await createPaymentRecord({
-        serviceRequestId: activeRequest.id,
-        amount: cancelFeeData.fee,
-        method,
-        locksmithId: selectedLocksmith?.id,
-        locksmithName: selectedLocksmith?.name,
-        clientId: user?.id,
-        clientName: user?.full_name,
-        stripePaymentIntentId,
-      });
-      await confirmPaymentPaid(payment.id);
+      await confirmPaymentPaid(paymentId);
       await base44.entities.ServiceRequest.update(activeRequest.id, {
         status: "cancelled",
         cancelled_by: "cliente",
         cancellation_fee: cancelFeeData.fee,
         cancellation_locksmith_amount: cancelFeeData.locksmithAmount,
         cancellation_app_fee: cancelFeeData.appFee,
-        payment_id: payment.id,
+        payment_id: paymentId,
         payment_method: method,
         payment_status: "paid",
       });
@@ -1382,9 +1360,10 @@ export default function Home() {
               additionalLabel="Adicional de condição da abertura"
               description={`${activeRequest.service_type} - ${activeRequest.address}`}
               locksmithId={selectedLocksmith?.id}
+              serviceRequestId={activeRequest.id}
               processing={paying}
               onConfirm={handleServicePayment}
-              onBack={handleNewRequest}
+              onBack={() => goToStep(5)}
             />
           )}
           <ErrorBanner message={searchError} />
@@ -1419,6 +1398,7 @@ export default function Home() {
             amount={cancelFeeData.fee}
             description={`Taxa de cancelamento - ${activeRequest.service_type}`}
             locksmithId={selectedLocksmith?.id}
+            serviceRequestId={activeRequest.id}
             processing={paying}
             onConfirm={handleCancelFeePayment}
             onBack={handleNewRequest}

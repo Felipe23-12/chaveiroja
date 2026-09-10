@@ -24,78 +24,114 @@ export default async function(req) {
       return Response.json({ error: 'STRIPE_SECRET_KEY não configurada' }, { status: 500 });
     }
 
-    // Cria um PaymentIntent no Stripe
+    // Cria a cobrança somente a partir de um atendimento pertencente ao cliente.
     if (action === "create_intent") {
-      const { amount, method, description, locksmith_id } = body;
-      const cents = Math.round(Number(amount) * 100);
-      if (cents < 100) {
-        return Response.json({ error: 'Valor mínimo é R$ 1,00' }, { status: 400 });
+      const { amount, method, description, locksmith_id, service_request_id } = body;
+      if (!["credit_card", "debit_card", "pix"].includes(method)) {
+        return Response.json({ error: "Forma de pagamento inválida" }, { status: 400 });
+      }
+      const service = await base44.asServiceRole.entities.ServiceRequest.get(service_request_id).catch(() => null);
+      if (!service || service.created_by_id !== user.id || service.locksmith_id !== locksmith_id) {
+        return Response.json({ error: "Atendimento não encontrado" }, { status: 404 });
+      }
+      if (service.payment_status === "paid") {
+        return Response.json({ error: "Este atendimento já foi pago" }, { status: 409 });
       }
 
-      const pmType = method === "pix" ? "pix" : "card";
-      let destinationAccountId = "";
-      let profile = null;
-      if (locksmith_id) {
-        profile = await base44.asServiceRole.entities.Locksmith.get(locksmith_id).catch(() => null);
-        let records = await base44.asServiceRole.entities.StripeConnectAccount.filter({ locksmith_id });
-        if (!records?.[0]?.stripe_account_id && profile?.created_by_id) {
-          records = await base44.asServiceRole.entities.StripeConnectAccount.filter({ locksmith_id: profile.created_by_id });
+      const cents = Math.round(Number(amount) * 100);
+      const serviceCents = Math.round(Number(service.price || 0) * 100);
+      const cancellationCents = Math.round(Number(service.cancellation_fee || 0) * 100);
+      if (cents < 100 || (cents !== serviceCents && cents !== cancellationCents)) {
+        return Response.json({ error: "O valor da cobrança não confere com o atendimento" }, { status: 400 });
+      }
+
+      const existingPayment = service.payment_id
+        ? await base44.asServiceRole.entities.Payment.get(service.payment_id).catch(() => null)
+        : null;
+      if (existingPayment?.status === "pre_authorized" && existingPayment.method === method && Math.round(Number(existingPayment.amount) * 100) === cents) {
+        const existingRes = await fetch(`${STRIPE_API}/payment_intents/${existingPayment.stripe_payment_intent_id}`, {
+          headers: { "Authorization": `Bearer ${stripeKey}` },
+        });
+        const existingIntent = await existingRes.json();
+        if (existingRes.ok && !["canceled", "succeeded"].includes(existingIntent.status)) {
+          return Response.json({
+            payment_id: existingPayment.id,
+            payment_intent_id: existingIntent.id,
+            client_secret: existingIntent.client_secret,
+            publishable_key: publishableKey,
+            status: existingIntent.status,
+          });
         }
-        const connect = records?.[0];
-        if (!connect?.stripe_account_id || !connect.charges_enabled || !connect.payouts_enabled) {
-          return Response.json({ error: 'O chaveiro precisa concluir a ativação dos recebimentos antes do pagamento.' }, { status: 400 });
-        }
-        destinationAccountId = connect.stripe_account_id;
+      }
+
+      const profile = await base44.asServiceRole.entities.Locksmith.get(locksmith_id).catch(() => null);
+      let records = await base44.asServiceRole.entities.StripeConnectAccount.filter({ locksmith_id });
+      if (!records?.[0]?.stripe_account_id && profile?.created_by_id) {
+        records = await base44.asServiceRole.entities.StripeConnectAccount.filter({ locksmith_id: profile.created_by_id });
+      }
+      const connect = records?.[0];
+      if (!profile || !connect?.stripe_account_id || !connect.charges_enabled || !connect.payouts_enabled) {
+        return Response.json({ error: "O chaveiro precisa concluir a ativação dos recebimentos antes do pagamento." }, { status: 400 });
       }
 
       const baseApplicationFee = Math.round(cents * 0.15);
-      const pendingOffset = destinationAccountId
-        ? Math.min(Math.round(Number(profile?.pending_cash_commission || 0) * 100), Math.max(0, cents - baseApplicationFee))
-        : 0;
-      const applicationFee = baseApplicationFee + pendingOffset;
+      const pendingOffset = Math.min(Math.round(Number(profile.pending_cash_commission || 0) * 100), Math.max(0, cents - baseApplicationFee));
       const params: Record<string, string> = {
         amount: String(cents),
         currency: "brl",
         description: description || "Pagamento Chaveiro Já",
-        "payment_method_types[]": pmType,
+        "payment_method_types[]": method === "pix" ? "pix" : "card",
+        "transfer_data[destination]": connect.stripe_account_id,
+        application_fee_amount: String(baseApplicationFee + pendingOffset),
+        "metadata[client_user_id]": user.id,
+        "metadata[service_request_id]": service.id,
+        "metadata[pending_cash_offset_cents]": String(pendingOffset),
       };
-      if (destinationAccountId) {
-        params["transfer_data[destination]"] = destinationAccountId;
-        params["application_fee_amount"] = String(applicationFee);
-        params["metadata[pending_cash_offset_cents]"] = String(pendingOffset);
-      }
-      const bodyStr = stripeForm(params);
-
       const res = await fetch(`${STRIPE_API}/payment_intents`, {
         method: "POST",
-        headers: {
-          "Authorization": `Bearer ${stripeKey}`,
-          "Content-Type": "application/x-www-form-urlencoded",
-        },
-        body: bodyStr,
+        headers: { "Authorization": `Bearer ${stripeKey}`, "Content-Type": "application/x-www-form-urlencoded" },
+        body: stripeForm(params),
       });
-
       const intent = await res.json();
+      if (!res.ok) return Response.json({ error: intent.error?.message || "Erro no Stripe" }, { status: 400 });
 
-      if (!res.ok) {
-        return Response.json({ error: intent.error?.message || "Erro no Stripe" }, { status: 400 });
+      let payment;
+      try {
+        payment = await base44.asServiceRole.entities.Payment.create({
+          service_request_id: service.id,
+          locksmith_id,
+          locksmith_name: service.locksmith_name || profile.name,
+          client_id: user.id,
+          client_name: user.full_name || "Cliente",
+          amount: cents / 100,
+          commission_amount: baseApplicationFee / 100,
+          net_amount: (cents - baseApplicationFee) / 100,
+          method,
+          status: "pre_authorized",
+          stripe_payment_intent_id: intent.id,
+          pre_authorized_at: new Date().toISOString(),
+        });
+        await base44.asServiceRole.entities.ServiceRequest.update(service.id, {
+          payment_id: payment.id,
+          payment_method: method,
+          payment_status: "pre_authorized",
+        });
+      } catch (error) {
+        await fetch(`${STRIPE_API}/payment_intents/${intent.id}/cancel`, {
+          method: "POST",
+          headers: { "Authorization": `Bearer ${stripeKey}`, "Content-Type": "application/x-www-form-urlencoded" },
+        }).catch(() => null);
+        throw error;
       }
 
-      const result = {
+      return Response.json({
+        payment_id: payment.id,
         payment_intent_id: intent.id,
         client_secret: intent.client_secret,
         publishable_key: publishableKey,
         status: intent.status,
-      };
-
-      if (method === "pix" && intent.next_action?.pix_qr_code) {
-        result.pix_data = {
-          emv: intent.next_action.pix_qr_code.qr_code,
-          image_url: intent.next_action.pix_qr_code.image_url_png,
-        };
-      }
-
-      return Response.json(result);
+        ...(method === "pix" && intent.next_action?.pix_qr_code ? { pix_data: { emv: intent.next_action.pix_qr_code.qr_code, image_url: intent.next_action.pix_qr_code.image_url_png } } : {}),
+      });
     }
 
     // Confirma pagamento recebido fora do aplicativo e compensa a comissão.
@@ -128,6 +164,47 @@ export default async function(req) {
       return Response.json({ success: true, commission, deducted_now: deductedNow, pending: pendingAfter });
     }
 
+    // Solicita um saque da carteira com validação no servidor.
+    if (action === "request_withdrawal") {
+      const locksmith = await base44.asServiceRole.entities.Locksmith.get(body.locksmith_id).catch(() => null);
+      if (!locksmith || locksmith.created_by_id !== user.id) {
+        return Response.json({ error: "Carteira não encontrada" }, { status: 404 });
+      }
+      const amount = Math.round(Number(body.amount) * 100) / 100;
+      const balance = Math.round(Number(locksmith.wallet_balance || 0) * 100) / 100;
+      if (amount <= 0 || amount > balance) {
+        return Response.json({ error: "Saldo insuficiente para saque" }, { status: 400 });
+      }
+      if (!String(body.pix_key_value || "").trim()) {
+        return Response.json({ error: "Informe uma chave Pix válida" }, { status: 400 });
+      }
+      const active = await base44.asServiceRole.entities.Withdrawal.filter({ locksmith_id: locksmith.id, status: "requested" });
+      if (active?.length) {
+        return Response.json({ error: "Já existe um saque aguardando processamento" }, { status: 409 });
+      }
+
+      const withdrawal = await base44.asServiceRole.entities.Withdrawal.create({
+        locksmith_id: locksmith.id,
+        locksmith_name: locksmith.name,
+        amount,
+        pix_key_type: body.pix_key_type,
+        pix_key_value: String(body.pix_key_value).trim(),
+        bank_name: String(body.bank_name || "").trim(),
+        status: "requested",
+        requested_at: new Date().toISOString(),
+      });
+      try {
+        await base44.asServiceRole.entities.Locksmith.update(locksmith.id, {
+          wallet_balance: Math.round((balance - amount) * 100) / 100,
+          pending_balance: Math.round((Number(locksmith.pending_balance || 0) + amount) * 100) / 100,
+        });
+      } catch (error) {
+        await base44.asServiceRole.entities.Withdrawal.delete(withdrawal.id).catch(() => null);
+        throw error;
+      }
+      return Response.json({ withdrawal });
+    }
+
     // Consulta o status de um PaymentIntent
     if (action === "get_status") {
       const { payment_intent_id } = body;
@@ -140,6 +217,9 @@ export default async function(req) {
       if (!res.ok) {
         return Response.json({ error: intent.error?.message || "Erro no Stripe" }, { status: 400 });
       }
+      if (intent.metadata?.client_user_id !== user.id && user.role !== "admin") {
+        return Response.json({ error: "Pagamento não encontrado" }, { status: 404 });
+      }
 
       return Response.json({ status: intent.status });
     }
@@ -150,12 +230,21 @@ export default async function(req) {
       if (!payment || (user.role !== "admin" && payment.client_id !== user.id)) {
         return Response.json({ error: "Pagamento não encontrado" }, { status: 404 });
       }
+      if (payment.status === "paid") {
+        return Response.json({ success: true, already_finalized: true });
+      }
       const statusRes = await fetch(`${STRIPE_API}/payment_intents/${payment.stripe_payment_intent_id}`, {
         headers: { "Authorization": `Bearer ${stripeKey}` },
       });
       const intent = await statusRes.json();
       if (!statusRes.ok || intent.status !== "succeeded") {
         return Response.json({ error: "O pagamento ainda não foi confirmado pelo Stripe" }, { status: 400 });
+      }
+      if (intent.metadata?.client_user_id && intent.metadata.client_user_id !== payment.client_id) {
+        return Response.json({ error: "Pagamento não pertence a este cliente" }, { status: 403 });
+      }
+      if (Number(intent.amount_received || intent.amount) !== Math.round(Number(payment.amount) * 100)) {
+        return Response.json({ error: "Valor confirmado pelo Stripe não confere" }, { status: 409 });
       }
 
       await base44.asServiceRole.entities.Payment.update(payment.id, {

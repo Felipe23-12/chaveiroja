@@ -44,6 +44,10 @@ export default function WithdrawalSection({ locksmith, onWithdrawalMade }) {
       setError("Informe um valor válido");
       return;
     }
+    if (Number(amount) > Number(locksmith?.wallet_balance || 0)) {
+      setError("O valor é maior que o saldo disponível");
+      return;
+    }
     if (!pixKeyValue.trim()) {
       setError("Informe sua chave Pix");
       return;
@@ -91,6 +95,9 @@ export default function WithdrawalSection({ locksmith, onWithdrawalMade }) {
               placeholder="0,00"
               value={amount}
               onChange={(e) => setAmount(e.target.value)}
+              min="0.01"
+              max={Number(locksmith?.wallet_balance || 0)}
+              step="0.01"
               className="mt-1"
             />
             <p className="text-[11px] text-muted-foreground mt-1">

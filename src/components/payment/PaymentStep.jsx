@@ -6,7 +6,7 @@ import { calculatePaymentBreakdown, createStripePaymentIntent } from "@/lib/paym
 import StripeCardForm from "@/components/payment/StripeCardForm";
 import StripePixForm from "@/components/payment/StripePixForm";
 
-export default function PaymentStep({ amount, description, locksmithId, onConfirm, onBack, processing, onlineOnly = false, additionalAmount = 0, additionalLabel = "Adicional" }) {
+export default function PaymentStep({ amount, description, locksmithId, serviceRequestId, onConfirm, onBack, processing, onlineOnly = false, additionalAmount = 0, additionalLabel = "Adicional" }) {
   const [method, setMethod] = useState("");
   const [stripeData, setStripeData] = useState(null);
   const [creating, setCreating] = useState(false);
@@ -26,6 +26,7 @@ export default function PaymentStep({ amount, description, locksmithId, onConfir
         method: m,
         description,
         locksmithId,
+        serviceRequestId,
       });
       if (result.error) throw new Error(result.error);
       setStripeData(result);
@@ -48,7 +49,7 @@ export default function PaymentStep({ amount, description, locksmithId, onConfir
         <p className="text-sm text-muted-foreground">Pague pelo serviço agora</p>
       </div>
 
-      <PaymentMethodSelector selected={method} onSelect={handleSelectMethod} onlineOnly={onlineOnly} />
+      <PaymentMethodSelector selected={method} onSelect={handleSelectMethod} onlineOnly={onlineOnly} disabled={creating || processing} />
 
       {creating && (
         <div className="flex items-center justify-center py-4">
@@ -77,14 +78,14 @@ export default function PaymentStep({ amount, description, locksmithId, onConfir
             <StripePixForm
               pixData={stripeData.pix_data}
               paymentIntentId={stripeData.payment_intent_id}
-              onConfirmed={() => onConfirm(method, stripeData.payment_intent_id)}
+              onConfirmed={() => onConfirm(method, stripeData.payment_intent_id, stripeData.payment_id)}
             />
           ) : (
             <StripeCardForm
               clientSecret={stripeData.client_secret}
               publishableKey={stripeData.publishable_key}
               processing={processing}
-              onConfirm={() => onConfirm(method, stripeData.payment_intent_id)}
+              onConfirm={() => onConfirm(method, stripeData.payment_intent_id, stripeData.payment_id)}
             />
           )}
         </div>
