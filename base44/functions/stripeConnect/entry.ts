@@ -5,6 +5,9 @@ const STRIPE_API_V1 = 'https://api.stripe.com/v1';
 const STRIPE_API_V2 = 'https://api.stripe.com/v2';
 const STRIPE_VERSION_V2 = '2026-08-26.dahlia';
 const APP_URL = 'https://woodoo-quick-lock-link.base44.app';
+// 05/10/2026, 00:00 no horário de Brasília. Não altera cadastros anteriores.
+const UNIFIED_REGISTRATION_START = Date.parse('2026-10-05T00:00:00-03:00');
+const requiresUnifiedRegistration = (user) => user?.account_type === 'chaveiro' && Date.parse(user.created_date) >= UNIFIED_REGISTRATION_START;
 
 function stripeForm(data: Record<string, string | number | boolean>) {
   const form = new URLSearchParams();
@@ -135,13 +138,16 @@ async function saveConnectRecord(base44: any, locksmithId: string, account: any)
   };
 
   const existing = await findConnectRecord(base44, locksmithId);
+  if (!existing?.onboarding_completed_at && (account.details_submitted === true || (chargesEnabled && payoutsEnabled))) {
+    record.onboarding_completed_at = now;
+  }
   if (existing?.id) {
     return await base44.asServiceRole.entities.StripeConnectAccount.update(existing.id, record);
   }
   return await base44.asServiceRole.entities.StripeConnectAccount.create({ ...record, created_at: now });
 }
 
-Deno.serve(async (req) => {
+export default async function(req) {
   try {
     const base44 = createClientFromRequest(req);
     const user = await base44.auth.me();
@@ -159,6 +165,12 @@ Deno.serve(async (req) => {
 
     if (user.role !== 'admin' && locksmithId !== user.id) {
       return Response.json({ error: 'Você só pode gerenciar sua própria conta de recebimentos' }, { status: 403 });
+    }
+
+    if (action === 'onboarding_policy') {
+      if (!requiresUnifiedRegistration(user) || user.role === 'admin') return Response.json({ required: false, completed: true });
+      const record = await findConnectRecord(base44, user.id);
+      return Response.json({ required: true, completed: !!record?.onboarding_completed_at });
     }
 
     if (action === 'create_account') {
@@ -182,10 +194,27 @@ Deno.serve(async (req) => {
         'capabilities[card_payments][requested]': true,
         'capabilities[transfers][requested]': true,
       };
-      if (user.email) fields.email = user.email;
+      const targetUser = locksmithId === user.id ? user : await base44.asServiceRole.entities.User.get(locksmithId);
+      if (targetUser.email) fields.email = targetUser.email;
+      if (requiresUnifiedRegistration(targetUser)) {
+        fields.business_type = 'individual';
+        const names = String(targetUser.legal_name || targetUser.full_name || '').trim().split(/\s+/);
+        if (names.length > 1) {
+          fields['individual[first_name]'] = names[0];
+          fields['individual[last_name]'] = names.slice(1).join(' ');
+        }
+        if (targetUser.email) fields['individual[email]'] = targetUser.email;
+        const phone = String(targetUser.phone || '').replace(/\D/g, '');
+        if (phone.length === 10 || phone.length === 11) fields['individual[phone]'] = `+55${phone}`;
+        else if (phone.startsWith('55') && (phone.length === 12 || phone.length === 13)) fields['individual[phone]'] = `+${phone}`;
+        const cpf = String(targetUser.cpf || '').replace(/\D/g, '');
+        if (cpf.length === 11) fields['individual[id_number]'] = cpf;
+        fields['metadata[app_user_id]'] = targetUser.id;
+      }
 
       const account = await stripeRequest('/accounts', stripeKey, {
         method: 'POST',
+        headers: requiresUnifiedRegistration(targetUser) ? { 'Idempotency-Key': `chaveiro-connect-${locksmithId}` } : {},
         body: stripeForm(fields),
       });
 
@@ -247,7 +276,7 @@ Deno.serve(async (req) => {
     if (action === 'get_status') {
       const record = await findConnectRecord(base44, locksmithId);
       if (!record?.stripe_account_id) {
-        return Response.json({ connected: false, status: 'not_created' });
+        return Response.json({ connected: false, status: 'not_created', onboarding_required: requiresUnifiedRegistration(user), onboarding_completed: false });
       }
 
       let account;
@@ -257,7 +286,7 @@ Deno.serve(async (req) => {
         if (isMissingAccountError(e)) {
           // Conta inexistente para a chave atual (ex.: criada em outro ambiente Stripe).
           await base44.asServiceRole.entities.StripeConnectAccount.delete(record.id);
-          return Response.json({ connected: false, status: 'not_created' });
+          return Response.json({ connected: false, status: 'not_created', onboarding_required: requiresUnifiedRegistration(user), onboarding_completed: false });
         }
         // Falha temporária: mantemos o vínculo e devolvemos o último status salvo.
         return Response.json({
@@ -271,6 +300,8 @@ Deno.serve(async (req) => {
           requirements: null,
           under_review: record.status === 'restricted' && !!record.details_submitted,
           stale: true,
+          onboarding_required: requiresUnifiedRegistration(user),
+          onboarding_completed: !!record.onboarding_completed_at,
         });
       }
       const saved = await saveConnectRecord(base44, locksmithId, account);
@@ -284,6 +315,8 @@ Deno.serve(async (req) => {
         pix_payments_status: saved.pix_payments_status,
         requirements: account.requirements || null,
         under_review: isUnderReview(account),
+        onboarding_required: requiresUnifiedRegistration(user),
+        onboarding_completed: !!saved.onboarding_completed_at,
       });
     }
 
@@ -298,4 +331,4 @@ Deno.serve(async (req) => {
   } catch (error) {
     return Response.json({ error: error?.message || 'Erro interno' }, { status: 500 });
   }
-});
+}

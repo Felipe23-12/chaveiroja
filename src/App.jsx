@@ -14,6 +14,7 @@ import RoleGuard from '@/components/RoleGuard';
 import TermsGate from '@/components/TermsGate';
 import LoadingCard from '@/components/ui/LoadingCard';
 import Layout from '@/components/Layout';
+import StripeOnboardingGuard from '@/components/StripeOnboardingGuard';
 
 // Páginas carregadas sob demanda — reduz o tempo de inicialização em
 // conexões móveis lentas (WebView), pois só o código da rota atual é baixado.
@@ -104,6 +105,7 @@ const AuthenticatedApp = () => {
           <Route element={<ProfileCompletionGuard />}>
           <Route path="/aceite-termos" element={<AceiteTermos />} />
           <Route element={<TermsGate />}>
+          <Route element={<StripeOnboardingGuard />}>
           <Route element={<Layout />}>
             <Route element={<RoleGuard allow={["cliente"]} />}>
               <Route path="/" element={<Home />} />
@@ -124,6 +126,7 @@ const AuthenticatedApp = () => {
               <Route path="/painel-admin" element={<PainelAdmin />} />
               <Route path="/painel-financeiro-admin" element={<PainelFinanceiroAdmin />} />
             </Route>
+          </Route>
           </Route>
           </Route>
           </Route>
