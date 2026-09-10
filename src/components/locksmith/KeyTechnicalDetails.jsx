@@ -26,7 +26,8 @@ export default function KeyTechnicalDetails({ description, request }) {
     { label: "Valor do serviço", value: request?.price != null ? Number(request.price).toLocaleString("pt-BR", { style: "currency", currency: "BRL" }) : "Não informado", icon: Banknote },
     { label: "Modelo e ano do veículo", value: request?.vehicle_info, icon: Car },
     { label: "Transponder", value: technical.transponder, icon: Cpu },
-    { label: "Tipo de chave solicitado", value: [keyType, origin].filter(Boolean).join(" · "), icon: KeyRound },
+    { label: "Tipo de chave solicitado", value: keyType, icon: KeyRound },
+    { label: "Origem da chave", value: origin, icon: KeyRound },
     { label: "Modelo da lâmina da chave", value: technical["lâmina"], icon: KeyRound },
     { label: "Máquinas de programação do veículo", value: technical["máquina de codificação"], icon: Wrench },
   ];
@@ -38,7 +39,7 @@ export default function KeyTechnicalDetails({ description, request }) {
       {isVehicleKey && <dl className="grid gap-2 sm:grid-cols-2">{rows.map(({ label, value, icon: Icon }, index) => <div key={label} className={`flex min-w-0 gap-3 rounded-lg border border-border p-3 ${index === 6 ? "sm:col-span-2" : ""}`}><Icon className="h-5 w-5 shrink-0 text-primary" /><div className="min-w-0"><dt className="text-xs font-medium text-muted-foreground">{label}</dt><dd className={`mt-1 whitespace-pre-wrap break-words font-semibold ${index === 1 ? "text-lg text-primary" : "text-sm text-foreground"}`}>{value || "Não informado no chamado"}</dd></div></div>)}</dl>}
       {technical.arquitetura && <p className="text-xs text-muted-foreground"><strong className="text-foreground">Arquitetura:</strong> {technical.arquitetura}</p>}
       {technical.codificação && <p className="text-xs text-muted-foreground"><strong className="text-foreground">Codificação:</strong> {technical.codificação}</p>}
-      {technical.arquivos && <p className="text-xs text-muted-foreground"><strong className="text-foreground">Arquivos:</strong> {technical.arquivos}</p>}
+      {origin?.toLowerCase() === "chave paralela" && <div className="rounded-lg border border-border p-3"><p className="text-xs font-medium text-muted-foreground">Arquivos da chave paralela — VVDI / KD</p><p className="mt-1 whitespace-pre-wrap break-words text-sm font-semibold text-foreground">{technical.arquivos?.split(/;\s*/).filter((file) => /^(VVDI|KD)\b/i.test(file.trim())).join("\n") || "Arquivo VVDI/KD não informado no chamado"}</p></div>}
       {customerNote && <p className="border-t border-border pt-3 text-sm text-foreground whitespace-pre-wrap break-words"><strong>Observação do cliente:</strong> {customerNote}</p>}
     </div>
   );
