@@ -1,52 +1,32 @@
 {
-  "name": "ClientCancellationEvent",
+  "name": "ClientSafetyBlock",
   "type": "object",
   "properties": {
-    "request_id": {
-      "type": "string"
-    },
     "client_id": {
       "type": "string"
     },
-    "cancelled_at": {
+    "trigger_request_id": {
+      "type": "string"
+    },
+    "matched_request_ids": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "blocked_until": {
       "type": "string",
       "format": "date-time"
     },
-    "service_type": {
-      "type": "string"
-    },
-    "address": {
-      "type": "string"
-    },
-    "latitude": {
-      "type": "number"
-    },
-    "longitude": {
-      "type": "number"
-    },
-    "place_type": {
-      "type": "string",
-      "enum": [
-        "individual",
-        "condominium",
-        "unknown",
-        "vehicle"
-      ]
-    },
-    "building": {
-      "type": "string"
-    },
-    "unit": {
-      "type": "string"
-    },
-    "vehicle_plate": {
+    "reason": {
       "type": "string"
     }
   },
   "required": [
-    "request_id",
     "client_id",
-    "cancelled_at"
+    "trigger_request_id",
+    "blocked_until",
+    "reason"
   ],
   "rls": {
     "read": {

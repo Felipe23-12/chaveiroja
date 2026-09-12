@@ -26,12 +26,14 @@ export default function useAppCancellationBlock(requestStatus) {
     load();
     const timer = setInterval(load, 60000);
     const unsubscribe = safeUnsubscribe(base44.entities.ClientCancellationEvent.subscribe(load));
+    const unsubscribeSafety = safeUnsubscribe(base44.entities.ClientSafetyBlock.subscribe(load));
     window.addEventListener("focus", load);
     window.addEventListener("online", load);
     return () => {
       disposed = true;
       clearInterval(timer);
       unsubscribe();
+      unsubscribeSafety();
       window.removeEventListener("focus", load);
       window.removeEventListener("online", load);
     };

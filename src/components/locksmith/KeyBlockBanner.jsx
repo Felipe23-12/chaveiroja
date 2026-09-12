@@ -16,8 +16,7 @@ export default function KeyBlockBanner({ block }) {
         <p className="font-heading font-semibold text-sm">Modo aplicativo bloqueado</p>
       </div>
       <p className="text-xs text-red-700">
-        O limite de 3 cancelamentos no mesmo dia foi atingido. Novas solicitações
-        no modo aplicativo ficam bloqueadas por 6 horas, mesmo se o dia virar.
+        {block.message || "O limite de 3 cancelamentos no mesmo dia foi atingido. Novas solicitações no modo aplicativo ficam bloqueadas por 6 horas, mesmo se o dia virar."}
       </p>
       <p className="text-xs font-medium text-red-800 flex items-center gap-1.5">
         <Clock className="w-3.5 h-3.5" /> Liberação em {h > 0 ? `${h}h ` : ""}

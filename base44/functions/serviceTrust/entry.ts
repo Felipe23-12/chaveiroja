@@ -1,5 +1,6 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.46';
-import { scoreFor, penalizeLocksmithCancellation, recordClientCancellation, getClientCancelBlock } from '../../shared/cancellationRules.ts';
+import { scoreFor, penalizeLocksmithCancellation, recordClientCancellation, getClientCancelBlock, clientCancellationQuote } from '../../shared/cancellationRules.ts';
+import { validatedLocation } from '../../shared/cancellationSafety.ts';
 
 const waitMinutes = (minutes) => new Date(Date.now() + minutes * 60000).toISOString();
 
@@ -28,12 +29,16 @@ export default async function(req) {
 
     if (action === 'create_request') {
       const block = await getClientCancelBlock(base44, user.id);
-      if (block.blocked) return Response.json({ error: `Limite diário de cancelamentos atingido. Modo aplicativo bloqueado por mais ${block.minutesLeft} min.`, ...block }, { status: 403 });
+      if (block.blocked) return Response.json({ error: `${block.message} Liberação em ${block.minutesLeft} min.`, ...block }, { status: 403 });
       const data = body.data || {};
       if (!data.service_type || !String(data.address || '').trim()) return Response.json({ error: 'Informe o serviço e o endereço' }, { status: 400 });
       const allowed = ['service_type', 'address', 'description', 'urgency', 'locksmith_id', 'locksmith_name', 'locksmith_user_id', 'ringing_locksmith_ids', 'ringing_locksmith_user_ids', 'customer_lat', 'customer_lng', 'locksmith_lat', 'locksmith_lng', 'price', 'key_value', 'fipe_value', 'key_type', 'vehicle_info', 'labor_cost', 'locomotion_cost', 'distance_km', 'extra_cost', 'discount_applied', 'discount_amount', 'pricing_calculation'];
       const values = Object.fromEntries(allowed.filter((key) => data[key] !== undefined).map((key) => [key, data[key]]));
+      const location = validatedLocation(data);
+      const detail = location.place_type === 'condominium' ? `Bloco/torre: ${location.building} · Unidade: ${location.unit}` : '';
+      if (detail) values.description = [values.description, detail].filter(Boolean).join(' — ');
       const request = await base44.entities.ServiceRequest.create({ ...values, status: 'ringing' });
+      await base44.asServiceRole.entities.ServiceRequestContext.create({ ...location, request_id: request.id, client_id: user.id });
       return Response.json({ request });
     }
 
@@ -73,6 +78,12 @@ export default async function(req) {
       return Response.json({ success: true });
     }
 
+    if (action === 'cancel_quote') {
+      const request = await base44.asServiceRole.entities.ServiceRequest.get(body.request_id);
+      if (!request || request.created_by_id !== user.id) return Response.json({ error: 'Chamado não encontrado' }, { status: 403 });
+      return Response.json(await clientCancellationQuote(base44, request));
+    }
+
     if (action === 'cancel_request') {
       const request = await base44.asServiceRole.entities.ServiceRequest.get(body.request_id);
       if (!request) return Response.json({ error: 'Chamado não encontrado' }, { status: 404 });
@@ -89,18 +100,13 @@ export default async function(req) {
       }
 
       const update = { status: 'cancelled', cancelled_by: actor };
-      if (isClient && ['accepted', 'on_the_way', 'queued'].includes(request.status)) {
-        const reference = request.accepted_at || request.created_date;
-        const elapsed = reference ? Date.now() - new Date(reference).getTime() : 0;
-        if (elapsed >= 5 * 60 * 1000) {
-          if (body.confirmed_fee !== true) return Response.json({ error: 'Confirme a taxa de cancelamento para continuar', requires_fee: true }, { status: 409 });
-          const fixed = { 'Confecção de Chave de Carro': request.urgency === 'urgent' ? 220 : 150, 'Confecção de Chave de Moto': request.urgency === 'urgent' ? 150 : 100 }[request.service_type];
-          const fee = fixed || Math.round(Number(request.price || 0) * 25) / 100;
-          update.cancellation_fee = fee;
-          update.cancellation_locksmith_amount = Math.round(fee * 80) / 100;
-          update.cancellation_app_fee = Math.round(fee * 20) / 100;
-          update.payment_status = 'pending';
-        }
+      if (isClient) {
+        const quote = await clientCancellationQuote(base44, request);
+        if (!quote.free && body.confirmed_fee !== true) return Response.json({ error: 'Confirme a taxa de cancelamento para continuar', requires_fee: true, ...quote }, { status: 409 });
+        update.cancellation_fee = quote.fee;
+        update.cancellation_locksmith_amount = quote.locksmithAmount;
+        update.cancellation_app_fee = quote.appFee;
+        if (quote.fee > 0) update.payment_status = 'pending';
       }
 
       const updated = await base44.asServiceRole.entities.ServiceRequest.update(request.id, update);
@@ -152,9 +158,9 @@ export default async function(req) {
       } else if (item.reason === 'client_cancelled' && body.response === 'confirmed') {
         await base44.asServiceRole.entities.ServiceCancellationCase.update(item.id, { client_response: 'confirmed', status: 'cancelled', resolved_at: new Date().toISOString() });
         const request = await base44.asServiceRole.entities.ServiceRequest.get(item.request_id);
-        const fixed = { 'Confecção de Chave de Carro': request.urgency === 'urgent' ? 220 : 150, 'Confecção de Chave de Moto': request.urgency === 'urgent' ? 150 : 100 }[request.service_type];
-        const fee = fixed || Math.round(Number(request.price || 0) * 25) / 100;
-        const cancelled = await base44.asServiceRole.entities.ServiceRequest.update(request.id, { status: 'cancelled', cancelled_by: 'cliente', cancellation_fee: fee, cancellation_locksmith_amount: Math.round(fee * 80) / 100, cancellation_app_fee: Math.round(fee * 20) / 100, payment_status: 'pending' });
+        if (['completed', 'cancelled'].includes(request.status)) return Response.json({ success: true });
+        const quote = await clientCancellationQuote(base44, request);
+        const cancelled = await base44.asServiceRole.entities.ServiceRequest.update(request.id, { status: 'cancelled', cancelled_by: 'cliente', cancellation_fee: quote.fee, cancellation_locksmith_amount: quote.locksmithAmount, cancellation_app_fee: quote.appFee, ...(quote.fee > 0 ? { payment_status: 'pending' } : {}) });
         await recordClientCancellation(base44, cancelled);
       } else if (item.reason === 'client_cancelled' && body.response === 'denied') {
         const deadline = waitMinutes(10);

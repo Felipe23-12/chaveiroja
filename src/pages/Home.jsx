@@ -88,7 +88,12 @@ export default function Home() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams]);
   const [serviceId, setServiceId] = useState("");
-  const [address, setAddress] = useState("");
+  const [address, setAddressValue] = useState("");
+  const [locationContext, setLocationContext] = useState({ place_type: "", building: "", unit: "", vehicle_plate: "", coordinates_confirmed: false });
+  const setAddress = (value) => {
+    setAddressValue(value);
+    setLocationContext((prev) => ({ ...prev, coordinates_confirmed: false }));
+  };
   const [description, setDescription] = useState("");
   const [urgency, setUrgency] = useState("normal");
   const [selectedOptions, setSelectedOptions] = useState([]);
@@ -403,6 +408,7 @@ export default function Home() {
 
   const handleAddressSelect = ({ lat, lng }) => {
     setCustomerLoc({ lat, lng });
+    setLocationContext((prev) => ({ ...prev, coordinates_confirmed: true }));
   };
 
   const handleSearchKey = async () => {
@@ -466,7 +472,7 @@ export default function Home() {
           const h = Math.floor(block.minutesLeft / 60);
           const m = block.minutesLeft % 60;
           setSearchError(
-            `Você atingiu o limite de 3 cancelamentos no dia. O modo aplicativo estará liberado em ${h > 0 ? `${h}h ` : ""}${m}min.`
+            `${block.message || "Novas solicitações temporariamente bloqueadas."} Liberação em ${h > 0 ? `${h}h ` : ""}${m}min.`
           );
           setSubmitting(false);
           return;
@@ -530,6 +536,7 @@ export default function Home() {
         ? technicalKeyDescription({ origin: keyOrigin, row: requestCatalog })
         : "";
       const base = {
+        location_context: locationContext,
         pricing_calculation: buildChargeCalculation(price, pricingService, { year: vehicleInfo.year, fipeValue, keyType: carKeyType, hasCodedKey }),
         service_type: service.label,
         address,
@@ -891,42 +898,15 @@ export default function Home() {
 
   const handleCancel = async () => {
     if (!activeRequest) return;
-    // O cliente pode cancelar a qualquer momento — inclusive após a chegada do
-    // chaveiro. As regras de taxa de cancelamento continuam valendo.
-    const started = activeRequest.status === "accepted" || activeRequest.status === "on_the_way";
-    if (started) {
-      // Janela grátis: cancelamento sem custo nos primeiros 5 min após o aceite
-      // Carência de 5 minutos, contada do aceite do chaveiro ou, na ausência
-      // dele, da abertura do chamado
-      const window = getCancellationWindow(activeRequest);
-      if (window.free) {
-        try {
-          await base44.functions.invoke("serviceTrust", {
-            action: "cancel_request",
-            request_id: activeRequest.id,
-            actor: "cliente",
-          });
-          handleNewRequest();
-        } catch (e) {
-          toast({ title: "Falha ao cancelar", description: e.message || "Tente novamente", variant: "destructive" });
-        }
-        return;
-      }
-      // Após 5 min: abre a confirmação da taxa de cancelamento (paga online)
-      const c = calculateCancellationFee(activeRequest.price, {
-        serviceType: activeRequest.service_type,
-        urgency: activeRequest.urgency,
-      });
-      setCancelFeeData(c);
-      setCancelConfirmOpen(true);
-      return;
-    }
-    // Antes do aceite: cancela livremente
     try {
+      const { data: quote } = await base44.functions.invoke("serviceTrust", { action: "cancel_quote", request_id: activeRequest.id });
+      if (!quote.free) { setCancelFeeData(quote); setCancelConfirmOpen(true); return; }
       await base44.functions.invoke("serviceTrust", { action: "cancel_request", request_id: activeRequest.id, actor: "cliente" });
+      toast({ title: "Serviço cancelado sem taxa", description: "Os três primeiros cancelamentos do dia são gratuitos." });
       handleNewRequest();
     } catch (e) {
-      toast({ title: "Falha ao cancelar", description: e.message || "Tente novamente", variant: "destructive" });
+      if (e?.response?.data?.requires_fee) { setCancelFeeData(e.response.data); setCancelConfirmOpen(true); return; }
+      toast({ title: "Falha ao cancelar", description: e?.response?.data?.error || e.message || "Tente novamente", variant: "destructive" });
     }
   };
 
@@ -943,6 +923,7 @@ export default function Home() {
         confirmed_fee: true,
       });
       setActiveRequest(response.data.request);
+      if (!response.data.request.cancellation_fee) handleNewRequest();
       refreshDebt();
     } catch (e) {
       toast({ title: "Falha ao cancelar", description: e.message || "Tente novamente", variant: "destructive" });
@@ -965,6 +946,7 @@ export default function Home() {
     goToStep(1);
     setServiceId("");
     setAddress("");
+    setLocationContext({ place_type: "", building: "", unit: "", vehicle_plate: "", coordinates_confirmed: false });
     setDescription("");
     setUrgency("normal");
     setSelectedOptions([]);
@@ -1066,7 +1048,7 @@ export default function Home() {
 
       {/* Step 2: Configuração + preço */}
       {step === 2 && service && <HomeConfigurationStep config={{
-        service, pricingService, vehicleInfo, setVehicleInfo, address, setAddress, handleAddressSelect,
+        service, pricingService, vehicleInfo, setVehicleInfo, address, setAddress, handleAddressSelect, locationContext, setLocationContext,
         description, setDescription, originalKeyValue, searching, searchError, handleSearchKey,
         carKeyType, setCarKeyType, fipeValue, hasCodedKey, programming, price, keyOrigin,
         setKeyOrigin, keyCatalog, canPreviewKeyPrice, motoInfo, setMotoInfo, motoRule,

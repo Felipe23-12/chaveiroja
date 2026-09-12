@@ -1,12 +1,6 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.46';
 import { verifyInternalCall } from '../../shared/internalCall.ts';
-import { penalizeLocksmithCancellation, recordClientCancellation } from '../../shared/cancellationRules.ts';
-
-function cancellationAmounts(request) {
-  const fixed = { 'Confecção de Chave de Carro': request.urgency === 'urgent' ? 220 : 150, 'Confecção de Chave de Moto': request.urgency === 'urgent' ? 150 : 100 }[request.service_type];
-  const fee = fixed || Math.round(Number(request.price || 0) * 25) / 100;
-  return { fee, locksmith: Math.round(fee * 80) / 100, app: Math.round(fee * 20) / 100 };
-}
+import { penalizeLocksmithCancellation, recordClientCancellation, clientCancellationQuote } from '../../shared/cancellationRules.ts';
 
 export default async function(req) {
   try {
@@ -29,9 +23,9 @@ export default async function(req) {
         }
         await base44.asServiceRole.entities.ServiceCancellationCase.update(item.id, { status: 'cancelled', resolved_at: new Date().toISOString() });
       } else if (item.status === 'waiting_client') {
-        if (request) {
-          const amount = cancellationAmounts(request);
-          const cancelled = await base44.asServiceRole.entities.ServiceRequest.update(request.id, { status: 'cancelled', cancelled_by: 'cliente', cancellation_fee: amount.fee, cancellation_locksmith_amount: amount.locksmith, cancellation_app_fee: amount.app, payment_status: 'pending', cancellation_reason: 'Cliente não respondeu à confirmação de cancelamento' });
+        if (request && !['completed', 'cancelled'].includes(request.status)) {
+          const amount = await clientCancellationQuote(base44, request);
+          const cancelled = await base44.asServiceRole.entities.ServiceRequest.update(request.id, { status: 'cancelled', cancelled_by: 'cliente', cancellation_fee: amount.fee, cancellation_locksmith_amount: amount.locksmithAmount, cancellation_app_fee: amount.appFee, ...(amount.fee > 0 ? { payment_status: 'pending' } : {}), cancellation_reason: 'Cliente não respondeu à confirmação de cancelamento' });
           await recordClientCancellation(base44, cancelled);
         }
         await base44.asServiceRole.entities.ServiceCancellationCase.update(item.id, { status: 'cancelled', resolved_at: new Date().toISOString() });

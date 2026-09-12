@@ -1,3 +1,4 @@
+import { detectCancellationPattern, safetyBlockFor } from './cancellationSafety.ts';
 const sixHours = 6 * 3600000;
 const localDay = (date) => new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Sao_Paulo', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date(date));
 
@@ -37,12 +38,23 @@ export async function recordClientCancellation(base44, request, cancelledAt = ne
   if (request.cancelled_by !== 'cliente') return;
   const entity = base44.asServiceRole.entities.ClientCancellationEvent;
   const existing = await entity.filter({ request_id: request.id });
-  if (!existing.length) await entity.create({ request_id: request.id, client_id: request.created_by_id, cancelled_at: cancelledAt });
+  let event = existing[0];
+  if (!event) {
+    const contexts = await base44.asServiceRole.entities.ServiceRequestContext.filter({ request_id: request.id }, 'created_date', 1);
+    const context = contexts[0];
+    const fields = ['service_type', 'address', 'latitude', 'longitude', 'place_type', 'building', 'unit', 'vehicle_plate'];
+    const snapshot = context ? Object.fromEntries(fields.filter((key) => context[key] !== undefined).map((key) => [key, context[key]])) : {};
+    event = await entity.create({ ...snapshot, request_id: request.id, client_id: request.created_by_id, cancelled_at: cancelledAt });
+  }
+  if (event.service_type) await detectCancellationPattern(base44, event);
 }
 
 export function calculateClientBlock(events, now = Date.now()) {
   const days = new Map();
+  const seen = new Set();
   for (const event of events) {
+    if (seen.has(event.request_id)) continue;
+    seen.add(event.request_id);
     const time = Date.parse(event.cancelled_at);
     if (!Number.isFinite(time) || time > now) continue;
     const day = localDay(time);
@@ -61,5 +73,19 @@ export async function getClientCancelBlock(base44, clientId) {
   const legacy = await allRows(base44.asServiceRole.entities.ServiceRequest, { created_by_id: clientId, status: 'cancelled', cancelled_by: 'cliente', updated_date: { $gte: since } });
   for (const request of legacy) await recordClientCancellation(base44, request, request.updated_date);
   const events = await allRows(base44.asServiceRole.entities.ClientCancellationEvent, { client_id: clientId, cancelled_at: { $gte: since } });
-  return calculateClientBlock(events);
+  const daily = calculateClientBlock(events);
+  const safety = await safetyBlockFor(base44, clientId);
+  const message = 'Limite de 3 cancelamentos diários atingido. Novas solicitações ficam bloqueadas por 6 horas.';
+  if (!safety || (daily.blocked && Date.parse(daily.unlockAt) >= Date.parse(safety.blocked_until))) return { ...daily, reason: daily.blocked ? 'daily_limit' : null, message: daily.blocked ? message : null };
+  return { ...daily, blocked: true, reason: 'safety', unlockAt: safety.blocked_until, minutesLeft: Math.max(0, Math.ceil((Date.parse(safety.blocked_until) - Date.now()) / 60000)), message: 'Novas solicitações bloqueadas por segurança durante 2 horas devido a cancelamentos relacionados ao mesmo atendimento.' };
+}
+
+export async function clientCancellationQuote(base44, request) {
+  const block = await getClientCancelBlock(base44, request.created_by_id);
+  const elapsed = Date.now() - Date.parse(request.accepted_at || request.created_date);
+  const started = ['accepted', 'on_the_way', 'queued'].includes(request.status);
+  const free = block.cancelCount < 3 || !started || !Number.isFinite(elapsed) || elapsed < 5 * 60000;
+  const fixed = { 'Confecção de Chave de Carro': request.urgency === 'urgent' ? 220 : 150, 'Confecção de Chave de Moto': request.urgency === 'urgent' ? 150 : 100 }[request.service_type];
+  const fee = free ? 0 : fixed || Math.round(Number(request.price || 0) * 25) / 100;
+  return { free, fee, fixed: !!fixed, locksmithAmount: Math.round(fee * 80) / 100, appFee: Math.round(fee * 20) / 100, cancelCount: block.cancelCount, freeRemaining: Math.max(0, 3 - block.cancelCount) };
 }

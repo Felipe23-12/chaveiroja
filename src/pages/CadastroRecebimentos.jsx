@@ -16,7 +16,7 @@ export default function CadastroRecebimentos() {
   const handleStatus = useCallback((status) => {
     setActive(!!(status?.charges_enabled && status?.payouts_enabled));
     setUnderReview(!!status?.under_review);
-    setPolicy({ required: !!status?.onboarding_required, completed: !!status?.onboarding_completed });
+    setPolicy({ required: !!status?.onboarding_required, completed: !!(status?.onboarding_completed || status?.details_submitted || status?.under_review) });
   }, []);
 
   return (

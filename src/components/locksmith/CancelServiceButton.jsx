@@ -3,8 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
 import { XCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { calculateCancellationFee } from "@/lib/pricing";
-import { getCancellationWindow } from "@/lib/cancellationWindow";
+
 import { useToast } from "@/components/ui/use-toast";
 import {
   AlertDialog,
@@ -27,22 +26,28 @@ export default function CancelServiceButton({ request }) {
   const { toast } = useToast();
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [quote, setQuote] = useState(null);
 
   if (!request || request.status === "completed" || request.status === "cancelled") return null;
 
-  const free = getCancellationWindow(request).free;
-  const feeData = free
-    ? null
-    : calculateCancellationFee(request.price, {
-        serviceType: request.service_type,
-        urgency: request.urgency,
-      });
+  const free = quote?.free === true;
+  const feeData = quote;
+  const openConfirmation = async () => {
+    setLoading(true);
+    try {
+      const { data } = await base44.functions.invoke("serviceTrust", { action: "cancel_quote", request_id: request.id });
+      setQuote(data);
+      setOpen(true);
+    } catch (e) {
+      toast({ title: "Não foi possível consultar o cancelamento", description: e?.response?.data?.error || e.message, variant: "destructive" });
+    } finally { setLoading(false); }
+  };
 
   const handleConfirm = async () => {
     if (loading) return;
     setLoading(true);
     try {
-      await base44.functions.invoke("serviceTrust", {
+      const { data: result } = await base44.functions.invoke("serviceTrust", {
         action: "cancel_request",
         request_id: request.id,
         actor: "cliente",
@@ -50,11 +55,12 @@ export default function CancelServiceButton({ request }) {
       });
       toast({
         title: "Serviço cancelado",
-        description: free ? "Sua solicitação foi cancelada sem custo." : "O chamado foi cancelado e a taxa ficou disponível para pagamento.",
+        description: !result.request.cancellation_fee ? "Sua solicitação foi cancelada sem custo." : "O chamado foi cancelado e a taxa ficou disponível para pagamento.",
       });
       navigate("/");
     } catch (e) {
-      toast({ title: "Falha ao cancelar", description: e.message || "Tente novamente", variant: "destructive" });
+      if (e?.response?.data?.requires_fee) { setQuote(e.response.data); setOpen(true); return; }
+      toast({ title: "Falha ao cancelar", description: e?.response?.data?.error || e.message || "Tente novamente", variant: "destructive" });
     } finally {
       setLoading(false);
     }
@@ -64,7 +70,8 @@ export default function CancelServiceButton({ request }) {
     <>
       <Button
         variant="outline"
-        onClick={() => setOpen(true)}
+        onClick={openConfirmation}
+        disabled={loading}
         className="w-full text-red-600 border-red-200 hover:bg-red-50"
       >
         <XCircle className="w-4 h-4 mr-2" /> Cancelar serviço
@@ -76,13 +83,13 @@ export default function CancelServiceButton({ request }) {
             <AlertDialogTitle>Cancelar este serviço?</AlertDialogTitle>
             <AlertDialogDescription>
               {free
-                ? "O cancelamento agora é sem custo. Deseja continuar?"
+                ? "O cancelamento agora é sem custo. Os três primeiros cancelamentos do dia são gratuitos. Deseja continuar?"
                 : `Será cobrada uma taxa de cancelamento ${feeData?.fixed ? "fixa" : "de 25%"} de R$ ${feeData?.fee.toFixed(2)}, paga apenas online (cartão).`}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Não, voltar</AlertDialogCancel>
-            <AlertDialogAction onClick={handleConfirm}>
+            <AlertDialogAction disabled={loading || !quote} onClick={handleConfirm}>
               {free ? "Sim, cancelar" : "Continuar para a taxa"}
             </AlertDialogAction>
           </AlertDialogFooter>

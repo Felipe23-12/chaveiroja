@@ -108,7 +108,7 @@ function isPayoutsEnabled(account: any) {
 function isDetailsSubmitted(account: any) {
   if (account?.requirements) {
     const due = account.requirements.currently_due;
-    return Array.isArray(due) ? due.length === 0 : !due;
+    return account.details_submitted === true || (Array.isArray(due) && due.length === 0);
   }
   return !!account?.details_submitted;
 }
@@ -117,8 +117,9 @@ function isUnderReview(account: any) {
   const requirements = account?.requirements || {};
   const currentlyDue = requirements.currently_due || [];
   const pendingVerification = requirements.pending_verification || [];
-  return !isChargesEnabled(account) && !isPayoutsEnabled(account) &&
-    currentlyDue.length === 0 && (pendingVerification.length > 0 || isDetailsSubmitted(account));
+  const rejected = String(requirements.disabled_reason || '').startsWith('rejected');
+  return !rejected && !(isChargesEnabled(account) && isPayoutsEnabled(account)) &&
+    (pendingVerification.length > 0 || (currentlyDue.length === 0 && isDetailsSubmitted(account)));
 }
 
 async function saveConnectRecord(base44: any, locksmithId: string, account: any) {
@@ -138,7 +139,7 @@ async function saveConnectRecord(base44: any, locksmithId: string, account: any)
   };
 
   const existing = await findConnectRecord(base44, locksmithId);
-  if (!existing?.onboarding_completed_at && (account.details_submitted === true || (chargesEnabled && payoutsEnabled))) {
+  if (!existing?.onboarding_completed_at && (account.details_submitted === true || isUnderReview(account) || (chargesEnabled && payoutsEnabled))) {
     record.onboarding_completed_at = now;
   }
   if (existing?.id) {
@@ -170,7 +171,7 @@ export default async function(req) {
     if (action === 'onboarding_policy') {
       if (!requiresUnifiedRegistration(user) || user.role === 'admin') return Response.json({ required: false, completed: true });
       const record = await findConnectRecord(base44, user.id);
-      return Response.json({ required: true, completed: !!record?.onboarding_completed_at });
+      return Response.json({ required: true, completed: !!(record?.onboarding_completed_at || record?.details_submitted) });
     }
 
     if (action === 'create_account') {
