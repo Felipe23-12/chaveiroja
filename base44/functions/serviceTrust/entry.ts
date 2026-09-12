@@ -31,7 +31,7 @@ export default async function(req) {
       if (block.blocked) return Response.json({ error: `Limite diário de cancelamentos atingido. Modo aplicativo bloqueado por mais ${block.minutesLeft} min.`, ...block }, { status: 403 });
       const data = body.data || {};
       if (!data.service_type || !String(data.address || '').trim()) return Response.json({ error: 'Informe o serviço e o endereço' }, { status: 400 });
-      const allowed = ['service_type', 'address', 'description', 'urgency', 'locksmith_id', 'locksmith_name', 'locksmith_user_id', 'ringing_locksmith_ids', 'ringing_locksmith_user_ids', 'customer_lat', 'customer_lng', 'locksmith_lat', 'locksmith_lng', 'price', 'key_value', 'fipe_value', 'key_type', 'vehicle_info', 'labor_cost', 'locomotion_cost', 'distance_km', 'extra_cost', 'discount_applied', 'discount_amount'];
+      const allowed = ['service_type', 'address', 'description', 'urgency', 'locksmith_id', 'locksmith_name', 'locksmith_user_id', 'ringing_locksmith_ids', 'ringing_locksmith_user_ids', 'customer_lat', 'customer_lng', 'locksmith_lat', 'locksmith_lng', 'price', 'key_value', 'fipe_value', 'key_type', 'vehicle_info', 'labor_cost', 'locomotion_cost', 'distance_km', 'extra_cost', 'discount_applied', 'discount_amount', 'pricing_calculation'];
       const values = Object.fromEntries(allowed.filter((key) => data[key] !== undefined).map((key) => [key, data[key]]));
       const request = await base44.entities.ServiceRequest.create({ ...values, status: 'ringing' });
       return Response.json({ request });

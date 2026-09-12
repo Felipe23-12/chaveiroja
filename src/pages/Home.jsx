@@ -61,6 +61,9 @@ import ModerationActions from "@/components/moderation/ModerationActions";
 import OpeningChargeSummary from "@/components/client/OpeningChargeSummary";
 import { OPENING_CONDITION_FEE, getOpeningConditionFee, hasLocksmithConditionCorrection, locksmithAddedConditionFee } from "@/lib/openingCondition";
 import { findVehicleKeyCatalog, parallelKeyPrice, parallelOptions, requiresParallelKey, technicalKeyDescription } from "@/lib/vehicleKeyCatalog";
+import buildChargeCalculation from "@/components/admin/buildChargeCalculation";
+import HomeConfigurationStep from "@/components/client/HomeConfigurationStep";
+import HomeTrackingStep from "@/components/client/HomeTrackingStep";
 
 export default function Home() {
   const { toast } = useToast();
@@ -139,7 +142,7 @@ export default function Home() {
   const { debt, refresh: refreshDebt } = useClientDebt();
 
   const service = useMemo(() => SERVICE_CATALOG.find((s) => s.id === serviceId), [serviceId]);
-  const openingConditionFee = isOpeningService(service) && (openingReason === "lock_problem" || brokenKeyInLock === true) ? OPENING_CONDITION_FEE : 0;
+  const openingConditionFee = isOpeningService(service) && (openingReason === "lock_problem" || (serviceId !== "abertura_automotiva" && brokenKeyInLock === true)) ? OPENING_CONDITION_FEE : 0;
 
   // Condição do tempo no local do cliente — chuva aumenta o valor (até 70%)
   const weather = useWeatherSurge(customerLoc.lat, customerLoc.lng);
@@ -240,7 +243,7 @@ export default function Home() {
       service: pricingService,
       selectedOptions,
       customAddons,
-      vehicleInfo,
+      vehicleInfo: serviceId === "abertura_automotiva" ? { ...vehicleInfo, complexity: "simples" } : vehicleInfo,
       locks: service?.hasLocks ? locks : [],
       onlineLocksmiths: onlineLocksmithsCount,
       activeRequests: activeRequestsCount,
@@ -512,9 +515,9 @@ export default function Home() {
       // Resumo das fechaduras enviado ao chaveiro junto com a solicitação
       const locksText = service.hasLocks ? locksSummary(locks) : "";
       const openingReasonText = isOpeningService(service)
-        ? openingReason === "lock_problem" ? "Cliente informou: fechadura com problema" : "Cliente informou: perdeu a chave"
+        ? openingReason === "lock_problem" ? "Cliente informou: fechadura com problema" : service.id === "abertura_automotiva" ? "Cliente informou: esqueceu a chave dentro do carro" : "Cliente informou: perdeu a chave"
         : "";
-      const brokenKeyText = isOpeningService(service)
+      const brokenKeyText = isOpeningService(service) && service.id !== "abertura_automotiva"
         ? brokenKeyInLock ? "Chave quebrada dentro da fechadura" : "Chave não está quebrada na fechadura"
         : "";
       // Confere o veículo/ano atual e grava a ficha no chamado, inclusive offline após o aceite.
@@ -527,6 +530,7 @@ export default function Home() {
         ? technicalKeyDescription({ origin: keyOrigin, row: requestCatalog })
         : "";
       const base = {
+        pricing_calculation: buildChargeCalculation(price, pricingService, { year: vehicleInfo.year, fipeValue, keyType: carKeyType, hasCodedKey }),
         service_type: service.label,
         address,
         description: [`Cliente: ${customerName}`, locksText, openingReasonText, brokenKeyText, keyTechnicalText, description].filter(Boolean).join(" — "),
@@ -1035,7 +1039,7 @@ export default function Home() {
           </div>
           <div className="grid grid-cols-2 gap-3">
             {SERVICE_CATALOG.map((s) => (
-              <ServiceCard key={s.id} service={s} selected={serviceId === s.id} onClick={() => setServiceId(s.id)} />
+              <ServiceCard key={s.id} service={s} selected={serviceId === s.id} onClick={() => { setServiceId(s.id); setOpeningReason(null); setBrokenKeyInLock(null); }} />
             ))}
           </div>
           <Button onClick={() => goToStep(2)} disabled={!serviceId || !keyBlock || keyBlock.blocked} size="lg" className="w-full">
@@ -1061,112 +1065,16 @@ export default function Home() {
       )}
 
       {/* Step 2: Configuração + preço */}
-      {step === 2 && service && (
-        <div className="space-y-5 step-enter">
-          {service.isCarKey ? (
-            <CarKeyConfig
-              service={service}
-              vehicleInfo={vehicleInfo}
-              setVehicleInfo={setVehicleInfo}
-              address={address}
-              setAddress={setAddress}
-              onAddressSelect={handleAddressSelect}
-              description={description}
-              setDescription={setDescription}
-              keyValue={originalKeyValue}
-              searching={searching}
-              searchError={searchError}
-              onSearch={handleSearchKey}
-              carKeyType={carKeyType}
-              setCarKeyType={setCarKeyType}
-              fipeValue={fipeValue}
-              hasCodedKey={hasCodedKey}
-              programming={programming}
-              price={address && fipeValue != null && !programming?.dealerOnly ? price : null}
-              keyOrigin={keyOrigin}
-              setKeyOrigin={setKeyOrigin}
-              keyCatalog={keyCatalog}
-              showPriceBeforeAcceptance={canPreviewKeyPrice}
-            />
-          ) : service.isMotoKey ? (
-            <MotoKeyConfig
-              service={service}
-              motoInfo={motoInfo}
-              setMotoInfo={setMotoInfo}
-              motoRule={motoRule}
-              address={address}
-              setAddress={setAddress}
-              onAddressSelect={handleAddressSelect}
-              description={description}
-              setDescription={setDescription}
-              price={address ? price : null}
-              keyOrigin={keyOrigin}
-              setKeyOrigin={setKeyOrigin}
-              keyCatalog={keyCatalog}
-              showPriceBeforeAcceptance={canPreviewKeyPrice}
-            />
-          ) : (
-            <ServiceConfig
-              service={service}
-              address={address}
-              setAddress={setAddress}
-              onAddressSelect={handleAddressSelect}
-              description={description}
-              setDescription={setDescription}
-              selectedOptions={selectedOptions}
-              toggleOption={toggleOption}
-              customAddons={customAddons}
-              setCustomAddon={setCustomAddon}
-              vehicleInfo={vehicleInfo}
-              setVehicleInfo={setVehicleInfo}
-              locks={locks}
-              setLocks={setLocks}
-              brokenKeyInLock={brokenKeyInLock}
-              setBrokenKeyInLock={setBrokenKeyInLock}
-              openingReason={openingReason}
-              setOpeningReason={setOpeningReason}
-              price={address ? price : null}
-            />
-          )}
-
-          <SearchRadiusSelector
-            radius={searchRadius}
-            setRadius={setSearchRadius}
-            availableCount={inRadiusCount}
-          />
-
-          <UrgencySelector urgency={urgency} setUrgency={setUrgency} />
-
-          <ErrorBanner message={searchError} />
-
-          <div className="flex gap-3">
-            <Button variant="outline" onClick={() => goToStep(1)} className="flex-1">
-              <ArrowLeft className="w-4 h-4 mr-2" /> Voltar
-            </Button>
-            <Button
-              onClick={handleConfirmConfig}
-              disabled={
-                !address ||
-                submitting ||
-                !keyBlock || keyBlock.blocked ||
-                programming?.dealerOnly ||
-                (isOpeningService(service) && (openingReason == null || brokenKeyInLock == null)) ||
-                (service?.needsVehicleInfo &&
-                  !service?.isCarKey &&
-                  (!vehicleInfo.make?.trim() || !vehicleInfo.model?.trim() || !String(vehicleInfo.year || "").trim())) ||
-                (service?.isCarKey && (!fipeValue || !vehicleInfo.doorStatus)) ||
-                (service?.isCarKey && requiresParallelKey(keyCatalog) && keyOrigin !== "paralela") ||
-                ((service?.isCarKey || service?.isMotoKey) && keyOrigin === "paralela" && (parallelOptions(keyCatalog).length === 0 || selectedKeyValue <= 0)) ||
-                (service?.isMotoKey && !motoRule?.range)
-              }
-              className="flex-1"
-            >
-              {submitting ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Bell className="w-4 h-4 mr-2" />}
-              Solicitar chaveiro
-            </Button>
-          </div>
-        </div>
-      )}
+      {step === 2 && service && <HomeConfigurationStep config={{
+        service, vehicleInfo, setVehicleInfo, address, setAddress, handleAddressSelect,
+        description, setDescription, originalKeyValue, searching, searchError, handleSearchKey,
+        carKeyType, setCarKeyType, fipeValue, hasCodedKey, programming, price, keyOrigin,
+        setKeyOrigin, keyCatalog, canPreviewKeyPrice, motoInfo, setMotoInfo, motoRule,
+        selectedOptions, toggleOption, customAddons, setCustomAddon, locks, setLocks,
+        brokenKeyInLock, setBrokenKeyInLock, openingReason, setOpeningReason,
+        searchRadius, setSearchRadius, inRadiusCount, urgency, setUrgency,
+        goToStep, handleConfirmConfig, submitting, keyBlock, selectedKeyValue,
+      }} />}
 
       {/* Step 3: Procurando / tocando no chaveiro */}
       {step === 3 && activeRequest && !cancelFeeData && (
@@ -1201,95 +1109,12 @@ export default function Home() {
       )}
 
       {/* Step 5: Acompanhamento em tempo real (oculta durante pagamento da taxa) */}
-      {step === 5 && activeRequest && !cancelFeeData && (
-        <div className="space-y-5 step-enter">
-          <div>
-            <h2 className="font-heading font-semibold text-lg text-foreground flex items-center gap-2">
-              <Navigation className="w-5 h-5 text-primary" /> Acompanhando serviço
-            </h2>
-            <p className="text-sm text-muted-foreground">{activeRequest.service_type} · {activeRequest.address}</p>
-          </div>
-
-          <UrgentArrivalCountdown request={activeRequest} />
-          <CancellationCaseNotice requestId={activeRequest.id} />
-          <ModerationActions
-            targetUserId={activeRequest.locksmith_user_id || selectedLocksmith?.created_by_id}
-            targetType="chaveiro"
-            targetName={activeRequest.locksmith_name || selectedLocksmith?.name}
-            contextType="service"
-            requestId={activeRequest.id}
-            locksmithId={selectedLocksmith?.id}
-          />
-
-          {activeRequest.locksmith_arrived && !activeRequest.client_arrived_confirmed && (
-            <div className="p-4 rounded-2xl border-2 border-primary bg-primary/5 space-y-3">
-              <div className="flex items-center gap-2 text-primary">
-                <MapPin className="w-5 h-5" />
-                <p className="font-medium text-sm">O chaveiro chegou ao local!</p>
-              </div>
-              <p className="text-xs text-muted-foreground">Confirme a chegada para que o chaveiro inicie o atendimento. Se ele ainda não chegou, avise pelo botão abaixo.</p>
-              <Button onClick={handleConfirmArrival} className="w-full">
-                <CheckCircle2 className="w-4 h-4 mr-1.5" /> Confirmar chegada do chaveiro
-              </Button>
-              <Button
-                onClick={handleDenyArrival}
-                variant="outline"
-                className="w-full text-red-600 border-red-200 hover:bg-red-50"
-              >
-                <AlertTriangle className="w-4 h-4 mr-1.5" /> Ele ainda não chegou
-              </Button>
-            </div>
-          )}
-
-          <LightMap
-            center={{ lat: activeRequest.customer_lat, lng: activeRequest.customer_lng }}
-            height={320}
-            markers={[
-              { id: "c", lat: activeRequest.customer_lat, lng: activeRequest.customer_lng, type: "customer", label: "Você" },
-              { id: "l", lat: activeRequest.locksmith_lat, lng: activeRequest.locksmith_lng, type: "locksmith", label: selectedLocksmith?.name?.split(" ")[0], active: activeRequest.status === "on_the_way" },
-            ]}
-            route={
-              activeRequest.status !== "completed"
-                ? { from: { lat: activeRequest.locksmith_lat, lng: activeRequest.locksmith_lng }, to: { lat: activeRequest.customer_lat, lng: activeRequest.customer_lng } }
-                : null
-            }
-            routePath={routePath}
-            eta={routeEta}
-          />
-
-          <RequestTracking
-            request={activeRequest}
-            locksmith={selectedLocksmith}
-            onAdvance={handleAdvance}
-            onRate={handleRate}
-            onCall={(l) => (window.location.href = `tel:${l.phone}`)}
-          />
-
-          <Button
-            variant="outline"
-            onClick={() => navigate(`/acompanhamento/${activeRequest.id}`)}
-            className="w-full"
-          >
-            <MessageCircle className="w-4 h-4 mr-2" /> Ver rota e conversar com o chaveiro
-          </Button>
-
-          {!activeRequest.start_photos?.length && (
-            <UpgradeToUrgentButton request={activeRequest} onUpdated={setActiveRequest} />
-          )}
-
-          {activeRequest.status !== "completed" && (
-            <Button onClick={handleCancel} variant="outline" className="w-full text-red-600 border-red-200 hover:bg-red-50">
-              Cancelar serviço
-            </Button>
-          )}
-
-          {activeRequest.status === "completed" && (
-            <Button onClick={handleNewRequest} variant="outline" className="w-full">
-              Solicitar novo serviço
-            </Button>
-          )}
-        </div>
-      )}
+      {step === 5 && activeRequest && !cancelFeeData && <HomeTrackingStep
+        request={activeRequest} locksmith={selectedLocksmith} routePath={routePath} routeEta={routeEta}
+        onConfirmArrival={handleConfirmArrival} onDenyArrival={handleDenyArrival}
+        onAdvance={handleAdvance} onRate={handleRate} onChat={() => navigate(`/acompanhamento/${activeRequest.id}`)}
+        onUpdated={setActiveRequest} onCancel={handleCancel} onNewRequest={handleNewRequest}
+      />}
 
       {/* Step 6: Pagamento (após o chaveiro registrar o final do serviço) */}
       {step === 6 && activeRequest && activeRequest.end_photos?.length > 0 && activeRequest.status !== "completed" && (

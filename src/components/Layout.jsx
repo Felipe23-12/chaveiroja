@@ -16,6 +16,7 @@ import BlockedContactsButton from "@/components/moderation/BlockedContactsButton
 import ReportCaseCenter from "@/components/moderation/ReportCaseCenter";
 import { useChatUnread } from "@/lib/chatUnreadStore";
 import PageTransition from "@/components/PageTransition";
+import ChargeCalculationsLink from "@/components/admin/ChargeCalculationsLink";
 
 const ALL_NAV = [
   { label: "Início", path: "/", icon: HomeIcon, roles: ["cliente"] },
@@ -91,6 +92,7 @@ function SidebarContent({ onNavigate }) {
             </Link>
           );
         })}
+        <ChargeCalculationsLink onNavigate={onNavigate} />
       </nav>
 
       <div className="p-2 border-t border-border pb-safe">

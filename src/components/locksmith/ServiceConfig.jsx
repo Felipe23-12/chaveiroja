@@ -46,7 +46,7 @@ export default function ServiceConfig({
       </div>
 
       {isOpeningService(service) && (
-        <OpeningConditionQuestions reason={openingReason} onReasonChange={setOpeningReason} brokenKey={brokenKeyInLock} onBrokenKeyChange={setBrokenKeyInLock} />
+        <OpeningConditionQuestions automotive={service.id === "abertura_automotiva"} reason={openingReason} onReasonChange={setOpeningReason} brokenKey={brokenKeyInLock} onBrokenKeyChange={setBrokenKeyInLock} />
       )}
 
       {/* Fechaduras: quantas portas abrir e quais miolos trocar */}
@@ -102,24 +102,14 @@ export default function ServiceConfig({
               onChange={(e) => updateVehicle("year", e.target.value)}
             />
           </div>
-          <div>
+          {service.id !== "abertura_automotiva" && <div>
             <p className="text-xs text-muted-foreground mb-1.5">Complexidade do serviço</p>
             <div className="grid grid-cols-3 gap-2">
               {["simples", "media", "alta"].map((c) => (
-                <button
-                  key={c}
-                  onClick={() => updateVehicle("complexity", c)}
-                  className={`p-2 rounded-lg border-2 text-sm capitalize transition-all ${
-                    vehicleInfo.complexity === c
-                      ? "border-primary bg-primary/5 text-primary"
-                      : "border-border text-muted-foreground"
-                  }`}
-                >
-                  {c}
-                </button>
+                <button key={c} onClick={() => updateVehicle("complexity", c)} className={`p-2 rounded-lg border-2 text-sm capitalize transition-all ${vehicleInfo.complexity === c ? "border-primary bg-primary/5 text-primary" : "border-border text-muted-foreground"}`}>{c}</button>
               ))}
             </div>
-          </div>
+          </div>}
         </div>
       )}
 
@@ -144,9 +134,9 @@ export default function ServiceConfig({
         />
       </div>
 
-      {isOpeningService(service) && (openingReason == null || brokenKeyInLock == null) ? (
+      {isOpeningService(service) && (openingReason == null || (service.id !== "abertura_automotiva" && brokenKeyInLock == null)) ? (
         <div className="rounded-2xl bg-muted p-4 text-sm text-muted-foreground text-center">
-          Responda as duas perguntas obrigatórias para calcularmos o valor do serviço.
+          {service.id === "abertura_automotiva" ? "Selecione o que aconteceu para calcularmos o valor do serviço." : "Responda as duas perguntas obrigatórias para calcularmos o valor do serviço."}
         </div>
       ) : service.needsVehicleInfo && !vehicleReady ? (
         <div className="rounded-2xl bg-muted p-4 text-sm text-muted-foreground text-center">

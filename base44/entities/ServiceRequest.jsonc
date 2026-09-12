@@ -315,6 +315,43 @@
     "urgency_upgrade_price": {
       "type": "number",
       "description": "Novo valor do servi\u00e7o caso a mudan\u00e7a para urgente seja aplicada"
+    },
+    "pricing_calculation": {
+      "type": "object",
+      "description": "Mem\u00f3ria do c\u00e1lculo utilizado na solicita\u00e7\u00e3o, antes do desconto; n\u00e3o recalculada com tarifas futuras.",
+      "properties": {
+        "total": {
+          "type": "number"
+        },
+        "lines": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "label": {
+                "type": "string"
+              },
+              "value": {
+                "type": "number"
+              }
+            },
+            "required": [
+              "label",
+              "value"
+            ]
+          }
+        },
+        "notes": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "required": [
+        "total",
+        "lines"
+      ]
     }
   },
   "required": [
