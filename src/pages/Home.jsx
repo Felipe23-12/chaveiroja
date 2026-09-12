@@ -1066,7 +1066,7 @@ export default function Home() {
 
       {/* Step 2: Configuração + preço */}
       {step === 2 && service && <HomeConfigurationStep config={{
-        service, vehicleInfo, setVehicleInfo, address, setAddress, handleAddressSelect,
+        service, pricingService, vehicleInfo, setVehicleInfo, address, setAddress, handleAddressSelect,
         description, setDescription, originalKeyValue, searching, searchError, handleSearchKey,
         carKeyType, setCarKeyType, fipeValue, hasCodedKey, programming, price, keyOrigin,
         setKeyOrigin, keyCatalog, canPreviewKeyPrice, motoInfo, setMotoInfo, motoRule,

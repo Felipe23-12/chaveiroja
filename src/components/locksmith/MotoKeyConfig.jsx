@@ -37,6 +37,7 @@ export default function MotoKeyConfig({
   setKeyOrigin,
   keyCatalog,
   showPriceBeforeAcceptance = false,
+  calculationService = null,
 }) {
   const update = (field, value) => setMotoInfo((v) => ({ ...v, [field]: value }));
   const models = MOTO_MODELS[motoInfo.brandId] || [];
@@ -147,7 +148,7 @@ export default function MotoKeyConfig({
         />
       </div>
 
-      {showPriceBeforeAcceptance ? <PriceSummary price={price} /> : <KeyServicePrice pending />}
+      {showPriceBeforeAcceptance ? <PriceSummary price={price} service={calculationService || service} showCalculationDetails /> : <KeyServicePrice pending />}
     </div>
   );
 }

@@ -1,4 +1,5 @@
 import React from "react";
+import { Clock3 } from "lucide-react";
 import { carKeyComponents, getCarKeyFipeLaborRate } from "@/lib/pricing";
 import { parallelKeyPrice, requiresParallelKey } from "@/lib/vehicleKeyCatalog";
 
@@ -21,7 +22,8 @@ export default function CarKeyCalculationDetails({ price, fipeValue, year, hasCo
   ];
   return (
     <div className="rounded-2xl border border-primary/40 bg-primary/5 p-4 space-y-4">
-      <div><h3 className="font-heading font-semibold text-foreground">Memória completa do cálculo</h3><p className="text-xs text-muted-foreground">Área exclusiva de conferência de mercado</p></div>
+      <div><h3 className="font-heading font-semibold text-foreground">Prévia completa do cálculo</h3><p className="text-xs text-muted-foreground">Visível somente para o perfil administrador</p></div>
+      <div className="flex items-center gap-2 rounded-lg bg-background/70 p-2 text-xs text-muted-foreground"><Clock3 className="h-3.5 w-3.5" />Cálculo atualizado em {new Date().toLocaleString("pt-BR")}</div>
       <div className="space-y-1 text-sm">
         <p className="flex justify-between gap-3"><span>Tabela FIPE</span><strong>{money(fipeValue)}</strong></p>
         <p className="flex justify-between gap-3"><span>Taxa de mão de obra</span><strong>{(rate * 100).toFixed(1)}%</strong></p>
