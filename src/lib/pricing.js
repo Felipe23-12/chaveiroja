@@ -225,8 +225,9 @@ export function calculatePrice({
   let base = Math.round(low + span * factor);
   const breakdown = [{ label: `${service.label} (${time.label})`, value: base }];
 
-  // Fatores automotivos: complexidade + ano
-  if (service.needsVehicleInfo && vehicleInfo) {
+  // Outros serviços com veículo mantêm o ajuste proporcional existente.
+  // Na abertura automotiva, a complexidade entra como valor fixo ao final.
+  if (service.needsVehicleInfo && service.id !== "abertura_automotiva" && vehicleInfo) {
     const cFactor = COMPLEXITY_FACTOR[vehicleInfo.complexity] || 0;
     const yearAdjust = vehicleInfo.year && Number(vehicleInfo.year) >= 2020 ? 0.15 : 0;
     const extra = Math.round(span * (cFactor + yearAdjust));

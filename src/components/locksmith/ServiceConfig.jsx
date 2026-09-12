@@ -104,14 +104,21 @@ export default function ServiceConfig({
               onChange={(e) => updateVehicle("year", e.target.value)}
             />
           </div>
-          {service.id !== "abertura_automotiva" && <div>
-            <p className="text-xs text-muted-foreground mb-1.5">Complexidade do serviço</p>
-            <div className="grid grid-cols-3 gap-2">
-              {["simples", "media", "alta"].map((c) => (
-                <button key={c} onClick={() => updateVehicle("complexity", c)} className={`p-2 rounded-lg border-2 text-sm capitalize transition-all ${vehicleInfo.complexity === c ? "border-primary bg-primary/5 text-primary" : "border-border text-muted-foreground"}`}>{c}</button>
+          <div>
+            <p className="text-xs text-muted-foreground mb-1.5">Complexidade da abertura</p>
+            <div className="grid grid-cols-1 gap-2">
+              {[
+                { id: "simples", label: "Abertura simples", description: "Abertura convencional, sem dificuldade adicional" },
+                { id: "media", label: "Média complexidade", description: "Possivelmente existe algum problema para abrir · + R$ 25,00" },
+                { id: "alta", label: "Alta complexidade", description: "Sistema do veículo não permite uma abertura simples · + R$ 50,00" },
+              ].map((item) => (
+                <button type="button" key={item.id} onClick={() => updateVehicle("complexity", item.id)} className={`min-h-[44px] rounded-xl border-2 p-3 text-left transition-all ${vehicleInfo.complexity === item.id ? "border-primary bg-primary/5" : "border-border"}`}>
+                  <span className="block text-sm font-medium text-foreground">{item.label}</span>
+                  <span className="block text-xs text-muted-foreground">{item.description}</span>
+                </button>
               ))}
             </div>
-          </div>}
+          </div>
         </div>
       )}
 

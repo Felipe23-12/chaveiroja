@@ -262,6 +262,18 @@ export function calculateDynamicPrice({
     });
   }
 
+  // Abertura automotiva: cada nível acima do simples acrescenta exatamente R$ 25 ao total.
+  const complexitySteps = { simples: 0, media: 1, alta: 2 };
+  const automotiveComplexityFee = service.id === "abertura_automotiva"
+    ? (complexitySteps[vehicleInfo?.complexity] || 0) * 25
+    : 0;
+  if (automotiveComplexityFee > 0) {
+    breakdown.push({
+      label: `${vehicleInfo?.complexity === "alta" ? "Alta" : "Média"} complexidade da abertura`,
+      value: automotiveComplexityFee,
+    });
+  }
+
   // Chave quebrada dentro da fechadura (serviços de abertura): taxa fixa
   const brokenKeyFee = isOpeningService(service) && brokenKeyInLock ? BROKEN_KEY_FEE : 0;
   if (brokenKeyFee > 0) {
@@ -272,7 +284,7 @@ export function calculateDynamicPrice({
   const MIN_OPENING_TOTAL = 50;
   const hasOpeningFloor = ["abertura_residencial", "abertura_automotiva"].includes(service.id);
   const rawTotal = Math.round((current + addonsTotal + distanceFee) * 100) / 100;
-  const total = (hasOpeningFloor ? Math.max(rawTotal, MIN_OPENING_TOTAL) : rawTotal) + brokenKeyFee;
+  const total = (hasOpeningFloor ? Math.max(rawTotal, MIN_OPENING_TOTAL) : rawTotal) + automotiveComplexityFee + brokenKeyFee;
 
   return {
     base: service.isCarKey
@@ -283,6 +295,7 @@ export function calculateDynamicPrice({
     addons: addonsTotal,
     distanceFee,
     brokenKeyFee,
+    automotiveComplexityFee,
     total: Math.round(total * 100) / 100,
     breakdown,
     timeTier: baseResult.timeTier,

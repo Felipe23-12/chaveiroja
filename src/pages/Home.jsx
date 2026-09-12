@@ -243,7 +243,7 @@ export default function Home() {
       service: pricingService,
       selectedOptions,
       customAddons,
-      vehicleInfo: serviceId === "abertura_automotiva" ? { ...vehicleInfo, complexity: "simples" } : vehicleInfo,
+      vehicleInfo,
       locks: service?.hasLocks ? locks : [],
       onlineLocksmiths: onlineLocksmithsCount,
       activeRequests: activeRequestsCount,
