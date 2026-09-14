@@ -2,7 +2,6 @@ import React, { useState, useEffect, useMemo } from "react";
 import { base44 } from "@/api/base44Client";
 import { Wallet, TrendingUp, Percent, Receipt, BadgeCheck, Clock, Loader2, ChevronDown, ChevronUp } from "lucide-react";
 import { calculateRepasse, WORK_MODES } from "@/lib/pricing";
-import StripeBalanceCard from "@/components/locksmith/StripeBalanceCard";
 
 const fmtMoney = (n) =>
   (Number(n) || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
@@ -206,8 +205,7 @@ export default function LocksmithFinancialPanel({ locksmith }) {
         </div>
       )}
 
-      {isAppMode && <StripeBalanceCard />}
-      {/* Saldos internos não são o saldo da conta Stripe. */}
+      {/* Saldos internos são apenas valores legados; novos repasses vão ao Mercado Pago. */}
       {isAppMode && (
         <div className="grid grid-cols-2 gap-3">
           <div className="p-3 rounded-xl bg-emerald-50 border border-emerald-100">
