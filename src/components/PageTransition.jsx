@@ -1,4 +1,4 @@
-/** Transição leve, sem biblioteca de animação no carregamento do Android. */
+/** Contêiner neutro: evita criar uma camada gráfica do tamanho da página no Android. */
 export default function PageTransition({ children }) {
-  return <div className="fade-in-up">{children}</div>;
+  return <div>{children}</div>;
 }

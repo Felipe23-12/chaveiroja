@@ -228,7 +228,8 @@ html, body {
   min-height: 100%;
   width: 100%;
   overflow-x: hidden;
-  overscroll-behavior-y: contain;
+  overscroll-behavior-y: auto;
+  touch-action: pan-y;
   -webkit-tap-highlight-color: transparent;
   -webkit-text-size-adjust: 100%;
 }
@@ -251,10 +252,22 @@ button, a, input, select, textarea {
   }
 }
 
+/* Evita repinturas contínuas dos mapas durante a rolagem por toque no Android. */
+@media (pointer: coarse) {
+  .route-flow,
+  .route-glow {
+    animation: none;
+  }
+}
+
 .overflow-y-auto,
-.overflow-auto,
+.overflow-auto {
+  overscroll-behavior-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
 .overflow-x-auto {
-  overscroll-behavior-y: contain;
+  overscroll-behavior-x: contain;
   -webkit-overflow-scrolling: touch;
 }
 

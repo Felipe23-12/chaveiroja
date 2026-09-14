@@ -156,7 +156,7 @@ export default function LightMap({ center, markers = [], route = null, routePath
     <div
       ref={containerRef}
       onClick={() => setSelected(null)}
-      className="relative w-full rounded-2xl overflow-hidden border border-border bg-muted/40"
+      className="relative w-full touch-pan-y rounded-2xl overflow-hidden border border-border bg-muted/40"
       style={{ height }}
     >
       {/* Fundo: grade mínima de tiles do OpenStreetMap */}
@@ -167,7 +167,8 @@ export default function LightMap({ center, markers = [], route = null, routePath
             src={t.url}
             alt=""
             loading="lazy"
-            className="absolute select-none"
+            draggable={false}
+            className="pointer-events-none absolute select-none"
             style={{ left: t.left, top: t.top, width: TILE, height: TILE }}
           />
         ))}

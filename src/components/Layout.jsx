@@ -226,7 +226,7 @@ export default function Layout() {
       <aside className="hidden md:flex md:w-64 md:min-h-screen bg-card border-r border-border flex-col sticky top-0 md:h-screen">
         <SidebarContent onNavigate={() => {}} />
       </aside>
-      <main className="min-w-0 flex-1 pb-[calc(4rem+env(safe-area-inset-bottom))] md:h-[100dvh] md:overflow-y-auto md:pb-0">
+      <main className="min-w-0 flex-1 pb-[calc(4rem+env(safe-area-inset-bottom))] md:pb-0">
         <PageTransition key={location.pathname}>
           <Outlet />
         </PageTransition>

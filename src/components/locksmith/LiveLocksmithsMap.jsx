@@ -153,7 +153,7 @@ export default function LiveLocksmithsMap({ customerLoc, livreOnly = false }) {
             placeholder="Buscar por nome ou especialidade…"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full h-10 pl-10 pr-9 rounded-lg border border-input bg-card text-sm text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+            className="w-full h-11 pl-10 pr-9 rounded-lg border border-input bg-card text-sm text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
           />
           {searchQuery && (
             <button
@@ -169,7 +169,7 @@ export default function LiveLocksmithsMap({ customerLoc, livreOnly = false }) {
           <select
             value={maxDistance}
             onChange={(e) => setMaxDistance(Number(e.target.value))}
-            className="h-10 px-3 rounded-lg border border-input bg-card text-sm text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+            className="h-11 px-3 rounded-lg border border-input bg-card text-sm text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
           >
             <option value={0}>Qualquer distância</option>
             <option value={1}>Até 1 km</option>

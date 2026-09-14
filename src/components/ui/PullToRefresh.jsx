@@ -20,16 +20,19 @@ export function usePullToRefresh(onRefresh) {
   useEffect(() => {
     const onStart = (e) => {
       if (window.scrollY > 0 || refreshing) return;
+      if (e.target.closest("input, textarea, select, [data-scrollable], .overflow-y-auto, .overflow-auto")) return;
       startY.current = e.touches[0].clientY;
       pulling.current = true;
     };
     const onMove = (e) => {
       if (!pulling.current || refreshing) return;
       const delta = e.touches[0].clientY - startY.current;
-      if (delta > 0 && window.scrollY <= 0) {
-        pullRef.current = Math.min(delta * 0.5, 100);
-        setPull(pullRef.current);
+      if (delta <= 0 || window.scrollY > 0) {
+        pulling.current = false;
+        return;
       }
+      pullRef.current = Math.min(delta * 0.5, 100);
+      setPull(pullRef.current);
     };
     const onEnd = async () => {
       if (!pulling.current) return;

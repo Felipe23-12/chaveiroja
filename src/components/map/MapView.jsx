@@ -71,7 +71,7 @@ export default function MapView({ center, markers = [], route = null, routePath 
 
   return (
     <div
-      className="relative w-full rounded-2xl overflow-hidden border border-border"
+      className="relative w-full touch-pan-y rounded-2xl overflow-hidden border border-border"
       style={{
         height,
         background: "linear-gradient(135deg, #e8eef3 0%, #dce7f0 100%)",
