@@ -55,7 +55,7 @@ export default function TermosPrivacidade() {
           <li><strong className="text-foreground">Cadastro:</strong> nome, CPF, e-mail, telefone e foto de perfil (opcional).</li>
           <li><strong className="text-foreground">Localização:</strong> usada para encontrar chaveiros próximos, calcular rota, tempo de chegada e preço.</li>
           <li><strong className="text-foreground">Atendimento:</strong> endereço, descrição do problema, fotos do serviço, mensagens do chat e avaliações.</li>
-          <li><strong className="text-foreground">Pagamento:</strong> processado por parceiro certificado (Stripe). Não armazenamos números completos de cartão.</li>
+          <li><strong className="text-foreground">Pagamento:</strong> processado pelo Mercado Pago. Não armazenamos números completos de cartão.</li>
         </ul>
         <p>
           <strong className="text-foreground">Bases legais:</strong> execução de contrato (art. 7º, V), cumprimento de obrigação
@@ -114,7 +114,7 @@ export default function TermosPrivacidade() {
         <p>
           O valor é apresentado antes da confirmação do pedido, com base no tipo de serviço, distância,
           urgência e disponibilidade de profissionais. O pagamento ocorre após a conclusão do atendimento,
-          por cartão, Pix ou dinheiro, conforme as opções exibidas.
+          exclusivamente pelo Mercado Pago, com os meios disponibilizados no checkout.
         </p>
         <p>
           Cancelamentos são gratuitos nos primeiros 5 minutos após o aceite do chaveiro. Após esse prazo,

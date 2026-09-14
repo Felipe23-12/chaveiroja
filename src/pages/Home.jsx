@@ -651,24 +651,9 @@ export default function Home() {
     }, MAX_RADIUS_KM);
   }, [activeRequest?.id, activeRequest?.status, unblockedAppLocksmiths]);
 
-  // Pagamento confirmado via Stripe — acontece após o serviço, antes da finalização
-  const handleServicePayment = async (method, stripePaymentIntentId, paymentId) => {
+  // Pagamento confirmado pelo Mercado Pago após o serviço, antes da finalização
+  const handleServicePayment = async (method, mercadoPagoPaymentId, paymentId) => {
     if (!activeRequest) return;
-
-    // Dinheiro: não cria PaymentIntent no Stripe — o chaveiro confirma o recebimento
-    if (method === "dinheiro") {
-      setPaying(true);
-      setSearchError("");
-      try {
-        await base44.entities.ServiceRequest.update(activeRequest.id, { payment_method: "dinheiro" });
-        setActiveRequest((prev) => ({ ...prev, payment_method: "dinheiro" }));
-      } catch (e) {
-        setSearchError(e.message || "Falha ao registrar forma de pagamento");
-      } finally {
-        setPaying(false);
-      }
-      return;
-    }
 
     setPaying(true);
     setSearchError("");
@@ -687,7 +672,7 @@ export default function Home() {
   };
 
   // Pagamento da taxa de cancelamento
-  const handleCancelFeePayment = async (method, stripePaymentIntentId, paymentId) => {
+  const handleCancelFeePayment = async (method, mercadoPagoPaymentId, paymentId) => {
     if (!activeRequest || !cancelFeeData) return;
     setPaying(true);
     try {
@@ -1206,7 +1191,7 @@ export default function Home() {
             processing={paying}
             onConfirm={handleCancelFeePayment}
             onBack={handleNewRequest}
-            onlineOnly
+            paymentKind="cancellation"
           />
           <ErrorBanner message={searchError} />
         </div>

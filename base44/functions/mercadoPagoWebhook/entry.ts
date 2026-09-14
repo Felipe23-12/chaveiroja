@@ -1,6 +1,6 @@
 import { createClientFromRequest } from "npm:@base44/sdk@0.8.44";
 import { secrets } from "base44:runtime";
-import { fetchPayment, safeEqual, syncApprovedPayment } from "../../shared/mercadoPago.ts";
+import { getSellerAccount, safeEqual, syncApprovedPayment } from "../../shared/mercadoPago.ts";
 
 function parseSignature(value) {
   return Object.fromEntries(String(value || "").split(",").map((part) => part.trim().split("=")));
@@ -28,16 +28,20 @@ export default async function(req) {
     const topic = url.searchParams.get("type") || body.type || body.topic;
     if (topic !== "payment") return Response.json({ received: true });
     const platformToken = secrets.get("MERCADO_PAGO_ACCESS_TOKEN");
-    const lookup = await fetch(`https://api.mercadopago.com/v1/payments/${dataId}`, { headers: { Authorization: `Bearer ${platformToken}` } });
+    let lookup = await fetch(`https://api.mercadopago.com/v1/payments/${dataId}`, { headers: { Authorization: `Bearer ${platformToken}` } });
     let providerPayment = await lookup.json();
-    let payments = providerPayment.external_reference ? await base44.asServiceRole.entities.Payment.filter({ id: String(providerPayment.external_reference) }) : [];
-    if (!payments?.[0]) {
-      const candidates = await base44.asServiceRole.entities.Payment.filter({ mercado_pago_payment_id: dataId });
-      payments = candidates;
+    if (!lookup.ok) {
+      const sellerUserId = String(body.user_id || url.searchParams.get("user_id") || "");
+      const accounts = sellerUserId ? await base44.asServiceRole.entities.MercadoPagoAccount.filter({ mercado_pago_user_id: sellerUserId }) : [];
+      if (!accounts?.[0]) return Response.json({ received: true });
+      const account = await getSellerAccount(base44, accounts[0].locksmith_id);
+      lookup = await fetch(`https://api.mercadopago.com/v1/payments/${dataId}`, { headers: { Authorization: `Bearer ${account.access_token}` } });
+      providerPayment = await lookup.json();
     }
+    if (!lookup.ok) throw new Error(providerPayment.message || "Pagamento não encontrado");
+    const payments = providerPayment.external_reference ? await base44.asServiceRole.entities.Payment.filter({ id: String(providerPayment.external_reference) }) : [];
     const localPayment = payments?.[0];
     if (!localPayment) return Response.json({ received: true });
-    if (!lookup.ok && localPayment.payment_kind !== "subscription") providerPayment = await fetchPayment(base44, localPayment, dataId);
     await syncApprovedPayment(base44, localPayment, providerPayment);
     return Response.json({ received: true });
   } catch (error) {

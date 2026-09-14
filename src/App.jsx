@@ -14,7 +14,7 @@ import RoleGuard from '@/components/RoleGuard';
 import TermsGate from '@/components/TermsGate';
 import LoadingCard from '@/components/ui/LoadingCard';
 import Layout from '@/components/Layout';
-import StripeOnboardingGuard from '@/components/StripeOnboardingGuard';
+import MercadoPagoOnboardingGuard from '@/components/MercadoPagoOnboardingGuard';
 
 // Páginas carregadas sob demanda — reduz o tempo de inicialização em
 // conexões móveis lentas (WebView), pois só o código da rota atual é baixado.
@@ -106,7 +106,7 @@ const AuthenticatedApp = () => {
           <Route element={<ProfileCompletionGuard />}>
           <Route path="/aceite-termos" element={<AceiteTermos />} />
           <Route element={<TermsGate />}>
-          <Route element={<StripeOnboardingGuard />}>
+          <Route element={<MercadoPagoOnboardingGuard />}>
           <Route element={<Layout />}>
             <Route path="/calculos-chamados" element={<CalculosChamados />} />
             <Route element={<RoleGuard allow={["cliente"]} />}>

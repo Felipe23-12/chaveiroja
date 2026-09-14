@@ -13,8 +13,7 @@ import LocksmithChatConversations from "@/components/locksmith/LocksmithChatConv
 import PhotoUploader from "@/components/locksmith/PhotoUploader";
 import WalletCard from "@/components/locksmith/WalletCard";
 import WithdrawalSection from "@/components/locksmith/WithdrawalSection";
-import StripeConnectSetup from "@/components/locksmith/StripeConnectSetup";
-import StripeReviewAlert from "@/components/locksmith/StripeReviewAlert";
+import MercadoPagoConnectSetup from "@/components/locksmith/MercadoPagoConnectSetup";
 import IncomingRequestAlert from "@/components/locksmith/IncomingRequestAlert";
 import PendingRequestsList from "@/components/locksmith/PendingRequestsList";
 import NearbyRequestsList from "@/components/locksmith/NearbyRequestsList";
@@ -115,7 +114,6 @@ export default function PainelChaveiro() {
   const [cancelOpen, setCancelOpen] = useState(false);
   const [profileChecked, setProfileChecked] = useState(false);
   const [trustScore, setTrustScore] = useState(null);
-  const [stripeUnderReview, setStripeUnderReview] = useState(false);
   const emailedStatus = useRef(new Set());
 
   const selected = locksmiths.find((l) => l.id === selectedId) || me;
@@ -860,8 +858,6 @@ export default function PainelChaveiro() {
         </div>
       </div>
 
-      {me && isAppMode && stripeUnderReview && <StripeReviewAlert />}
-
       {profileChecked && !selectedId && (
         <div className="p-4 rounded-xl border border-amber-300 bg-amber-50 text-amber-800 mb-5">
           <p className="font-medium">Nenhum perfil de chaveiro vinculado a esta conta.</p>
@@ -946,10 +942,10 @@ export default function PainelChaveiro() {
         </div>
       )}
 
-      {/* Recebimentos automáticos via Stripe Connect */}
+      {/* Recebimentos automáticos via Mercado Pago */}
       {me && isAppMode && (
         <div className="mb-5">
-          <StripeConnectSetup onStatusChange={(status) => setStripeUnderReview(status?.under_review === true)} />
+          <MercadoPagoConnectSetup />
         </div>
       )}
 
