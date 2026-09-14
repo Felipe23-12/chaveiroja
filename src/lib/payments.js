@@ -2,145 +2,54 @@ import { base44 } from "@/api/base44Client";
 
 export const COMMISSION_RATE = 0.15;
 
-export const PAYMENT_METHODS = [
-  { id: "credit_card", label: "Cartão de Crédito", icon: "CreditCard", description: "Pagamento à vista no cartão" },
-  { id: "debit_card", label: "Cartão de Débito", icon: "CreditCard", description: "Débito imediato" },
-  { id: "pix", label: "Pix", icon: "QrCode", description: "Pagamento imediato via QR Code" },
-];
-
 export function calculatePaymentBreakdown(amount) {
-  const a = Number(amount) || 0;
-  const commission = Math.round(a * COMMISSION_RATE * 100) / 100;
-  const net = Math.round((a - commission) * 100) / 100;
-  return { amount: a, commission, net };
+  const value = Number(amount) || 0;
+  const commission = Math.round(value * COMMISSION_RATE * 100) / 100;
+  return { amount: value, commission, net: Math.round((value - commission) * 100) / 100 };
 }
 
-// Cria um PaymentIntent no Stripe via backend function.
-// Retorna { payment_intent_id, client_secret, publishable_key, pix_data? }
-export async function createStripePaymentIntent({ amount, method, description, locksmithId, serviceRequestId }) {
+export async function createMercadoPagoCheckout({ amount, description, locksmithId, serviceRequestId, paymentKind = "service" }) {
   try {
-    const res = await base44.functions.invoke("stripePayment", {
-      action: "create_intent",
+    const response = await base44.functions.invoke("mercadoPagoPayment", {
+      action: "create_checkout",
       amount,
-      method,
       description,
       locksmith_id: locksmithId,
       service_request_id: serviceRequestId,
+      payment_kind: paymentKind,
     });
-    return res.data;
-  } catch (e) {
-    // O SDK lança um erro genérico ("Request failed with status code 400");
-    // extraímos a mensagem real retornada pelo backend/Stripe para o usuário.
-    const data = e?.response?.data || e?.data || e;
-    const msg = typeof data === "string" ? data : data?.error || data?.message || e?.message;
-    throw new Error(msg || "Falha ao iniciar pagamento");
+    return response.data;
+  } catch (error) {
+    const data = error?.response?.data || error?.data || error;
+    throw new Error(data?.error || data?.message || error?.message || "Falha ao iniciar pagamento");
   }
 }
 
-// Consulta o status de um PaymentIntent no Stripe
-export async function getStripePaymentStatus(paymentIntentId) {
-  const res = await base44.functions.invoke("stripePayment", {
-    action: "get_status",
-    payment_intent_id: paymentIntentId,
-  });
-  return res.data?.status;
-}
-
-// Cancela um PaymentIntent no Stripe
-export async function cancelStripePayment(paymentIntentId) {
-  if (!paymentIntentId) return;
-  try {
-    await base44.functions.invoke("stripePayment", {
-      action: "cancel",
-      payment_intent_id: paymentIntentId,
-    });
-  } catch (e) {
-    /* ignora */
-  }
-}
-
-// Cria registro de Payment no banco e vincula ao ServiceRequest
-export async function createPaymentRecord({ serviceRequestId, amount, method, locksmithId, locksmithName, clientId, clientName, stripePaymentIntentId }) {
-  const breakdown = calculatePaymentBreakdown(amount);
-  const now = new Date().toISOString();
-
-  const payment = await base44.entities.Payment.create({
-    service_request_id: serviceRequestId,
-    locksmith_id: locksmithId,
-    locksmith_name: locksmithName,
-    client_id: clientId,
-    client_name: clientName,
-    amount: breakdown.amount,
-    commission_amount: breakdown.commission,
-    net_amount: breakdown.net,
-    method,
-    status: "pre_authorized",
-    stripe_payment_intent_id: stripePaymentIntentId,
-    pre_authorized_at: now,
-  });
-
-  await base44.entities.ServiceRequest.update(serviceRequestId, {
-    payment_id: payment.id,
-    payment_method: method,
-    payment_status: "pre_authorized",
-  });
-
-  return payment;
-}
-
-// Confirma no servidor que o Stripe recebeu e dividiu o pagamento.
-export async function confirmPaymentPaid(paymentId) {
-  if (!paymentId) return;
-  const res = await base44.functions.invoke("stripePayment", {
+export async function confirmPaymentPaid(paymentId, providerPaymentId) {
+  if (!paymentId) return null;
+  const response = await base44.functions.invoke("mercadoPagoPayment", {
     action: "finalize_payment",
     payment_id: paymentId,
+    provider_payment_id: providerPaymentId,
   });
-  return res.data;
+  return response.data;
 }
 
-// Confirma o recebimento fora do app e compensa os 15% no saldo atual;
-// qualquer diferença fica reservada para o próximo recebimento online.
-export async function confirmCashReceived({ serviceRequestId, locksmithId, amount }) {
-  const res = await base44.functions.invoke("stripePayment", {
-    action: "confirm_cash",
-    service_request_id: serviceRequestId,
-    locksmith_id: locksmithId,
-    amount,
-  });
-  return res.data;
-}
-
-// Solicita saque via Pix com saldo e duplicidade validados no servidor.
 export async function requestWithdrawal({ locksmithId, amount, pixKeyType, pixKeyValue, bankName }) {
   try {
-    const res = await base44.functions.invoke("stripePayment", {
-      action: "request_withdrawal",
-      locksmith_id: locksmithId,
-      amount,
-      pix_key_type: pixKeyType,
-      pix_key_value: pixKeyValue,
-      bank_name: bankName,
-    });
-    return res.data?.withdrawal;
-  } catch (e) {
-    const data = e?.response?.data || e?.data || e;
-    throw new Error(data?.error || data?.message || e?.message || "Erro ao solicitar saque");
+    const response = await base44.functions.invoke("stripePayment", { action: "request_withdrawal", locksmith_id: locksmithId, amount, pix_key_type: pixKeyType, pix_key_value: pixKeyValue, bank_name: bankName });
+    return response.data?.withdrawal;
+  } catch (error) {
+    const data = error?.response?.data || error?.data || error;
+    throw new Error(data?.error || data?.message || error?.message || "Erro ao solicitar saldo legado");
   }
 }
 
-// Marca saque como concluído (admin processa a transferência Pix manualmente)
 export async function completeWithdrawal(withdrawalId) {
   const withdrawal = await base44.entities.Withdrawal.get(withdrawalId);
   if (!withdrawal || withdrawal.status === "completed") return;
-
-  const updated = await base44.entities.Withdrawal.update(withdrawalId, {
-    status: "completed",
-    completed_at: new Date().toISOString(),
-  });
-
+  const updated = await base44.entities.Withdrawal.update(withdrawalId, { status: "completed", completed_at: new Date().toISOString() });
   const locksmith = await base44.entities.Locksmith.get(withdrawal.locksmith_id);
-  const newPending = Math.max(0, Math.round(((locksmith.pending_balance || 0) - withdrawal.amount) * 100) / 100);
-  await base44.entities.Locksmith.update(withdrawal.locksmith_id, { pending_balance: newPending });
-
+  await base44.entities.Locksmith.update(withdrawal.locksmith_id, { pending_balance: Math.max(0, Math.round(((locksmith.pending_balance || 0) - withdrawal.amount) * 100) / 100) });
   return updated;
 }

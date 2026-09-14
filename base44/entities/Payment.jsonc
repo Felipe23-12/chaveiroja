@@ -4,7 +4,7 @@
   "properties": {
     "service_request_id": {
       "type": "string",
-      "description": "ID do ServiceRequest associado"
+      "description": "ID do atendimento ou refer\u00eancia da mensalidade"
     },
     "locksmith_id": {
       "type": "string"
@@ -21,17 +21,17 @@
     "amount": {
       "type": "number",
       "default": 0,
-      "description": "Valor total pago pelo cliente"
+      "description": "Valor total pago"
     },
     "commission_amount": {
       "type": "number",
       "default": 0,
-      "description": "Comiss\u00e3o do app (15%)"
+      "description": "Comiss\u00e3o do app (15% nos atendimentos)"
     },
     "net_amount": {
       "type": "number",
       "default": 0,
-      "description": "Valor l\u00edquido creditado na carteira do chaveiro"
+      "description": "Parcela bruta do chaveiro antes da tarifa do Mercado Pago"
     },
     "method": {
       "type": "string",
@@ -40,7 +40,7 @@
         "debit_card",
         "pix"
       ],
-      "description": "M\u00e9todo de pagamento"
+      "description": "M\u00e9todo efetivamente usado no Mercado Pago"
     },
     "status": {
       "type": "string",
@@ -52,16 +52,34 @@
         "refunded",
         "failed"
       ],
-      "default": "pre_authorized",
-      "description": "Status do pagamento no Stripe"
+      "default": "pre_authorized"
+    },
+    "provider": {
+      "type": "string",
+      "enum": [
+        "mercado_pago",
+        "stripe"
+      ],
+      "default": "mercado_pago"
+    },
+    "payment_kind": {
+      "type": "string",
+      "enum": [
+        "service",
+        "cancellation",
+        "subscription"
+      ],
+      "default": "service"
+    },
+    "mercado_pago_preference_id": {
+      "type": "string"
+    },
+    "mercado_pago_payment_id": {
+      "type": "string"
     },
     "stripe_payment_intent_id": {
       "type": "string",
-      "description": "ID do PaymentIntent no Stripe"
-    },
-    "stripe_client_secret": {
-      "type": "string",
-      "description": "Client secret do PaymentIntent para confirma\u00e7\u00e3o no frontend"
+      "description": "Refer\u00eancia legada de pagamentos Stripe"
     },
     "pre_authorized_at": {
       "type": "string",

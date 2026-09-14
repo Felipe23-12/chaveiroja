@@ -1,115 +1,38 @@
-import React, { useState } from "react";
-import { ArrowLeft, Loader2, Banknote } from "lucide-react";
+import React, { useEffect, useRef, useState } from "react";
+import { ArrowLeft, ExternalLink, Loader2, ShieldCheck, Wallet } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import PaymentMethodSelector from "@/components/payment/PaymentMethodSelector";
-import { calculatePaymentBreakdown, createStripePaymentIntent } from "@/lib/payments";
-import StripeCardForm from "@/components/payment/StripeCardForm";
-import StripePixForm from "@/components/payment/StripePixForm";
+import { calculatePaymentBreakdown, confirmPaymentPaid, createMercadoPagoCheckout } from "@/lib/payments";
 
-export default function PaymentStep({ amount, description, locksmithId, serviceRequestId, onConfirm, onBack, processing, onlineOnly = false, additionalAmount = 0, additionalLabel = "Adicional" }) {
-  const [method, setMethod] = useState("");
-  const [stripeData, setStripeData] = useState(null);
+export default function PaymentStep({ amount, description, locksmithId, serviceRequestId, paymentKind = "service", onConfirm, onBack, processing, additionalAmount = 0, additionalLabel = "Adicional" }) {
   const [creating, setCreating] = useState(false);
-  const [createError, setCreateError] = useState("");
+  const [error, setError] = useState("");
+  const checkedReturn = useRef(false);
   const breakdown = calculatePaymentBreakdown(amount);
-
-  const handleSelectMethod = async (m) => {
-    setMethod(m);
-    setStripeData(null);
-    setCreateError("");
-    // Dinheiro não cria PaymentIntent no Stripe — o chaveiro confirma o recebimento
-    if (m === "dinheiro") return;
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const localPaymentId = params.get("local_payment_id");
+    if (params.get("mercado_pago") !== "retorno" || !localPaymentId || checkedReturn.current) return;
+    checkedReturn.current = true;
     setCreating(true);
+    confirmPaymentPaid(localPaymentId, params.get("payment_id"))
+      .then((result) => {
+        if (result?.status === "paid") onConfirm?.(result.method, params.get("payment_id"), localPaymentId);
+        else setError("O pagamento ainda está sendo processado pelo Mercado Pago. Atualize em instantes.");
+      })
+      .catch((e) => setError(e?.response?.data?.error || e.message || "Não foi possível confirmar o pagamento."))
+      .finally(() => setCreating(false));
+  }, [onConfirm]);
+  const pay = async () => {
+    setCreating(true);
+    setError("");
     try {
-      const result = await createStripePaymentIntent({
-        amount,
-        method: m,
-        description,
-        locksmithId,
-        serviceRequestId,
-      });
-      if (result.error) throw new Error(result.error);
-      setStripeData(result);
+      const result = await createMercadoPagoCheckout({ amount, description, locksmithId, serviceRequestId, paymentKind });
+      if (!result?.checkout_url) throw new Error("Checkout indisponível.");
+      window.location.href = result.checkout_url;
     } catch (e) {
-      const msg = e?.message || "";
-      if (msg.includes("pix") && msg.toLowerCase().includes("invalid")) {
-        setCreateError("Pagamento via Pix ainda não ativado na conta Stripe. Use cartão por enquanto — ative o Pix no dashboard do Stripe em Settings → Payment methods.");
-      } else {
-        setCreateError(msg || "Falha ao iniciar pagamento");
-      }
-    } finally {
+      setError(e?.response?.data?.error || e.message || "Falha ao abrir o Mercado Pago.");
       setCreating(false);
     }
   };
-
-  return (
-    <div className="space-y-5">
-      <div>
-        <h2 className="font-heading font-semibold text-lg text-foreground">Forma de pagamento</h2>
-        <p className="text-sm text-muted-foreground">Pague pelo serviço agora</p>
-      </div>
-
-      <PaymentMethodSelector selected={method} onSelect={handleSelectMethod} onlineOnly={onlineOnly} disabled={creating || processing} />
-
-      {creating && (
-        <div className="flex items-center justify-center py-4">
-          <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
-        </div>
-      )}
-
-      {createError && <p className="text-sm text-red-600 bg-red-50 p-3 rounded-lg">{createError}</p>}
-
-      {method === "dinheiro" && !creating && (
-        <div className="p-4 rounded-2xl border border-border bg-card space-y-3">
-          <p className="text-sm text-muted-foreground">
-            Você pagará <strong className="text-foreground">R$ {breakdown.amount.toFixed(2)}</strong> em dinheiro diretamente ao chaveiro.
-            Confirme para que ele registre o recebimento e finalize o atendimento.
-          </p>
-          <Button onClick={() => onConfirm("dinheiro", null)} className="w-full" disabled={processing}>
-            {processing ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Banknote className="w-4 h-4 mr-2" />}
-            Confirmar pagamento em dinheiro
-          </Button>
-        </div>
-      )}
-
-      {method && method !== "dinheiro" && stripeData && !creating && (
-        <div className="p-4 rounded-2xl border border-border bg-card space-y-4">
-          {method === "pix" ? (
-            <StripePixForm
-              pixData={stripeData.pix_data}
-              paymentIntentId={stripeData.payment_intent_id}
-              onConfirmed={() => onConfirm(method, stripeData.payment_intent_id, stripeData.payment_id)}
-            />
-          ) : (
-            <StripeCardForm
-              clientSecret={stripeData.client_secret}
-              publishableKey={stripeData.publishable_key}
-              processing={processing}
-              onConfirm={() => onConfirm(method, stripeData.payment_intent_id, stripeData.payment_id)}
-            />
-          )}
-        </div>
-      )}
-
-      {method && (
-        <div className="p-3 rounded-xl bg-muted/50 space-y-1.5">
-          <div className="flex justify-between text-sm">
-            <span className="text-muted-foreground">Valor do serviço</span>
-            <span className="font-medium text-foreground">R$ {Math.max(0, breakdown.amount - Number(additionalAmount || 0)).toFixed(2)}</span>
-          </div>
-          {Number(additionalAmount || 0) > 0 && <div className="flex justify-between text-sm"><span className="text-amber-700">{additionalLabel}</span><span className="font-medium text-amber-700">R$ {Number(additionalAmount).toFixed(2)}</span></div>}
-          <div className="flex justify-between text-sm pt-1.5 border-t border-border">
-            <span className="font-medium text-foreground">Total</span>
-            <span className="font-heading font-bold text-lg text-foreground">R$ {breakdown.amount.toFixed(2)}</span>
-          </div>
-        </div>
-      )}
-
-      <div className="flex gap-3">
-        <Button variant="outline" onClick={onBack} className="flex-1">
-          <ArrowLeft className="w-4 h-4 mr-2" /> Voltar
-        </Button>
-      </div>
-    </div>
-  );
+  return <div className="space-y-5"><div><h2 className="font-heading font-semibold text-lg">Pagamento pelo Mercado Pago</h2><p className="text-sm text-muted-foreground">Escolha Pix, cartão ou saldo no ambiente seguro do Mercado Pago.</p></div><div className="p-4 rounded-2xl border border-border bg-card space-y-4"><div className="flex items-center gap-3"><div className="w-11 h-11 rounded-xl bg-primary/10 flex items-center justify-center"><Wallet className="w-5 h-5 text-primary" /></div><div><p className="font-semibold">Mercado Pago</p><p className="text-xs text-muted-foreground">Único processador de pagamento do aplicativo</p></div></div>{error && <p className="text-sm text-red-600 bg-red-50 p-3 rounded-lg">{error}</p>}<Button onClick={pay} disabled={creating || processing} className="w-full" size="lg">{creating || processing ? <Loader2 className="w-4 h-4 animate-spin" /> : <ExternalLink className="w-4 h-4" />} Pagar R$ {breakdown.amount.toFixed(2)}</Button><p className="text-xs text-muted-foreground flex items-center gap-1.5"><ShieldCheck className="w-4 h-4" /> Seus dados de pagamento são tratados pelo Mercado Pago.</p></div><div className="p-3 rounded-xl bg-muted/50 space-y-1.5"><div className="flex justify-between text-sm"><span className="text-muted-foreground">Valor do serviço</span><span className="font-medium">R$ {Math.max(0, breakdown.amount - Number(additionalAmount || 0)).toFixed(2)}</span></div>{Number(additionalAmount || 0) > 0 && <div className="flex justify-between text-sm"><span className="text-amber-700">{additionalLabel}</span><span className="font-medium text-amber-700">R$ {Number(additionalAmount).toFixed(2)}</span></div>}<div className="flex justify-between text-sm pt-1.5 border-t border-border"><span className="font-medium">Total</span><span className="font-heading font-bold text-lg">R$ {breakdown.amount.toFixed(2)}</span></div></div><Button variant="outline" onClick={onBack} className="w-full"><ArrowLeft className="w-4 h-4" /> Voltar</Button></div>;
 }
