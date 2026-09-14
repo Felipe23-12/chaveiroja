@@ -673,6 +673,26 @@ export default function Home() {
     }
   };
 
+  // Pagamento em dinheiro: o chaveiro confirma o recebimento no painel.
+  // Nesse momento, a comissão de 15% é compensada no saldo dele ou fica pendente.
+  const handleCashPayment = async () => {
+    if (!activeRequest || paying) return;
+    setPaying(true);
+    setSearchError("");
+    try {
+      const updated = await base44.entities.ServiceRequest.update(activeRequest.id, {
+        payment_method: "dinheiro",
+        payment_status: "pending",
+        cash_received: false,
+      });
+      setActiveRequest(updated);
+    } catch (e) {
+      setSearchError(e?.message || "Não foi possível selecionar o pagamento em dinheiro.");
+    } finally {
+      setPaying(false);
+    }
+  };
+
   // Pagamento da taxa de cancelamento
   const handleCancelFeePayment = async (method, mercadoPagoPaymentId, paymentId) => {
     if (!activeRequest || !cancelFeeData) return;
@@ -1154,6 +1174,7 @@ export default function Home() {
               serviceRequestId={activeRequest.id}
               processing={paying}
               onConfirm={handleServicePayment}
+              onCash={handleCashPayment}
               onBack={() => goToStep(5)}
             />
           )}
