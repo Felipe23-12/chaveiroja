@@ -297,15 +297,17 @@ export default function Home() {
         if (active.locksmith_id) {
           base44.entities.Locksmith.get(active.locksmith_id).then(setSelectedLocksmith).catch(() => {});
         }
-        if (active.status === "accepted" || active.status === "on_the_way") {
+        // A finalização registrada pelo chaveiro tem prioridade sobre o status
+        // de deslocamento, que pode continuar como on_the_way até o pagamento.
+        if (!active.end_photos?.length && (active.status === "accepted" || active.status === "on_the_way")) {
           navigate(`/acompanhamento/${active.id}`, { replace: true });
           return;
         }
         let s = 5;
-        if (active.status === "ringing") s = 3;
+        if (active.end_photos?.length > 0 && active.status !== "completed") s = 6;
+        else if (active.status === "ringing") s = 3;
         else if (active.status === "queued" || active.status === "accepted") s = 4;
         else if (active.status === "on_the_way") s = 5;
-        else if (active.end_photos?.length > 0 && active.status !== "completed") s = 6;
         else if (active.status === "completed") s = 7;
         goToStep(s);
       } catch (e) {

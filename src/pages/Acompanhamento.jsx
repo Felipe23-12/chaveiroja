@@ -33,6 +33,8 @@ export default function Acompanhamento() {
   const [chatOpen, setChatOpen] = useState(false);
   const [arrivalUpdating, setArrivalUpdating] = useState(false);
   const [arrivalError, setArrivalError] = useState("");
+  const [finishUpdating, setFinishUpdating] = useState(false);
+  const [finishError, setFinishError] = useState("");
   const { blockedIds } = useBlockedUsers();
   const scrollRef = useRef(null);
 
@@ -188,6 +190,21 @@ export default function Acompanhamento() {
     }
   };
 
+  const confirmFinishedService = async () => {
+    if (!request || finishUpdating) return;
+    setFinishUpdating(true);
+    setFinishError("");
+    try {
+      if (!request.client_confirmed) {
+        await base44.entities.ServiceRequest.update(request.id, { client_confirmed: true });
+      }
+      navigate("/", { replace: true });
+    } catch (error) {
+      setFinishError(error?.message || "Não foi possível confirmar o serviço. Tente novamente.");
+      setFinishUpdating(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center" style={{ height: "calc(100vh - 80px)" }}>
@@ -237,6 +254,20 @@ export default function Acompanhamento() {
         <ArrivalDeadlineCountdown request={request} />
         <CancellationCaseNotice requestId={request.id} />
         <KeyServicePrice request={request} />
+        {request.end_photos?.length > 0 && request.status !== "completed" && (
+          <div className="p-4 rounded-2xl border-2 border-emerald-500 bg-emerald-50 space-y-3">
+            <div className="flex items-center gap-2 text-emerald-700">
+              <CheckCircle2 className="w-5 h-5" />
+              <p className="font-semibold text-sm">O chaveiro finalizou o serviço</p>
+            </div>
+            <p className="text-xs text-emerald-800">Confirme a conclusão para seguir diretamente ao pagamento pelo Mercado Pago.</p>
+            {finishError && <p className="text-xs font-medium text-destructive">{finishError}</p>}
+            <Button onClick={confirmFinishedService} disabled={finishUpdating} className="w-full">
+              {finishUpdating ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
+              {request.client_confirmed ? "Ir para pagamento" : "Confirmar serviço e pagar"}
+            </Button>
+          </div>
+        )}
         {request.locksmith_arrived && !request.client_arrived_confirmed && (
           <div className="p-4 rounded-2xl border-2 border-primary bg-primary/5 space-y-3">
             <div className="flex items-center gap-2 text-primary">
