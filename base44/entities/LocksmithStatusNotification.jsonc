@@ -15,7 +15,8 @@
       "type": "string",
       "enum": [
         "client_cancelled",
-        "arrival_confirmed"
+        "arrival_confirmed",
+        "cash_payment_selected"
       ]
     },
     "sent_at": {

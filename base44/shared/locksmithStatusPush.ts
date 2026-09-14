@@ -1,15 +1,18 @@
 export async function notifyLocksmithStatus(base44, request, eventType, dryRun = false) {
   const cancelled = eventType === 'client_cancelled' && request.status === 'cancelled' && request.cancelled_by === 'cliente';
   const arrived = eventType === 'arrival_confirmed' && request.client_arrived_confirmed === true && request.locksmith_arrived === true && ['accepted', 'on_the_way'].includes(request.status);
-  if (!cancelled && !arrived) return { skipped: true, reason: 'O estado atual não corresponde ao aviso' };
+  const cashSelected = eventType === 'cash_payment_selected' && request.payment_method === 'dinheiro' && request.client_confirmed === true && ['accepted', 'on_the_way'].includes(request.status);
+  if (!cancelled && !arrived && !cashSelected) return { skipped: true, reason: 'O estado atual não corresponde ao aviso' };
   // Antes do aceite, avisa quem estava recebendo o chamado; após o aceite, só o responsável.
   const assigned = request.accepted_at || request.queued_at || request.locksmith_arrived;
   const targets = Array.from(new Set(cancelled && !assigned && request.ringing_locksmith_ids?.length
     ? request.ringing_locksmith_ids : [request.locksmith_id])).filter(Boolean);
-  const title = cancelled ? 'Cliente cancelou o chamado' : 'Cliente confirmou sua chegada';
+  const title = cancelled ? 'Cliente cancelou o chamado' : cashSelected ? 'Pagamento em dinheiro selecionado' : 'Cliente confirmou sua chegada';
   const content = cancelled
     ? `${request.service_type}: o cliente cancelou este chamado. Não é necessário continuar o deslocamento. Confira o painel.`
-    : `${request.service_type}: sua chegada foi confirmada. Registre as fotos iniciais para começar o atendimento.`;
+    : cashSelected
+      ? `${request.service_type}: o cliente pagará R$ ${Number(request.price || 0).toFixed(2)} em dinheiro. Confirme o recebimento no painel.`
+      : `${request.service_type}: sua chegada foi confirmada. Registre as fotos iniciais para começar o atendimento.`;
   const notified = [];
   const pending = [];
   const failures = [];

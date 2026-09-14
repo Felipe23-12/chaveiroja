@@ -22,7 +22,7 @@ export default async function(req) {
       return Response.json({ error: "Pedido não encontrado" }, { status: 404 });
     }
 
-    if (body.event_type === 'client_cancelled' || body.event_type === 'arrival_confirmed') {
+    if (body.event_type === 'client_cancelled' || body.event_type === 'arrival_confirmed' || body.event_type === 'cash_payment_selected') {
       return Response.json(await notifyLocksmithStatus(base44, sr, body.event_type, body.dry_run === true));
     }
 
