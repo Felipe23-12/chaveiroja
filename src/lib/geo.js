@@ -59,14 +59,31 @@ export function etaMinutes(durationSeconds) {
   return Math.max(1, Math.round(durationSeconds / 60));
 }
 
-// Tenta obter a localização do navegador; usa o centro padrão como fallback
-export function getCustomerLocation() {
-  return new Promise((resolve) => {
-    if (!navigator.geolocation) return resolve(DEFAULT_CENTER);
+export const GEO_OPTIONS = {
+  enableHighAccuracy: true,
+  timeout: 15000,
+  maximumAge: 0,
+};
+
+export function locationErrorMessage(error) {
+  if (error?.code === 1) return "Permissão de localização negada. Libere o acesso nas configurações do Android.";
+  if (error?.code === 2) return "O GPS não conseguiu determinar sua posição. Vá para uma área aberta ou informe o endereço.";
+  if (error?.code === 3) return "A busca da localização demorou demais. Verifique se o GPS está ativado e tente novamente.";
+  return "Não foi possível acessar sua localização. Informe o endereço manualmente.";
+}
+
+export function getPreciseLocation() {
+  return new Promise((resolve, reject) => {
+    if (!navigator.geolocation) return reject(new Error("GPS indisponível"));
     navigator.geolocation.getCurrentPosition(
-      (pos) => resolve({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
-      () => resolve(DEFAULT_CENTER),
-      { timeout: 4000 }
+      (pos) => resolve({ lat: pos.coords.latitude, lng: pos.coords.longitude, accuracy: pos.coords.accuracy }),
+      reject,
+      GEO_OPTIONS
     );
   });
+}
+
+// Mantém fallback compatível para telas que não exigem confirmação do GPS.
+export async function getCustomerLocation() {
+  return getPreciseLocation().catch(() => DEFAULT_CENTER);
 }

@@ -19,7 +19,7 @@ export default function MapLocationSearch({ label, onSelect, onClear }) {
       {label ? (
         <button
           onClick={onClear}
-          className="inline-flex items-center gap-1.5 text-xs font-medium text-primary hover:underline"
+          className="inline-flex min-h-[44px] items-center gap-1.5 text-xs font-medium text-primary hover:underline active:opacity-70"
         >
           <X className="w-3.5 h-3.5" /> Voltar para chaveiros perto de mim
         </button>

@@ -207,7 +207,7 @@ export default function Acompanhamento() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center" style={{ height: "calc(100vh - 80px)" }}>
+      <div className="flex min-h-[calc(100dvh-8rem)] items-center justify-center">
         <Loader2 className="w-6 h-6 text-primary animate-spin" />
       </div>
     );
@@ -338,7 +338,7 @@ export default function Acompanhamento() {
 
         <button
           onClick={() => setChatOpen(true)}
-          className="fixed bottom-20 right-4 z-[60] flex h-12 items-center gap-2 rounded-full bg-primary px-4 font-heading text-sm font-bold text-primary-foreground shadow-2xl md:bottom-6"
+          className="fixed bottom-[calc(4.5rem+env(safe-area-inset-bottom))] right-4 z-[60] flex h-12 items-center gap-2 rounded-full bg-primary px-4 font-heading text-sm font-bold text-primary-foreground shadow-2xl active:scale-[0.98] md:bottom-6"
           aria-label="Abrir mensagens com o chaveiro"
         >
           <MessageCircle className="h-5 w-5" /> Mensagens
@@ -346,7 +346,7 @@ export default function Acompanhamento() {
 
         {/* Chat em tempo real aberto sem sair do acompanhamento */}
         {chatOpen && (
-        <div className="fixed inset-0 z-[80] flex flex-col bg-background pt-safe">
+        <div className="fixed inset-0 z-[80] flex flex-col bg-background pt-safe pb-safe">
           <div className="flex items-center gap-2 border-b border-border p-3">
             <button onClick={() => setChatOpen(false)} className="rounded-lg p-2 hover:bg-accent" aria-label="Fechar mensagens">
               <ArrowLeft className="h-5 w-5" />

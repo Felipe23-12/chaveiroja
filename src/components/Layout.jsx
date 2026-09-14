@@ -76,7 +76,7 @@ function SidebarContent({ onNavigate }) {
               key={item.path}
               to={item.path}
               onClick={onNavigate}
-              className={`relative flex items-center gap-2 px-2.5 py-1.5 rounded-md text-xs font-medium transition-all ${
+              className={`relative flex min-h-[44px] md:min-h-[36px] items-center gap-2 px-2.5 py-1.5 rounded-md text-xs font-medium transition-all active:scale-[0.98] ${
                 active
                   ? "bg-primary text-primary-foreground shadow-sm"
                   : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
@@ -168,7 +168,7 @@ function MobileTopBar({ onMenu }) {
   const navItems = ALL_NAV.filter((i) => isAdmin || i.roles.includes(accountType));
   const current = navItems.find((i) => i.path === location.pathname);
   return (
-    <div className="md:hidden sticky top-0 z-40 flex items-center justify-between px-4 h-14 bg-card border-b border-border pt-safe">
+    <div className="md:hidden sticky top-0 z-40 flex h-[calc(3.5rem+env(safe-area-inset-top))] items-center justify-between border-b border-border bg-card px-4 pt-safe">
       <Link to={accountType === "chaveiro" ? "/painel-chaveiro" : accountType === "admin" ? "/painel-admin" : "/"} className="flex items-center gap-2">
         <Image
           src="https://media.base44.com/images/public/6a975d266a8000184833026a/d4717d1d4_ChatGPTImage4desetde202604_02_02.png"
@@ -183,7 +183,7 @@ function MobileTopBar({ onMenu }) {
         <DarkModeToggle />
         <button
           onClick={onMenu}
-          className="p-2 rounded-lg text-muted-foreground hover:bg-accent"
+          className="min-h-[44px] min-w-[44px] p-2 rounded-lg text-muted-foreground hover:bg-accent active:bg-accent"
           aria-label="Abrir menu"
         >
           <Menu className="w-5 h-5" />
@@ -198,10 +198,10 @@ function MobileDrawer({ open, onClose }) {
   return (
     <div className="md:hidden fixed inset-0 z-50 flex">
       <div className="absolute inset-0 bg-black/40" onClick={onClose} />
-      <aside className="relative w-72 max-w-[80vw] bg-card border-r border-border flex flex-col animate-slide-in-left">
-        <div className="flex items-center justify-between p-4 border-b border-border">
+      <aside className="relative flex h-[100dvh] w-72 max-w-[80vw] flex-col border-r border-border bg-card pt-safe pb-safe animate-slide-in-left">
+        <div className="flex min-h-[56px] items-center justify-between p-4 border-b border-border">
           <span className="font-heading font-semibold text-foreground">Menu</span>
-          <button onClick={onClose} className="p-1.5 rounded-lg text-muted-foreground hover:bg-accent" aria-label="Fechar">
+          <button onClick={onClose} className="min-h-[44px] min-w-[44px] p-2 rounded-lg text-muted-foreground hover:bg-accent active:bg-accent" aria-label="Fechar">
             <X className="w-5 h-5" />
           </button>
         </div>
@@ -215,7 +215,7 @@ export default function Layout() {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const location = useLocation();
   return (
-    <div className="flex flex-col md:flex-row min-h-screen bg-background">
+    <div className="flex min-h-[100dvh] flex-col bg-background md:flex-row">
       <GlobalLocksmithRequestAlert />
       <GlobalChatAlert />
       <LocksmithChatFab />
@@ -226,7 +226,7 @@ export default function Layout() {
       <aside className="hidden md:flex md:w-64 md:min-h-screen bg-card border-r border-border flex-col sticky top-0 md:h-screen">
         <SidebarContent onNavigate={() => {}} />
       </aside>
-      <main className="flex-1 md:h-screen md:overflow-y-auto pb-[calc(4rem+env(safe-area-inset-bottom))] md:pb-0">
+      <main className="min-w-0 flex-1 pb-[calc(4rem+env(safe-area-inset-bottom))] md:h-[100dvh] md:overflow-y-auto md:pb-0">
         <PageTransition key={location.pathname}>
           <Outlet />
         </PageTransition>

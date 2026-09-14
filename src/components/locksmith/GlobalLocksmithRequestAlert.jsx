@@ -210,7 +210,7 @@ export default function GlobalLocksmithRequestAlert() {
     <>
       {/* Card expandido — flutua acima do botão, sem ocupar a tela toda */}
       {open && (
-        <div className="fixed bottom-4 right-4 left-4 sm:left-auto sm:w-96 z-[60] animate-alert-slide">
+        <div className="fixed bottom-[calc(4.5rem+env(safe-area-inset-bottom))] right-4 left-4 sm:left-auto sm:w-96 md:bottom-4 z-[60] animate-alert-slide">
           <div className="rounded-2xl border-2 border-red-500 bg-card shadow-2xl overflow-hidden animate-alert-flash">
             {/* Cabeçalho */}
             <div className="flex items-center justify-between px-4 py-2.5 bg-red-500 text-white animate-alert-blink">
@@ -223,7 +223,7 @@ export default function GlobalLocksmithRequestAlert() {
               <div className="flex items-center gap-1.5">
                 <button
                   onClick={() => setOpen(false)}
-                  className="p-1.5 rounded-lg hover:bg-white/20 transition-colors"
+                  className="min-h-[44px] min-w-[44px] p-2 rounded-lg hover:bg-white/20 active:bg-white/20 transition-colors"
                   title="Recolher"
                 >
                   <ChevronUp className="w-4 h-4" />
@@ -254,7 +254,7 @@ export default function GlobalLocksmithRequestAlert() {
       {!open && (
         <button
           onClick={() => setOpen(true)}
-          className="fixed bottom-4 right-4 z-[60] flex items-center gap-2 pl-3 pr-4 h-12 rounded-full bg-red-500 text-white font-bold text-sm shadow-2xl shadow-red-500/40 hover:bg-red-600 active:scale-95 transition-all animate-alert-blink"
+          className="fixed bottom-[calc(4.5rem+env(safe-area-inset-bottom))] right-4 z-[60] flex items-center gap-2 pl-3 pr-4 h-12 rounded-full bg-red-500 text-white font-bold text-sm shadow-2xl shadow-red-500/40 hover:bg-red-600 active:scale-95 transition-all animate-alert-blink md:bottom-4"
         >
           <div className="relative">
             <Bell className="w-5 h-5" />

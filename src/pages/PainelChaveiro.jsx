@@ -24,7 +24,7 @@ import LocksmithCaseStatus from "@/components/locksmith/LocksmithCaseStatus";
 import LocksmithCancellationFlow from "@/components/locksmith/LocksmithCancellationFlow";
 import { useToast } from "@/components/ui/use-toast";
 import DarkModeToggle from "@/components/DarkModeToggle";
-import { haversineKm, stepToward, fetchDrivingRoute, etaMinutes, getCustomerLocation } from "@/lib/geo";
+import { haversineKm, stepToward, fetchDrivingRoute, etaMinutes, getPreciseLocation, locationErrorMessage } from "@/lib/geo";
 import { SERVICE_CATALOG } from "@/lib/pricing";
 import { confirmCashReceived } from "@/lib/payments";
 import { saveLastService, getLastService, clearLastService, saveLocksmithProfile, getLocksmithProfile, isOnline, saveLastRoute, getLastRoute, savePendingRequests, getPendingRequests } from "@/lib/offlineCache";
@@ -114,6 +114,7 @@ export default function PainelChaveiro() {
   const [chatFocus, setChatFocus] = useState(false);
   const [cancelOpen, setCancelOpen] = useState(false);
   const [profileChecked, setProfileChecked] = useState(false);
+  const [gpsLoading, setGpsLoading] = useState(false);
   const [trustScore, setTrustScore] = useState(null);
   const emailedStatus = useRef(new Set());
 
@@ -531,17 +532,18 @@ export default function PainelChaveiro() {
         });
         return;
       }
-      // Ao ficar online, captura a localização real via GPS
-      const loc = await getCustomerLocation();
-      await base44.entities.Locksmith.update(me.id, {
-        online: true,
-        lat: loc.lat,
-        lng: loc.lng,
-      });
-      toast({
-        title: "Você está online",
-        description: "Localização atualizada via GPS.",
-      });
+      // Ao ficar online, exige uma posição GPS real; nunca publica o centro padrão.
+      setGpsLoading(true);
+      try {
+        const loc = await getPreciseLocation();
+        await base44.entities.Locksmith.update(me.id, { online: true, lat: loc.lat, lng: loc.lng });
+        toast({ title: "Você está online", description: `Localização atualizada via GPS${loc.accuracy ? ` (precisão de ${Math.round(loc.accuracy)} m)` : ""}.` });
+      } catch (error) {
+        toast({ title: "Localização necessária", description: locationErrorMessage(error), variant: "destructive" });
+        return;
+      } finally {
+        setGpsLoading(false);
+      }
     } else {
       await base44.entities.Locksmith.update(me.id, { online: false });
     }
@@ -899,9 +901,9 @@ export default function PainelChaveiro() {
             onClick={toggleOnline}
             variant={me.online ? "destructive" : "default"}
             size="sm"
-            disabled={blockedOnline || trustBlocked}
+            disabled={blockedOnline || trustBlocked || gpsLoading}
           >
-            <Power className="w-4 h-4 mr-1.5" /> {me.online ? "Sair" : "Entrar"}
+            {gpsLoading ? <Loader2 className="w-4 h-4 mr-1.5 animate-spin" /> : <Power className="w-4 h-4 mr-1.5" />} {gpsLoading ? "Localizando…" : me.online ? "Sair" : "Entrar"}
           </Button>
         </div>
         );
@@ -1224,7 +1226,7 @@ export default function PainelChaveiro() {
 
       {/* Tela cheia de chat aberta via alerta de nova mensagem */}
       {chatFocus && me && (
-        <div className="fixed inset-0 z-[70] bg-background flex flex-col">
+        <div className="fixed inset-0 z-[70] bg-background flex flex-col pb-safe">
           <div className="flex items-center gap-2 p-3 border-b border-border pt-safe">
             <button onClick={() => setChatFocus(false)} className="p-2 rounded-lg hover:bg-accent" aria-label="Voltar">
               <ArrowLeft className="w-5 h-5" />

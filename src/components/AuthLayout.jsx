@@ -6,7 +6,7 @@ const LOGO_URL = "https://media.base44.com/images/public/6a975d266a8000184833026
 
 export default function AuthLayout({ icon: Icon, title, subtitle, footer, children }) {
   return (
-    <div className="min-h-[100dvh] flex items-start sm:items-center justify-center bg-background px-4 py-8">
+    <div className="min-h-[100dvh] flex items-start sm:items-center justify-center bg-background px-4 py-8 pt-[calc(2rem+env(safe-area-inset-top))] pb-[calc(2rem+env(safe-area-inset-bottom))]">
       <div className="w-full max-w-md fade-in-up">
         <div className="text-center mb-10">
           <Image

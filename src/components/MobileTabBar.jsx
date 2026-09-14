@@ -105,12 +105,12 @@ export default function MobileTabBar() {
               key={t.path}
               to={t.path}
               onClick={() => handleTabClick(t.path)}
-              className={`flex-1 flex flex-col items-center justify-center gap-0.5 py-1 min-h-[44px] text-[11px] font-heading font-semibold transition-colors select-none touch-manipulation ${
+              className={`flex-1 flex min-h-[48px] flex-col items-center justify-center gap-0.5 py-1 text-[11px] font-heading font-semibold transition-all active:bg-accent active:scale-[0.98] select-none touch-manipulation ${
                 active ? "text-primary" : "text-muted-foreground"
               }`}
             >
               <div className="relative">
-                <Icon className="w-3.5 h-3.5" />
+                <Icon className="w-5 h-5" />
                 {t.path === "/painel-chaveiro" && chatUnread > 0 && (
                   <span className="absolute -top-1.5 -right-2 min-w-[16px] h-4 px-1 rounded-full bg-red-500 text-white text-[9px] font-bold flex items-center justify-center">
                     {chatUnread > 9 ? "9+" : chatUnread}

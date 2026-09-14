@@ -114,13 +114,13 @@ function CompactRequestCard({ request, onAccept, onReject }) {
       <div className="flex gap-2 mt-2">
         <button
           onClick={handleAccept}
-          className="flex-1 h-10 rounded-lg bg-emerald-500 text-white text-xs font-bold flex items-center justify-center gap-1 hover:bg-emerald-600 active:scale-95 transition-all shadow-sm shadow-emerald-500/30"
+          className="flex-1 min-h-[44px] rounded-lg bg-emerald-500 text-white text-xs font-bold flex items-center justify-center gap-1 hover:bg-emerald-600 active:scale-95 transition-all shadow-sm shadow-emerald-500/30"
         >
           <Check className="w-4 h-4" /> Aceitar
         </button>
         <button
           onClick={() => onReject(request.id)}
-          className="flex-1 h-10 rounded-lg border border-border bg-white text-foreground text-xs font-bold flex items-center justify-center gap-1 hover:bg-accent active:scale-95 transition-all"
+          className="flex-1 min-h-[44px] rounded-lg border border-border bg-white text-foreground text-xs font-bold flex items-center justify-center gap-1 hover:bg-accent active:scale-95 transition-all"
         >
           <X className="w-4 h-4" /> Recusar
         </button>

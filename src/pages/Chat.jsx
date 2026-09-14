@@ -147,7 +147,7 @@ export default function Chat() {
   );
 
   return (
-    <div className="max-w-2xl mx-auto px-4 py-6 md:py-8 flex flex-col" style={{ height: "calc(100vh - 0px)" }}>
+    <div className="mx-auto flex h-[calc(100dvh-7.5rem-env(safe-area-inset-top)-env(safe-area-inset-bottom))] max-w-2xl flex-col px-4 py-4 md:h-full md:min-h-[100dvh] md:py-8">
       <div className="flex items-center gap-3 mb-4 pb-3 border-b border-border">
         <Button variant="ghost" size="icon" onClick={() => navigate("/mapa")}>
           <ArrowLeft className="w-5 h-5" />

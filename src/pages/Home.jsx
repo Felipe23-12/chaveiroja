@@ -23,7 +23,7 @@ import LightMap from "@/components/map/LightMap";
 import UpgradeToUrgentButton from "@/components/locksmith/UpgradeToUrgentButton";
 import UrgencySelector from "@/components/client/UrgencySelector";
 import UrgentArrivalCountdown from "@/components/locksmith/UrgentArrivalCountdown";
-import { DEFAULT_CENTER, getCustomerLocation, haversineKm, calculateInitialServiceDistance, fetchDrivingRoute, etaMinutes } from "@/lib/geo";
+import { DEFAULT_CENTER, haversineKm, calculateInitialServiceDistance, fetchDrivingRoute, etaMinutes } from "@/lib/geo";
 import { getClientLoyalty, applyLoyaltyDiscount } from "@/lib/loyalty";
 import { buildEligibleQueue } from "@/lib/ringRotation";
 import { selectScoreBroadcast } from "@/lib/locksmithScore";
@@ -57,6 +57,8 @@ import useClientDebt from "@/hooks/useClientDebt";
 import { useRegionalPriceRange } from "@/hooks/useRegionalPriceRange";
 import useBlockedUsers from "@/hooks/useBlockedUsers";
 import useLiveLocksmiths from "@/hooks/useLiveLocksmiths";
+import usePreciseLocation from "@/hooks/usePreciseLocation";
+import LocationStatusNotice from "@/components/location/LocationStatusNotice";
 import ModerationActions from "@/components/moderation/ModerationActions";
 import OpeningChargeSummary from "@/components/client/OpeningChargeSummary";
 import { OPENING_CONDITION_FEE, getOpeningConditionFee, hasLocksmithConditionCorrection, locksmithAddedConditionFee } from "@/lib/openingCondition";
@@ -117,6 +119,7 @@ export default function Home() {
   const [searching, setSearching] = useState(false);
 
   const [customerLoc, setCustomerLoc] = useState(DEFAULT_CENTER);
+  const gps = usePreciseLocation();
   const appLocksmiths = useLiveLocksmiths();
   const [activeRequestsCount, setActiveRequestsCount] = useState(0);
   const [activeRequest, setActiveRequest] = useState(null);
@@ -268,7 +271,10 @@ export default function Home() {
   }, [pricingService, service, motoRule, selectedOptions, customAddons, vehicleInfo, locks, onlineLocksmithsCount, activeRequestsCount, urgency, customerLoc, address, pricingDistance, selectedKeyValue, fipeValue, carKeyType, hasCodedKey, programming, weather, openingConditionFee]);
 
   useEffect(() => {
-    getCustomerLocation().then(setCustomerLoc);
+    if (!locationContext.coordinates_confirmed && gps.status === "ready") setCustomerLoc(gps.location);
+  }, [gps.location.lat, gps.location.lng, gps.status, locationContext.coordinates_confirmed]);
+
+  useEffect(() => {
     base44.auth.me()
       .then((u) => getClientLoyalty(u.id))
       .then(setLoyalty)
@@ -1012,6 +1018,12 @@ export default function Home() {
           </div>
         </div>
       </div>
+
+      {step <= 2 && !activeRequest && !locationContext.coordinates_confirmed && (
+        <div className="mb-4">
+          <LocationStatusNotice status={gps.status} error={gps.error} accuracy={gps.accuracy} onRetry={gps.retry} />
+        </div>
+      )}
 
       {step === 1 && !activeRequest && (
         <ModuleSelector module={module} setModule={setModule} />

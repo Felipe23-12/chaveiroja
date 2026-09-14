@@ -1,14 +1,12 @@
-import React, { useState, useEffect } from "react";
+import React from "react";
 import { MapPin } from "lucide-react";
 import LiveLocksmithsMap from "@/components/locksmith/LiveLocksmithsMap";
-import { DEFAULT_CENTER, getCustomerLocation } from "@/lib/geo";
+import LocationStatusNotice from "@/components/location/LocationStatusNotice";
+import usePreciseLocation from "@/hooks/usePreciseLocation";
 
 export default function Mapa() {
-  const [customerLoc, setCustomerLoc] = useState(DEFAULT_CENTER);
-
-  useEffect(() => {
-    getCustomerLocation().then(setCustomerLoc);
-  }, []);
+  const gps = usePreciseLocation();
+  const customerLoc = gps.location;
 
   return (
     <div className="px-4 py-6 md:py-10 max-w-4xl mx-auto">
@@ -23,6 +21,9 @@ export default function Mapa() {
         </div>
       </div>
 
+      <div className="mb-4">
+        <LocationStatusNotice status={gps.status} error={gps.error} accuracy={gps.accuracy} onRetry={gps.retry} />
+      </div>
       <LiveLocksmithsMap customerLoc={customerLoc} livreOnly />
     </div>
   );
