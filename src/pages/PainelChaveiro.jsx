@@ -12,6 +12,7 @@ import LivreModeDashboard, { LivreModeLocked } from "@/components/locksmith/Livr
 import LocksmithChatConversations from "@/components/locksmith/LocksmithChatConversations";
 import PhotoUploader from "@/components/locksmith/PhotoUploader";
 import WalletCard from "@/components/locksmith/WalletCard";
+import CashReceiptAlert from "@/components/locksmith/CashReceiptAlert";
 import WithdrawalSection from "@/components/locksmith/WithdrawalSection";
 import MercadoPagoConnectSetup from "@/components/locksmith/MercadoPagoConnectSetup";
 import IncomingRequestAlert from "@/components/locksmith/IncomingRequestAlert";
@@ -436,8 +437,17 @@ export default function PainelChaveiro() {
           }
         });
     load();
-    const unsub = base44.entities.ServiceRequest.subscribe(() => load());
-    return safeUnsubscribe(unsub);
+    const reloadVisible = () => { if (document.visibilityState === "visible" && isOnline()) load(); };
+    const unsub = safeUnsubscribe(base44.entities.ServiceRequest.subscribe(() => load()));
+    window.addEventListener("focus", reloadVisible);
+    window.addEventListener("online", reloadVisible);
+    document.addEventListener("visibilitychange", reloadVisible);
+    return () => {
+      unsub();
+      window.removeEventListener("focus", reloadVisible);
+      window.removeEventListener("online", reloadVisible);
+      document.removeEventListener("visibilitychange", reloadVisible);
+    };
   }, [selectedId]);
 
   // Reseta estado de chegada e sincroniza fotos ao mudar de serviço ativo
@@ -723,16 +733,15 @@ export default function PainelChaveiro() {
 
   // Chaveiro confirma que recebeu o pagamento em dinheiro
   const handleConfirmCash = async () => {
-    if (!active || !me) return;
-    try {
-      await confirmCashReceived({ serviceRequestId: active.id, locksmithId: me.id, amount: active.price });
-      toast({
-        title: "Recebimento confirmado",
-        description: "Os 15% foram abatidos do saldo disponível; qualquer restante será descontado do próximo recebimento online.",
-      });
-    } catch (e) {
-      toast({ title: "Erro", description: e.message || "Falha ao confirmar recebimento", variant: "destructive" });
-    }
+    if (!active || !me || active.cash_received || active.payment_method !== "dinheiro") return;
+    const requestId = active.id;
+    const result = await confirmCashReceived({ serviceRequestId: requestId, locksmithId: me.id, amount: active.price });
+    if (!result?.success) throw new Error(result?.error || "Não foi possível confirmar o recebimento.");
+    setActive((current) => current?.id === requestId ? { ...current, cash_received: true, payment_status: "paid" } : current);
+    toast({
+      title: "Recebimento confirmado",
+      description: "Pagamento registrado. Você já pode finalizar o serviço; a comissão segue a compensação de 15%.",
+    });
   };
 
   const handleRefresh = async () => {
@@ -761,7 +770,7 @@ export default function PainelChaveiro() {
   const locksmithArrived = active?.locksmith_arrived === true;
   const clientArrivedConfirmed = active?.client_arrived_confirmed === true;
   const clientConfirmed = active?.client_confirmed === true;
-  const cashPending = active?.payment_method === "dinheiro" && !active?.cash_received && endDone;
+  const cashPending = active?.payment_method === "dinheiro" && !active?.cash_received && !paid && clientConfirmed && endDone && ["accepted", "on_the_way"].includes(active?.status);
   const phase = !active
     ? "moving"
     : active.status === "completed"
@@ -801,7 +810,7 @@ export default function PainelChaveiro() {
       : "Serviço concluído";
 
   return (
-    <div className={`max-w-2xl mx-auto px-4 py-6 md:py-10 ${pendingCount > 0 && isAppMode ? "pt-14 md:pt-14" : ""} ${cashPending ? "pt-14 md:pt-14" : ""}`}>
+    <div className={`max-w-2xl mx-auto px-4 py-6 md:py-10 ${pendingCount > 0 && isAppMode ? "pt-14 md:pt-14" : ""}`}>
       <PullToRefreshIndicator pull={pull} refreshing={refreshing} />
       {/* Banner fixo piscante no topo quando há solicitações pendentes */}
       {pendingCount > 0 && isAppMode && (
@@ -811,13 +820,7 @@ export default function PainelChaveiro() {
         </div>
       )}
 
-      {/* Banner fixo de pagamento em dinheiro aguardando confirmação */}
-      {cashPending && (
-        <div className="fixed top-0 left-0 right-0 z-50 bg-emerald-600 text-white text-center py-2 pt-safe text-sm font-bold animate-alert-blink shadow-lg md:left-64">
-          <Wallet className="w-4 h-4 inline mr-2 animate-bounce" />
-          Pagamento em dinheiro aguardando confirmação — R$ {active.price?.toFixed(2)}
-        </div>
-      )}
+      {cashPending && <CashReceiptAlert key={active.id} request={active} online={online} onConfirm={handleConfirmCash} />}
 
       {/* Aviso de modo offline — dados do serviço permanecem visíveis */}
       {!online && (() => {
@@ -1015,21 +1018,7 @@ export default function PainelChaveiro() {
           <UrgencyUpgradeAlert request={active} onResolved={setActive} />
           <LocksmithCaseStatus requestId={active.id} />
 
-          {/* Alerta persistente: cliente pagará em dinheiro — confirme o recebimento */}
-          {cashPending && (
-            <div className="p-4 rounded-2xl border-2 border-emerald-500 bg-emerald-50 space-y-3 animate-alert-slide">
-              <div className="flex items-center gap-2 text-emerald-700">
-                <Wallet className="w-5 h-5" />
-                <p className="font-bold text-sm">Pagamento em dinheiro</p>
-              </div>
-              <p className="text-sm text-foreground">
-                O cliente selecionou pagamento em dinheiro. Confirme o recebimento de <strong>R$ {active.price?.toFixed(2)}</strong> para liberar a finalização do serviço.
-              </p>
-              <Button onClick={handleConfirmCash} className="w-full bg-emerald-600 hover:bg-emerald-700">
-                <Check className="w-4 h-4 mr-1.5" /> Confirmar recebimento de R$ {active.price?.toFixed(2)}
-              </Button>
-            </div>
-          )}
+
 
           {(phase === "moving" || phase === "arrived_detected" || phase === "arrived_pending") && (
             <>
@@ -1138,11 +1127,7 @@ export default function PainelChaveiro() {
                 O cliente foi notificado para efetuar o pagamento de <strong className="text-foreground">R$ {active.price?.toFixed(2)}</strong>.
                 Após a confirmação, você poderá finalizar o serviço.
               </p>
-              {active.payment_method === "dinheiro" && !active.cash_received && (
-                <Button onClick={handleConfirmCash} className="w-full">
-                  <Check className="w-4 h-4 mr-1.5" /> Recebi em dinheiro (R$ {active.price?.toFixed(2)})
-                </Button>
-              )}
+
             </div>
           )}
 
