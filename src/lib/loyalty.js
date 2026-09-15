@@ -35,9 +35,10 @@ export async function getClientLoyalty(userId) {
 }
 
 // Calcula o valor com desconto de fidelidade aplicado
-export function applyLoyaltyDiscount(price) {
+export function applyLoyaltyDiscount(price, minimumTotal = 0) {
   const p = Number(price) || 0;
-  const amount = Math.round(p * DISCOUNT_RATE * 100) / 100;
-  const final = Math.round((p - amount) * 100) / 100;
+  const discount = Math.round(p * DISCOUNT_RATE * 100) / 100;
+  const final = Math.max(minimumTotal, Math.round((p - discount) * 100) / 100);
+  const amount = Math.max(0, Math.round((p - final) * 100) / 100);
   return { amount, final };
 }

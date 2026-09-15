@@ -267,6 +267,8 @@ export function calculatePrice({
 
 // Cálculo da confecção de chave de carro (modo aplicativo):
 // valor da chave original + mão de obra fixa + locomoção (R$ por km) + adicionais
+export const MIN_CAR_KEY_TOTAL = 380;
+
 export function calculateCarKeyPrice({
   keyValue = 0,
   fipeValue = 0,
@@ -288,7 +290,8 @@ export function calculateCarKeyPrice({
 
   const onlineFee = Number(onlineProgrammingFee) || 0;
   const locomotion = Math.round(perKm * dist * 100) / 100;
-  const total = Math.round((kv + labor + locomotion + extra + onlineFee) * 100) / 100;
+  const rawTotal = Math.round((kv + labor + locomotion + extra + onlineFee) * 100) / 100;
+  const total = Math.max(MIN_CAR_KEY_TOTAL, rawTotal);
 
   const breakdown = [
     { label: "Valor da chave", value: kv },
@@ -302,6 +305,10 @@ export function calculateCarKeyPrice({
   }
   if (extra > 0) {
     breakdown.push({ label: "Custos adicionais", value: extra });
+  }
+
+  if (total > rawTotal) {
+    breakdown.push({ label: "Ajuste ao mínimo de R$ 380 (chave de carro)", value: Math.round((total - rawTotal) * 100) / 100 });
   }
 
   return {

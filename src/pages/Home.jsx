@@ -3,7 +3,7 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
 import { ArrowRight, ArrowLeft, Bell, Loader2, Navigation, CheckCircle2, AlertTriangle, MessageCircle, MapPin } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { SERVICE_CATALOG, calculateCancellationFee, CANCELLATION_THRESHOLD_MINUTES, calculateLongDistanceFee, isOpeningService } from "@/lib/pricing";
+import { SERVICE_CATALOG, MIN_CAR_KEY_TOTAL, calculateCancellationFee, CANCELLATION_THRESHOLD_MINUTES, calculateLongDistanceFee, isOpeningService } from "@/lib/pricing";
 import { calculateDynamicPrice } from "@/lib/dynamicPricing";
 import { getCancellationWindow } from "@/lib/cancellationWindow";
 import { resolveCarKeyValue, searchFipeAndKeyValue } from "@/lib/carKey";
@@ -573,12 +573,12 @@ export default function Home() {
         // Preço dinâmico: valor da chave + mão de obra pela faixa de ano/codificação da FIPE
         const effectiveKeyValue = carKeyType === "simples" ? 0 : selectedKeyValue;
         const onlineFee = programming?.onlineFee || 0;
-        const basePrice = price?.total || 0;
+        const basePrice = Math.max(MIN_CAR_KEY_TOTAL, price?.total || 0);
         const adjustedLabor = price
           ? Math.round((price.base - effectiveKeyValue - onlineFee) * 100) / 100
           : 0;
         const kmFee = calculateLongDistanceFee(initialDistanceKm);
-        const disc = useDiscount ? applyLoyaltyDiscount(basePrice) : { amount: 0, final: basePrice };
+        const disc = useDiscount ? applyLoyaltyDiscount(basePrice, MIN_CAR_KEY_TOTAL) : { amount: 0, final: basePrice };
         req = await createAppServiceRequest({
           ...base,
           price: disc.final,
@@ -590,7 +590,7 @@ export default function Home() {
           locomotion_cost: kmFee,
           distance_km: initialDistanceKm,
           extra_cost: onlineFee,
-          discount_applied: useDiscount,
+          discount_applied: useDiscount && disc.amount > 0,
           discount_amount: disc.amount,
         });
       } else {

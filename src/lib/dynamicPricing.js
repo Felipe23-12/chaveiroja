@@ -9,6 +9,7 @@ import { haversineKm } from "./geo";
 import {
   calculatePrice,
   calculateCarKeyPrice,
+  MIN_CAR_KEY_TOTAL,
   calculateLongDistanceFee,
   LONG_DISTANCE_THRESHOLD_KM,
   LONG_DISTANCE_KM_FEE,
@@ -284,7 +285,11 @@ export function calculateDynamicPrice({
   const MIN_OPENING_TOTAL = 50;
   const hasOpeningFloor = ["abertura_residencial", "abertura_automotiva"].includes(service.id);
   const rawTotal = Math.round((current + addonsTotal + distanceFee) * 100) / 100;
-  const total = (hasOpeningFloor ? Math.max(rawTotal, MIN_OPENING_TOTAL) : rawTotal) + automotiveComplexityFee + brokenKeyFee;
+  const minimumTotal = service.isCarKey ? MIN_CAR_KEY_TOTAL : hasOpeningFloor ? MIN_OPENING_TOTAL : 0;
+  const total = Math.max(rawTotal, minimumTotal) + automotiveComplexityFee + brokenKeyFee;
+  if (service.isCarKey && rawTotal < MIN_CAR_KEY_TOTAL) {
+    breakdown.push({ label: "Ajuste ao mínimo de R$ 380 (chave de carro)", value: Math.round((MIN_CAR_KEY_TOTAL - rawTotal) * 100) / 100 });
+  }
 
   return {
     base: service.isCarKey
