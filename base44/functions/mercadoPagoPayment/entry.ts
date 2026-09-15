@@ -32,7 +32,11 @@ export default async function(req) {
         token = (await getSellerAccount(base44, locksmith.id)).access_token;
       }
       if (!locksmith || Math.round(Number(body.amount) * 100) !== Math.round(amount * 100) || amount < 1) return Response.json({ error: "O valor da cobrança não confere" }, { status: 400 });
-      const commission = kind === "subscription" ? 0 : Math.round(amount * 0.15 * 100) / 100;
+      const baseCommission = kind === "subscription" ? 0 : Math.round(amount * 0.15 * 100) / 100;
+      const pendingCash = kind === "service" ? Math.max(0, Number(locksmith.pending_cash_commission || 0)) : 0;
+      const maxCashOffset = Math.max(0, Math.round((amount - baseCommission - 0.01) * 100) / 100);
+      const pendingCashOffset = Math.min(Math.round(pendingCash * 100) / 100, maxCashOffset);
+      const commission = Math.round((baseCommission + pendingCashOffset) * 100) / 100;
       const payment = await base44.asServiceRole.entities.Payment.create({
         service_request_id: service?.id || `monthly:${locksmith.id}`,
         locksmith_id: locksmith.id,

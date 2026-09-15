@@ -97,12 +97,24 @@ export async function syncApprovedPayment(base44, localPayment, providerPayment)
   const expected = Math.round(Number(localPayment.amount) * 100);
   const received = Math.round(Number(providerPayment.transaction_amount) * 100);
   if (received !== expected || String(providerPayment.external_reference) !== String(localPayment.id)) throw new Error("Pagamento não confere com a cobrança registrada");
+  if (localPayment.status === "paid" && status === "paid") return { status, method: mapPaymentMethod(providerPayment) };
+
+  const baseCommission = localPayment.payment_kind === "subscription" ? 0 : Math.round(Number(localPayment.amount) * 0.15 * 100) / 100;
+  const pendingCashOffset = localPayment.payment_kind === "service"
+    ? Math.max(0, Math.round((Number(localPayment.commission_amount || 0) - baseCommission) * 100) / 100)
+    : 0;
   await base44.asServiceRole.entities.Payment.update(localPayment.id, {
     status,
     method: mapPaymentMethod(providerPayment),
     mercado_pago_payment_id: String(providerPayment.id),
     ...(status === "paid" ? { captured_at: new Date().toISOString() } : {}),
   });
+  if (status === "paid" && pendingCashOffset > 0 && localPayment.locksmith_id) {
+    const locksmith = await base44.asServiceRole.entities.Locksmith.get(localPayment.locksmith_id);
+    await base44.asServiceRole.entities.Locksmith.update(localPayment.locksmith_id, {
+      pending_cash_commission: Math.max(0, Math.round((Number(locksmith.pending_cash_commission || 0) - pendingCashOffset) * 100) / 100),
+    });
+  }
   if (localPayment.payment_kind === "subscription" && status === "paid") {
     await base44.asServiceRole.entities.Locksmith.update(localPayment.locksmith_id, {
       monthly_fee_paid: true,
