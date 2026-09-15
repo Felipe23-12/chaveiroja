@@ -46,6 +46,11 @@
     "locksmith_user_id"
   ],
   "rls": {
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
     "read": {
       "$or": [
         {
@@ -53,20 +58,15 @@
         },
         {
           "user_condition": {
-            "account_type": "cliente"
+            "role": "admin"
           }
         },
         {
           "user_condition": {
-            "role": "admin"
+            "role": "user"
           }
         }
       ]
-    },
-    "create": {
-      "user_condition": {
-        "role": "admin"
-      }
     },
     "update": {
       "user_condition": {
