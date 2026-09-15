@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { useSearchParams } from "react-router-dom";
+import { safeReturnTo } from "@/lib/authReturnTo";
 import { base44 } from "@/api/base44Client";
 import { useAuth } from "@/lib/AuthContext";
 import { Button } from "@/components/ui/button";
@@ -10,14 +10,13 @@ import { termsPayload } from "@/lib/termsVersion";
 
 export default function AceiteTermos() {
   const { user, checkUserAuth, logout } = useAuth();
-  const [searchParams] = useSearchParams();
   const [accepted, setAccepted] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
 
   const accountType = user?.account_type === "chaveiro" ? "chaveiro" : "cliente";
-  const raw = searchParams.get("returnTo") || "/";
-  const returnTo = raw.startsWith("/") && !raw.startsWith("//") && !raw.startsWith("/aceite-termos") ? raw : "/";
+  const safePath = safeReturnTo();
+  const returnTo = safePath.startsWith("/aceite-termos") ? "/" : safePath;
 
   const handleAccept = async () => {
     if (!accepted) return;
