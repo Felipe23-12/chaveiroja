@@ -1,4 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.44';
+import { escapeHtml } from '../../shared/escapeHtml.ts';
 
 export default async function(req) {
   try {
@@ -60,10 +61,10 @@ export default async function(req) {
     const reviewComment = request.review || '';
     const stars = rating > 0 ? '⭐'.repeat(rating) : 'Não avaliado';
     const ratingBlock = rating > 0
-      ? `<tr><td style="padding: 8px 0; color: #666;">Sua avaliação</td><td style="padding: 8px 0;">${stars} (${rating}/5)</td></tr>`
+      ? `<tr><td style="padding: 8px 0; color: #666;">Sua avaliação</td><td style="padding: 8px 0;">${escapeHtml(stars)} (${escapeHtml(rating)}/5)</td></tr>`
       : '';
     const reviewBlock = reviewComment
-      ? `<tr><td style="padding: 8px 0; color: #666;">Comentário</td><td style="padding: 8px 0; font-style: italic;">"${reviewComment}"</td></tr>`
+      ? `<tr><td style="padding: 8px 0; color: #666;">Comentário</td><td style="padding: 8px 0; font-style: italic;">"${escapeHtml(reviewComment)}"</td></tr>`
       : '';
 
     const STATUS_LABELS = {
@@ -99,21 +100,21 @@ export default async function(req) {
       <div style="text-align: center; margin-bottom: 24px;">
         <h1 style="font-size: 24px; margin: 0;">🔑 Resumo do serviço</h1>
       </div>
-      <p>Olá <strong>${customerName}</strong>,</p>
+      <p>Olá <strong>${escapeHtml(customerName)}</strong>,</p>
       <p>Seu serviço foi concluído com sucesso. Segue o resumo completo do atendimento para sua transparência:</p>
       <table style="width: 100%; border-collapse: collapse; margin: 16px 0;">
-        <tr><td style="padding: 8px 0; color: #666;">Tipo de serviço</td><td style="padding: 8px 0;">${serviceType}</td></tr>
-        <tr><td style="padding: 8px 0; color: #666;">Chaveiro</td><td style="padding: 8px 0;">${locksmithName}</td></tr>
-        <tr><td style="padding: 8px 0; color: #666;">Endereço</td><td style="padding: 8px 0;">${address}</td></tr>
-        <tr><td style="padding: 8px 0; color: #666;">Data</td><td style="padding: 8px 0;">${date}</td></tr>
-        <tr><td style="padding: 8px 0; color: #666;">Status da solicitação</td><td style="padding: 8px 0;">${statusLabel}</td></tr>
-        <tr><td style="padding: 8px 0; color: #666;">Pagamento</td><td style="padding: 8px 0;">${paymentLabel}</td></tr>
+        <tr><td style="padding: 8px 0; color: #666;">Tipo de serviço</td><td style="padding: 8px 0;">${escapeHtml(serviceType)}</td></tr>
+        <tr><td style="padding: 8px 0; color: #666;">Chaveiro</td><td style="padding: 8px 0;">${escapeHtml(locksmithName)}</td></tr>
+        <tr><td style="padding: 8px 0; color: #666;">Endereço</td><td style="padding: 8px 0;">${escapeHtml(address)}</td></tr>
+        <tr><td style="padding: 8px 0; color: #666;">Data</td><td style="padding: 8px 0;">${escapeHtml(date)}</td></tr>
+        <tr><td style="padding: 8px 0; color: #666;">Status da solicitação</td><td style="padding: 8px 0;">${escapeHtml(statusLabel)}</td></tr>
+        <tr><td style="padding: 8px 0; color: #666;">Pagamento</td><td style="padding: 8px 0;">${escapeHtml(paymentLabel)}</td></tr>
         ${ratingBlock}
         ${reviewBlock}
       </table>
       <div style="background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px; padding: 16px; margin: 16px 0;">
         <p style="margin: 0; color: #666; font-size: 14px;">Valor total pago</p>
-        <p style="margin: 4px 0 0 0; font-size: 28px; font-weight: bold; color: #15803d;">R$ ${price}</p>
+        <p style="margin: 4px 0 0 0; font-size: 28px; font-weight: bold; color: #15803d;">R$ ${escapeHtml(price)}</p>
       </div>
       <p style="margin-top: 24px;">Agradecemos a confiança em nosso serviço!</p>
       <p style="color: #999; font-size: 12px; margin-top: 8px;">Equipe Chaveiro Já</p>

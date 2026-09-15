@@ -1,5 +1,6 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.44';
 import { verifyInternalCall } from '../../shared/internalCall.ts';
+import { escapeHtml } from '../../shared/escapeHtml.ts';
 
 // Envia automaticamente o recibo do serviço ao cliente após o pagamento
 // ser confirmado. Roda como service role (chamado por workflow, sem usuário).
@@ -76,19 +77,19 @@ export default async function(req) {
         <h1 style="font-size:24px;margin:0;">🔑 Recibo do serviço</h1>
         <span style="display:inline-block;margin-top:8px;padding:4px 12px;border-radius:9999px;background:#dcfce7;color:#15803d;font-size:12px;font-weight:bold;">✓ PAGAMENTO CONFIRMADO</span>
       </div>
-      <p>Olá <strong>${customerName}</strong>,</p>
+      <p>Olá <strong>${escapeHtml(customerName)}</strong>,</p>
       <p>Seu pagamento foi confirmado e o serviço foi finalizado. Segue o recibo completo do atendimento:</p>
       <table style="width:100%;border-collapse:collapse;margin:16px 0;">
-        <tr><td style="padding:8px 0;color:#666;">Tipo de serviço</td><td style="padding:8px 0;">${serviceType}</td></tr>
-        <tr><td style="padding:8px 0;color:#666;">Chaveiro</td><td style="padding:8px 0;">${locksmithName}</td></tr>
-        <tr><td style="padding:8px 0;color:#666;">Endereço</td><td style="padding:8px 0;">${address}</td></tr>
-        <tr><td style="padding:8px 0;color:#666;">Data</td><td style="padding:8px 0;">${date}</td></tr>
-        <tr><td style="padding:8px 0;color:#666;">Forma de pagamento</td><td style="padding:8px 0;">${paymentMethod}</td></tr>
+        <tr><td style="padding:8px 0;color:#666;">Tipo de serviço</td><td style="padding:8px 0;">${escapeHtml(serviceType)}</td></tr>
+        <tr><td style="padding:8px 0;color:#666;">Chaveiro</td><td style="padding:8px 0;">${escapeHtml(locksmithName)}</td></tr>
+        <tr><td style="padding:8px 0;color:#666;">Endereço</td><td style="padding:8px 0;">${escapeHtml(address)}</td></tr>
+        <tr><td style="padding:8px 0;color:#666;">Data</td><td style="padding:8px 0;">${escapeHtml(date)}</td></tr>
+        <tr><td style="padding:8px 0;color:#666;">Forma de pagamento</td><td style="padding:8px 0;">${escapeHtml(paymentMethod)}</td></tr>
       </table>
       ${breakdownBlock}
       <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:16px;margin:16px 0;">
         <p style="margin:0;color:#666;font-size:14px;">Valor total pago</p>
-        <p style="margin:4px 0 0 0;font-size:28px;font-weight:bold;color:#15803d;">R$ ${price}</p>
+        <p style="margin:4px 0 0 0;font-size:28px;font-weight:bold;color:#15803d;">R$ ${escapeHtml(price)}</p>
       </div>
       <p style="margin-top:24px;">Agradecemos a confiança em nosso serviço!</p>
       <p style="color:#999;font-size:12px;margin-top:8px;">Equipe Chaveiro Já</p>
