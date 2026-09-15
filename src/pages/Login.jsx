@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
 import { Button } from "@/components/ui/button";
@@ -22,6 +22,7 @@ export default function Login() {
   const [loading, setLoading] = useState(false);
   const [rememberMe, setRememberMe] = useState(true);
   const [verificationEmail, setVerificationEmail] = useState("");
+  const googleRetryStarted = useRef(false);
   const returnTo = safeReturnTo();
   useGoogleLoginReturn(returnTo);
 
@@ -70,6 +71,17 @@ export default function Login() {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("provider") !== "google" || googleRetryStarted.current) return;
+    googleRetryStarted.current = true;
+    params.delete("provider");
+    window.history.replaceState({}, "", `/login${params.toString() ? `?${params}` : ""}`);
+    handleGoogle();
+    // Executado uma única vez ao voltar do cadastro incompleto.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   if (verificationEmail) return (
     <AuthLayout icon={Mail} title="Verificação pendente" subtitle="Esta conta ainda precisa confirmar o email">

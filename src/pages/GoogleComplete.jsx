@@ -4,8 +4,9 @@ import { base44 } from "@/api/base44Client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Loader2, User, UserPlus, Wrench, Phone, AtSign } from "lucide-react";
+import { Loader2, User, UserPlus, Wrench, Phone, AtSign, ArrowLeft } from "lucide-react";
 import AuthLayout from "@/components/AuthLayout";
+import GoogleIcon from "@/components/GoogleIcon";
 import { cpfError, onlyDigits, isValidCpf } from "@/lib/cpf";
 import { claimCpf } from "@/lib/cpfRegistration";
 import CpfInput from "@/components/auth/CpfInput";
@@ -26,7 +27,20 @@ export default function GoogleComplete() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [leaving, setLeaving] = useState(false);
   const [acceptedTerms, setAcceptedTerms] = useState(false);
+
+  const leaveRegistration = (useGoogle = false) => {
+    if (saving || leaving) return;
+    setLeaving(true);
+    localStorage.removeItem("remember_login");
+    sessionStorage.removeItem("active_login_session");
+    const returnTo = `/google-complete?tipo=${tipo}`;
+    const loginUrl = useGoogle
+      ? `/login?provider=google&returnTo=${encodeURIComponent(returnTo)}`
+      : "/login";
+    base44.auth.logout(loginUrl);
+  };
 
   useEffect(() => {
     const load = async () => {
@@ -170,7 +184,7 @@ export default function GoogleComplete() {
 
         <TermsAcceptance accountType={tipo} checked={acceptedTerms} onChange={setAcceptedTerms} />
 
-        <Button type="submit" className="w-full h-12 font-medium" disabled={saving || !acceptedTerms}>
+        <Button type="submit" className="w-full h-12 font-medium" disabled={saving || leaving || !acceptedTerms}>
           {saving ? (
             <>
               <Loader2 className="w-4 h-4 mr-2 animate-spin" />
@@ -181,6 +195,17 @@ export default function GoogleComplete() {
           )}
         </Button>
       </form>
+
+      <div className="mt-6 pt-5 border-t border-border space-y-3">
+        <p className="text-center text-sm text-muted-foreground">Não consegue finalizar agora?</p>
+        <Button type="button" variant="outline" className="w-full h-12" disabled={saving || leaving} onClick={() => leaveRegistration(true)}>
+          {leaving ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <GoogleIcon className="w-5 h-5 mr-2" />}
+          Tentar com outra conta Google
+        </Button>
+        <Button type="button" variant="ghost" className="w-full h-12" disabled={saving || leaving} onClick={() => leaveRegistration(false)}>
+          <ArrowLeft className="w-4 h-4 mr-2" /> Voltar para email e senha
+        </Button>
+      </div>
     </AuthLayout>
   );
 }
