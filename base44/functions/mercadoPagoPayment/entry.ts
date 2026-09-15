@@ -21,7 +21,7 @@ export default async function(req) {
         const profiles = await base44.asServiceRole.entities.Locksmith.filter({ created_by_id: user.id });
         locksmith = profiles?.[0];
         if (!locksmith || body.locksmith_id !== locksmith.id) return Response.json({ error: "Perfil de chaveiro não encontrado" }, { status: 404 });
-        amount = 50;
+        amount = 9.99;
         token = secrets.get("MERCADO_PAGO_ACCESS_TOKEN");
       } else {
         service = await base44.asServiceRole.entities.ServiceRequest.get(body.service_request_id).catch(() => null);

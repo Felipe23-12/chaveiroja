@@ -141,9 +141,9 @@ export const WORK_MODES = {
   livre: {
     label: "Modo Livre",
     description: "Você define o valor dos seus serviços",
-    fee: "R$ 50,00 por mês (assinatura fixa)",
+    fee: "R$ 9,99 por mês (assinatura fixa)",
     feeType: "monthly",
-    feeValue: 50,
+    feeValue: 9.99,
   },
   app: {
     label: "Modo Aplicativo",
