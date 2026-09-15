@@ -100,6 +100,11 @@
     "method"
   ],
   "rls": {
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
     "read": {
       "$or": [
         {
@@ -107,6 +112,9 @@
         },
         {
           "data.client_id": "{{user.id}}"
+        },
+        {
+          "data.locksmith_id": "{{user.id}}"
         },
         {
           "user_condition": {
