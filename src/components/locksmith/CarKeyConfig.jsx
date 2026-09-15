@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import KeyServicePrice from "@/components/client/KeyServicePrice";
 import CarKeyCalculationDetails from "./CarKeyCalculationDetails";
 import AddressAutocomplete from "./AddressAutocomplete";
-import { CAR_KEY_TYPES, getCarKeyComplexityFee } from "@/lib/pricing";
+import { CAR_KEY_TYPES, getCarKeyComplexityFee, isLandRoverFrom2020 } from "@/lib/pricing";
 import CarKeyProgrammingNotice from "./CarKeyProgrammingNotice";
 import VehicleMakeModelFields from "./VehicleMakeModelFields";
 import KeyOriginSelector from "./KeyOriginSelector";
@@ -61,6 +61,17 @@ export default function CarKeyConfig({
             />
           </div>
         </div>
+
+        {isLandRoverFrom2020(vehicleInfo.make, vehicleInfo.year) && (
+          <div>
+            <label className="text-sm font-medium text-foreground mb-1.5 block">O carro está trancado no alarme?</label>
+            <div className="grid grid-cols-2 gap-3">
+              <button type="button" onClick={() => updateVehicle("alarmLocked", true)} className={`min-h-[44px] rounded-xl border-2 text-sm font-medium ${vehicleInfo.alarmLocked === true ? "border-primary bg-primary/5 text-foreground" : "border-border text-muted-foreground"}`}>Sim</button>
+              <button type="button" onClick={() => updateVehicle("alarmLocked", false)} className={`min-h-[44px] rounded-xl border-2 text-sm font-medium ${vehicleInfo.alarmLocked === false ? "border-primary bg-primary/5 text-foreground" : "border-border text-muted-foreground"}`}>Não</button>
+            </div>
+            {vehicleInfo.alarmLocked === true && <p className="mt-2 text-xs text-muted-foreground">Será aplicado o adicional de R$ 8.000,00 na confecção.</p>}
+          </div>
+        )}
 
         <div>
           <label className="text-sm font-medium text-foreground mb-1.5 block">A porta do carro está</label>

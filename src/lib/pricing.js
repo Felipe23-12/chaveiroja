@@ -272,6 +272,12 @@ export const TOYOTA_KEY_COMPLEXITY_FEE = 700;
 export const CAR_KEY_COMPLEXITY_LABEL = "Confecção de alta complexidade (Toyota)";
 export const getCarKeyComplexityFee = (make) =>
   /^toyota(?:\s|$)/i.test(String(make || "").trim()) ? TOYOTA_KEY_COMPLEXITY_FEE : 0;
+export const LAND_ROVER_ALARM_FEE = 8000;
+export const LAND_ROVER_ALARM_LABEL = "Land Rover trancada no alarme";
+export const isLandRoverFrom2020 = (make, year) =>
+  /^land\s*rover(?:\s|$)/i.test(String(make || "").trim()) && Number(year) >= 2020;
+export const getLandRoverAlarmFee = (make, year, alarmLocked) =>
+  isLandRoverFrom2020(make, year) && alarmLocked === true ? LAND_ROVER_ALARM_FEE : 0;
 
 export function calculateCarKeyPrice({
   make = "",
@@ -285,6 +291,7 @@ export function calculateCarKeyPrice({
   onlineProgrammingFee = 0,
   year = null,
   hasCodedKey = false,
+  alarmLocked = null,
 }) {
   const comp = keyType ? carKeyComponents({ fipeValue, keyValue, keyType, year, hasCodedKey }) : null;
   const kv = comp ? comp.keyValue : Number(keyValue) || 0;
@@ -297,8 +304,9 @@ export function calculateCarKeyPrice({
   const locomotion = Math.round(perKm * dist * 100) / 100;
   const rawTotal = Math.round((kv + labor + locomotion + extra + onlineFee) * 100) / 100;
   const complexityFee = getCarKeyComplexityFee(make);
+  const alarmFee = getLandRoverAlarmFee(make, year, alarmLocked);
   const baseTotal = Math.max(MIN_CAR_KEY_TOTAL, rawTotal);
-  const total = baseTotal + complexityFee;
+  const total = baseTotal + complexityFee + alarmFee;
 
   const breakdown = [
     { label: "Valor da chave", value: kv },
@@ -318,6 +326,7 @@ export function calculateCarKeyPrice({
     breakdown.push({ label: "Ajuste ao mínimo de R$ 380 (chave de carro)", value: Math.round((baseTotal - rawTotal) * 100) / 100 });
   }
   if (complexityFee > 0) breakdown.push({ label: CAR_KEY_COMPLEXITY_LABEL, value: complexityFee });
+  if (alarmFee > 0) breakdown.push({ label: LAND_ROVER_ALARM_LABEL, value: alarmFee });
 
   return {
     keyValue: kv,
@@ -327,6 +336,7 @@ export function calculateCarKeyPrice({
     extraCost: extra,
     onlineProgrammingFee: onlineFee,
     complexityFee,
+    alarmFee,
     total,
     breakdown,
   };

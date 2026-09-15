@@ -100,7 +100,7 @@ export default function Home() {
   const [urgency, setUrgency] = useState("normal");
   const [selectedOptions, setSelectedOptions] = useState([]);
   const [customAddons, setCustomAddons] = useState({});
-  const [vehicleInfo, setVehicleInfo] = useState({ make: "", model: "", year: "", doorStatus: "", complexity: "simples" });
+  const [vehicleInfo, setVehicleInfo] = useState({ make: "", model: "", year: "", doorStatus: "", complexity: "simples", alarmLocked: null });
   const [locks, setLocks] = useState([createLock()]);
   // null = cliente ainda não confirmou se a chave está quebrada na fechadura
   const [brokenKeyInLock, setBrokenKeyInLock] = useState(null);
@@ -465,6 +465,10 @@ export default function Home() {
       setSearchError(programming.reason);
       return;
     }
+    if (service?.isCarKey && /^land\s*rover(?:\s|$)/i.test(vehicleInfo.make.trim()) && Number(vehicleInfo.year) >= 2020 && vehicleInfo.alarmLocked == null) {
+      setSearchError("Informe se a Land Rover está trancada no alarme.");
+      return;
+    }
     if ((service?.isCarKey || service?.isMotoKey) && keyOrigin === "paralela" && parallelOptions(keyCatalog).length === 0) {
       setSearchError("Não há chave paralela confirmada para este veículo e ano. Escolha uma opção disponível.");
       return;
@@ -574,7 +578,9 @@ export default function Home() {
         const effectiveKeyValue = carKeyType === "simples" ? 0 : selectedKeyValue;
         const onlineFee = programming?.onlineFee || 0;
         const complexityFee = price?.complexityFee || 0;
-        const basePrice = Math.max(MIN_CAR_KEY_TOTAL, (price?.total || 0) - complexityFee);
+        const alarmFee = price?.alarmFee || 0;
+        const fixedVehicleFees = complexityFee + alarmFee;
+        const basePrice = Math.max(MIN_CAR_KEY_TOTAL, (price?.total || 0) - fixedVehicleFees);
         const adjustedLabor = price
           ? Math.round((price.base - effectiveKeyValue - onlineFee) * 100) / 100
           : 0;
@@ -582,15 +588,15 @@ export default function Home() {
         const disc = useDiscount ? applyLoyaltyDiscount(basePrice, MIN_CAR_KEY_TOTAL) : { amount: 0, final: basePrice };
         req = await createAppServiceRequest({
           ...base,
-          price: disc.final + complexityFee,
+          price: disc.final + fixedVehicleFees,
           key_value: effectiveKeyValue,
           fipe_value: fipeValue,
           key_type: carKeyType,
-          vehicle_info: `${vehicleInfo.make} ${vehicleInfo.model} · Ano ${vehicleInfo.year} · Porta ${vehicleInfo.doorStatus}${complexityFee > 0 ? " · Confecção de alta complexidade" : ""}`.trim(),
+          vehicle_info: `${vehicleInfo.make} ${vehicleInfo.model} · Ano ${vehicleInfo.year} · Porta ${vehicleInfo.doorStatus}${complexityFee > 0 ? " · Confecção de alta complexidade" : ""}${/^land\s*rover(?:\s|$)/i.test(vehicleInfo.make.trim()) && Number(vehicleInfo.year) >= 2020 ? ` · Alarme: ${vehicleInfo.alarmLocked ? "trancado" : "não trancado"}` : ""}`.trim(),
           labor_cost: adjustedLabor,
           locomotion_cost: kmFee,
           distance_km: initialDistanceKm,
-          extra_cost: onlineFee + complexityFee,
+          extra_cost: onlineFee + fixedVehicleFees,
           discount_applied: useDiscount && disc.amount > 0,
           discount_amount: disc.amount,
         });
@@ -969,7 +975,7 @@ export default function Home() {
     setUrgency("normal");
     setSelectedOptions([]);
     setCustomAddons({});
-    setVehicleInfo({ make: "", model: "", year: "", doorStatus: "", complexity: "simples" });
+    setVehicleInfo({ make: "", model: "", year: "", doorStatus: "", complexity: "simples", alarmLocked: null });
     setLocks([createLock()]);
     setBrokenKeyInLock(null);
     setOpeningReason(null);
