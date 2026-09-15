@@ -4,6 +4,31 @@ import { validatedLocation } from '../../shared/cancellationSafety.ts';
 
 const waitMinutes = (minutes) => new Date(Date.now() + minutes * 60000).toISOString();
 
+const serviceProfiles = {
+  'Abertura Residencial': { id: 'abertura_residencial', specialty: 'Residencial' },
+  'Abertura Automotiva': { id: 'abertura_automotiva', specialty: 'Automotivo' },
+  'Abertura Fechadura Tetra': { id: 'abertura_tetra', specialty: 'Residencial' },
+  'Abertura Fechadura Eletrônica': { id: 'abertura_eletronica', specialty: 'Residencial' },
+  'Confecção de Chave de Carro': { id: 'confeccao_chave_carro', specialty: 'Automotivo' },
+  'Confecção de Chave de Moto': { id: 'confeccao_chave_moto', specialty: 'Automotivo' },
+};
+
+function distanceKm(a, b) {
+  const rad = (value) => value * Math.PI / 180;
+  const dLat = rad(b.lat - a.lat);
+  const dLng = rad(b.lng - a.lng);
+  const h = Math.sin(dLat / 2) ** 2 + Math.cos(rad(a.lat)) * Math.cos(rad(b.lat)) * Math.sin(dLng / 2) ** 2;
+  return 6371 * 2 * Math.atan2(Math.sqrt(h), Math.sqrt(1 - h));
+}
+
+function canReceiveRequest(locksmith, request) {
+  const service = serviceProfiles[request.service_type];
+  if (!service) return false;
+  if (locksmith.services?.length) return locksmith.services.includes(service.id);
+  const specialties = locksmith.specialties?.length ? locksmith.specialties : [locksmith.specialty];
+  return specialties.includes(service.specialty);
+}
+
 async function notify(base44, userId, title, content, requestId) {
   if (!userId) return;
   await base44.asServiceRole.integrations.Core.SendPushNotification({
@@ -25,6 +50,36 @@ export default async function(req) {
 
     if (action === 'client_block_status') {
       return Response.json(await getClientCancelBlock(base44, user.id));
+    }
+
+    if (action === 'sync_online_requests') {
+      const profiles = await base44.asServiceRole.entities.Locksmith.filter({ created_by_id: user.id });
+      const locksmith = profiles.find((item) => item.id === body.locksmith_id) || profiles[0];
+      const receivesAppCalls = locksmith?.work_mode === 'app' || (locksmith?.work_mode === 'livre' && locksmith.receive_app_requests !== false);
+      if (!locksmith || locksmith.online !== true || !receivesAppCalls || !locksmith.lat || !locksmith.lng) {
+        return Response.json({ added: 0 });
+      }
+      const scoreRows = await base44.asServiceRole.entities.LocksmithScore.filter({ locksmith_id: locksmith.id });
+      const score = scoreRows[0];
+      if (score?.banned || (score?.suspended_until && Date.parse(score.suspended_until) > Date.now())) {
+        return Response.json({ added: 0 });
+      }
+      const requests = await base44.asServiceRole.entities.ServiceRequest.filter({ status: 'ringing' }, '-created_date', 100);
+      let added = 0;
+      for (const item of requests) {
+        if ((item.ringing_locksmith_ids || []).includes(locksmith.id) || !item.customer_lat || !item.customer_lng || !canReceiveRequest(locksmith, item)) continue;
+        const distance = distanceKm({ lat: locksmith.lat, lng: locksmith.lng }, { lat: item.customer_lat, lng: item.customer_lng });
+        if (distance > Math.min(Number(locksmith.service_radius_km || 15), 100)) continue;
+        const fresh = await base44.asServiceRole.entities.ServiceRequest.get(item.id);
+        if (!fresh || fresh.status !== 'ringing' || (fresh.ringing_locksmith_ids || []).includes(locksmith.id)) continue;
+        await base44.asServiceRole.entities.ServiceRequest.update(fresh.id, {
+          ringing_locksmith_ids: [...(fresh.ringing_locksmith_ids || []), locksmith.id],
+          ringing_locksmith_user_ids: [...new Set([...(fresh.ringing_locksmith_user_ids || []), locksmith.created_by_id])],
+          rejections: (fresh.rejections || []).filter((rejection) => rejection.locksmith_id !== locksmith.id),
+        });
+        added += 1;
+      }
+      return Response.json({ added });
     }
 
     if (action === 'create_request') {

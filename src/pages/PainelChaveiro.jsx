@@ -536,7 +536,9 @@ export default function PainelChaveiro() {
       setGpsLoading(true);
       try {
         const loc = await getPreciseLocation();
-        await base44.entities.Locksmith.update(me.id, { online: true, lat: loc.lat, lng: loc.lng });
+        const updated = await base44.entities.Locksmith.update(me.id, { online: true, lat: loc.lat, lng: loc.lng });
+        setMe(updated);
+        await base44.functions.invoke("serviceTrust", { action: "sync_online_requests", locksmith_id: me.id });
         toast({ title: "Você está online", description: `Localização atualizada via GPS${loc.accuracy ? ` (precisão de ${Math.round(loc.accuracy)} m)` : ""}.` });
       } catch (error) {
         toast({ title: "Localização necessária", description: locationErrorMessage(error), variant: "destructive" });
@@ -762,6 +764,7 @@ export default function PainelChaveiro() {
   const { pull, refreshing } = usePullToRefresh(handleRefresh);
 
   const isAppMode = me?.work_mode === "app";
+  const canReceiveAppCalls = isAppMode || (me?.work_mode === "livre" && me?.receive_app_requests !== false);
   const rejectBlock = getRejectBlock(me);
   const trustBlocked = trustScore?.banned || (trustScore?.suspended_until && new Date(trustScore.suspended_until).getTime() > Date.now());
   const ring = pendingRequests[0] || null;
@@ -812,10 +815,10 @@ export default function PainelChaveiro() {
       : "Serviço concluído";
 
   return (
-    <div className={`max-w-2xl mx-auto px-4 py-6 md:py-10 ${pendingCount > 0 && isAppMode ? "pt-14 md:pt-14" : ""}`}>
+    <div className={`max-w-2xl mx-auto px-4 py-6 md:py-10 ${pendingCount > 0 && canReceiveAppCalls ? "pt-14 md:pt-14" : ""}`}>
       <PullToRefreshIndicator pull={pull} refreshing={refreshing} />
       {/* Banner fixo piscante no topo quando há solicitações pendentes */}
-      {pendingCount > 0 && isAppMode && (
+      {pendingCount > 0 && canReceiveAppCalls && (
         <div className="fixed top-0 left-0 right-0 z-50 bg-red-500 text-white text-center py-2 pt-safe text-sm font-bold animate-alert-blink shadow-lg md:left-64">
           <Bell className="w-4 h-4 inline mr-2 animate-bounce" />
           {pendingCount === 1 ? "1 solicitação aguardando resposta!" : `${pendingCount} solicitações aguardando resposta!`}
@@ -972,7 +975,7 @@ export default function PainelChaveiro() {
       )}
 
       {/* Fila de solicitações pendentes — modo app */}
-      {pendingCount > 0 && isAppMode && !rejectBlock.blocked && !trustBlocked && (
+      {pendingCount > 0 && canReceiveAppCalls && !rejectBlock.blocked && !trustBlocked && (
         <PendingRequestsList
           requests={pendingRequests}
           onAccept={handleAccept}
@@ -1214,7 +1217,14 @@ export default function PainelChaveiro() {
         ) : me?.monthly_fee_paid ? (
           <LivreModeDashboard
             me={me}
-            onUpdateMe={(data) => base44.entities.Locksmith.update(me.id, data).then(setMe)}
+            onUpdateMe={async (data) => {
+              const updated = await base44.entities.Locksmith.update(me.id, data);
+              setMe(updated);
+              if (updated.online && updated.receive_app_requests !== false) {
+                await base44.functions.invoke("serviceTrust", { action: "sync_online_requests", locksmith_id: updated.id });
+              }
+              return updated;
+            }}
           />
         ) : (
           <div className="space-y-5">
