@@ -573,7 +573,8 @@ export default function Home() {
         // Preço dinâmico: valor da chave + mão de obra pela faixa de ano/codificação da FIPE
         const effectiveKeyValue = carKeyType === "simples" ? 0 : selectedKeyValue;
         const onlineFee = programming?.onlineFee || 0;
-        const basePrice = Math.max(MIN_CAR_KEY_TOTAL, price?.total || 0);
+        const complexityFee = price?.complexityFee || 0;
+        const basePrice = Math.max(MIN_CAR_KEY_TOTAL, (price?.total || 0) - complexityFee);
         const adjustedLabor = price
           ? Math.round((price.base - effectiveKeyValue - onlineFee) * 100) / 100
           : 0;
@@ -581,15 +582,15 @@ export default function Home() {
         const disc = useDiscount ? applyLoyaltyDiscount(basePrice, MIN_CAR_KEY_TOTAL) : { amount: 0, final: basePrice };
         req = await createAppServiceRequest({
           ...base,
-          price: disc.final,
+          price: disc.final + complexityFee,
           key_value: effectiveKeyValue,
           fipe_value: fipeValue,
           key_type: carKeyType,
-          vehicle_info: `${vehicleInfo.make} ${vehicleInfo.model} · Ano ${vehicleInfo.year} · Porta ${vehicleInfo.doorStatus}`.trim(),
+          vehicle_info: `${vehicleInfo.make} ${vehicleInfo.model} · Ano ${vehicleInfo.year} · Porta ${vehicleInfo.doorStatus}${complexityFee > 0 ? " · Confecção de alta complexidade" : ""}`.trim(),
           labor_cost: adjustedLabor,
           locomotion_cost: kmFee,
           distance_km: initialDistanceKm,
-          extra_cost: onlineFee,
+          extra_cost: onlineFee + complexityFee,
           discount_applied: useDiscount && disc.amount > 0,
           discount_amount: disc.amount,
         });

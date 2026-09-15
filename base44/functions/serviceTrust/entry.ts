@@ -28,9 +28,14 @@ export default async function(req) {
     }
 
     if (action === 'create_request') {
-      if (body.data?.service_type === 'Confecção de Chave de Carro' &&
-          (!Number.isFinite(Number(body.data.price)) || Number(body.data.price) < 380)) {
-        return Response.json({ error: 'O valor mínimo da confecção de chave de carro é R$ 380,00, mesmo após descontos.' }, { status: 400 });
+      if (body.data?.service_type === 'Confecção de Chave de Carro') {
+        const toyota = /^toyota(?:\s|$)/i.test(String(body.data.vehicle_info || '').trim());
+        const minimum = 380 + (toyota ? 700 : 0);
+        if (!Number.isFinite(Number(body.data.price)) || Number(body.data.price) < minimum) {
+          return Response.json({ error: toyota
+            ? 'A confecção Toyota é de alta complexidade: mínimo de R$ 380,00 mais R$ 700,00 de adicional, mesmo após descontos.'
+            : 'O valor mínimo da confecção de chave de carro é R$ 380,00, mesmo após descontos.' }, { status: 400 });
+        }
       }
       const block = await getClientCancelBlock(base44, user.id);
       if (block.blocked) return Response.json({ error: `${block.message} Liberação em ${block.minutesLeft} min.`, ...block }, { status: 403 });

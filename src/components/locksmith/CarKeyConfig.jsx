@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import KeyServicePrice from "@/components/client/KeyServicePrice";
 import CarKeyCalculationDetails from "./CarKeyCalculationDetails";
 import AddressAutocomplete from "./AddressAutocomplete";
-import { CAR_KEY_TYPES } from "@/lib/pricing";
+import { CAR_KEY_TYPES, getCarKeyComplexityFee } from "@/lib/pricing";
 import CarKeyProgrammingNotice from "./CarKeyProgrammingNotice";
 import VehicleMakeModelFields from "./VehicleMakeModelFields";
 import KeyOriginSelector from "./KeyOriginSelector";
@@ -108,6 +108,9 @@ export default function CarKeyConfig({
         </div>
       )}
 
+      {getCarKeyComplexityFee(vehicleInfo.make) > 0 && (
+        <p className="rounded-xl border border-primary/40 bg-primary/5 p-3 text-sm text-foreground">Toyota: confecção de chave classificada como alta complexidade.</p>
+      )}
       <CarKeyProgrammingNotice programming={programming} hidePriceDetails />
 
       {fipeValue != null && (
