@@ -1,0 +1,56 @@
+{
+  "name": "MercadoPagoReminderDelivery",
+  "type": "object",
+  "properties": {
+    "locksmith_id": {
+      "type": "string"
+    },
+    "locksmith_user_id": {
+      "type": "string"
+    },
+    "week": {
+      "type": "string"
+    },
+    "push_sent": {
+      "type": "boolean",
+      "default": false
+    },
+    "email_sent": {
+      "type": "boolean",
+      "default": false
+    },
+    "push_error": {
+      "type": "string"
+    },
+    "email_error": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "locksmith_id",
+    "locksmith_user_id",
+    "week"
+  ],
+  "rls": {
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

@@ -952,7 +952,7 @@ export default function PainelChaveiro() {
       )}
 
       {/* Recebimentos automáticos via Mercado Pago */}
-      {me && isAppMode && (
+      {me && (
         <div className="mb-5">
           <MercadoPagoConnectSetup />
         </div>
