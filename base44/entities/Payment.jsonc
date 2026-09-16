@@ -9,6 +9,10 @@
     "locksmith_id": {
       "type": "string"
     },
+    "locksmith_user_id": {
+      "type": "string",
+      "description": "Propriet\u00e1rio do perfil de chaveiro, preenchido pelo servidor"
+    },
     "locksmith_name": {
       "type": "string"
     },
@@ -26,7 +30,7 @@
     "commission_amount": {
       "type": "number",
       "default": 0,
-      "description": "Comiss\u00e3o do app (15% nos atendimentos)"
+      "description": "Comiss\u00e3o do app e compensa\u00e7\u00f5es de comiss\u00f5es em dinheiro"
     },
     "net_amount": {
       "type": "number",
@@ -70,6 +74,44 @@
         "subscription"
       ],
       "default": "service"
+    },
+    "collection_mode": {
+      "type": "string",
+      "enum": [
+        "seller_split",
+        "platform_pending",
+        "platform_subscription"
+      ],
+      "description": "Destino definido na cria\u00e7\u00e3o da cobran\u00e7a, n\u00e3o muda quando o chaveiro conecta sua conta"
+    },
+    "collector_id": {
+      "type": "string",
+      "description": "ID Mercado Pago da conta recebedora validado no servidor"
+    },
+    "transfer_status": {
+      "type": "string",
+      "enum": [
+        "awaiting_payment",
+        "pending",
+        "under_review",
+        "reversed"
+      ],
+      "description": "Cr\u00e9ditos retidos na plataforma; nenhum destes estados representa transfer\u00eancia realizada"
+    },
+    "pending_transfer_amount": {
+      "type": "number",
+      "minimum": 0,
+      "default": 0,
+      "description": "Cr\u00e9dito l\u00edquido pendente, ap\u00f3s comiss\u00e3o, compensa\u00e7\u00f5es e tarifa do Mercado Pago confirmada"
+    },
+    "provider_fee_amount": {
+      "type": "number",
+      "minimum": 0,
+      "description": "Tarifa confirmada pelo Mercado Pago para o recebimento na plataforma"
+    },
+    "provider_updated_at": {
+      "type": "string",
+      "description": "Vers\u00e3o de atualiza\u00e7\u00e3o do pagamento no Mercado Pago"
     },
     "mercado_pago_preference_id": {
       "type": "string"
@@ -117,6 +159,9 @@
           "data.locksmith_id": "{{user.id}}"
         },
         {
+          "data.locksmith_user_id": "{{user.id}}"
+        },
+        {
           "user_condition": {
             "role": "admin"
           }
@@ -126,7 +171,16 @@
     "update": {
       "$or": [
         {
-          "created_by_id": "{{user.id}}"
+          "$and": [
+            {
+              "created_by_id": "{{user.id}}"
+            },
+            {
+              "data.collection_mode": {
+                "$ne": "platform_pending"
+              }
+            }
+          ]
         },
         {
           "user_condition": {
@@ -138,7 +192,16 @@
     "delete": {
       "$or": [
         {
-          "created_by_id": "{{user.id}}"
+          "$and": [
+            {
+              "created_by_id": "{{user.id}}"
+            },
+            {
+              "data.collection_mode": {
+                "$ne": "platform_pending"
+              }
+            }
+          ]
         },
         {
           "user_condition": {
