@@ -9,6 +9,7 @@ import WalletCard from "@/components/locksmith/WalletCard";
 import EarningsSplitCard from "@/components/locksmith/EarningsSplitCard";
 import WithdrawalSection from "@/components/locksmith/WithdrawalSection";
 import SheetsExportButton from "@/components/locksmith/SheetsExportButton";
+import PendingCreditsCard from "@/components/payment/PendingCreditsCard";
 
 export default function PainelFinanceiro() {
   const [selectedId, setSelectedId] = useState("");
@@ -150,6 +151,8 @@ export default function PainelFinanceiro() {
           </p>
         </div>
       )}
+
+      {me && <div className="mb-6"><PendingCreditsCard /></div>}
 
       {/* Carteira digital e saque via Pix */}
       {me && (

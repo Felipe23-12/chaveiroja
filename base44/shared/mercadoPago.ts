@@ -1,4 +1,5 @@
 import { secrets } from "base44:runtime";
+import { pendingCreditUpdate } from "./pendingPaymentCredits.ts";
 
 const MP_API = "https://api.mercadopago.com";
 const encoder = new TextEncoder();
@@ -60,16 +61,19 @@ async function refreshAccount(base44, account) {
   });
 }
 
-export async function getSellerAccount(base44, locksmithId) {
+export async function getSellerAccount(base44, locksmithId, allowUnconnected = false) {
   const rows = await base44.asServiceRole.entities.MercadoPagoAccount.filter({ locksmith_id: locksmithId });
   let account = rows?.[0];
-  if (!account || account.status !== "active") throw new Error("O chaveiro precisa vincular a conta Mercado Pago antes do pagamento");
+  if (!account || account.status !== "active") {
+    if (allowUnconnected) return null;
+    throw new Error("O chaveiro precisa vincular a conta Mercado Pago antes do pagamento");
+  }
   if (Date.parse(account.token_expires_at || 0) < Date.now() + 5 * 60 * 1000) account = await refreshAccount(base44, account);
   return account;
 }
 
 export async function fetchPayment(base44, localPayment, providerPaymentId) {
-  const token = localPayment.payment_kind === "subscription"
+  const token = localPayment.payment_kind === "subscription" || localPayment.collection_mode === "platform_pending"
     ? secrets.get("MERCADO_PAGO_ACCESS_TOKEN")
     : (await getSellerAccount(base44, localPayment.locksmith_id)).access_token;
   let paymentId = providerPaymentId || localPayment.mercado_pago_payment_id;
@@ -92,11 +96,24 @@ export function mapPaymentMethod(payment) {
 }
 
 export async function syncApprovedPayment(base44, localPayment, providerPayment) {
-  const statusMap = { approved: "paid", refunded: "refunded", cancelled: "cancelled", rejected: "failed" };
+  // Reload before reconciling; the destination saved at checkout remains authoritative.
+  localPayment = await base44.asServiceRole.entities.Payment.get(localPayment.id);
+  const held = localPayment.collection_mode === "platform_pending";
+  if (localPayment.collector_id && String(providerPayment.collector_id) !== localPayment.collector_id) throw new Error("A conta recebedora não confere com a cobrança");
+  if (held && providerPayment.currency_id !== "BRL") throw new Error("Moeda do pagamento inválida");
+  if (localPayment.mercado_pago_payment_id && String(providerPayment.id) !== localPayment.mercado_pago_payment_id) throw new Error("Pagamento diferente do já confirmado para esta cobrança");
+  if (held && Date.parse(providerPayment.date_last_updated) < Date.parse(localPayment.provider_updated_at)) return { status: localPayment.status, method: localPayment.method };
+  const statusMap = { approved: "paid", refunded: "refunded", cancelled: "cancelled", rejected: "failed", charged_back: "refunded" };
   const status = statusMap[providerPayment.status] || "pre_authorized";
   const expected = Math.round(Number(localPayment.amount) * 100);
   const received = Math.round(Number(providerPayment.transaction_amount) * 100);
   if (received !== expected || String(providerPayment.external_reference) !== String(localPayment.id)) throw new Error("Pagamento não confere com a cobrança registrada");
+  if (held) {
+    await base44.asServiceRole.entities.Payment.update(localPayment.id, {
+      ...pendingCreditUpdate(localPayment, providerPayment),
+      ...(providerPayment.date_last_updated ? { provider_updated_at: providerPayment.date_last_updated } : {}),
+    });
+  }
   if (localPayment.status === "paid" && status === "paid") return { status, method: mapPaymentMethod(providerPayment) };
 
   const baseCommission = localPayment.payment_kind === "subscription" ? 0 : Math.round(Number(localPayment.amount) * 0.15 * 100) / 100;
@@ -125,7 +142,7 @@ export async function syncApprovedPayment(base44, localPayment, providerPayment)
     await base44.asServiceRole.entities.ServiceRequest.update(localPayment.service_request_id, {
       payment_id: localPayment.id,
       payment_method: mapPaymentMethod(providerPayment),
-      payment_status: status === "paid" ? "paid" : status,
+      payment_status: status === "paid" ? "paid" : status === "failed" ? "cancelled" : status,
       ...(status === "paid" ? { commission_status: "paid" } : {}),
     });
   }

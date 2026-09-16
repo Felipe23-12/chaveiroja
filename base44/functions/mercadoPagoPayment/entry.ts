@@ -1,6 +1,7 @@
 import { createClientFromRequest } from "npm:@base44/sdk@0.8.44";
 import { secrets } from "base44:runtime";
 import { APP_URL, MP_WEBHOOK_URL, fetchPayment, getSellerAccount, syncApprovedPayment } from "../../shared/mercadoPago.ts";
+import { readPendingCredits } from "../../shared/pendingPaymentCredits.ts";
 
 const MP_API = "https://api.mercadopago.com";
 
@@ -11,12 +12,21 @@ export default async function(req) {
     if (!user) return Response.json({ error: "Unauthorized" }, { status: 401 });
     const body = await req.json();
 
+    if (body.action === "get_pending_credits") {
+      const page = body.page ?? 0;
+      if (!Number.isInteger(page) || page < 0 || page > 10000) return Response.json({ error: "Página inválida" }, { status: 400 });
+      const credits = await readPendingCredits(base44, user, page);
+      return credits ? Response.json(credits) : Response.json({ error: "Acesso exclusivo para chaveiros e administradores" }, { status: 403 });
+    }
+
     if (body.action === "create_checkout") {
       const kind = body.payment_kind === "subscription" ? "subscription" : body.payment_kind === "cancellation" ? "cancellation" : "service";
       let locksmith;
       let service = null;
       let amount;
       let token;
+      let collectionMode = kind === "subscription" ? "platform_subscription" : "seller_split";
+      let collectorId;
       if (kind === "subscription") {
         const profiles = await base44.asServiceRole.entities.Locksmith.filter({ created_by_id: user.id });
         locksmith = profiles?.[0];
@@ -28,10 +38,22 @@ export default async function(req) {
         if (!service || service.created_by_id !== user.id || service.locksmith_id !== body.locksmith_id) return Response.json({ error: "Atendimento não encontrado" }, { status: 404 });
         if (service.payment_status === "paid") return Response.json({ error: "Este atendimento já foi pago" }, { status: 409 });
         locksmith = await base44.asServiceRole.entities.Locksmith.get(body.locksmith_id).catch(() => null);
+        if (!locksmith) return Response.json({ error: "Chaveiro não encontrado" }, { status: 404 });
         amount = Number(kind === "cancellation" ? service.cancellation_fee : service.price);
-        token = (await getSellerAccount(base44, locksmith.id)).access_token;
+        const account = await getSellerAccount(base44, locksmith.id, true);
+        if (account) {
+          token = account.access_token;
+          collectorId = String(account.mercado_pago_user_id);
+        } else {
+          collectionMode = "platform_pending";
+          token = secrets.get("MERCADO_PAGO_ACCESS_TOKEN");
+          const receiverResponse = await fetch(`${MP_API}/users/me`, { headers: { Authorization: `Bearer ${token}` } });
+          const receiver = await receiverResponse.json();
+          if (!receiverResponse.ok || !receiver.id) return Response.json({ error: "Não foi possível validar a conta recebedora da plataforma" }, { status: 503 });
+          collectorId = String(receiver.id);
+        }
       }
-      if (!locksmith || Math.round(Number(body.amount) * 100) !== Math.round(amount * 100) || amount < 1) return Response.json({ error: "O valor da cobrança não confere" }, { status: 400 });
+      if (!locksmith || !Number.isFinite(amount) || Math.round(Number(body.amount) * 100) !== Math.round(amount * 100) || amount < 1) return Response.json({ error: "O valor da cobrança não confere" }, { status: 400 });
       const baseCommission = kind === "subscription" ? 0 : Math.round(amount * 0.15 * 100) / 100;
       const pendingCash = kind === "service" ? Math.max(0, Number(locksmith.pending_cash_commission || 0)) : 0;
       const maxCashOffset = Math.max(0, Math.round((amount - baseCommission - 0.01) * 100) / 100);
@@ -40,6 +62,7 @@ export default async function(req) {
       const payment = await base44.asServiceRole.entities.Payment.create({
         service_request_id: service?.id || `monthly:${locksmith.id}`,
         locksmith_id: locksmith.id,
+        locksmith_user_id: locksmith.created_by_id,
         locksmith_name: locksmith.name,
         client_id: user.id,
         client_name: user.full_name || "Cliente",
@@ -50,6 +73,9 @@ export default async function(req) {
         status: "pre_authorized",
         provider: "mercado_pago",
         payment_kind: kind,
+        collection_mode: collectionMode,
+        ...(collectorId ? { collector_id: collectorId } : {}),
+        ...(collectionMode === "platform_pending" ? { transfer_status: "awaiting_payment", pending_transfer_amount: 0 } : {}),
         pre_authorized_at: new Date().toISOString(),
       });
       const returnPath = kind === "subscription" ? "/modo-trabalho" : "/";
@@ -63,7 +89,7 @@ export default async function(req) {
         auto_return: "approved",
         binary_mode: false,
         payment_methods: { excluded_payment_types: [{ id: "ticket" }, { id: "atm" }] },
-        ...(kind !== "subscription" ? { marketplace_fee: commission } : {}),
+        ...(collectionMode === "seller_split" ? { marketplace_fee: commission } : {}),
       };
       const response = await fetch(`${MP_API}/checkout/preferences`, {
         method: "POST",
@@ -83,7 +109,7 @@ export default async function(req) {
     if (body.action === "get_status" || body.action === "finalize_payment") {
       const payment = await base44.asServiceRole.entities.Payment.get(body.payment_id).catch(() => null);
       if (!payment || (user.role !== "admin" && payment.client_id !== user.id)) return Response.json({ error: "Pagamento não encontrado" }, { status: 404 });
-      if (payment.status === "paid") return Response.json({ status: "paid", method: payment.method, already_finalized: true });
+      if (payment.status === "paid" && payment.collection_mode !== "platform_pending") return Response.json({ status: "paid", method: payment.method, already_finalized: true });
       const providerPayment = await fetchPayment(base44, payment, body.provider_payment_id);
       if (!providerPayment) return Response.json({ status: "pending" });
       const result = await syncApprovedPayment(base44, payment, providerPayment);

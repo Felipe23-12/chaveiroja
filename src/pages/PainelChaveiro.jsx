@@ -15,6 +15,7 @@ import WalletCard from "@/components/locksmith/WalletCard";
 import CashReceiptAlert from "@/components/locksmith/CashReceiptAlert";
 import WithdrawalSection from "@/components/locksmith/WithdrawalSection";
 import MercadoPagoConnectSetup from "@/components/locksmith/MercadoPagoConnectSetup";
+import PendingCreditsCard from "@/components/payment/PendingCreditsCard";
 import IncomingRequestAlert from "@/components/locksmith/IncomingRequestAlert";
 import PendingRequestsList from "@/components/locksmith/PendingRequestsList";
 import NearbyRequestsList from "@/components/locksmith/NearbyRequestsList";
@@ -956,6 +957,8 @@ export default function PainelChaveiro() {
           <MercadoPagoConnectSetup />
         </div>
       )}
+
+      {me && <div className="mb-5"><PendingCreditsCard /></div>}
 
       {/* Carteira e saque — modo app */}
       {me && isAppMode && (

@@ -3,6 +3,7 @@ import { base44 } from "@/api/base44Client";
 import { Wallet, TrendingUp, Receipt, Percent, Loader2, CreditCard, QrCode, Banknote } from "lucide-react";
 import { COMMISSION_RATE } from "@/lib/payments";
 import FinanceCharts from "@/components/admin/FinanceCharts";
+import PendingCreditsCard from "@/components/payment/PendingCreditsCard";
 
 const fmtMoney = (n) =>
   (Number(n) || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
@@ -143,6 +144,8 @@ export default function PainelFinanceiroAdmin() {
         </div>
       </div>
 
+      <PendingCreditsCard />
+
       {/* Gráficos: serviços por mês e comissão por mês */}
       <FinanceCharts />
 
@@ -172,7 +175,7 @@ export default function PainelFinanceiroAdmin() {
             <span className="text-xs">Líquido aos chaveiros</span>
           </div>
           <p className="font-heading font-bold text-xl text-emerald-600">{fmtMoney(totals.net)}</p>
-          <p className="text-xs text-muted-foreground mt-1">Já repassado</p>
+          <p className="text-xs text-muted-foreground mt-1">Parcela dos chaveiros antes das tarifas; inclui créditos ainda não repassados</p>
         </div>
 
         <div className="rounded-xl border border-border bg-white p-4">
@@ -282,7 +285,7 @@ export default function PainelFinanceiroAdmin() {
                         <td className="px-4 py-2 text-right text-foreground">{fmtMoney(p.amount)}</td>
                         <td className="px-4 py-2 text-right text-blue-600">- {fmtMoney(p.commission_amount)}</td>
                         <td className="px-4 py-2 text-right font-semibold text-emerald-600">{fmtMoney(p.net_amount)}</td>
-                        <td className="px-4 py-2">{statusBadge(p.status)}</td>
+                        <td className="px-4 py-2">{statusBadge(p.status)}{p.collection_mode === "platform_pending" && <p className="mt-1 text-xs text-muted-foreground">{p.transfer_status === "pending" ? `Crédito pendente: ${fmtMoney(p.pending_transfer_amount)}` : p.transfer_status === "under_review" ? "Crédito em revisão" : p.transfer_status === "reversed" ? "Crédito estornado" : "Aguardando pagamento · plataforma"}</p>}</td>
                       </tr>
                     );
                   })}
