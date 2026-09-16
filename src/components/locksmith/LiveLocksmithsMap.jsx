@@ -134,6 +134,7 @@ export default function LiveLocksmithsMap({ customerLoc, livreOnly = false }) {
       {/* Busca por bairro ou rua — recentraliza o mapa no local pesquisado */}
       <MapLocationSearch
         label={searchLabel}
+        location={customerLoc}
         onSelect={({ address, lat, lng }) => {
           setSearchLabel(address);
           setSearchLoc({ lat, lng });

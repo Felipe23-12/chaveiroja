@@ -17,7 +17,7 @@ const highlightMatch = (text, query) => {
   );
 };
 
-export default function AddressAutocomplete({ value, onChange, onSelect, placeholder }) {
+export default function AddressAutocomplete({ value, onChange, onSelect, placeholder, includePlaces = false, location }) {
   const [query, setQuery] = useState(value || "");
   const [predictions, setPredictions] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -47,7 +47,10 @@ export default function AddressAutocomplete({ value, onChange, onSelect, placeho
       try {
         const res = await base44.functions.invoke("googlePlacesAutocomplete", {
           action: "search",
-          input: query
+          input: query,
+          include_places: includePlaces,
+          lat: location?.lat,
+          lng: location?.lng
         });
         setPredictions(res.data?.predictions || []);
         setShowDropdown(true);
@@ -59,7 +62,7 @@ export default function AddressAutocomplete({ value, onChange, onSelect, placeho
       }
     }, 300);
     return () => { if (debounceRef.current) clearTimeout(debounceRef.current); };
-  }, [query]);
+  }, [query, includePlaces, location?.lat, location?.lng]);
 
   // Fecha sugestões ao clicar fora
   useEffect(() => {
@@ -93,7 +96,7 @@ export default function AddressAutocomplete({ value, onChange, onSelect, placeho
       });
       const details = res.data;
       if (onSelect && details?.lat != null) {
-        onSelect({ address: details.address || p.description, lat: details.lat, lng: details.lng });
+        onSelect({ address: details.address || p.description, label: p.description, name: details.name, lat: details.lat, lng: details.lng });
       }
     } catch (e) {
       // mantém o endereço textual mesmo se falhar a geocodificação
@@ -179,8 +182,8 @@ export default function AddressAutocomplete({ value, onChange, onSelect, placeho
           {!loading && predictions.length === 0 && query.length >= 2 && (
             <div className="px-3 py-4 text-center">
               <MapPin className="w-5 h-5 text-muted-foreground mx-auto mb-1.5" />
-              <p className="text-sm text-muted-foreground">Nenhum endereço encontrado.</p>
-              <p className="text-xs text-muted-foreground mt-0.5">Tente digitar rua + número ou CEP.</p>
+              <p className="text-sm text-muted-foreground">Nenhum local encontrado.</p>
+                             <p className="text-xs text-muted-foreground mt-0.5">{includePlaces ? "Tente bairro, terminal, restaurante ou endereço." : "Tente digitar rua + número ou CEP."}</p>
             </div>
           )}
           {!loading && predictions.map((p, i) => (

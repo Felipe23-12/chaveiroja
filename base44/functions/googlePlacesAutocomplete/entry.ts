@@ -1,7 +1,7 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.44';
 import { secrets } from 'base44:runtime';
 
-export default async function(req) {
+export default async function(req: Request): Promise<Response> {
   try {
     const base44 = createClientFromRequest(req);
     const user = await base44.auth.me();
@@ -16,13 +16,20 @@ export default async function(req) {
       const input = (body.input || '').trim();
       if (input.length < 2) return Response.json({ predictions: [] });
 
+      const includePlaces = body.include_places === true;
       const params = new URLSearchParams({
-        input,
+        input: input.slice(0, 160),
         key: apiKey,
         language: 'pt-BR',
         components: 'country:br',
-        types: 'address'
+        ...(includePlaces ? {} : { types: 'address' })
       });
+      const lat = Number(body.lat);
+      const lng = Number(body.lng);
+      if (includePlaces && Number.isFinite(lat) && Number.isFinite(lng)) {
+        params.set('location', `${lat},${lng}`);
+        params.set('radius', '50000');
+      }
       const res = await fetch(`https://maps.googleapis.com/maps/api/place/autocomplete/json?${params}`);
       const data = await res.json();
 
