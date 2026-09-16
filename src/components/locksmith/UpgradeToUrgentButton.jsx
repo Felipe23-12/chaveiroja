@@ -4,7 +4,7 @@ import { Zap, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/use-toast";
 import { URGENCY_MULTIPLIER } from "@/lib/dynamicPricing";
-import { CAR_KEY_COMPLEXITY_LABEL, LAND_ROVER_ALARM_LABEL } from "@/lib/pricing";
+import { LAND_ROVER_ALARM_LABEL } from "@/lib/pricing";
 import {
   AlertDialog,
   AlertDialogContent,
@@ -46,7 +46,7 @@ export default function UpgradeToUrgentButton({ request, onUpdated }) {
   const current = request.price || 0;
   const fixedVehicleFees = request.service_type === "Confecção de Chave de Carro"
     ? (request.pricing_calculation?.lines || [])
-        .filter((line) => [CAR_KEY_COMPLEXITY_LABEL, LAND_ROVER_ALARM_LABEL].includes(line.label))
+        .filter((line) => line.label === LAND_ROVER_ALARM_LABEL || /complexidade \(Toyota\)/i.test(line.label))
         .reduce((sum, line) => sum + Number(line.value || 0), 0)
     : 0;
   const newPrice = Math.round(((current - fixedVehicleFees) * URGENCY_MULTIPLIER + fixedVehicleFees) * 100) / 100;
