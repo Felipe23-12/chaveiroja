@@ -69,7 +69,7 @@ export default function CarKeyConfig({
               <button type="button" onClick={() => updateVehicle("alarmLocked", true)} className={`min-h-[44px] rounded-xl border-2 text-sm font-medium ${vehicleInfo.alarmLocked === true ? "border-primary bg-primary/5 text-foreground" : "border-border text-muted-foreground"}`}>Sim</button>
               <button type="button" onClick={() => updateVehicle("alarmLocked", false)} className={`min-h-[44px] rounded-xl border-2 text-sm font-medium ${vehicleInfo.alarmLocked === false ? "border-primary bg-primary/5 text-foreground" : "border-border text-muted-foreground"}`}>Não</button>
             </div>
-            {vehicleInfo.alarmLocked === true && <p className="mt-2 text-xs text-muted-foreground">Será aplicado o adicional de R$ 8.000,00 na confecção.</p>}
+            {showPriceBeforeAcceptance && vehicleInfo.alarmLocked === true && <p className="mt-2 text-xs text-muted-foreground">Será aplicado o adicional de R$ 8.000,00 na confecção.</p>}
           </div>
         )}
 
@@ -119,7 +119,7 @@ export default function CarKeyConfig({
         </div>
       )}
 
-      {getCarKeyComplexityFee(vehicleInfo.make, vehicleInfo.model) > 0 && (
+      {showPriceBeforeAcceptance && getCarKeyComplexityFee(vehicleInfo.make, vehicleInfo.model) > 0 && (
         <p className="rounded-xl border border-primary/40 bg-primary/5 p-3 text-sm text-foreground">Toyota: {getCarKeyComplexityFee(vehicleInfo.make, vehicleInfo.model) === 700 ? "Corolla, RAV4 e SW4 têm alta complexidade (+R$ 700,00)." : "modelo classificado como média complexidade (+R$ 300,00)."}</p>
       )}
       <CarKeyProgrammingNotice programming={programming} hidePriceDetails />
