@@ -294,7 +294,6 @@ export default function Home() {
         const active = list.find((r) => {
           if (r.status === "ringing" || r.status === "queued" || r.status === "accepted" || r.status === "on_the_way") return true;
           if (r.end_photos?.length > 0 && r.status !== "completed" && r.status !== "cancelled") return true;
-          if (r.status === "completed" && !r.rating) return true;
           return false;
         });
         if (!active) {
