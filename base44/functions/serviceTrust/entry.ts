@@ -86,18 +86,22 @@ export default async function(req) {
       if (body.data?.service_type === 'Confecção de Chave de Carro') {
         const vehicle = String(body.data.vehicle_info || '').trim();
         const toyota = /^toyota(?:\s|$)/i.test(vehicle);
+        const highComplexityToyota = toyota && /\b(?:corolla|rav\s*4|sw\s*4)\b/i.test(vehicle);
+        const toyotaComplexityFee = toyota ? (highComplexityToyota ? 700 : 300) : 0;
         const landRover2020 = /^land\s*rover(?:\s|$)/i.test(vehicle) && /Ano\s+(20(?:2\d|[3-9]\d)|2[1-9]\d{2})/i.test(vehicle);
         if (landRover2020 && !/Alarme:\s*(?:trancado|não trancado)/i.test(vehicle)) {
           return Response.json({ error: 'Informe se a Land Rover está trancada no alarme.' }, { status: 400 });
         }
         const alarmLocked = landRover2020 && /Alarme:\s*trancado/i.test(vehicle);
-        const minimum = 380 + (toyota ? 700 : 0) + (alarmLocked ? 8000 : 0);
+        const minimum = 380 + toyotaComplexityFee + (alarmLocked ? 8000 : 0);
         if (!Number.isFinite(Number(body.data.price)) || Number(body.data.price) < minimum) {
           return Response.json({ error: alarmLocked
             ? 'Land Rover 2020 ou mais nova trancada no alarme exige o adicional de R$ 8.000,00.'
-            : toyota
-              ? 'A confecção Toyota é de alta complexidade: mínimo de R$ 380,00 mais R$ 700,00 de adicional, mesmo após descontos.'
-              : 'O valor mínimo da confecção de chave de carro é R$ 380,00, mesmo após descontos.' }, { status: 400 });
+            : highComplexityToyota
+              ? 'Corolla, RAV4 e SW4 são de alta complexidade: mínimo de R$ 380,00 mais R$ 700,00 de adicional, mesmo após descontos.'
+              : toyota
+                ? 'Este modelo Toyota é de média complexidade: mínimo de R$ 380,00 mais R$ 300,00 de adicional, mesmo após descontos.'
+                : 'O valor mínimo da confecção de chave de carro é R$ 380,00, mesmo após descontos.' }, { status: 400 });
         }
       }
       const block = await getClientCancelBlock(base44, user.id);

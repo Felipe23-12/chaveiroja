@@ -592,7 +592,7 @@ export default function Home() {
           key_value: effectiveKeyValue,
           fipe_value: fipeValue,
           key_type: carKeyType,
-          vehicle_info: `${vehicleInfo.make} ${vehicleInfo.model} · Ano ${vehicleInfo.year} · Porta ${vehicleInfo.doorStatus}${complexityFee > 0 ? " · Confecção de alta complexidade" : ""}${/^land\s*rover(?:\s|$)/i.test(vehicleInfo.make.trim()) && Number(vehicleInfo.year) >= 2020 ? ` · Alarme: ${vehicleInfo.alarmLocked ? "trancado" : "não trancado"}` : ""}`.trim(),
+          vehicle_info: `${vehicleInfo.make} ${vehicleInfo.model} · Ano ${vehicleInfo.year} · Porta ${vehicleInfo.doorStatus}${complexityFee > 0 ? ` · Confecção de ${complexityFee === 700 ? "alta" : "média"} complexidade` : ""}${/^land\s*rover(?:\s|$)/i.test(vehicleInfo.make.trim()) && Number(vehicleInfo.year) >= 2020 ? ` · Alarme: ${vehicleInfo.alarmLocked ? "trancado" : "não trancado"}` : ""}`.trim(),
           labor_cost: adjustedLabor,
           locomotion_cost: kmFee,
           distance_km: initialDistanceKm,

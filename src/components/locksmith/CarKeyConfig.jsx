@@ -119,8 +119,8 @@ export default function CarKeyConfig({
         </div>
       )}
 
-      {getCarKeyComplexityFee(vehicleInfo.make) > 0 && (
-        <p className="rounded-xl border border-primary/40 bg-primary/5 p-3 text-sm text-foreground">Toyota: confecção de chave classificada como alta complexidade.</p>
+      {getCarKeyComplexityFee(vehicleInfo.make, vehicleInfo.model) > 0 && (
+        <p className="rounded-xl border border-primary/40 bg-primary/5 p-3 text-sm text-foreground">Toyota: {getCarKeyComplexityFee(vehicleInfo.make, vehicleInfo.model) === 700 ? "Corolla, RAV4 e SW4 têm alta complexidade (+R$ 700,00)." : "modelo classificado como média complexidade (+R$ 300,00)."}</p>
       )}
       <CarKeyProgrammingNotice programming={programming} hidePriceDetails />
 

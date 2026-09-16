@@ -10,7 +10,6 @@ import {
   calculatePrice,
   calculateCarKeyPrice,
   MIN_CAR_KEY_TOTAL,
-  CAR_KEY_COMPLEXITY_LABEL,
   LAND_ROVER_ALARM_LABEL,
   calculateLongDistanceFee,
   LONG_DISTANCE_THRESHOLD_KM,
@@ -138,6 +137,7 @@ export function calculateDynamicPrice({
   const baseResult = service.isCarKey
     ? calculateCarKeyPrice({
         make: vehicleInfo?.make,
+        model: vehicleInfo?.model,
         keyValue: keyValue || 0,
         fipeValue: fipeValue || 0,
         keyType: carKeyType,
@@ -293,7 +293,7 @@ export function calculateDynamicPrice({
   const complexityFee = service.isCarKey ? baseResult.complexityFee : 0;
   const alarmFee = service.isCarKey ? baseResult.alarmFee : 0;
   const total = Math.max(rawTotal, minimumTotal) + automotiveComplexityFee + brokenKeyFee + complexityFee + alarmFee;
-  if (complexityFee > 0) breakdown.push({ label: CAR_KEY_COMPLEXITY_LABEL, value: complexityFee });
+  if (complexityFee > 0) breakdown.push({ label: baseResult.complexityLabel, value: complexityFee });
   if (alarmFee > 0) breakdown.push({ label: LAND_ROVER_ALARM_LABEL, value: alarmFee });
   if (service.isCarKey && rawTotal < MIN_CAR_KEY_TOTAL) {
     breakdown.push({ label: "Ajuste ao mínimo de R$ 380 (chave de carro)", value: Math.round((MIN_CAR_KEY_TOTAL - rawTotal) * 100) / 100 });
