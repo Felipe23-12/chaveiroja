@@ -5,6 +5,7 @@ import KeyProgrammingFields from "@/components/admin/KeyProgrammingFields";
 
 const fields = [
   ["make", "Montadora"], ["model", "Modelo"], ["year_start", "Ano inicial"], ["year_end", "Ano final"],
+  ["catalog_code", "Código da chave"], ["key_type_detail", "Produto / botões"], ["frequency_mhz", "Frequência (MHz)"],
   ["transponder", "Chip/transponder"], ["blade", "Lâmina"], ["original_price", "Preço original"],
   ["vvdi_file", "Arquivo VVDI"], ["vvdi_price", "Preço VVDI"], ["kd_file", "Arquivo KD"], ["kd_price", "Preço KD"],
   ["km100_file", "Arquivo KM100"], ["km100_price", "Preço KM100"], ["source_url", "Fonte pública"],

@@ -2,7 +2,7 @@ import React from "react";
 import VehicleKeyServiceSummary from "@/components/locksmith/VehicleKeyServiceSummary";
 import { clientNameFromRequest } from "@/lib/clientName";
 
-const FIELD_PATTERN = /(Arquitetura|Arquivos|Transponder|Lâmina|Alarme|Codificação|Máquina de codificação):\s*(.*?)(?=\s+—\s+(?:Arquitetura|Arquivos|Transponder|Lâmina|Alarme|Codificação|Máquina de codificação):|\n(?:Arquitetura|Arquivos|Transponder|Lâmina|Alarme|Codificação|Máquina de codificação):|$)/gis;
+const FIELD_PATTERN = /(Arquitetura|Arquivos|Transponder|Lâmina|Frequência|Código da chave|Produto de referência|Botões|Aplicação do catálogo|Alarme|Codificação|Máquina de codificação):\s*(.*?)(?=\s+—\s+(?:Arquitetura|Arquivos|Transponder|Lâmina|Frequência|Código da chave|Produto de referência|Botões|Aplicação do catálogo|Alarme|Codificação|Máquina de codificação):|\n(?:Arquitetura|Arquivos|Transponder|Lâmina|Frequência|Código da chave|Produto de referência|Botões|Aplicação do catálogo|Alarme|Codificação|Máquina de codificação):|$)/gis;
 
 export default function KeyTechnicalDetails({ description, request }) {
   const isVehicleKey = ["Confecção de Chave de Carro", "Confecção de Chave de Moto"].includes(request?.service_type);

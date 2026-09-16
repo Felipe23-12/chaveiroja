@@ -1,27 +1,13 @@
 import { base44 } from "@/api/base44Client";
 
-const normalizeVehicleText = (value) => String(value || "")
-  .normalize("NFD")
-  .replace(/[\u0300-\u036f]/g, "")
-  .toLowerCase()
-  .replace(/[^a-z0-9]+/g, " ")
-  .trim();
+import { catalogMatchesVehicle, sortCatalogCandidates } from "@/lib/vehicleCatalogMatching";
 
 export async function findVehicleKeyCatalog(make, model, year, vehicleType = "carro") {
   if (!make || !model || !year) return null;
-  const rows = await base44.entities.VehicleKeyCatalog.filter({ vehicle_type: vehicleType, make, active: true });
+  const rows = await base44.entities.VehicleKeyCatalog.filter({ vehicle_type: vehicleType, make, active: true }, "-updated_date", 1000);
   const y = Number(year);
-  const wanted = normalizeVehicleText(model);
-  const candidates = rows.filter((item) =>
-    (!item.year_start || y >= item.year_start) &&
-    (!item.year_end || y <= item.year_end) &&
-    (normalizeVehicleText(item.model).includes(wanted) || wanted.includes(normalizeVehicleText(item.model)))
-  );
-  const qualityScore = (item) =>
-    Number(item.verified) * 100 +
-    Number(item.vvdi_supported || item.kd_supported || item.km100_supported) * 10 +
-    ({ alto: 5, "médio": 3, baixo: 1 }[item.confidence_level] || 0);
-  const row = candidates.sort((a, b) => qualityScore(b) - qualityScore(a))[0] || null;
+  const candidates = rows.filter((item) => catalogMatchesVehicle(item, model, y));
+  const row = sortCatalogCandidates(candidates)[0] || null;
   if (!row) return null;
   const links = await base44.entities.VehicleRemoteCompatibility.filter({ vehicle_catalog_id: row.id, active: true, verified: true });
   const ids = [...new Set(links.map((item) => item.universal_remote_id))];
@@ -92,5 +78,7 @@ export function technicalKeyDescription({ origin, row }) {
   }[row?.key_style] || "arquitetura não confirmada";
   const chip = chipProgrammingDetails(row);
   const alarm = requiresParallelKey(row) ? "sem alarme original de fábrica — usar opção VVDI/KD confirmada" : row?.factory_alarm_status === "original" ? "alarme original de fábrica" : "alarme de fábrica não confirmado";
-  return `${originLabel} — Arquitetura: ${style} — Arquivos: ${files || "nenhum arquivo confirmado"} — Transponder: ${chip.transponder} — Lâmina: ${row?.blade || "não informada"}\nAlarme: ${alarm}\nCodificação: ${chip.coding}\nMáquina de codificação: ${chip.machine}`;
+  const code = row?.catalog_code?.match(/^(?:MB-(?:Cód )?)?(\d{4})(?:-|$)/)?.[1] || row?.catalog_code || "não informado";
+  const buttons = row?.key_type_detail?.match(/(\d+)\s*botões/i)?.[1] || "não informado";
+  return `${originLabel} — Arquitetura: ${style} — Arquivos: ${files || "nenhum arquivo confirmado"} — Transponder: ${chip.transponder} — Lâmina: ${row?.blade || "não informada"}\nFrequência: ${row?.frequency_mhz || "não informada"}\nCódigo da chave: ${code}\nProduto de referência: ${row?.key_type_detail || "não informado"}\nBotões: ${buttons}\nAplicação do catálogo: ${row ? `${row.make} ${row.model} · ${row.generation_or_years || "anos não informados"}` : "não informada"}\nAlarme: ${alarm}\nCodificação: ${chip.coding}\nMáquina de codificação: ${chip.machine}`;
 }
