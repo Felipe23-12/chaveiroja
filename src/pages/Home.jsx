@@ -186,6 +186,20 @@ export default function Home() {
     findVehicleKeyCatalog(make, model, motoInfo.year, "moto").then(setKeyCatalog).catch(() => setKeyCatalog(null));
   }, [service?.isMotoKey, motoInfo.brandId, motoInfo.modelId, motoInfo.year]);
 
+  useEffect(() => {
+    if (!keyCatalog?.id) return;
+    const catalogId = keyCatalog.id;
+    const unsubscribe = base44.entities.VehicleKeyCatalog.subscribe((event) => {
+      if (event.id !== catalogId && event.data?.id !== catalogId) return;
+      if (event.type === "delete") {
+        setKeyCatalog(null);
+        return;
+      }
+      base44.entities.VehicleKeyCatalog.get(catalogId).then(setKeyCatalog);
+    });
+    return safeUnsubscribe(unsubscribe);
+  }, [keyCatalog?.id]);
+
   // Faixa de referência do estado/capital mais próximo (ajustada pela distância
   // até a capital: perto = médias maiores, longe = médias menores)
   const regional = useRegionalPriceRange(serviceId, customerLoc.lat, customerLoc.lng);
