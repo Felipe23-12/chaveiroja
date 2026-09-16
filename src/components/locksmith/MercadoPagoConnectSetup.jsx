@@ -29,6 +29,16 @@ export default function MercadoPagoConnectSetup({ onStatusChange }) {
     try {
       const { data } = await base44.functions.invoke("mercadoPagoConnect", { action: "connect" });
       if (!data?.url) throw new Error("Link de conexão indisponível.");
+
+      const isAndroid = /Android/i.test(navigator.userAgent);
+      if (isAndroid) {
+        const oauthUrl = new URL(data.url);
+        const intentTarget = `${oauthUrl.host}${oauthUrl.pathname}${oauthUrl.search}${oauthUrl.hash}`;
+        const playStoreUrl = "https://play.google.com/store/apps/details?id=com.mercadopago.wallet";
+        window.location.href = `intent://${intentTarget}#Intent;scheme=${oauthUrl.protocol.replace(":", "")};package=com.mercadopago.wallet;S.browser_fallback_url=${encodeURIComponent(playStoreUrl)};end`;
+        return;
+      }
+
       window.location.href = data.url;
     } catch (e) {
       setError(e?.response?.data?.error || e?.message || "Não foi possível conectar o Mercado Pago.");
