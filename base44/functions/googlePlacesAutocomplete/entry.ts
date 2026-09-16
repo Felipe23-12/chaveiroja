@@ -46,6 +46,22 @@ export default async function(req: Request): Promise<Response> {
       return Response.json({ predictions });
     }
 
+    if (action === 'reverse') {
+      const lat = Number(body.lat);
+      const lng = Number(body.lng);
+      if (!Number.isFinite(lat) || !Number.isFinite(lng) || Math.abs(lat) > 90 || Math.abs(lng) > 180) {
+        return Response.json({ error: 'Localização inválida' }, { status: 400 });
+      }
+      const params = new URLSearchParams({ latlng: `${lat},${lng}`, key: apiKey, language: 'pt-BR' });
+      const response = await fetch(`https://maps.googleapis.com/maps/api/geocode/json?${params}`);
+      const data = await response.json();
+      const address = data.results?.[0]?.formatted_address;
+      if (!response.ok || data.status !== 'OK' || !address) {
+        return Response.json({ error: 'Endereço não encontrado' }, { status: 404 });
+      }
+      return Response.json({ address, lat, lng });
+    }
+
     if (action === 'details') {
       const placeId = (body.place_id || '').trim();
       if (!placeId) return Response.json({ error: 'place_id obrigatório' }, { status: 400 });

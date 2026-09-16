@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { MapPin, Loader2, X } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { base44 } from "@/api/base44Client";
+import CurrentLocationButton from "@/components/location/CurrentLocationButton";
 
 // Destaca o trecho digitado dentro do texto
 const highlightMatch = (text, query) => {
@@ -17,7 +18,7 @@ const highlightMatch = (text, query) => {
   );
 };
 
-export default function AddressAutocomplete({ value, onChange, onSelect, placeholder, includePlaces = false, location }) {
+export default function AddressAutocomplete({ value, onChange, onSelect, placeholder, includePlaces = false, location, allowCurrentLocation = false }) {
   const [query, setQuery] = useState(value || "");
   const [predictions, setPredictions] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -213,6 +214,11 @@ export default function AddressAutocomplete({ value, onChange, onSelect, placeho
           ))}
         </div>
       )}
+      {allowCurrentLocation && <CurrentLocationButton onSelect={(place) => {
+        setQuery(place.address);
+        onChange(place.address);
+        onSelect?.(place);
+      }} />}
     </div>
   );
 }

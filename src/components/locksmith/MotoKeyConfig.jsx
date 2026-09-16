@@ -135,6 +135,7 @@ export default function MotoKeyConfig({
           onChange={setAddress}
           onSelect={onAddressSelect}
           placeholder="Digite seu endereço..."
+          allowCurrentLocation
         />
       </div>
 

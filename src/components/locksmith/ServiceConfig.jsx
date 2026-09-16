@@ -130,6 +130,7 @@ export default function ServiceConfig({
           onChange={setAddress}
           onSelect={onAddressSelect}
           placeholder="Digite seu endereço..."
+          allowCurrentLocation
         />
       </div>
 

@@ -158,6 +158,7 @@ export default function CarKeyConfig({
           onChange={setAddress}
           onSelect={onAddressSelect}
           placeholder="Digite seu endereço..."
+          allowCurrentLocation
         />
       </div>
 
