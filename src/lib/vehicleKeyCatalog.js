@@ -1,12 +1,15 @@
 import { base44 } from "@/api/base44Client";
 
-import { catalogMatchesVehicle, sortCatalogCandidates } from "@/lib/vehicleCatalogMatching";
+import { catalogMatchesVehicle, sortCatalogCandidates, normalizeCatalogText } from "@/lib/vehicleCatalogMatching";
 
 export async function findVehicleKeyCatalog(make, model, year, vehicleType = "carro") {
   if (!make || !model || !year) return null;
   const rows = await base44.entities.VehicleKeyCatalog.filter({ vehicle_type: vehicleType, make, active: true }, "-updated_date", 1000);
   const y = Number(year);
-  const candidates = rows.filter((item) => catalogMatchesVehicle(item, model, y));
+  const candidates = rows.filter((item) => vehicleType === "carro"
+    ? catalogMatchesVehicle(item, model, y)
+    : (!item.year_start || y >= item.year_start) && (!item.year_end || y <= item.year_end) &&
+      (normalizeCatalogText(item.model).includes(normalizeCatalogText(model)) || normalizeCatalogText(model).includes(normalizeCatalogText(item.model))));
   const row = sortCatalogCandidates(candidates)[0] || null;
   if (!row) return null;
   const links = await base44.entities.VehicleRemoteCompatibility.filter({ vehicle_catalog_id: row.id, active: true, verified: true });

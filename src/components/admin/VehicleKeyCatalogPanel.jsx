@@ -12,7 +12,15 @@ const empty = { vehicle_type: "carro", make: "", model: "", key_style: "nao_conf
 export default function VehicleKeyCatalogPanel() {
   const [rows, setRows] = useState([]); const [form, setForm] = useState(empty); const [saving, setSaving] = useState(false); const [search, setSearch] = useState("");
   const [error, setError] = useState("");
-  const load = () => base44.entities.VehicleKeyCatalog.list("make", 1000).then(setRows);
+  const load = async () => {
+    const all = [];
+    let page;
+    do {
+      page = await base44.entities.VehicleKeyCatalog.list("make", 500, all.length);
+      all.push(...page);
+    } while (page.length === 500);
+    setRows(all);
+  };
   useEffect(() => { load(); }, []);
   const initialize = async () => {
     const known = new Set(rows.map((r) => `${r.vehicle_type}|${r.make}|${r.model}`));
