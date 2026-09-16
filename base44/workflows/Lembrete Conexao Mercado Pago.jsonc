@@ -1,0 +1,45 @@
+{
+  "trigger": {
+    "condition": null,
+    "config": {
+      "trigger_type": "scheduled",
+      "events": [],
+      "schedule_mode": "interval",
+      "cron_expression": null,
+      "one_time_date": null,
+      "timezone": "UTC",
+      "interval_value": 7,
+      "interval_unit": "days",
+      "interval_anchor": "2026-09-16T14:00:00Z",
+      "ends_type": "never",
+      "ends_on_date": null,
+      "ends_after_count": null
+    }
+  },
+  "description": "A cada 7 dias, envia push e e-mail aos chaveiros que ainda n\u00e3o conectaram o Mercado Pago.",
+  "name": "Lembrete de Conex\u00e3o Mercado Pago",
+  "definition": {
+    "document": {
+      "dsl": "1.0.0",
+      "name": "lembrete_conexao_mercado_pago",
+      "version": "1.0",
+      "namespace": "base44"
+    },
+    "do": [
+      {
+        "enviar_lembretes": {
+          "call": "invoke_backend_function",
+          "with": {
+            "function_name": "sendMercadoPagoConnectionReminders",
+            "args": {}
+          },
+          "then": "end",
+          "x-base44": {
+            "title": "Enviar lembretes Mercado Pago",
+            "description": "Push e e-mail para contas desconectadas"
+          }
+        }
+      }
+    ]
+  }
+}
