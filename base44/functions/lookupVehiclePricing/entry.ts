@@ -36,14 +36,24 @@ export default async function(req: Request): Promise<Response> {
       const catalog = await base44.asServiceRole.entities.VehicleKeyCatalog.filter({
         vehicle_type: 'carro', make, active: true,
       });
-      const wanted = normalize(model);
+      const wanted = normalize(model).replace(/^novo /, '').replace(/eco sport/g, 'ecosport').replace(/s 10/g, 's10');
       const selectedYear = Number(year);
-      const rows = catalog.filter((row) =>
-        (normalize(row.model).includes(wanted) || wanted.includes(normalize(row.model))) &&
+      const modelMatches = (catalogModel) => String(catalogModel || '').split(/[,/]/).some((part) => {
+        const candidate = normalize(part).replace(/^novo /, '').replace(/eco sport/g, 'ecosport').replace(/s 10/g, 's10');
+        return candidate === wanted || candidate.replace(/ (?:g\d+|mk\d+)$/, '') === wanted;
+      });
+      const matchingRows = catalog.filter((row) =>
+        modelMatches(row.model) &&
         (!row.year_start || selectedYear >= row.year_start) &&
         (!row.year_end || selectedYear <= row.year_end)
       );
+      const latestListRows = matchingRows.filter((row) => row.technical_source_2 === 'Lista fornecida pelo administrador em 16/09/2026');
+      const rows = latestListRows.length ? latestListRows : matchingRows;
       for (const row of rows) {
+        const catalogPrice = Number(row.original_price) || 0;
+        if (catalogPrice > 0) {
+          localOffers.push({ source: 'Última lista do catálogo', category: 'catalogo_original', price: catalogPrice, url: row.source_url || '', catalog_code: row.catalog_code || '' });
+        }
         const evidence = normalize(`${row.key_type_detail || ''} ${row.quoted_product || ''} ${row.technical_notes || ''}`);
         const isOriginal = (evidence.includes('original') || evidence.includes('genuin') || evidence.includes(' oem ')) &&
           !evidence.includes('paralel') && !evidence.includes('universal') && !evidence.includes('compativel') && !evidence.includes('similar');
@@ -109,8 +119,9 @@ Retorne cada oferta aceita com fonte, categoria, preço em BRL, URL e original_c
       price: Number(offer.price_brl),
       url: offer.url,
     }));
-    const offers = [...localOffers, ...webOffers].sort((a, b) => b.price - a.price);
-    const highest = offers[0] || null;
+    const sortedLocalOffers = localOffers.sort((a, b) => b.price - a.price);
+    const offers = [...sortedLocalOffers, ...webOffers];
+    const highest = sortedLocalOffers[0] || webOffers.sort((a, b) => b.price - a.price)[0] || null;
     const fallbackUsed = !highest;
 
     return Response.json({
