@@ -59,7 +59,7 @@ export default function ServiceFinishAlert() {
           if (!active) return;
           // Serviço finalizado pelo chaveiro (end_photos) e ainda não concluído
           const finished = list.find(
-            (r) => r.end_photos?.length > 0 && r.status !== "completed"
+            (r) => r.end_photos?.length > 0 && r.status !== "completed" && r.status !== "cancelled"
           );
           setPendingFinish(finished || null);
         })
