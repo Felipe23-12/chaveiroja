@@ -17,7 +17,7 @@ export default async function(req) {
 
     if (body.action === "get_status" || body.action === "onboarding_policy") {
       const connected = account?.status === "active";
-      const required = Date.parse(user.created_date) >= Date.parse("2026-10-05T00:00:00-03:00");
+      const required = false; // Sem conexão, novos pagamentos geram créditos pendentes na plataforma.
       return Response.json({ connected, account_id: account?.mercado_pago_user_id || null, onboarding_required: required, onboarding_completed: connected, required, completed: connected });
     }
     if (body.action === "connect") {
