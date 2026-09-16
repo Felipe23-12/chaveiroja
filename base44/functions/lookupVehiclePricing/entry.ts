@@ -32,6 +32,7 @@ export default async function(req: Request): Promise<Response> {
     }
 
     const localOffers = [];
+    let manualCatalogOffer = null;
     if (make) {
       const catalog = await base44.asServiceRole.entities.VehicleKeyCatalog.filter({
         vehicle_type: 'carro', make, active: true,
@@ -47,12 +48,16 @@ export default async function(req: Request): Promise<Response> {
         (!row.year_start || selectedYear >= row.year_start) &&
         (!row.year_end || selectedYear <= row.year_end)
       );
+      const manuallyPricedRows = matchingRows.filter((row) => row.manual_price_updated_at || Number(row.parallel_simple_price) > 0 || Number(row.parallel_flip_price) > 0 || Number(row.parallel_proximity_price) > 0)
+        .sort((a, b) => new Date(b.manual_price_updated_at || b.updated_date || 0).getTime() - new Date(a.manual_price_updated_at || a.updated_date || 0).getTime());
       const latestListRows = matchingRows.filter((row) => row.technical_source_2 === 'Lista fornecida pelo administrador em 16/09/2026');
-      const rows = latestListRows.length ? latestListRows : matchingRows;
+      const rows = manuallyPricedRows.length ? [manuallyPricedRows[0]] : latestListRows.length ? latestListRows : matchingRows;
       for (const row of rows) {
         const catalogPrice = Number(row.original_price) || 0;
         if (catalogPrice > 0) {
-          localOffers.push({ source: 'Última lista do catálogo', category: 'catalogo_original', price: catalogPrice, url: row.source_url || '', catalog_code: row.catalog_code || '' });
+          const offer = { source: manuallyPricedRows.length ? 'Preço manual do administrador' : 'Última lista do catálogo', category: 'catalogo_original', price: catalogPrice, url: row.source_url || '', catalog_code: row.catalog_code || '' };
+          localOffers.push(offer);
+          if (manuallyPricedRows.length) manualCatalogOffer = offer;
         }
         const evidence = normalize(`${row.key_type_detail || ''} ${row.quoted_product || ''} ${row.technical_notes || ''}`);
         const isOriginal = (evidence.includes('original') || evidence.includes('genuin') || evidence.includes(' oem ')) &&
@@ -121,7 +126,7 @@ Retorne cada oferta aceita com fonte, categoria, preço em BRL, URL e original_c
     }));
     const sortedLocalOffers = localOffers.sort((a, b) => b.price - a.price);
     const offers = [...sortedLocalOffers, ...webOffers];
-    const highest = sortedLocalOffers[0] || webOffers.sort((a, b) => b.price - a.price)[0] || null;
+    const highest = manualCatalogOffer || sortedLocalOffers[0] || webOffers.sort((a, b) => b.price - a.price)[0] || null;
     const fallbackUsed = !highest;
 
     return Response.json({

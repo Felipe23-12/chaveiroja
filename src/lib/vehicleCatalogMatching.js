@@ -22,9 +22,12 @@ export function catalogMatchesVehicle(row, model, year) {
 }
 
 export function sortCatalogCandidates(rows) {
+  const hasManualPrice = (row) => Boolean(row.manual_price_updated_at || Number(row.parallel_simple_price) > 0 || Number(row.parallel_flip_price) > 0 || Number(row.parallel_proximity_price) > 0);
+  const manualDate = (row) => new Date(row.manual_price_updated_at || row.updated_date || 0).getTime();
   const datedPrice = (row) => Boolean(row.catalog_code && row.year_start && Number(row.original_price) > 0);
   const score = (row) => Number(row.verified) * 100 + Number(row.vvdi_supported || row.kd_supported || row.km100_supported) * 10;
-  return [...rows].sort((a, b) => Number(datedPrice(b)) - Number(datedPrice(a)) ||
-    (datedPrice(a) && datedPrice(b) ? Number(b.original_price) - Number(a.original_price) : score(b) - score(a)) ||
-    String(a.catalog_code || a.id).localeCompare(String(b.catalog_code || b.id)));
+  return [...rows].sort((a, b) => Number(hasManualPrice(b)) - Number(hasManualPrice(a)) ||
+    (hasManualPrice(a) && hasManualPrice(b) ? manualDate(b) - manualDate(a) : 0) ||
+    Number(datedPrice(b)) - Number(datedPrice(a)) || score(b) - score(a) ||
+    new Date(b.updated_date || 0).getTime() - new Date(a.updated_date || 0).getTime());
 }

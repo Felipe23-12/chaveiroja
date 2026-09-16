@@ -43,6 +43,7 @@ export default function VehicleKeyCatalogPanel() {
         factory_alarm_status: form.factory_alarm_status || "nao_confirmado",
         transponder_status: form.transponder_status || "nao_confirmado",
         programming_machine: form.transponder_status === "presente" ? form.programming_machine?.trim() || "" : "",
+        manual_price_updated_at: new Date().toISOString(),
       };
       if (form.id) await base44.entities.VehicleKeyCatalog.update(form.id, data);
       else await base44.entities.VehicleKeyCatalog.create(data);
