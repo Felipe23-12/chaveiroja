@@ -125,7 +125,7 @@ export default function CarKeyConfig({
       <CarKeyProgrammingNotice programming={programming} hidePriceDetails />
 
       {fipeValue != null && (
-        <KeyOriginSelector value={keyOrigin} onChange={setKeyOrigin} catalog={keyCatalog} hidePriceDetails />
+        <KeyOriginSelector value={keyOrigin} onChange={setKeyOrigin} catalog={keyCatalog} keyType={carKeyType} hidePriceDetails />
       )}
 
       {/* Tipo de chave escolhido pelo cliente */}

@@ -128,6 +128,7 @@ export function calculateDynamicPrice({
   onlineProgrammingFee = 0,
   weather = null,
   brokenKeyInLock = false,
+  chargeSimpleKeyValue = false,
 }) {
   if (!service) return null;
 
@@ -147,6 +148,7 @@ export function calculateDynamicPrice({
         distanceKm: 0,
         extraCost: 0,
         onlineProgrammingFee,
+        chargeSimpleKeyValue,
       })
     : calculatePrice({
         service,

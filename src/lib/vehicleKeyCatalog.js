@@ -44,7 +44,14 @@ export function parallelOptions(row) {
   ].filter((item) => item.supported && item.file && (!onlyAftermarketAlarm || item.brand !== "KM100"));
 }
 
-export function parallelKeyPrice(row, fallbackOriginalPrice = 0) {
+export function manualParallelKeyPrice(row, keyType) {
+  const field = keyType === "simples" ? "parallel_simple_price" : keyType === "presenca" ? "parallel_proximity_price" : "parallel_flip_price";
+  return Number(row?.[field]) || 0;
+}
+
+export function parallelKeyPrice(row, fallbackOriginalPrice = 0, keyType = "canivete") {
+  const manualPrice = manualParallelKeyPrice(row, keyType);
+  if (manualPrice > 0) return manualPrice;
   const options = parallelOptions(row);
   if (!options.length) return 0;
   if (!requiresParallelKey(row)) {

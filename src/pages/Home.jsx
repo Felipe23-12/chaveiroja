@@ -62,7 +62,7 @@ import LocationStatusNotice from "@/components/location/LocationStatusNotice";
 import ModerationActions from "@/components/moderation/ModerationActions";
 import OpeningChargeSummary from "@/components/client/OpeningChargeSummary";
 import { OPENING_CONDITION_FEE, getOpeningConditionFee, hasLocksmithConditionCorrection, locksmithAddedConditionFee } from "@/lib/openingCondition";
-import { findVehicleKeyCatalog, parallelKeyPrice, parallelOptions, requiresParallelKey, technicalKeyDescription } from "@/lib/vehicleKeyCatalog";
+import { findVehicleKeyCatalog, manualParallelKeyPrice, parallelKeyPrice, parallelOptions, requiresParallelKey, technicalKeyDescription } from "@/lib/vehicleKeyCatalog";
 import buildChargeCalculation from "@/components/admin/buildChargeCalculation";
 import HomeConfigurationStep from "@/components/client/HomeConfigurationStep";
 import HomeTrackingStep from "@/components/client/HomeTrackingStep";
@@ -176,7 +176,7 @@ export default function Home() {
     fallbackUsed: keyValueFallback && catalogOriginalValue <= 0,
   });
   const selectedKeyValue = keyOrigin === "paralela"
-    ? parallelKeyPrice(keyCatalog, originalKeyValue)
+    ? parallelKeyPrice(keyCatalog, originalKeyValue, carKeyType)
     : originalKeyValue;
 
   useEffect(() => {
@@ -267,6 +267,7 @@ export default function Home() {
       onlineProgrammingFee: programming?.onlineFee || 0,
       weather,
       brokenKeyInLock: openingConditionFee > 0,
+      chargeSimpleKeyValue: keyOrigin === "paralela" && carKeyType === "simples" && manualParallelKeyPrice(keyCatalog, carKeyType) > 0,
     });
   }, [pricingService, service, motoRule, selectedOptions, customAddons, vehicleInfo, locks, onlineLocksmithsCount, activeRequestsCount, urgency, customerLoc, address, pricingDistance, selectedKeyValue, fipeValue, carKeyType, hasCodedKey, programming, weather, openingConditionFee]);
 
@@ -468,7 +469,7 @@ export default function Home() {
       setSearchError("Informe se a Land Rover está trancada no alarme.");
       return;
     }
-    if ((service?.isCarKey || service?.isMotoKey) && keyOrigin === "paralela" && parallelOptions(keyCatalog).length === 0) {
+    if ((service?.isCarKey || service?.isMotoKey) && keyOrigin === "paralela" && parallelOptions(keyCatalog).length === 0 && parallelKeyPrice(keyCatalog, 0, carKeyType) <= 0) {
       setSearchError("Não há chave paralela confirmada para este veículo e ano. Escolha uma opção disponível.");
       return;
     }
@@ -574,7 +575,7 @@ export default function Home() {
       let req;
       if (service.isCarKey) {
         // Preço dinâmico: valor da chave + mão de obra pela faixa de ano/codificação da FIPE
-        const effectiveKeyValue = carKeyType === "simples" ? 0 : selectedKeyValue;
+        const effectiveKeyValue = carKeyType === "simples" && !(keyOrigin === "paralela" && manualParallelKeyPrice(requestCatalog, carKeyType) > 0) ? 0 : selectedKeyValue;
         const onlineFee = programming?.onlineFee || 0;
         const complexityFee = price?.complexityFee || 0;
         const alarmFee = price?.alarmFee || 0;

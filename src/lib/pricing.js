@@ -44,7 +44,7 @@ export const CAR_KEY_TYPES = [
 ];
 
 // Mão de obra e valor da chave conforme o tipo escolhido pelo cliente
-export function carKeyComponents({ fipeValue = 0, keyValue = 0, keyType = "simples", year, hasCodedKey = false }) {
+export function carKeyComponents({ fipeValue = 0, keyValue = 0, keyType = "simples", year, hasCodedKey = false, chargeSimpleKeyValue = false }) {
   const fipe = Number(fipeValue) || 0;
   const rate = getCarKeyFipeLaborRate(year, hasCodedKey);
   const fipeLabor = Math.round(fipe * rate * 100) / 100;
@@ -55,7 +55,7 @@ export function carKeyComponents({ fipeValue = 0, keyValue = 0, keyType = "simpl
   return {
     fipeLabor,
     laborCost: Math.round((fipeLabor + CAR_KEY_SIMPLE_FIXED) * 100) / 100,
-    keyValue: 0,
+    keyValue: chargeSimpleKeyValue ? Number(keyValue) || 0 : 0,
     type,
   };
 }
@@ -302,8 +302,9 @@ export function calculateCarKeyPrice({
   year = null,
   hasCodedKey = false,
   alarmLocked = null,
+  chargeSimpleKeyValue = false,
 }) {
-  const comp = keyType ? carKeyComponents({ fipeValue, keyValue, keyType, year, hasCodedKey }) : null;
+  const comp = keyType ? carKeyComponents({ fipeValue, keyValue, keyType, year, hasCodedKey, chargeSimpleKeyValue }) : null;
   const kv = comp ? comp.keyValue : Number(keyValue) || 0;
   const dist = Number(distanceKm) || 0;
   const extra = Number(extraCost) || 0;

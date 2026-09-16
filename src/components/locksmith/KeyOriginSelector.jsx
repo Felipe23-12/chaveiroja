@@ -1,7 +1,8 @@
 import React from "react";
-import { parallelOptions, requiresParallelKey } from "@/lib/vehicleKeyCatalog";
+import { manualParallelKeyPrice, parallelOptions, requiresParallelKey } from "@/lib/vehicleKeyCatalog";
 
-export default function KeyOriginSelector({ value, onChange, catalog, hidePriceDetails = false }) {
+export default function KeyOriginSelector({ value, onChange, catalog, keyType, hidePriceDetails = false }) {
+  const manualPrice = manualParallelKeyPrice(catalog, keyType);
   const options = parallelOptions(catalog);
   const parallelOnly = requiresParallelKey(catalog);
   const origins = parallelOnly ? [{ id: "paralela", label: "Paralela" }] : [{ id: "original", label: "Original" }, { id: "paralela", label: "Paralela" }];
@@ -10,7 +11,7 @@ export default function KeyOriginSelector({ value, onChange, catalog, hidePriceD
       <label className="text-sm font-medium text-foreground block">Origem da chave</label>
       <div className={`grid gap-3 ${parallelOnly ? "grid-cols-1" : "grid-cols-2"}`}>
         {origins.map((item) => {
-          const unavailable = item.id === "paralela" && options.length === 0;
+          const unavailable = item.id === "paralela" && options.length === 0 && manualPrice <= 0;
           return <button
             key={item.id}
             type="button"
@@ -25,7 +26,7 @@ export default function KeyOriginSelector({ value, onChange, catalog, hidePriceD
       {parallelOnly && <p className="text-xs text-muted-foreground">Este veículo não possui alarme original de fábrica. Somente uma chave paralela VVDI ou KD confirmada pode ser solicitada.</p>}
       {(value === "paralela" || parallelOnly) && (
         <div className="rounded-xl border border-border bg-muted/40 p-3 text-xs text-muted-foreground">
-          {options.length ? `Opções confirmadas: ${options.map((o) => `${o.brand}${o.model ? ` ${o.model}` : ""} — ${o.file}`).join("; ")}.${hidePriceDetails ? "" : " O orçamento usa a opção aplicável."}` : "Não há chave paralela confirmada para este veículo e ano. Esta opção não pode ser solicitada."}
+          {manualPrice > 0 ? `Valor manual disponível para este tipo de chave.${hidePriceDetails ? "" : " O orçamento usa o valor cadastrado pelo administrador."}` : options.length ? `Opções confirmadas: ${options.map((o) => `${o.brand}${o.model ? ` ${o.model}` : ""} — ${o.file}`).join("; ")}.${hidePriceDetails ? "" : " O orçamento usa a opção aplicável."}` : "Não há chave paralela confirmada para este veículo e ano. Esta opção não pode ser solicitada."}
         </div>
       )}
     </div>

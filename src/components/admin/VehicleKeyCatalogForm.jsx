@@ -2,11 +2,12 @@ import React from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import KeyProgrammingFields from "@/components/admin/KeyProgrammingFields";
+import ManualKeyPriceFields from "@/components/admin/ManualKeyPriceFields";
 
 const fields = [
   ["make", "Montadora"], ["model", "Modelo"], ["year_start", "Ano inicial"], ["year_end", "Ano final"],
   ["catalog_code", "Código da chave"], ["key_type_detail", "Produto / botões"], ["frequency_mhz", "Frequência (MHz)"],
-  ["transponder", "Chip/transponder"], ["blade", "Lâmina"], ["original_price", "Preço original"],
+  ["transponder", "Chip/transponder"], ["blade", "Lâmina"],
   ["vvdi_file", "Arquivo VVDI"], ["vvdi_price", "Preço VVDI"], ["kd_file", "Arquivo KD"], ["kd_price", "Preço KD"],
   ["km100_file", "Arquivo KM100"], ["km100_price", "Preço KM100"], ["source_url", "Fonte pública"],
 ];
@@ -24,6 +25,7 @@ export default function VehicleKeyCatalogForm({ value, onChange, onSave, saving 
         <option value="nao_confirmado">Alarme de fábrica não confirmado</option><option value="original">Possui alarme original</option><option value="ausente">Sem alarme original</option>
       </select>
       <KeyProgrammingFields value={value} onChange={onChange} />
+      <ManualKeyPriceFields value={value} onChange={onChange} />
       {fields.map(([name, label]) => <Input key={name} type={name.includes("price") || name.includes("year") ? "number" : "text"} placeholder={label} value={value[name] ?? ""} onChange={(e) => onChange({ ...value, [name]: e.target.value })} />)}
       {["vvdi", "kd", "km100"].map((brand) => <label key={brand} className="flex items-center gap-2 text-sm"><input type="checkbox" checked={value[`${brand}_supported`] || false} onChange={(e) => onChange({ ...value, [`${brand}_supported`]: e.target.checked })} /> {brand.toUpperCase()} possui arquivo</label>)}
       <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={value.verified || false} onChange={(e) => onChange({ ...value, verified: e.target.checked })} /> Dados verificados</label>

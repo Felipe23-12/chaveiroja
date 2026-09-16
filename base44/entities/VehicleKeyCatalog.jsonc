@@ -130,6 +130,24 @@
       "minimum": 0,
       "default": 0
     },
+    "parallel_simple_price": {
+      "type": "number",
+      "minimum": 0,
+      "default": 0,
+      "description": "Valor manual da chave paralela simples"
+    },
+    "parallel_flip_price": {
+      "type": "number",
+      "minimum": 0,
+      "default": 0,
+      "description": "Valor manual da chave paralela canivete ou telecomando"
+    },
+    "parallel_proximity_price": {
+      "type": "number",
+      "minimum": 0,
+      "default": 0,
+      "description": "Valor manual da chave paralela presen\u00e7a"
+    },
     "vvdi_supported": {
       "type": "boolean",
       "default": false
