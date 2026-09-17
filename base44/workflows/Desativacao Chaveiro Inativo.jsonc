@@ -31,7 +31,9 @@
           "call": "invoke_backend_function",
           "with": {
             "function_name": "deactivateInactiveLocksmiths",
-            "args": {}
+            "args": {
+              "_internal_token": "${ .secrets.INTERNAL_CALL_TOKEN }"
+            }
           },
           "then": "end",
           "x-base44": {

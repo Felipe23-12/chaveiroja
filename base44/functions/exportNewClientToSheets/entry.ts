@@ -8,7 +8,7 @@ export default async function(req) {
   try {
     const base44 = createClientFromRequest(req);
     const body = await req.json().catch(() => ({}));
-    const internalCall = verifyInternalCall(req);
+    const internalCall = verifyInternalCall(req, body);
     const caller = internalCall ? null : await base44.auth.me().catch(() => null);
     if (!internalCall && !caller) return Response.json({ error: 'Unauthorized' }, { status: 401 });
     if (!internalCall && caller.role !== 'admin') return Response.json({ error: 'Forbidden' }, { status: 403 });

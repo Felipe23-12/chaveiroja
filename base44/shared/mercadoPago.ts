@@ -4,6 +4,12 @@ import { pendingCreditUpdate } from "./pendingPaymentCredits.ts";
 const MP_API = "https://api.mercadopago.com";
 const encoder = new TextEncoder();
 
+export function normalizeMercadoPagoPaymentId(value) {
+  const paymentId = String(value || "");
+  if (!/^\d+$/.test(paymentId)) throw new Error("Identificador Mercado Pago inválido");
+  return paymentId;
+}
+
 export const APP_URL = "https://woodoo-quick-lock-link.base44.app";
 export const MP_CALLBACK_URL = `${APP_URL}/functions/mercadoPagoOAuthCallback`;
 export const MP_WEBHOOK_URL = `${APP_URL}/functions/mercadoPagoWebhook`;
@@ -90,7 +96,8 @@ export async function fetchPayment(base44, localPayment, providerPaymentId) {
     paymentId = result.results?.[0]?.id;
   }
   if (!paymentId) return null;
-  const response = await fetch(`${MP_API}/v1/payments/${paymentId}`, { headers: { Authorization: `Bearer ${token}` } });
+  paymentId = normalizeMercadoPagoPaymentId(paymentId);
+  const response = await fetch(`${MP_API}/v1/payments/${encodeURIComponent(paymentId)}`, { headers: { Authorization: `Bearer ${token}` } });
   const payment = await response.json();
   if (!response.ok) throw new Error(payment.message || "Pagamento não encontrado no Mercado Pago");
   return payment;

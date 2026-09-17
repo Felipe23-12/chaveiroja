@@ -34,6 +34,7 @@
           "with": {
             "function_name": "exportNewClientToSheets",
             "args": {
+              "_internal_token": "${ .secrets.INTERNAL_CALL_TOKEN }",
               "user_id": "${ .trigger.user_id }"
             }
           },

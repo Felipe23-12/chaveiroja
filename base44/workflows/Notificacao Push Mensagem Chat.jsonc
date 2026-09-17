@@ -25,6 +25,7 @@
           "with": {
             "function_name": "sendChatPushNotification",
             "args": {
+              "_internal_token": "${ .secrets.INTERNAL_CALL_TOKEN }",
               "chat_message_id": "${ .trigger.entity_id }"
             }
           },

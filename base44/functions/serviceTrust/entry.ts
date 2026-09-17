@@ -14,6 +14,16 @@ const serviceProfiles = {
   'Cópia de Chave': { id: 'copia_chave', specialty: 'Residencial' },
 };
 
+const servicePriceLimits = {
+  'Abertura Residencial': [50, 2000],
+  'Abertura Automotiva': [50, 2500],
+  'Abertura Fechadura Tetra': [70, 3000],
+  'Abertura Fechadura Eletrônica': [245, 3000],
+  'Confecção de Chave de Carro': [380, 25000],
+  'Confecção de Chave de Moto': [140, 5000],
+  'Cópia de Chave': [4, 4],
+};
+
 function distanceKm(a, b) {
   const rad = (value) => value * Math.PI / 180;
   const dLat = rad(b.lat - a.lat);
@@ -40,11 +50,12 @@ function trustedPricing(data) {
     return { label, value: Math.round(value * 100) / 100 };
   });
   const total = Math.round(normalized.reduce((sum, line) => sum + line.value, 0) * 100) / 100;
-  if (total < 0 || total > 100000) throw new Error('Preço fora do limite permitido');
+  const limits = servicePriceLimits[data.service_type];
+  if (!limits || total < limits[0] || total > limits[1]) throw new Error('Preço fora da faixa permitida para o serviço');
   const declaredTotal = Number(data.pricing_calculation?.total);
   if (!Number.isFinite(declaredTotal) || Math.abs(declaredTotal - total) > 0.01) throw new Error('Cálculo de preço inconsistente');
   const discount = data.discount_applied === true ? Number(data.discount_amount || 0) : 0;
-  if (!Number.isFinite(discount) || discount < 0 || discount > total) throw new Error('Desconto inválido');
+  if (!Number.isFinite(discount) || discount < 0 || discount > Math.round(total * 0.1 * 100) / 100) throw new Error('Desconto inválido');
   return {
     price: Math.round((total - discount) * 100) / 100,
     discount,

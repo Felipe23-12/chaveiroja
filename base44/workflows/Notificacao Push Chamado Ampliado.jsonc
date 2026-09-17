@@ -25,6 +25,7 @@
           "with": {
             "function_name": "sendLocksmithPushNotification",
             "args": {
+              "_internal_token": "${ .secrets.INTERNAL_CALL_TOKEN }",
               "service_request_id": "${ .trigger.entity_id }"
             }
           },

@@ -7,7 +7,7 @@ export default async function(req) {
   try {
     const base44 = createClientFromRequest(req);
     const body = await req.json().catch(() => ({}));
-    if (!verifyInternalCall(req)) return Response.json({ error: 'Unauthorized' }, { status: 401 });
+    if (!verifyInternalCall(req, body)) return Response.json({ error: 'Unauthorized' }, { status: 401 });
 
     const serviceRequestId = body.service_request_id;
     if (!serviceRequestId) {

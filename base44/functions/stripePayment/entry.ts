@@ -3,6 +3,15 @@ import { secrets } from 'base44:runtime';
 
 const STRIPE_API = "https://api.stripe.com/v1";
 
+function isPaymentIntentId(value) {
+  return /^pi_[A-Za-z0-9]+$/.test(String(value || ""));
+}
+
+function paymentIntentUrl(value, suffix = "") {
+  if (!isPaymentIntentId(value)) throw new Error("Identificador Stripe inválido");
+  return `${STRIPE_API}/payment_intents/${encodeURIComponent(String(value))}${suffix}`;
+}
+
 function stripeForm(data: Record<string, string | number | boolean>) {
   const form = new URLSearchParams();
   for (const [key, value] of Object.entries(data)) form.append(key, String(value));
@@ -49,7 +58,7 @@ export default async function(req) {
         ? await base44.asServiceRole.entities.Payment.get(service.payment_id).catch(() => null)
         : null;
       if (existingPayment?.status === "pre_authorized" && existingPayment.method === method && Math.round(Number(existingPayment.amount) * 100) === cents) {
-        const existingRes = await fetch(`${STRIPE_API}/payment_intents/${existingPayment.stripe_payment_intent_id}`, {
+        const existingRes = await fetch(paymentIntentUrl(existingPayment.stripe_payment_intent_id), {
           headers: { "Authorization": `Bearer ${stripeKey}` },
         });
         const existingIntent = await existingRes.json();
@@ -117,7 +126,7 @@ export default async function(req) {
           payment_status: "pre_authorized",
         });
       } catch (error) {
-        await fetch(`${STRIPE_API}/payment_intents/${intent.id}/cancel`, {
+        await fetch(paymentIntentUrl(intent.id, "/cancel"), {
           method: "POST",
           headers: { "Authorization": `Bearer ${stripeKey}`, "Content-Type": "application/x-www-form-urlencoded" },
         }).catch(() => null);
@@ -218,7 +227,8 @@ export default async function(req) {
     // Consulta o status de um PaymentIntent
     if (action === "get_status") {
       const { payment_intent_id } = body;
-      const res = await fetch(`${STRIPE_API}/payment_intents/${payment_intent_id}`, {
+      if (!isPaymentIntentId(payment_intent_id)) return Response.json({ error: "Identificador Stripe inválido" }, { status: 400 });
+      const res = await fetch(paymentIntentUrl(payment_intent_id), {
         headers: { "Authorization": `Bearer ${stripeKey}` },
       });
 
@@ -243,7 +253,7 @@ export default async function(req) {
       if (payment.status === "paid") {
         return Response.json({ success: true, already_finalized: true });
       }
-      const statusRes = await fetch(`${STRIPE_API}/payment_intents/${payment.stripe_payment_intent_id}`, {
+      const statusRes = await fetch(paymentIntentUrl(payment.stripe_payment_intent_id), {
         headers: { "Authorization": `Bearer ${stripeKey}` },
       });
       const intent = await statusRes.json();
@@ -294,7 +304,8 @@ export default async function(req) {
     // Cancela somente uma cobrança pertencente ao cliente autenticado.
     if (action === "cancel") {
       const { payment_intent_id } = body;
-      const checkRes = await fetch(`${STRIPE_API}/payment_intents/${payment_intent_id}`, {
+      if (!isPaymentIntentId(payment_intent_id)) return Response.json({ error: "Identificador Stripe inválido" }, { status: 400 });
+      const checkRes = await fetch(paymentIntentUrl(payment_intent_id), {
         headers: { "Authorization": `Bearer ${stripeKey}` },
       });
       const current = await checkRes.json();
@@ -307,7 +318,7 @@ export default async function(req) {
       }
       if (current.status === "canceled") return Response.json({ status: "canceled" });
 
-      const res = await fetch(`${STRIPE_API}/payment_intents/${payment_intent_id}/cancel`, {
+      const res = await fetch(paymentIntentUrl(payment_intent_id, "/cancel"), {
         method: "POST",
         headers: { "Authorization": `Bearer ${stripeKey}`, "Content-Type": "application/x-www-form-urlencoded" },
       });
