@@ -15,6 +15,25 @@ const serviceProfiles = {
   'Cópia de Chave': { id: 'copia_chave', specialty: 'Residencial' },
 };
 
+function distanceKm(a, b) {
+  const rad = (value) => value * Math.PI / 180;
+  const dLat = rad(Number(b.lat) - Number(a.lat));
+  const dLng = rad(Number(b.lng) - Number(a.lng));
+  const h = Math.sin(dLat / 2) ** 2 + Math.cos(rad(Number(a.lat))) * Math.cos(rad(Number(b.lat))) * Math.sin(dLng / 2) ** 2;
+  return 6371 * 2 * Math.atan2(Math.sqrt(h), Math.sqrt(1 - h));
+}
+
+function canReceiveRequest(locksmith, request) {
+  const profile = serviceProfiles[request?.service_type];
+  if (!profile || locksmith.available === false || locksmith.inactive_deactivated === true) return false;
+  if (locksmith.work_mode === 'livre' && locksmith.receive_app_requests === false) return false;
+  if (locksmith.blocked_until && Date.parse(locksmith.blocked_until) > Date.now()) return false;
+  const services = Array.isArray(locksmith.services) ? locksmith.services : [];
+  if (services.length && !services.includes(profile.id)) return false;
+  const specialties = Array.isArray(locksmith.specialties) ? locksmith.specialties : [];
+  return specialties.length ? specialties.includes(profile.specialty) : locksmith.specialty === profile.specialty;
+}
+
 async function notify(base44, userId, title, content, requestId) {
   if (!userId) return;
   await base44.asServiceRole.integrations.Core.SendPushNotification({
