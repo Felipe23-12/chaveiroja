@@ -31,9 +31,7 @@
           "call": "invoke_backend_function",
           "with": {
             "function_name": "processOverdueLivreSubscriptions",
-            "args": {
-              "_internal_token": "${ .secrets.INTERNAL_CALL_TOKEN }"
-            }
+            "args": {}
           },
           "then": "end",
           "x-base44": {
