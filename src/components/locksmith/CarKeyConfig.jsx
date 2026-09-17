@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import KeyServicePrice from "@/components/client/KeyServicePrice";
 import CarKeyCalculationDetails from "./CarKeyCalculationDetails";
 import AddressAutocomplete from "./AddressAutocomplete";
-import { CAR_KEY_TYPES, getCarKeyComplexityFee, isLandRoverFrom2020 } from "@/lib/pricing";
+import { CAR_KEY_TYPES, getCarKeyComplexityFee, getCarKeyComplexityLabel, isLandRoverFrom2020 } from "@/lib/pricing";
 import CarKeyProgrammingNotice from "./CarKeyProgrammingNotice";
 import VehicleMakeModelFields from "./VehicleMakeModelFields";
 import KeyOriginSelector from "./KeyOriginSelector";
@@ -119,8 +119,8 @@ export default function CarKeyConfig({
         </div>
       )}
 
-      {showPriceBeforeAcceptance && getCarKeyComplexityFee(vehicleInfo.make, vehicleInfo.model) > 0 && (
-        <p className="rounded-xl border border-primary/40 bg-primary/5 p-3 text-sm text-foreground">Toyota: {getCarKeyComplexityFee(vehicleInfo.make, vehicleInfo.model) === 700 ? "Corolla, RAV4 e SW4 têm alta complexidade (+R$ 700,00)." : "modelo classificado como média complexidade (+R$ 300,00)."}</p>
+      {showPriceBeforeAcceptance && getCarKeyComplexityFee(vehicleInfo.make, vehicleInfo.model, vehicleInfo.year) > 0 && (
+        <p className="rounded-xl border border-primary/40 bg-primary/5 p-3 text-sm text-foreground">{getCarKeyComplexityLabel(vehicleInfo.make, vehicleInfo.model, vehicleInfo.year)} (+{getCarKeyComplexityFee(vehicleInfo.make, vehicleInfo.model, vehicleInfo.year).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}).</p>
       )}
       <CarKeyProgrammingNotice programming={programming} hidePriceDetails />
 

@@ -271,16 +271,26 @@ export const MIN_CAR_KEY_TOTAL = 380;
 export const TOYOTA_HIGH_COMPLEXITY_FEE = 700;
 export const TOYOTA_MEDIUM_COMPLEXITY_FEE = 300;
 const TOYOTA_HIGH_COMPLEXITY_MODELS = /\b(?:corolla|rav\s*4|sw\s*4)\b/i;
-export const getCarKeyComplexityFee = (make, model = "") => {
-  if (!/^toyota(?:\s|$)/i.test(String(make || "").trim())) return 0;
+export const RENAULT_HIGH_COMPLEXITY_FEE = 450;
+export const getCarKeyComplexityFee = (make, model = "", year = null) => {
+  const brand = String(make || "").trim();
+  const vehicleYear = Number(year);
+  if (/^renault(?:\s|$)/i.test(brand)) {
+    return vehicleYear >= 2015 || (/\bsandero\b/i.test(String(model || "")) && [2012, 2013].includes(vehicleYear))
+      ? RENAULT_HIGH_COMPLEXITY_FEE : 0;
+  }
+  if (!/^toyota(?:\s|$)/i.test(brand)) return 0;
   return TOYOTA_HIGH_COMPLEXITY_MODELS.test(String(model || ""))
     ? TOYOTA_HIGH_COMPLEXITY_FEE
     : TOYOTA_MEDIUM_COMPLEXITY_FEE;
 };
-export const getCarKeyComplexityLabel = (make, model = "") =>
-  getCarKeyComplexityFee(make, model) === TOYOTA_HIGH_COMPLEXITY_FEE
+export const getCarKeyComplexityLabel = (make, model = "", year = null) => {
+  const fee = getCarKeyComplexityFee(make, model, year);
+  if (fee === RENAULT_HIGH_COMPLEXITY_FEE) return "Confecção de alta complexidade (Renault)";
+  return fee === TOYOTA_HIGH_COMPLEXITY_FEE
     ? "Confecção de alta complexidade (Toyota)"
     : "Confecção de média complexidade (Toyota)";
+};
 export const LAND_ROVER_ALARM_FEE = 8000;
 export const LAND_ROVER_ALARM_LABEL = "Land Rover trancada no alarme";
 export const isLandRoverFrom2020 = (make, year) =>
@@ -314,8 +324,8 @@ export function calculateCarKeyPrice({
   const onlineFee = Number(onlineProgrammingFee) || 0;
   const locomotion = Math.round(perKm * dist * 100) / 100;
   const rawTotal = Math.round((kv + labor + locomotion + extra + onlineFee) * 100) / 100;
-  const complexityFee = getCarKeyComplexityFee(make, model);
-  const complexityLabel = getCarKeyComplexityLabel(make, model);
+  const complexityFee = getCarKeyComplexityFee(make, model, year);
+  const complexityLabel = getCarKeyComplexityLabel(make, model, year);
   const alarmFee = getLandRoverAlarmFee(make, year, alarmLocked);
   const baseTotal = Math.max(MIN_CAR_KEY_TOTAL, rawTotal);
   const total = baseTotal + complexityFee + alarmFee;

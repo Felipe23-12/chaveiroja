@@ -46,7 +46,7 @@ export default function UpgradeToUrgentButton({ request, onUpdated }) {
   const current = request.price || 0;
   const fixedVehicleFees = request.service_type === "Confecção de Chave de Carro"
     ? (request.pricing_calculation?.lines || [])
-        .filter((line) => line.label === LAND_ROVER_ALARM_LABEL || /complexidade \(Toyota\)/i.test(line.label))
+        .filter((line) => line.label === LAND_ROVER_ALARM_LABEL || /complexidade \((?:Toyota|Renault)\)/i.test(line.label))
         .reduce((sum, line) => sum + Number(line.value || 0), 0)
     : 0;
   const newPrice = Math.round(((current - fixedVehicleFees) * URGENCY_MULTIPLIER + fixedVehicleFees) * 100) / 100;
