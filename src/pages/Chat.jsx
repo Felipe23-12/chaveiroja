@@ -16,6 +16,7 @@ import ChatPhotoButton from "@/components/chat/ChatPhotoButton";
 import ChatMessageBubble from "@/components/chat/ChatMessageBubble";
 import { hideChatMessage, loadHiddenMessageIds } from "@/lib/chatVisibility";
 import { containsLink } from "@/lib/chatMessageValidation";
+import { markChatConversationRead } from "@/lib/chatReadState";
 import { useToast } from "@/components/ui/use-toast";
 
 export default function Chat() {
@@ -45,7 +46,11 @@ export default function Chat() {
     const load = () => Promise.all([
       base44.entities.ChatMessage.filter({ locksmith_id: locksmithId, client_id: user.id }, "created_date"),
       loadHiddenMessageIds(user.id),
-    ]).then(([list, hidden]) => setMessages(list.filter((message) => !hidden.has(message.id))));
+    ]).then(([list, hidden]) => {
+      setMessages(list.filter((message) => !hidden.has(message.id)));
+      const latest = list[list.length - 1]?.created_date;
+      if (latest) markChatConversationRead(user.id, locksmithId, user.id, latest).catch(() => {});
+    });
     load();
     const unsubscribeMessages = safeUnsubscribe(base44.entities.ChatMessage.subscribe(load));
     const unsubscribeVisibility = safeUnsubscribe(base44.entities.ChatMessageVisibility.subscribe(load));

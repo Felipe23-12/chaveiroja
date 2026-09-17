@@ -9,8 +9,8 @@ export default function ChatMessageBubble({ message, mine, onHide }) {
         <ChatMessageContent message={message} />
         {message._error && <div className="mt-0.5 text-[10px]">Falha ao enviar</div>}
         {!message._pending && !message._error && onHide && (
-          <button type="button" onClick={() => onHide(message.id)} className="mt-1 flex min-h-[44px] items-center gap-1 text-[10px] opacity-70" aria-label="Excluir mensagem só para mim">
-            <Trash2 className="h-3 w-3" /> Excluir só para mim
+          <button type="button" onClick={() => onHide(message.id)} className="mt-2 flex min-h-[44px] items-center gap-1.5 rounded-lg border border-current/20 px-2 text-xs font-medium" aria-label="Apagar mensagem só para mim">
+            <Trash2 className="h-4 w-4" /> Apagar só para mim
           </button>
         )}
       </div>

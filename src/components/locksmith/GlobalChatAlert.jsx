@@ -7,6 +7,7 @@ import { setChatUnread, incrementChatUnread } from "@/lib/chatUnreadStore";
 import { playNotificationSound } from "@/lib/notificationSound";
 import { ensureNotificationPermission, notifyClient } from "@/lib/clientNotifications";
 import { safeUnsubscribe } from "@/lib/safeUnsubscribe";
+import { loadChatReadStates } from "@/lib/chatReadState";
 import useBlockedUsers from "@/hooks/useBlockedUsers";
 
 const lastSeenKey = (id) => `chat_last_seen_${id}`;
@@ -60,9 +61,10 @@ export default function GlobalChatAlert() {
     try { lastSeen = parseInt(localStorage.getItem(key) || "0", 10) || 0; } catch (e) {}
 
     const load = () =>
-      base44.entities.ChatMessage
-        .filter({ locksmith_id: locksmith.id }, "created_date")
-        .then((list) => {
+      Promise.all([
+        base44.entities.ChatMessage.filter({ locksmith_id: locksmith.id }, "created_date"),
+        loadChatReadStates(user.id),
+      ]).then(([list, readStates]) => {
           const customerMsgs = list.filter((m) => !blocksLoading && m.sender_type === "customer" && !blockedIds.has(m.client_id));
           if (!initialized.current) {
             // Primeira carga: conta mensagens recebidas enquanto o chaveiro
@@ -72,7 +74,9 @@ export default function GlobalChatAlert() {
             customerMsgs.forEach((m) => {
               seenIds.current.add(m.id);
               const ts = new Date(m.created_date).getTime();
-              if (ts > lastSeen) initialUnread++;
+              const persistentReadAt = readStates.get(`${locksmith.id}:${m.client_id}`);
+              const readAt = Math.max(lastSeen, persistentReadAt ? Date.parse(persistentReadAt) : ts);
+              if (ts > readAt) initialUnread++;
             });
             initialized.current = true;
             if (initialUnread > 0) {
