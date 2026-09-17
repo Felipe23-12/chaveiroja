@@ -109,6 +109,23 @@ export function mapPaymentMethod(payment) {
   return "pix";
 }
 
+async function notifyLocksmithPaymentConfirmed(base44, localPayment) {
+  let userId = localPayment.locksmith_user_id;
+  if (!userId && localPayment.locksmith_id) {
+    const locksmith = await base44.asServiceRole.entities.Locksmith.get(localPayment.locksmith_id).catch(() => null);
+    userId = locksmith?.created_by_id;
+  }
+  if (!userId) return;
+  const amount = Number(localPayment.amount || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+  await base44.asServiceRole.integrations.Core.SendPushNotification({
+    user_id: userId,
+    title: "Pagamento confirmado",
+    content: `O pagamento de ${amount} do cliente foi confirmado no Mercado Pago.`,
+    action_label: "Ver financeiro",
+    action_url: "/painel-financeiro",
+  }).catch(() => null);
+}
+
 export async function reconcilePaidPayment(base44, localPayment, method = localPayment.method) {
   if (localPayment.payment_kind === "subscription") {
     await base44.asServiceRole.entities.Locksmith.update(localPayment.locksmith_id, {
@@ -180,7 +197,13 @@ export async function syncApprovedPayment(base44, localPayment, providerPayment)
       pending_cash_commission: Math.max(0, Math.round((Number(locksmith.pending_cash_commission || 0) - pendingCashOffset) * 100) / 100),
     });
   }
-  if (status === "paid") return reconcilePaidPayment(base44, { ...localPayment, status, method }, method);
+  if (status === "paid") {
+    const result = await reconcilePaidPayment(base44, { ...localPayment, status, method }, method);
+    if (!wasPaid && localPayment.payment_kind === "service") {
+      await notifyLocksmithPaymentConfirmed(base44, localPayment);
+    }
+    return result;
+  }
   if (localPayment.service_request_id && localPayment.payment_kind !== "subscription") {
     await base44.asServiceRole.entities.ServiceRequest.update(localPayment.service_request_id, {
       payment_id: localPayment.id,
