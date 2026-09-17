@@ -10,6 +10,8 @@ const SERVICE_STYLES = {
   abertura_tetra: { color: "text-purple-600", bg: "bg-purple-50", border: "border-purple-200" },
   abertura_eletronica: { color: "text-indigo-600", bg: "bg-indigo-50", border: "border-indigo-200" },
   confeccao_chave_carro: { color: "text-emerald-600", bg: "bg-emerald-50", border: "border-emerald-200" },
+  confeccao_chave_moto: { color: "text-teal-600", bg: "bg-teal-50", border: "border-teal-200" },
+  copia_chave: { color: "text-rose-600", bg: "bg-rose-50", border: "border-rose-200" },
 };
 
 export default function ServiceSelector({ locksmith, onUpdate }) {
