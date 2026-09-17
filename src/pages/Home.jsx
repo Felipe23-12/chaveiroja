@@ -567,6 +567,16 @@ export default function Home() {
         : "";
       const base = {
         location_context: locationContext,
+        pricing_inputs: {
+          selected_options: selectedOptions,
+          custom_addons: customAddons,
+          locks: service.hasLocks ? locks.map(({ model, miolo }) => ({ model, miolo })) : [],
+          vehicle: { ...vehicleInfo, alarm_locked: vehicleInfo.alarmLocked },
+          broken_key_in_lock: openingConditionFee > 0,
+          online_programming_fee: programming?.onlineFee || 0,
+          has_coded_key: hasCodedKey,
+          charge_simple_key_value: keyOrigin === "paralela" && carKeyType === "simples" && manualParallelKeyPrice(requestCatalog, carKeyType) > 0,
+        },
         pricing_calculation: buildChargeCalculation(price, pricingService, { year: vehicleInfo.year, fipeValue, keyType: carKeyType, hasCodedKey }),
         service_type: service.label,
         address,

@@ -1,6 +1,7 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.46';
 import { scoreFor, penalizeLocksmithCancellation, recordClientCancellation, getClientCancelBlock, clientCancellationQuote } from '../../shared/cancellationRules.ts';
 import { validatedLocation } from '../../shared/cancellationSafety.ts';
+import { calculateServerServicePrice } from '../../shared/servicePricing.ts';
 
 const waitMinutes = (minutes) => new Date(Date.now() + minutes * 60000).toISOString();
 
@@ -13,55 +14,6 @@ const serviceProfiles = {
   'Confecção de Chave de Moto': { id: 'confeccao_chave_moto', specialty: 'Automotivo' },
   'Cópia de Chave': { id: 'copia_chave', specialty: 'Residencial' },
 };
-
-const servicePriceLimits = {
-  'Abertura Residencial': [50, 2000],
-  'Abertura Automotiva': [50, 2500],
-  'Abertura Fechadura Tetra': [70, 3000],
-  'Abertura Fechadura Eletrônica': [245, 3000],
-  'Confecção de Chave de Carro': [380, 25000],
-  'Confecção de Chave de Moto': [140, 5000],
-  'Cópia de Chave': [4, 4],
-};
-
-function distanceKm(a, b) {
-  const rad = (value) => value * Math.PI / 180;
-  const dLat = rad(b.lat - a.lat);
-  const dLng = rad(b.lng - a.lng);
-  const h = Math.sin(dLat / 2) ** 2 + Math.cos(rad(a.lat)) * Math.cos(rad(b.lat)) * Math.sin(dLng / 2) ** 2;
-  return 6371 * 2 * Math.atan2(Math.sqrt(h), Math.sqrt(1 - h));
-}
-
-function canReceiveRequest(locksmith, request) {
-  const service = serviceProfiles[request.service_type];
-  if (!service) return false;
-  if (locksmith.services?.length) return locksmith.services.includes(service.id);
-  const specialties = locksmith.specialties?.length ? locksmith.specialties : [locksmith.specialty];
-  return specialties.includes(service.specialty);
-}
-
-function trustedPricing(data) {
-  const lines = data.pricing_calculation?.lines;
-  if (!Array.isArray(lines) || lines.length === 0 || lines.length > 30) throw new Error('Cálculo de preço inválido');
-  const normalized = lines.map((line) => {
-    const label = String(line?.label || '').trim().slice(0, 120);
-    const value = Number(line?.value);
-    if (!label || !Number.isFinite(value) || Math.abs(value) > 100000) throw new Error('Componente de preço inválido');
-    return { label, value: Math.round(value * 100) / 100 };
-  });
-  const total = Math.round(normalized.reduce((sum, line) => sum + line.value, 0) * 100) / 100;
-  const limits = servicePriceLimits[data.service_type];
-  if (!limits || total < limits[0] || total > limits[1]) throw new Error('Preço fora da faixa permitida para o serviço');
-  const declaredTotal = Number(data.pricing_calculation?.total);
-  if (!Number.isFinite(declaredTotal) || Math.abs(declaredTotal - total) > 0.01) throw new Error('Cálculo de preço inconsistente');
-  const discount = data.discount_applied === true ? Number(data.discount_amount || 0) : 0;
-  if (!Number.isFinite(discount) || discount < 0 || discount > Math.round(total * 0.1 * 100) / 100) throw new Error('Desconto inválido');
-  return {
-    price: Math.round((total - discount) * 100) / 100,
-    discount,
-    calculation: { total, lines: normalized, notes: Array.isArray(data.pricing_calculation?.notes) ? data.pricing_calculation.notes.map((note) => String(note).slice(0, 300)).slice(0, 20) : [] },
-  };
-}
 
 async function notify(base44, userId, title, content, requestId) {
   if (!userId) return;
@@ -117,10 +69,16 @@ export default async function(req) {
       return Response.json({ added });
     }
 
+    if (action === 'price_quote') {
+      const data = body.data || {};
+      if (!data.service_type) return Response.json({ error: 'Informe o serviço' }, { status: 400 });
+      return Response.json({ pricing: await calculateServerServicePrice(base44, user.id, data) });
+    }
+
     if (action === 'create_request') {
       const data = body.data || {};
       if (!data.service_type || !String(data.address || '').trim()) return Response.json({ error: 'Informe o serviço e o endereço' }, { status: 400 });
-      const pricing = trustedPricing(data);
+      const pricing = await calculateServerServicePrice(base44, user.id, data);
       if (data.service_type === 'Confecção de Chave de Carro') {
         const vehicle = String(data.vehicle_info || '').trim();
         const toyota = /^toyota(?:\s|$)/i.test(vehicle);
@@ -304,7 +262,7 @@ export default async function(req) {
 
     return Response.json({ error: 'Ação inválida' }, { status: 400 });
   } catch (error) {
-    const status = /Preço fora|Desconto inválido|Total de preço inválido|Linhas de preço inválidas/.test(error.message || '') ? 400 : 500;
+    const status = /Preço fora|Desconto inválido|Serviço inválido|Dados do veículo inválidos/.test(error.message || '') ? 400 : 500;
     return Response.json({ error: error.message || 'Erro interno' }, { status });
   }
 }
