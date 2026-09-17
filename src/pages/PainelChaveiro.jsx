@@ -661,10 +661,16 @@ export default function PainelChaveiro() {
   };
 
   // Chaveiro confirma que chegou ao local do cliente — só permitido a até 100 m
-  // do endereço, validado pelo GPS no momento do clique.
+  // do endereço, validado pelo GPS no momento do clique. Admins em teste podem
+  // confirmar a chegada sem a restrição de distância.
   const handleConfirmArrival = async () => {
     if (!active) return;
+    const isAdmin = user?.role === "admin";
     if (!navigator.geolocation) {
+      if (isAdmin) {
+        await updateStatus({ locksmith_arrived: true });
+        return;
+      }
       toast({
         title: "GPS indisponível",
         description: "Ative a localização do aparelho para confirmar a chegada.",
@@ -680,6 +686,10 @@ export default function PainelChaveiro() {
       )
     );
     if (!pos) {
+      if (isAdmin) {
+        await updateStatus({ locksmith_arrived: true });
+        return;
+      }
       toast({
         title: "Não foi possível obter sua localização",
         description: "Verifique a permissão de GPS e tente novamente.",
@@ -691,7 +701,7 @@ export default function PainelChaveiro() {
       { lat: pos.coords.latitude, lng: pos.coords.longitude },
       { lat: active.customer_lat, lng: active.customer_lng }
     );
-    if (dist > ARRIVAL_RADIUS_KM) {
+    if (dist > ARRIVAL_RADIUS_KM && !isAdmin) {
       toast({
         title: "Você ainda não está no local",
         description: `A confirmação só é liberada a até 100 m do endereço. Você está a ${
