@@ -111,6 +111,7 @@ export default function Home() {
   const [keyValue, setKeyValue] = useState(null);
   const [keyValueFallback, setKeyValueFallback] = useState(false);
   const [fipeValue, setFipeValue] = useState(null);
+  const [vehiclePricingQuote, setVehiclePricingQuote] = useState(null);
   const [hasCodedKey, setHasCodedKey] = useState(false);
   const [carKeyType, setCarKeyType] = useState("simples");
   const [keyOrigin, setKeyOrigin] = useState("original");
@@ -452,11 +453,13 @@ export default function Home() {
       setKeyCatalog(catalog);
       setKeyOrigin(requiresParallelKey(catalog) ? "paralela" : "original");
       setFipeValue(res.fipeValue);
+      setVehiclePricingQuote(res.pricingQuote);
       setKeyValue(res.keyValue);
       setKeyValueFallback(res.keyValueFallback);
       setHasCodedKey(res.hasCodedKey);
     } catch (e) {
       setFipeValue(null);
+      setVehiclePricingQuote(null);
       setKeyValue(null);
       setKeyValueFallback(false);
       setKeyCatalog(null);
@@ -572,10 +575,10 @@ export default function Home() {
           custom_addons: customAddons,
           locks: service.hasLocks ? locks.map(({ model, miolo }) => ({ model, miolo })) : [],
           vehicle: { ...vehicleInfo, alarm_locked: vehicleInfo.alarmLocked },
+          vehicle_pricing_quote: vehiclePricingQuote,
+          vehicle_catalog_id: requestCatalog?.id || null,
+          key_origin: keyOrigin,
           broken_key_in_lock: openingConditionFee > 0,
-          online_programming_fee: programming?.onlineFee || 0,
-          has_coded_key: hasCodedKey,
-          charge_simple_key_value: keyOrigin === "paralela" && carKeyType === "simples" && manualParallelKeyPrice(requestCatalog, carKeyType) > 0,
         },
         pricing_calculation: buildChargeCalculation(price, pricingService, { year: vehicleInfo.year, fipeValue, keyType: carKeyType, hasCodedKey }),
         service_type: service.label,
@@ -1008,6 +1011,7 @@ export default function Home() {
     setKeyValue(null);
     setKeyValueFallback(false);
     setFipeValue(null);
+    setVehiclePricingQuote(null);
     setHasCodedKey(false);
     setCarKeyType("simples");
     setKeyOrigin("original");

@@ -1,3 +1,5 @@
+import { verifyVehiclePricingQuote } from './vehiclePricingQuote.ts';
+
 const RULES = {
   'Abertura Residencial': { range: [80, 250], id: 'abertura_residencial' },
   'Abertura Automotiva': { range: [120, 350], id: 'abertura_automotiva' },
@@ -61,19 +63,63 @@ function vehicleComplexity(make, model, year) {
   return /\b(?:corolla|rav\s*4|sw\s*4)\b/i.test(model) ? 700 : 300;
 }
 
-function carKeyPrice(data, inputs, multiplier, distanceFee) {
+function normalizeVehicleText(value) {
+  return String(value || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+}
+
+function serverProgrammingFee(make, model, year) {
+  const text = normalizeVehicleText(`${make} ${model}`);
+  const vw = /\b(vw|volkswagen)\b/.test(text);
+  const gm = /\b(gm|chevrolet)\b/.test(text);
+  const dealerOnly = ['amarok', 'touareg', 'tiguan', 'taos', 'jetta gli', 'golf gti'];
+  if (vw && dealerOnly.some((item) => text.includes(item))) throw new Error('Este veículo só pode ser programado na concessionária');
+  const vwOnline = ['polo', 'virtus', 't cross', 'tcross', 'nivus', 'jetta', 'golf', 'saveiro', 'gol', 'voyage'];
+  const gmOnline = ['onix', 'onix plus', 'tracker', 'spin', 's10', 'cruze', 'montana', 'trailblazer', 'equinox'];
+  if ((gm && year >= 2020 && gmOnline.some((item) => text.includes(item))) || (vw && year >= 2018 && vwOnline.some((item) => text.includes(item)))) return 250;
+  return 0;
+}
+
+function catalogMatches(catalog, vehicle) {
+  const make = normalizeVehicleText(vehicle.make);
+  const model = normalizeVehicleText(vehicle.model);
+  const catalogMake = normalizeVehicleText(catalog.make);
+  const catalogModels = String(catalog.model || '').split(/[,/]/).map(normalizeVehicleText);
+  const year = Number(vehicle.year);
+  return catalog.vehicle_type === 'carro' && catalog.active === true && catalogMake === make &&
+    catalogModels.some((item) => item === model || item.includes(model) || model.includes(item)) &&
+    (!catalog.year_start || year >= catalog.year_start) && (!catalog.year_end || year <= catalog.year_end);
+}
+
+function catalogKeyValue(catalog, quoteKeyValue, keyType, keyOrigin) {
+  const original = Number(catalog?.original_price) > 0 ? Number(catalog.original_price) : quoteKeyValue;
+  if (keyOrigin !== 'paralela') return original;
+  const manualField = keyType === 'simples' ? 'parallel_simple_price' : keyType === 'presenca' ? 'parallel_proximity_price' : 'parallel_flip_price';
+  const manual = Number(catalog?.[manualField]) || 0;
+  if (manual > 0) return manual;
+  const generated = Math.max(Number(catalog?.vvdi_price) || 0, Number(catalog?.kd_price) || 0, Number(catalog?.km100_price) || 0);
+  if (generated > 0) return generated;
+  return catalog?.factory_alarm_status === 'ausente' ? 0 : round(original * 0.65);
+}
+
+async function carKeyPrice(base44, userId, data, inputs, multiplier, distanceFee) {
   const vehicle = inputs.vehicle || {};
   const year = bounded(vehicle.year, 1900, 2200);
   const make = String(vehicle.make || '').trim();
   const model = String(vehicle.model || '').trim();
   if (!make || !model || year < 1900) throw new Error('Dados do veículo inválidos para precificação');
-  const fipe = bounded(data.fipe_value, 0, 10000000);
-  const keyValue = bounded(data.key_value, 0, 100000);
+  const quote = await verifyVehiclePricingQuote(inputs.vehicle_pricing_quote, userId, vehicle);
+  const catalog = inputs.vehicle_catalog_id ? await base44.asServiceRole.entities.VehicleKeyCatalog.get(String(inputs.vehicle_catalog_id)).catch(() => null) : null;
+  if (catalog && !catalogMatches(catalog, vehicle)) throw new Error('Catálogo do veículo não confere com a solicitação');
+  const fipe = quote.fipeValue;
   const keyType = ['simples', 'canivete', 'telecomando', 'presenca'].includes(data.key_type) ? data.key_type : 'simples';
-  const rate = year >= 2020 ? 0.008 : year >= 2010 ? 0.009 : year >= 2000 ? 0.011 : inputs.has_coded_key ? 0.013 : 0.011;
+  const keyOrigin = inputs.key_origin === 'paralela' ? 'paralela' : 'original';
+  if (keyOrigin === 'paralela' && !catalog) throw new Error('Catálogo da chave paralela é obrigatório');
+  const keyValue = catalogKeyValue(catalog, quote.keyValue, keyType, keyOrigin);
+  if (keyOrigin === 'paralela' && keyValue <= 0) throw new Error('Preço da chave paralela não confirmado no catálogo');
+  const rate = year >= 2020 ? 0.008 : year >= 2010 ? 0.009 : year >= 2000 ? 0.011 : quote.hasCodedKey ? 0.013 : 0.011;
   const labor = round(fipe * rate + (keyType === 'simples' ? 120 : 0));
-  const chargedKey = keyType === 'simples' && inputs.charge_simple_key_value !== true ? 0 : keyValue;
-  const onlineFee = bounded(inputs.online_programming_fee, 0, 5000);
+  const chargedKey = keyType === 'simples' && !(keyOrigin === 'paralela' && Number(catalog?.parallel_simple_price) > 0) ? 0 : keyValue;
+  const onlineFee = serverProgrammingFee(make, model, year);
   const complexityFee = vehicleComplexity(make, model, year);
   const alarmFee = /^land\s*rover(?:\s|$)/i.test(make) && year >= 2020 && vehicle.alarm_locked === true ? 8000 : 0;
   const base = Math.max(380, round(chargedKey + round(labor * multiplier) + onlineFee + distanceFee));
@@ -123,7 +169,7 @@ export async function calculateServerServicePrice(base44, userId, data) {
   if (rule.fixed) {
     calculation = { total: rule.fixed, protectedFees: 0, lines: [{ label: `${data.service_type} (preço fixo)`, value: rule.fixed }] };
   } else if (rule.carKey) {
-    calculation = carKeyPrice(data, inputs, multiplier, distanceFee);
+    calculation = await carKeyPrice(base44, userId, data, inputs, multiplier, distanceFee);
   } else {
     const base = Math.round(rule.range[0] + (rule.range[1] - rule.range[0]) * tierFactor);
     let adjusted = round(base * multiplier);

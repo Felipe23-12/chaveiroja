@@ -48,6 +48,7 @@ export async function searchFipeAndKeyValue(make, model, year) {
   return {
     fipeValue: checked.fipeValue,
     keyValue: checked.keyValue,
+    pricingQuote: res.pricing_quote || null,
     keyValueTrusted: res.key_value_trusted === true,
     keyValueFallback: res.key_value_fallback === true,
     keyValueSource: res.key_value_source || "",

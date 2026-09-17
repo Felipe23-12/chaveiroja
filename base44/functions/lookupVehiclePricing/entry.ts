@@ -1,4 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.46';
+import { createVehiclePricingQuote } from '../../shared/vehiclePricingQuote.ts';
 
 export default async function(req: Request): Promise<Response> {
   try {
@@ -128,11 +129,25 @@ Retorne cada oferta aceita com fonte, categoria, preço em BRL, URL e original_c
     const offers = [...sortedLocalOffers, ...webOffers];
     const highest = manualCatalogOffer || sortedLocalOffers[0] || webOffers.sort((a, b) => b.price - a.price)[0] || null;
     const fallbackUsed = !highest;
+    const validatedFipe = Number(result.fipe_value);
+    const validatedKeyValue = fallbackUsed ? 250 : Number(highest.price);
+    if (!keyOnly && (!Number.isFinite(validatedFipe) || validatedFipe < 1000 || validatedFipe > 3000000)) {
+      return Response.json({ error: 'Não foi possível validar o valor FIPE do veículo' }, { status: 422 });
+    }
+    const pricingQuote = keyOnly ? null : await createVehiclePricingQuote(user.id, {
+      make,
+      model,
+      year,
+      fipeValue: validatedFipe,
+      keyValue: validatedKeyValue,
+      hasCodedKey: result.has_coded_key === true,
+    });
 
     return Response.json({
-      fipe_value: result.fipe_value,
+      fipe_value: validatedFipe,
       has_coded_key: result.has_coded_key === true,
-      key_value: fallbackUsed ? 250 : highest.price,
+      key_value: validatedKeyValue,
+      pricing_quote: pricingQuote,
       key_value_trusted: !fallbackUsed,
       key_value_fallback: fallbackUsed,
       key_value_source: fallbackUsed ? 'Valor padrão sem preço original confirmado' : highest.source,

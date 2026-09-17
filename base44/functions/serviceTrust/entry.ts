@@ -262,7 +262,7 @@ export default async function(req) {
 
     return Response.json({ error: 'Ação inválida' }, { status: 400 });
   } catch (error) {
-    const status = /Preço fora|Desconto inválido|Serviço inválido|Dados do veículo inválidos/.test(error.message || '') ? 400 : 500;
+    const status = /Preço|Desconto|Serviço inválido|Dados do veículo|Catálogo|veículo|concessionária|Consulta de preço/.test(error.message || '') ? 400 : 500;
     return Response.json({ error: error.message || 'Erro interno' }, { status });
   }
 }
