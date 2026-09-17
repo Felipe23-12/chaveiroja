@@ -1,4 +1,6 @@
 {
+  "name": "Desativa\u00e7\u00e3o Chaveiro Inativo",
+  "description": "Todos os dias verifica os chaveiros sem chamados aceitos h\u00e1 mais de 30 dias e desativa o perfil, exigindo revalida\u00e7\u00e3o dos documentos.",
   "trigger": {
     "condition": null,
     "config": {
@@ -30,7 +32,7 @@
           "with": {
             "function_name": "deactivateInactiveLocksmiths",
             "args": {
-              "_internal_token": "cj_wf_int_7d2e5a1f9b8c4e30"
+              "_internal_token": "${ .secrets.INTERNAL_CALL_TOKEN }"
             }
           },
           "then": "end",
@@ -41,7 +43,5 @@
         }
       }
     ]
-  },
-  "description": "Todos os dias verifica os chaveiros sem chamados aceitos h\u00e1 mais de 30 dias e desativa o perfil, exigindo revalida\u00e7\u00e3o dos documentos.",
-  "name": "Desativa\u00e7\u00e3o Chaveiro Inativo"
+  }
 }

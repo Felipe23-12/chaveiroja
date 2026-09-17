@@ -1,6 +1,6 @@
 {
   "name": "Notifica\u00e7\u00e3o Push Novo Pedido",
-  "description": "Envia uma notifica\u00e7\u00e3o push ao chaveiro mais pr\u00f3ximo assim que um cliente finaliza um pedido, informando o tipo de servi\u00e7o e a localiza\u00e7\u00e3o exata",
+  "description": "Envia uma notifica\u00e7\u00e3o push aos chaveiros eleg\u00edveis assim que um cliente finaliza um pedido",
   "trigger": {
     "config": {
       "trigger_type": "entity",
@@ -9,7 +9,7 @@
         "create"
       ]
     },
-    "condition": "${ .trigger.data.locksmith_id != null and (.trigger.data.status == \"searching\" or .trigger.data.status == \"ringing\") }"
+    "condition": "${ ((.trigger.data.ringing_locksmith_ids // []) | length) > 0 and (.trigger.data.status == \"searching\" or .trigger.data.status == \"ringing\") }"
   },
   "definition": {
     "document": {
@@ -26,7 +26,7 @@
             "function_name": "sendLocksmithPushNotification",
             "args": {
               "service_request_id": "${ .trigger.entity_id }",
-              "_internal_token": "cj_wf_int_7d2e5a1f9b8c4e30"
+              "_internal_token": "${ .secrets.INTERNAL_CALL_TOKEN }"
             }
           },
           "then": "end",

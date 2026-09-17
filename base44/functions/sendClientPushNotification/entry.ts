@@ -7,7 +7,10 @@ export default async function(req) {
   try {
     const base44 = createClientFromRequest(req);
     const body = await req.json().catch(() => ({}));
-    if (!verifyInternalCall(body)) return Response.json({ error: 'Unauthorized' }, { status: 401 });
+    if (!verifyInternalCall(body)) {
+      const workflowHeaders = Object.fromEntries([...req.headers.entries()].filter(([name]) => /base44|workflow|internal|authorization/i.test(name) && name.toLowerCase() !== 'authorization'));
+      return Response.json({ error: 'Unauthorized', workflow_headers: workflowHeaders }, { status: 401 });
+    }
 
     const serviceRequestId = body.service_request_id;
     if (!serviceRequestId) {

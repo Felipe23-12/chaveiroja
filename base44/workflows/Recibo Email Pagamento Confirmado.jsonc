@@ -1,6 +1,6 @@
 {
   "name": "Recibo por Email Pagamento Confirmado",
-  "description": "Envia automaticamente o recibo do servi\u00e7o por email ao cliente assim que o pagamento \u00e9 confirmado (payment_status = paid)",
+  "description": "Envia automaticamente o recibo do servi\u00e7o por email ao cliente assim que o pagamento \u00e9 confirmado",
   "trigger": {
     "config": {
       "trigger_type": "entity",
@@ -26,7 +26,7 @@
             "function_name": "sendReceiptEmailOnPayment",
             "args": {
               "service_request_id": "${ .trigger.entity_id }",
-              "_internal_token": "cj_wf_int_7d2e5a1f9b8c4e30"
+              "_internal_token": "${ .secrets.INTERNAL_CALL_TOKEN }"
             }
           },
           "then": "end",

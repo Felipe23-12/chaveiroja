@@ -11,6 +11,7 @@ const serviceProfiles = {
   'Abertura Fechadura Eletrônica': { id: 'abertura_eletronica', specialty: 'Residencial' },
   'Confecção de Chave de Carro': { id: 'confeccao_chave_carro', specialty: 'Automotivo' },
   'Confecção de Chave de Moto': { id: 'confeccao_chave_moto', specialty: 'Automotivo' },
+  'Cópia de Chave': { id: 'copia_chave', specialty: 'Residencial' },
 };
 
 function distanceKm(a, b) {
@@ -27,6 +28,28 @@ function canReceiveRequest(locksmith, request) {
   if (locksmith.services?.length) return locksmith.services.includes(service.id);
   const specialties = locksmith.specialties?.length ? locksmith.specialties : [locksmith.specialty];
   return specialties.includes(service.specialty);
+}
+
+function trustedPricing(data) {
+  const lines = data.pricing_calculation?.lines;
+  if (!Array.isArray(lines) || lines.length === 0 || lines.length > 30) throw new Error('Cálculo de preço inválido');
+  const normalized = lines.map((line) => {
+    const label = String(line?.label || '').trim().slice(0, 120);
+    const value = Number(line?.value);
+    if (!label || !Number.isFinite(value) || Math.abs(value) > 100000) throw new Error('Componente de preço inválido');
+    return { label, value: Math.round(value * 100) / 100 };
+  });
+  const total = Math.round(normalized.reduce((sum, line) => sum + line.value, 0) * 100) / 100;
+  if (total < 0 || total > 100000) throw new Error('Preço fora do limite permitido');
+  const declaredTotal = Number(data.pricing_calculation?.total);
+  if (!Number.isFinite(declaredTotal) || Math.abs(declaredTotal - total) > 0.01) throw new Error('Cálculo de preço inconsistente');
+  const discount = data.discount_applied === true ? Number(data.discount_amount || 0) : 0;
+  if (!Number.isFinite(discount) || discount < 0 || discount > total) throw new Error('Desconto inválido');
+  return {
+    price: Math.round((total - discount) * 100) / 100,
+    discount,
+    calculation: { total, lines: normalized, notes: Array.isArray(data.pricing_calculation?.notes) ? data.pricing_calculation.notes.map((note) => String(note).slice(0, 300)).slice(0, 20) : [] },
+  };
 }
 
 async function notify(base44, userId, title, content, requestId) {
@@ -84,8 +107,11 @@ export default async function(req) {
     }
 
     if (action === 'create_request') {
-      if (body.data?.service_type === 'Confecção de Chave de Carro') {
-        const vehicle = String(body.data.vehicle_info || '').trim();
+      const data = body.data || {};
+      if (!data.service_type || !String(data.address || '').trim()) return Response.json({ error: 'Informe o serviço e o endereço' }, { status: 400 });
+      const pricing = trustedPricing(data);
+      if (data.service_type === 'Confecção de Chave de Carro') {
+        const vehicle = String(data.vehicle_info || '').trim();
         const toyota = /^toyota(?:\s|$)/i.test(vehicle);
         const highComplexityToyota = toyota && /\b(?:corolla|rav\s*4|sw\s*4)\b/i.test(vehicle);
         const toyotaComplexityFee = toyota ? (highComplexityToyota ? 700 : 300) : 0;
@@ -95,7 +121,7 @@ export default async function(req) {
         }
         const alarmLocked = landRover2020 && /Alarme:\s*trancado/i.test(vehicle);
         const minimum = 380 + toyotaComplexityFee + (alarmLocked ? 8000 : 0);
-        if (!Number.isFinite(Number(body.data.price)) || Number(body.data.price) < minimum) {
+        if (pricing.price < minimum) {
           return Response.json({ error: alarmLocked
             ? 'Land Rover 2020 ou mais nova trancada no alarme exige o adicional de R$ 8.000,00.'
             : highComplexityToyota
@@ -107,10 +133,26 @@ export default async function(req) {
       }
       const block = user.role === 'admin' ? { blocked: false } : await getClientCancelBlock(base44, user.id);
       if (block.blocked) return Response.json({ error: `${block.message} Liberação em ${block.minutesLeft} min.`, ...block }, { status: 403 });
-      const data = body.data || {};
-      if (!data.service_type || !String(data.address || '').trim()) return Response.json({ error: 'Informe o serviço e o endereço' }, { status: 400 });
-      const allowed = ['service_type', 'address', 'description', 'urgency', 'locksmith_id', 'locksmith_name', 'locksmith_user_id', 'ringing_locksmith_ids', 'ringing_locksmith_user_ids', 'customer_lat', 'customer_lng', 'locksmith_lat', 'locksmith_lng', 'price', 'key_value', 'fipe_value', 'key_type', 'vehicle_info', 'labor_cost', 'locomotion_cost', 'distance_km', 'extra_cost', 'discount_applied', 'discount_amount', 'pricing_calculation'];
+      const allowed = ['service_type', 'address', 'description', 'urgency', 'customer_lat', 'customer_lng', 'key_value', 'fipe_value', 'key_type', 'vehicle_info', 'labor_cost', 'locomotion_cost', 'distance_km', 'extra_cost', 'discount_applied'];
       const values = Object.fromEntries(allowed.filter((key) => data[key] !== undefined).map((key) => [key, data[key]]));
+      values.price = pricing.price;
+      values.discount_amount = pricing.discount;
+      values.pricing_calculation = pricing.calculation;
+
+      const customerLat = Number(data.customer_lat);
+      const customerLng = Number(data.customer_lng);
+      const online = Number.isFinite(customerLat) && Number.isFinite(customerLng)
+        ? await base44.asServiceRole.entities.Locksmith.filter({ online: true }, '-updated_date', 500)
+        : [];
+      const candidates = online
+        .filter((locksmith) => locksmith.created_by_id && locksmith.lat && locksmith.lng && canReceiveRequest(locksmith, data))
+        .map((locksmith) => ({ locksmith, distance: distanceKm({ lat: Number(locksmith.lat), lng: Number(locksmith.lng) }, { lat: customerLat, lng: customerLng }) }))
+        .filter((item) => Number.isFinite(item.distance) && item.distance <= Math.min(Number(item.locksmith.service_radius_km || 15), 100))
+        .sort((a, b) => a.distance - b.distance)
+        .slice(0, 100);
+      values.ringing_locksmith_ids = candidates.map((item) => item.locksmith.id);
+      values.ringing_locksmith_user_ids = [...new Set(candidates.map((item) => item.locksmith.created_by_id))];
+
       const location = validatedLocation(data);
       const detail = location.place_type === 'condominium' ? `Bloco/torre: ${location.building} · Unidade: ${location.unit}` : '';
       if (detail) values.description = [values.description, detail].filter(Boolean).join(' — ');
@@ -167,18 +209,16 @@ export default async function(req) {
       if (!request) return Response.json({ error: 'Chamado não encontrado' }, { status: 404 });
       if (request.status === 'completed') return Response.json({ error: 'Um chamado concluído não pode ser cancelado' }, { status: 409 });
 
-      const actor = body.actor;
-      const isClient = actor === 'cliente' && request.created_by_id === user.id;
-      const isLocksmith = actor === 'chaveiro' && request.locksmith_user_id === user.id;
-      if (!isClient && !isLocksmith) return Response.json({ error: 'Você não pode cancelar este chamado' }, { status: 403 });
+      const isAdmin = user.role === 'admin';
+      const isClient = request.created_by_id === user.id;
+      const isLocksmith = request.locksmith_user_id === user.id;
+      const actor = isClient ? 'cliente' : isLocksmith ? 'chaveiro' : isAdmin && ['cliente', 'chaveiro'].includes(body.actor) ? body.actor : null;
+      if (!actor) return Response.json({ error: 'Você não pode cancelar este chamado' }, { status: 403 });
       if (request.status === 'cancelled') {
-        await recordClientCancellation(base44, request, request.updated_date);
-        await penalizeLocksmithCancellation(base44, request);
         return Response.json({ success: true, request, duplicate: true });
       }
 
       const update = { status: 'cancelled', cancelled_by: actor };
-      const isAdmin = user.role === 'admin';
       if (isClient && !isAdmin) {
         const quote = await clientCancellationQuote(base44, request);
         if (!quote.free && body.confirmed_fee !== true) return Response.json({ error: 'Confirme a taxa de cancelamento para continuar', requires_fee: true, ...quote }, { status: 409 });
@@ -189,9 +229,9 @@ export default async function(req) {
       }
 
       const updated = await base44.asServiceRole.entities.ServiceRequest.update(request.id, update);
-      // Admins em teste não geram eventos de cancelamento nem disparam bloqueios.
-      if (!(isClient && isAdmin)) await recordClientCancellation(base44, updated);
-      await penalizeLocksmithCancellation(base44, { ...updated, accepted_at: request.accepted_at || (['accepted', 'queued', 'on_the_way'].includes(request.status) ? request.created_date : null) });
+      // Apenas um cancelamento efetivamente feito pelo cliente autenticado gera evento de bloqueio.
+      if (isClient && !isAdmin) await recordClientCancellation(base44, updated);
+      if (isLocksmith && !isAdmin) await penalizeLocksmithCancellation(base44, { ...updated, accepted_at: request.accepted_at || (['accepted', 'queued', 'on_the_way'].includes(request.status) ? request.created_date : null) });
       return Response.json({ success: true, request: updated });
     }
 

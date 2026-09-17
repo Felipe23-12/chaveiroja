@@ -1,6 +1,6 @@
 {
   "name": "Exportar Atendimento Concluido Sheets",
-  "description": "Exporta automaticamente os dados de cada servi\u00e7o conclu\u00eddo para a aba 'Atendimentos' no Google Sheets, consolidando todos os atendimentos do time em um \u00fanico lugar",
+  "description": "Exporta automaticamente os dados de cada servi\u00e7o conclu\u00eddo para a aba Atendimentos no Google Sheets",
   "trigger": {
     "config": {
       "trigger_type": "entity",
@@ -26,7 +26,7 @@
             "function_name": "exportCompletedServiceToSheets",
             "args": {
               "service_request_id": "${ .trigger.entity_id }",
-              "_internal_token": "cj_wf_int_7d2e5a1f9b8c4e30"
+              "_internal_token": "${ .secrets.INTERNAL_CALL_TOKEN }"
             }
           },
           "then": "end",

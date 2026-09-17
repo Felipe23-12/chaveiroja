@@ -26,7 +26,7 @@
             "function_name": "sendClientPushNotification",
             "args": {
               "service_request_id": "${ .trigger.entity_id }",
-              "_internal_token": "cj_wf_int_7d2e5a1f9b8c4e30"
+              "_internal_token": "${ $secrets.INTERNAL_CALL_TOKEN }"
             }
           },
           "then": "end",

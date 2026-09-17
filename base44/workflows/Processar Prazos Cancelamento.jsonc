@@ -1,31 +1,5 @@
 {
   "name": "Processar Prazos de Cancelamento",
-  "definition": {
-    "document": {
-      "dsl": "1.0.0",
-      "name": "processar_prazos_cancelamento",
-      "version": "1.0",
-      "namespace": "base44"
-    },
-    "do": [
-      {
-        "processar": {
-          "call": "invoke_backend_function",
-          "with": {
-            "function_name": "processCancellationDeadlines",
-            "args": {
-              "_internal_token": "cj_wf_int_7d2e5a1f9b8c4e30"
-            }
-          },
-          "then": "end",
-          "x-base44": {
-            "title": "Processar cancelamentos",
-            "description": "Aplica prazos e libera suspens\u00f5es"
-          }
-        }
-      }
-    ]
-  },
   "description": "Processa esperas, suspens\u00f5es e abandonos dos fluxos de cancelamento.",
   "trigger": {
     "condition": null,
@@ -43,5 +17,31 @@
       "ends_on_date": null,
       "ends_after_count": null
     }
+  },
+  "definition": {
+    "document": {
+      "dsl": "1.0.0",
+      "name": "processar_prazos_cancelamento",
+      "version": "1.0",
+      "namespace": "base44"
+    },
+    "do": [
+      {
+        "processar": {
+          "call": "invoke_backend_function",
+          "with": {
+            "function_name": "processCancellationDeadlines",
+            "args": {
+              "_internal_token": "${ .secrets.INTERNAL_CALL_TOKEN }"
+            }
+          },
+          "then": "end",
+          "x-base44": {
+            "title": "Processar cancelamentos",
+            "description": "Aplica prazos e libera suspens\u00f5es"
+          }
+        }
+      }
+    ]
   }
 }

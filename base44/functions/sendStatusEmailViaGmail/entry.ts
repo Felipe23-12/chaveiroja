@@ -35,8 +35,14 @@ export default async function (req: Request): Promise<Response> {
       return Response.json({ error: 'service_request_id e status (on_the_way|cancelled) são obrigatórios' }, { status: 400 });
     }
 
-    const request = await base44.entities.ServiceRequest.get(service_request_id);
+    const request = await base44.asServiceRole.entities.ServiceRequest.get(service_request_id);
     if (!request) return Response.json({ error: 'Solicitação não encontrada' }, { status: 404 });
+    const isAssignedLocksmith = request.locksmith_user_id === user.id;
+    if (!isAssignedLocksmith && user.role !== 'admin') return Response.json({ error: 'Forbidden' }, { status: 403 });
+    if (request.status !== status) return Response.json({ error: 'O status informado não corresponde ao chamado' }, { status: 409 });
+    const marker = `email_${status}`;
+    const sent = request.client_push_sent || [];
+    if (sent.includes(marker)) return Response.json({ sent: false, skipped: true, reason: 'E-mail já enviado para esta etapa' });
 
     const clients = await base44.asServiceRole.entities.User.filter({ id: request.created_by_id });
     const to = clients?.[0]?.email;
@@ -67,6 +73,9 @@ export default async function (req: Request): Promise<Response> {
       return Response.json({ error: 'Falha ao enviar e-mail pelo Gmail', detail }, { status: 502 });
     }
 
+    await base44.asServiceRole.entities.ServiceRequest.update(request.id, {
+      client_push_sent: [...sent, marker],
+    });
     return Response.json({ sent: true, to, status });
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });
