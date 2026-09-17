@@ -16,7 +16,11 @@ export default async function(req) {
     });
     const token = await response.json();
     if (!response.ok || !token.access_token || !token.user_id) throw new Error(token.message || "Não foi possível vincular o Mercado Pago");
-    const existing = await base44.asServiceRole.entities.MercadoPagoAccount.filter({ locksmith_id: state.locksmithId });
+    const existingByUser = await base44.asServiceRole.entities.MercadoPagoAccount.filter({ locksmith_user_id: state.userId });
+    const existingByProfile = existingByUser.length
+      ? []
+      : await base44.asServiceRole.entities.MercadoPagoAccount.filter({ locksmith_id: state.locksmithId });
+    const existing = existingByUser?.[0] || existingByProfile?.[0];
     const data = {
       locksmith_id: state.locksmithId,
       locksmith_user_id: state.userId,
@@ -27,10 +31,10 @@ export default async function(req) {
       scope: token.scope || "",
       token_expires_at: new Date(Date.now() + Number(token.expires_in || 15552000) * 1000).toISOString(),
       status: "active",
-      connected_at: existing?.[0]?.connected_at || new Date().toISOString(),
+      connected_at: existing?.connected_at || new Date().toISOString(),
       updated_at: new Date().toISOString(),
     };
-    if (existing?.[0]) await base44.asServiceRole.entities.MercadoPagoAccount.update(existing[0].id, data);
+    if (existing) await base44.asServiceRole.entities.MercadoPagoAccount.update(existing.id, data);
     else await base44.asServiceRole.entities.MercadoPagoAccount.create(data);
     return Response.redirect(`${APP_URL}/cadastro/recebimentos?mercado_pago=connected`, 302);
   } catch (error) {

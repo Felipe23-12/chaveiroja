@@ -9,11 +9,14 @@ export default async function(req) {
     if (!user) return Response.json({ error: "Unauthorized" }, { status: 401 });
     if (user.account_type !== "chaveiro" && user.role !== "admin") return Response.json({ error: "Acesso exclusivo para chaveiros" }, { status: 403 });
     const body = await req.json();
-    const profiles = await base44.asServiceRole.entities.Locksmith.filter({ created_by_id: user.id });
+    const profiles = await base44.asServiceRole.entities.Locksmith.filter({ created_by_id: user.id }, "-updated_date", 50);
     const locksmith = profiles?.[0];
     if (!locksmith) return Response.json({ error: "Crie seu perfil de chaveiro primeiro" }, { status: 400 });
-    const accounts = await base44.asServiceRole.entities.MercadoPagoAccount.filter({ locksmith_id: locksmith.id });
-    const account = accounts?.[0];
+    const accountsByUser = await base44.asServiceRole.entities.MercadoPagoAccount.filter({ locksmith_user_id: user.id });
+    const legacyAccounts = accountsByUser.length
+      ? []
+      : await base44.asServiceRole.entities.MercadoPagoAccount.filter({ locksmith_id: locksmith.id });
+    const account = accountsByUser?.[0] || legacyAccounts?.[0];
 
     if (body.action === "get_status" || body.action === "onboarding_policy") {
       const connected = account?.status === "active";

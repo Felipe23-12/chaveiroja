@@ -64,6 +64,13 @@ async function refreshAccount(base44, account) {
 export async function getSellerAccount(base44, locksmithId, allowUnconnected = false) {
   const rows = await base44.asServiceRole.entities.MercadoPagoAccount.filter({ locksmith_id: locksmithId });
   let account = rows?.[0];
+  if (!account) {
+    const locksmith = await base44.asServiceRole.entities.Locksmith.get(locksmithId).catch(() => null);
+    if (locksmith?.created_by_id) {
+      const userAccounts = await base44.asServiceRole.entities.MercadoPagoAccount.filter({ locksmith_user_id: locksmith.created_by_id });
+      account = userAccounts?.[0];
+    }
+  }
   if (!account || account.status !== "active") {
     if (allowUnconnected) return null;
     throw new Error("O chaveiro precisa vincular a conta Mercado Pago antes do pagamento");
