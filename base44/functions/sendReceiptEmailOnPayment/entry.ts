@@ -59,6 +59,15 @@ export default async function(req) {
       dinheiro: 'Dinheiro',
     };
     const paymentMethod = methodMap[request.payment_method] || '—';
+    const workDetails = [
+      request.description && ['Descrição do trabalho', request.description],
+      request.vehicle_info && ['Veículo', request.vehicle_info],
+      request.key_type && ['Tipo de chave', request.key_type],
+      request.replaced_parts?.length && ['Peças substituídas', request.replaced_parts.join(', ')],
+    ].filter(Boolean);
+    const workDetailsRows = workDetails
+      .map(([label, value]) => `<tr><td style="padding:8px 0;color:#666;vertical-align:top;">${escapeHtml(label)}</td><td style="padding:8px 0;">${escapeHtml(String(value))}</td></tr>`)
+      .join('');
 
     // Detalhamento financeiro (confecção de chave de carro)
     const rows = [];
@@ -85,6 +94,7 @@ export default async function(req) {
         <tr><td style="padding:8px 0;color:#666;">Endereço</td><td style="padding:8px 0;">${escapeHtml(address)}</td></tr>
         <tr><td style="padding:8px 0;color:#666;">Data</td><td style="padding:8px 0;">${escapeHtml(date)}</td></tr>
         <tr><td style="padding:8px 0;color:#666;">Forma de pagamento</td><td style="padding:8px 0;">${escapeHtml(paymentMethod)}</td></tr>
+        ${workDetailsRows}
       </table>
       ${breakdownBlock}
       <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:16px;margin:16px 0;">
