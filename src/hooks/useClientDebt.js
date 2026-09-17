@@ -11,6 +11,8 @@ export default function useClientDebt() {
   const refresh = useCallback(async () => {
     try {
       const u = await base44.auth.me();
+      // Admins em teste não sofrem restrições de cancelamento.
+      if (u?.role === "admin") { setDebt(null); setLoaded(true); return; }
       setDebt(await getClientDebt(u?.id));
     } catch {
       setDebt(null);

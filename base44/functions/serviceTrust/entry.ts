@@ -49,6 +49,7 @@ export default async function(req) {
     const action = body.action;
 
     if (action === 'client_block_status') {
+      if (user.role === 'admin') return Response.json({ blocked: false, minutesLeft: 0, cancelCount: 0, unlockAt: null, reason: null, message: null });
       return Response.json(await getClientCancelBlock(base44, user.id));
     }
 
@@ -104,7 +105,7 @@ export default async function(req) {
                 : 'O valor mínimo da confecção de chave de carro é R$ 380,00, mesmo após descontos.' }, { status: 400 });
         }
       }
-      const block = await getClientCancelBlock(base44, user.id);
+      const block = user.role === 'admin' ? { blocked: false } : await getClientCancelBlock(base44, user.id);
       if (block.blocked) return Response.json({ error: `${block.message} Liberação em ${block.minutesLeft} min.`, ...block }, { status: 403 });
       const data = body.data || {};
       if (!data.service_type || !String(data.address || '').trim()) return Response.json({ error: 'Informe o serviço e o endereço' }, { status: 400 });
@@ -157,6 +158,7 @@ export default async function(req) {
     if (action === 'cancel_quote') {
       const request = await base44.asServiceRole.entities.ServiceRequest.get(body.request_id);
       if (!request || request.created_by_id !== user.id) return Response.json({ error: 'Chamado não encontrado' }, { status: 403 });
+      if (user.role === 'admin') return Response.json({ free: true, fee: 0, fixed: false, locksmithAmount: 0, appFee: 0, cancelCount: 0, freeRemaining: 3 });
       return Response.json(await clientCancellationQuote(base44, request));
     }
 
@@ -176,7 +178,8 @@ export default async function(req) {
       }
 
       const update = { status: 'cancelled', cancelled_by: actor };
-      if (isClient) {
+      const isAdmin = user.role === 'admin';
+      if (isClient && !isAdmin) {
         const quote = await clientCancellationQuote(base44, request);
         if (!quote.free && body.confirmed_fee !== true) return Response.json({ error: 'Confirme a taxa de cancelamento para continuar', requires_fee: true, ...quote }, { status: 409 });
         update.cancellation_fee = quote.fee;
@@ -186,7 +189,8 @@ export default async function(req) {
       }
 
       const updated = await base44.asServiceRole.entities.ServiceRequest.update(request.id, update);
-      await recordClientCancellation(base44, updated);
+      // Admins em teste não geram eventos de cancelamento nem disparam bloqueios.
+      if (!(isClient && isAdmin)) await recordClientCancellation(base44, updated);
       await penalizeLocksmithCancellation(base44, { ...updated, accepted_at: request.accepted_at || (['accepted', 'queued', 'on_the_way'].includes(request.status) ? request.created_date : null) });
       return Response.json({ success: true, request: updated });
     }
@@ -235,9 +239,10 @@ export default async function(req) {
         await base44.asServiceRole.entities.ServiceCancellationCase.update(item.id, { client_response: 'confirmed', status: 'cancelled', resolved_at: new Date().toISOString() });
         const request = await base44.asServiceRole.entities.ServiceRequest.get(item.request_id);
         if (['completed', 'cancelled'].includes(request.status)) return Response.json({ success: true });
-        const quote = await clientCancellationQuote(base44, request);
+        const isAdmin = user.role === 'admin';
+        const quote = isAdmin ? { fee: 0, locksmithAmount: 0, appFee: 0 } : await clientCancellationQuote(base44, request);
         const cancelled = await base44.asServiceRole.entities.ServiceRequest.update(request.id, { status: 'cancelled', cancelled_by: 'cliente', cancellation_fee: quote.fee, cancellation_locksmith_amount: quote.locksmithAmount, cancellation_app_fee: quote.appFee, ...(quote.fee > 0 ? { payment_status: 'pending' } : {}) });
-        await recordClientCancellation(base44, cancelled);
+        if (!isAdmin) await recordClientCancellation(base44, cancelled);
       } else if (item.reason === 'client_cancelled' && body.response === 'denied') {
         const deadline = waitMinutes(10);
         await base44.asServiceRole.entities.ServiceCancellationCase.update(item.id, { client_response: 'denied', status: 'monitoring_service', deadline });
