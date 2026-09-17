@@ -97,7 +97,8 @@ export default async function(req) {
         pre_authorized_at: new Date().toISOString(),
       });
       const returnPath = kind === "subscription" ? "/modo-trabalho" : "/";
-      const backUrl = `${APP_URL}${returnPath}?mercado_pago=retorno&local_payment_id=${payment.id}`;
+      const returnStep = kind === "subscription" ? "" : "step=6&";
+      const backUrl = `${APP_URL}${returnPath}?${returnStep}mercado_pago=retorno&local_payment_id=${payment.id}`;
       const preferenceBody = {
         items: [{ id: payment.id, title: String(body.description || "Pagamento Chaveiro Já").slice(0, 120), quantity: 1, currency_id: "BRL", unit_price: amount }],
         payer: { email: user.email },

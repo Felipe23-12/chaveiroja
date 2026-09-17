@@ -8,7 +8,13 @@ export default function PaymentStep({ amount, description, locksmithId, serviceR
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState("");
   const checkedReturn = useRef(false);
+  const onConfirmRef = useRef(onConfirm);
   const breakdown = calculatePaymentBreakdown(amount);
+
+  useEffect(() => {
+    onConfirmRef.current = onConfirm;
+  }, [onConfirm]);
+
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const localPaymentId = params.get("local_payment_id");
@@ -22,7 +28,7 @@ export default function PaymentStep({ amount, description, locksmithId, serviceR
         const result = await confirmPaymentPaid(localPaymentId, params.get("payment_id"));
         if (cancelled) return;
         if (result?.status === "paid") {
-          onConfirm?.(result.method, params.get("payment_id"), localPaymentId);
+          onConfirmRef.current?.(result.method, params.get("payment_id"), localPaymentId);
           setCreating(false);
           return;
         }
@@ -40,7 +46,7 @@ export default function PaymentStep({ amount, description, locksmithId, serviceR
     };
     checkPayment();
     return () => { cancelled = true; window.clearTimeout(timer); };
-  }, [onConfirm]);
+  }, []);
   const pay = async () => {
     setCreating(true);
     setError("");

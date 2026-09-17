@@ -77,9 +77,15 @@ export default function Home() {
 
   // Sincroniza o step com a URL (?step=N) para que o botão de voltar do
   // Android/navegador retroceda uma etapa em vez de sair da página.
-  const goToStep = (n) => {
+  const goToStep = (n, preservePaymentReturn = false) => {
     setStepState(n);
-    setSearchParams({ step: String(n) });
+    if (preservePaymentReturn) {
+      const next = new URLSearchParams(searchParams);
+      next.set("step", String(n));
+      setSearchParams(next);
+    } else {
+      setSearchParams({ step: String(n) });
+    }
   };
 
   useEffect(() => {
@@ -307,7 +313,9 @@ export default function Home() {
       try {
         const list = await base44.entities.ServiceRequest.filter({ created_by_id: u.id }, "-created_date", 20);
         if (cancelled) return;
-        const active = list.find((r) => {
+        const returningPaymentId = searchParams.get("mercado_pago") === "retorno" ? searchParams.get("local_payment_id") : null;
+        const returnedRequest = returningPaymentId ? list.find((r) => r.payment_id === returningPaymentId) : null;
+        const active = returnedRequest || list.find((r) => {
           if (r.status === "ringing" || r.status === "queued" || r.status === "accepted" || r.status === "on_the_way") return true;
           if (r.end_photos?.length > 0 && r.status !== "completed" && r.status !== "cancelled") return true;
           return false;
@@ -334,7 +342,7 @@ export default function Home() {
         else if (active.status === "queued" || active.status === "accepted") s = 4;
         else if (active.status === "on_the_way") s = 5;
         else if (active.status === "completed") s = 7;
-        goToStep(s);
+        goToStep(s, Boolean(returningPaymentId));
       } catch (e) {
         /* silencioso */
       }
