@@ -14,20 +14,43 @@ export default function PaymentStep({ amount, description, locksmithId, serviceR
     const localPaymentId = params.get("local_payment_id");
     if (params.get("mercado_pago") !== "retorno" || !localPaymentId || checkedReturn.current) return;
     checkedReturn.current = true;
+    let cancelled = false;
+    let timer;
     setCreating(true);
-    confirmPaymentPaid(localPaymentId, params.get("payment_id"))
-      .then((result) => {
-        if (result?.status === "paid") onConfirm?.(result.method, params.get("payment_id"), localPaymentId);
-        else setError("O pagamento ainda está sendo processado pelo Mercado Pago. Atualize em instantes.");
-      })
-      .catch((e) => setError(e?.response?.data?.error || e.message || "Não foi possível confirmar o pagamento."))
-      .finally(() => setCreating(false));
+    const checkPayment = async (attempt = 0) => {
+      try {
+        const result = await confirmPaymentPaid(localPaymentId, params.get("payment_id"));
+        if (cancelled) return;
+        if (result?.status === "paid") {
+          onConfirm?.(result.method, params.get("payment_id"), localPaymentId);
+          setCreating(false);
+          return;
+        }
+        if (attempt < 20) timer = window.setTimeout(() => checkPayment(attempt + 1), 3000);
+        else {
+          setError("O pagamento ainda está sendo processado pelo Mercado Pago. Não pague novamente; a confirmação continuará automaticamente.");
+          setCreating(false);
+        }
+      } catch (e) {
+        if (!cancelled) {
+          setError(e?.response?.data?.error || e.message || "Não foi possível confirmar o pagamento.");
+          setCreating(false);
+        }
+      }
+    };
+    checkPayment();
+    return () => { cancelled = true; window.clearTimeout(timer); };
   }, [onConfirm]);
   const pay = async () => {
     setCreating(true);
     setError("");
     try {
       const result = await createMercadoPagoCheckout({ amount, description, locksmithId, serviceRequestId, paymentKind });
+      if (result?.status === "paid") {
+        onConfirm?.(result.method, result.provider_payment_id, result.payment_id);
+        setCreating(false);
+        return;
+      }
       if (!result?.checkout_url) throw new Error("Checkout indisponível.");
       window.location.href = result.checkout_url;
     } catch (e) {

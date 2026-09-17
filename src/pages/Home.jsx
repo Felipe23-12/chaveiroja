@@ -705,7 +705,9 @@ export default function Home() {
     setSearchError("");
     try {
       await confirmPaymentPaid(paymentId);
-      setActiveRequest((prev) => ({ ...prev, payment_id: paymentId, payment_status: "paid" }));
+      const updated = await base44.entities.ServiceRequest.get(activeRequest.id);
+      setActiveRequest(updated);
+      if (updated.status === "completed") goToStep(7);
       base44.auth.me()
         .then((u) => getClientLoyalty(u.id))
         .then(setLoyalty)

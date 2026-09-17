@@ -1,6 +1,6 @@
 import { createClientFromRequest } from "npm:@base44/sdk@0.8.44";
 import { secrets } from "base44:runtime";
-import { APP_URL, MP_WEBHOOK_URL, fetchPayment, getSellerAccount, syncApprovedPayment } from "../../shared/mercadoPago.ts";
+import { APP_URL, MP_WEBHOOK_URL, fetchPayment, getSellerAccount, reconcilePaidPayment, syncApprovedPayment } from "../../shared/mercadoPago.ts";
 import { readPendingCredits } from "../../shared/pendingPaymentCredits.ts";
 
 const MP_API = "https://api.mercadopago.com";
@@ -36,7 +36,7 @@ export default async function(req) {
       } else {
         service = await base44.asServiceRole.entities.ServiceRequest.get(body.service_request_id).catch(() => null);
         if (!service || service.created_by_id !== user.id || service.locksmith_id !== body.locksmith_id) return Response.json({ error: "Atendimento não encontrado" }, { status: 404 });
-        if (service.payment_status === "paid") return Response.json({ error: "Este atendimento já foi pago" }, { status: 409 });
+        if (service.payment_status === "paid") return Response.json({ status: "paid", already_paid: true, payment_id: service.payment_id, method: service.payment_method });
         locksmith = await base44.asServiceRole.entities.Locksmith.get(body.locksmith_id).catch(() => null);
         if (!locksmith) return Response.json({ error: "Chaveiro não encontrado" }, { status: 404 });
         amount = Number(kind === "cancellation" ? service.cancellation_fee : service.price);
@@ -54,6 +54,24 @@ export default async function(req) {
         }
       }
       if (!locksmith || !Number.isFinite(amount) || Math.round(Number(body.amount) * 100) !== Math.round(amount * 100) || amount < 1) return Response.json({ error: "O valor da cobrança não confere" }, { status: 400 });
+      if (service) {
+        const existingPayments = await base44.asServiceRole.entities.Payment.filter({ service_request_id: service.id, provider: "mercado_pago", payment_kind: kind }, "-created_date", 20);
+        const existing = existingPayments.find((item) => item.status === "paid" || item.status === "pre_authorized");
+        if (existing?.status === "paid") return Response.json({ ...(await reconcilePaidPayment(base44, existing)), already_paid: true });
+        if (existing) {
+          const providerPayment = await fetchPayment(base44, existing).catch(() => null);
+          if (providerPayment) {
+            const synced = await syncApprovedPayment(base44, existing, providerPayment);
+            if (synced.status === "paid") return Response.json({ ...synced, already_paid: true });
+          }
+          if (existing.mercado_pago_preference_id) {
+            const preferenceResponse = await fetch(`${MP_API}/checkout/preferences/${encodeURIComponent(existing.mercado_pago_preference_id)}`, { headers: { Authorization: `Bearer ${token}` } });
+            const preference = await preferenceResponse.json();
+            if (preferenceResponse.ok && preference.init_point) return Response.json({ payment_id: existing.id, checkout_url: preference.init_point, reused: true });
+          }
+          await base44.asServiceRole.entities.Payment.update(existing.id, { status: "failed" });
+        }
+      }
       const baseCommission = kind === "subscription" ? 0 : Math.round(amount * 0.15 * 100) / 100;
       const pendingCash = kind === "service" ? Math.max(0, Number(locksmith.pending_cash_commission || 0)) : 0;
       const maxCashOffset = Math.max(0, Math.round((amount - baseCommission - 0.01) * 100) / 100);
@@ -122,7 +140,7 @@ export default async function(req) {
     if (body.action === "get_status" || body.action === "finalize_payment") {
       const payment = await base44.asServiceRole.entities.Payment.get(body.payment_id).catch(() => null);
       if (!payment || (user.role !== "admin" && payment.client_id !== user.id)) return Response.json({ error: "Pagamento não encontrado" }, { status: 404 });
-      if (payment.status === "paid" && payment.collection_mode !== "platform_pending") return Response.json({ status: "paid", method: payment.method, already_finalized: true });
+      if (payment.status === "paid") return Response.json({ ...(await reconcilePaidPayment(base44, payment)), already_finalized: true });
       const providerPayment = await fetchPayment(base44, payment, body.provider_payment_id);
       if (!providerPayment) return Response.json({ status: "pending" });
       const result = await syncApprovedPayment(base44, payment, providerPayment);

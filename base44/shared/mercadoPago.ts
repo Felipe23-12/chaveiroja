@@ -109,8 +109,41 @@ export function mapPaymentMethod(payment) {
   return "pix";
 }
 
+export async function reconcilePaidPayment(base44, localPayment, method = localPayment.method) {
+  if (localPayment.payment_kind === "subscription") {
+    await base44.asServiceRole.entities.Locksmith.update(localPayment.locksmith_id, {
+      monthly_fee_paid: true,
+      monthly_fee_last_paid: new Date().toISOString().slice(0, 10),
+      monthly_fee_method: method,
+    });
+    return { status: "paid", method, payment_id: localPayment.id };
+  }
+
+  if (!localPayment.service_request_id) return { status: "paid", method, payment_id: localPayment.id };
+  const request = await base44.asServiceRole.entities.ServiceRequest.get(localPayment.service_request_id).catch(() => null);
+  if (!request) return { status: "paid", method, payment_id: localPayment.id };
+  const isService = localPayment.payment_kind === "service";
+  await base44.asServiceRole.entities.ServiceRequest.update(request.id, {
+    payment_id: localPayment.id,
+    payment_method: method,
+    payment_status: "paid",
+    commission_status: "paid",
+    ...(isService ? { status: "completed", locksmith_confirmed: true } : { status: "cancelled", cancelled_by: "cliente" }),
+  });
+  if (isService && localPayment.locksmith_id) {
+    const queued = await base44.asServiceRole.entities.ServiceRequest.filter({ locksmith_id: localPayment.locksmith_id, status: "queued" }, "accepted_at", 1);
+    if (queued[0]) {
+      await base44.asServiceRole.entities.ServiceRequest.update(queued[0].id, {
+        status: "on_the_way",
+        locksmith_lat: request.customer_lat,
+        locksmith_lng: request.customer_lng,
+      });
+    }
+  }
+  return { status: "paid", method, payment_id: localPayment.id, request_id: request.id, request_status: isService ? "completed" : "cancelled" };
+}
+
 export async function syncApprovedPayment(base44, localPayment, providerPayment) {
-  // Reload before reconciling; the destination saved at checkout remains authoritative.
   localPayment = await base44.asServiceRole.entities.Payment.get(localPayment.id);
   const held = localPayment.collection_mode === "platform_pending";
   if (localPayment.collector_id && String(providerPayment.collector_id) !== localPayment.collector_id) throw new Error("A conta recebedora não confere com a cobrança");
@@ -119,46 +152,41 @@ export async function syncApprovedPayment(base44, localPayment, providerPayment)
   if (held && Date.parse(providerPayment.date_last_updated) < Date.parse(localPayment.provider_updated_at)) return { status: localPayment.status, method: localPayment.method };
   const statusMap = { approved: "paid", refunded: "refunded", cancelled: "cancelled", rejected: "failed", charged_back: "refunded" };
   const status = statusMap[providerPayment.status] || "pre_authorized";
+  const method = mapPaymentMethod(providerPayment);
   const expected = Math.round(Number(localPayment.amount) * 100);
   const received = Math.round(Number(providerPayment.transaction_amount) * 100);
   if (received !== expected || String(providerPayment.external_reference) !== String(localPayment.id)) throw new Error("Pagamento não confere com a cobrança registrada");
+  const wasPaid = localPayment.status === "paid";
   if (held) {
     await base44.asServiceRole.entities.Payment.update(localPayment.id, {
       ...pendingCreditUpdate(localPayment, providerPayment),
       ...(providerPayment.date_last_updated ? { provider_updated_at: providerPayment.date_last_updated } : {}),
     });
   }
-  if (localPayment.status === "paid" && status === "paid") return { status, method: mapPaymentMethod(providerPayment) };
+  await base44.asServiceRole.entities.Payment.update(localPayment.id, {
+    status,
+    method,
+    mercado_pago_payment_id: String(providerPayment.id),
+    ...(status === "paid" && !localPayment.captured_at ? { captured_at: new Date().toISOString() } : {}),
+  });
 
   const baseCommission = localPayment.payment_kind === "subscription" ? 0 : Math.round(Number(localPayment.amount) * 0.15 * 100) / 100;
   const pendingCashOffset = localPayment.payment_kind === "service"
     ? Math.max(0, Math.round((Number(localPayment.commission_amount || 0) - baseCommission) * 100) / 100)
     : 0;
-  await base44.asServiceRole.entities.Payment.update(localPayment.id, {
-    status,
-    method: mapPaymentMethod(providerPayment),
-    mercado_pago_payment_id: String(providerPayment.id),
-    ...(status === "paid" ? { captured_at: new Date().toISOString() } : {}),
-  });
-  if (status === "paid" && pendingCashOffset > 0 && localPayment.locksmith_id) {
+  if (status === "paid" && !wasPaid && pendingCashOffset > 0 && localPayment.locksmith_id) {
     const locksmith = await base44.asServiceRole.entities.Locksmith.get(localPayment.locksmith_id);
     await base44.asServiceRole.entities.Locksmith.update(localPayment.locksmith_id, {
       pending_cash_commission: Math.max(0, Math.round((Number(locksmith.pending_cash_commission || 0) - pendingCashOffset) * 100) / 100),
     });
   }
-  if (localPayment.payment_kind === "subscription" && status === "paid") {
-    await base44.asServiceRole.entities.Locksmith.update(localPayment.locksmith_id, {
-      monthly_fee_paid: true,
-      monthly_fee_last_paid: new Date().toISOString().slice(0, 10),
-      monthly_fee_method: mapPaymentMethod(providerPayment),
-    });
-  } else if (localPayment.service_request_id) {
+  if (status === "paid") return reconcilePaidPayment(base44, { ...localPayment, status, method }, method);
+  if (localPayment.service_request_id && localPayment.payment_kind !== "subscription") {
     await base44.asServiceRole.entities.ServiceRequest.update(localPayment.service_request_id, {
       payment_id: localPayment.id,
-      payment_method: mapPaymentMethod(providerPayment),
-      payment_status: status === "paid" ? "paid" : status === "failed" ? "cancelled" : status,
-      ...(status === "paid" ? { commission_status: "paid" } : {}),
+      payment_method: method,
+      payment_status: status === "failed" ? "cancelled" : status,
     });
   }
-  return { status, method: mapPaymentMethod(providerPayment) };
+  return { status, method, payment_id: localPayment.id };
 }
