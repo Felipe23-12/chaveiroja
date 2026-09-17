@@ -7,7 +7,7 @@ export default async function(req) {
   try {
     const base44 = createClientFromRequest(req);
     const body = await req.json().catch(() => ({}));
-    if (!verifyInternalCall(body)) return Response.json({ error: 'Unauthorized' }, { status: 401 });
+    if (!verifyInternalCall(req)) return Response.json({ error: 'Unauthorized' }, { status: 401 });
 
     const messageId = body.chat_message_id;
     if (!messageId) return Response.json({ error: 'chat_message_id é obrigatório' }, { status: 400 });

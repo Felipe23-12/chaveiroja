@@ -22,7 +22,7 @@ export default async function(req: Request): Promise<Response> {
   try {
     const base44 = createClientFromRequest(req);
     const body = await req.json().catch(() => ({}));
-    if (!verifyInternalCall(body)) {
+    if (!verifyInternalCall(req)) {
       const user = await base44.auth.me().catch(() => null);
       if (!user || user.role !== 'admin') return Response.json({ error: 'Forbidden' }, { status: 403 });
     }
