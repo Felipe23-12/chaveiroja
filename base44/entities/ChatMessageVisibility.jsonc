@@ -1,0 +1,62 @@
+{
+  "name": "ChatMessageVisibility",
+  "type": "object",
+  "properties": {
+    "message_id": {
+      "type": "string"
+    },
+    "user_id": {
+      "type": "string"
+    },
+    "hidden_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "required": [
+    "message_id",
+    "user_id",
+    "hidden_at"
+  ],
+  "rls": {
+    "create": {
+      "data.user_id": "{{user.id}}"
+    },
+    "read": {
+      "$or": [
+        {
+          "data.user_id": "{{user.id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "created_by_id": "{{user.id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "$or": [
+        {
+          "created_by_id": "{{user.id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    }
+  }
+}

@@ -10,8 +10,9 @@ import { safeUnsubscribe } from "@/lib/safeUnsubscribe";
 import useBlockedUsers from "@/hooks/useBlockedUsers";
 import ModerationActions from "@/components/moderation/ModerationActions";
 import ChatPhotoButton from "@/components/chat/ChatPhotoButton";
-import ChatMessageContent from "@/components/chat/ChatMessageContent";
+import ChatMessageBubble from "@/components/chat/ChatMessageBubble";
 import QuickMessages from "@/components/chat/QuickMessages";
+import { hideChatMessage, loadHiddenMessageIds } from "@/lib/chatVisibility";
 
 /**
  * Abas de conversas com clientes + resposta, para o chaveiro no modo livre.
@@ -32,10 +33,11 @@ export default function LocksmithChatConversations({ me }) {
   // Carrega todas as conversas (clientes que enviaram mensagens para este chaveiro)
   useEffect(() => {
     if (!me?.id) return;
-    const load = () =>
-      base44.entities.ChatMessage
-        .filter({ locksmith_id: me.id }, "created_date")
-        .then((list) => {
+    const load = () => Promise.all([
+      base44.entities.ChatMessage.filter({ locksmith_id: me.id }, "created_date"),
+      loadHiddenMessageIds(me.created_by_id),
+    ]).then(([allMessages, hidden]) => {
+          const list = allMessages.filter((message) => !hidden.has(message.id));
           const groups = {};
           let customerTotal = 0;
           list.filter((m) => !blockedIds.has(m.client_id)).forEach((m) => {
@@ -67,21 +69,23 @@ export default function LocksmithChatConversations({ me }) {
         })
         .catch(() => {});
     load();
-    const unsub = base44.entities.ChatMessage.subscribe(() => load());
-    return safeUnsubscribe(unsub);
+    const unsubscribeMessages = safeUnsubscribe(base44.entities.ChatMessage.subscribe(load));
+    const unsubscribeVisibility = safeUnsubscribe(base44.entities.ChatMessageVisibility.subscribe(load));
+    return () => { unsubscribeMessages(); unsubscribeVisibility(); };
   }, [me?.id, me?.created_by_id, blockedIds]);
 
   // Carrega mensagens da conversa ativa
   useEffect(() => {
     if (!me?.id || !activeTab) return;
-    const load = () =>
-      base44.entities.ChatMessage
-        .filter({ locksmith_id: me.id, client_id: activeTab }, "created_date")
-        .then((list) => setMessages(list.filter((m) => !blockedIds.has(m.client_id))))
-        .catch(() => {});
+    const load = () => Promise.all([
+      base44.entities.ChatMessage.filter({ locksmith_id: me.id, client_id: activeTab }, "created_date"),
+      loadHiddenMessageIds(me.created_by_id),
+    ]).then(([list, hidden]) => setMessages(list.filter((message) => !blockedIds.has(message.client_id) && !hidden.has(message.id))))
+      .catch(() => {});
     load();
-    const unsub = base44.entities.ChatMessage.subscribe(() => load());
-    return safeUnsubscribe(unsub);
+    const unsubscribeMessages = safeUnsubscribe(base44.entities.ChatMessage.subscribe(load));
+    const unsubscribeVisibility = safeUnsubscribe(base44.entities.ChatMessageVisibility.subscribe(load));
+    return () => { unsubscribeMessages(); unsubscribeVisibility(); };
   }, [me?.id, me?.created_by_id, activeTab, blockedIds]);
 
   useEffect(() => {
@@ -139,6 +143,11 @@ export default function LocksmithChatConversations({ me }) {
     }
   };
 
+  const handleHideMessage = async (messageId) => {
+    await hideChatMessage(messageId, me.created_by_id);
+    setMessages((list) => list.filter((message) => message.id !== messageId));
+  };
+
   return (
     <div id="chat-conversas">
       <div className="flex items-center gap-2 mb-3">
@@ -186,19 +195,7 @@ export default function LocksmithChatConversations({ me }) {
                   );
                 }
                 const mine = m.sender_type === "locksmith";
-                return (
-                  <div key={m.id} className={`flex ${mine ? "justify-end" : "justify-start"}`}>
-                    <div
-                      className={`max-w-[78%] px-3.5 py-2 rounded-2xl text-sm ${
-                        mine
-                          ? "bg-primary text-primary-foreground rounded-br-sm"
-                          : "bg-secondary text-secondary-foreground rounded-bl-sm"
-                      }`}
-                    >
-                      <ChatMessageContent message={m} />
-                    </div>
-                  </div>
-                );
+                return <ChatMessageBubble key={m.id} message={m} mine={mine} onHide={handleHideMessage} />;
               })}
               <div ref={scrollRef} />
             </div>

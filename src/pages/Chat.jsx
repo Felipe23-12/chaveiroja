@@ -13,7 +13,8 @@ import DebtBlockNotice from "@/components/client/DebtBlockNotice";
 import useBlockedUsers from "@/hooks/useBlockedUsers";
 import ModerationActions from "@/components/moderation/ModerationActions";
 import ChatPhotoButton from "@/components/chat/ChatPhotoButton";
-import ChatMessageContent from "@/components/chat/ChatMessageContent";
+import ChatMessageBubble from "@/components/chat/ChatMessageBubble";
+import { hideChatMessage, loadHiddenMessageIds } from "@/lib/chatVisibility";
 
 export default function Chat() {
   const { locksmithId } = useParams();
@@ -38,11 +39,14 @@ export default function Chat() {
 
   useEffect(() => {
     if (!locksmithId || !user?.id) return;
-    const load = () =>
-      base44.entities.ChatMessage.filter({ locksmith_id: locksmithId, client_id: user.id }, "created_date").then(setMessages);
+    const load = () => Promise.all([
+      base44.entities.ChatMessage.filter({ locksmith_id: locksmithId, client_id: user.id }, "created_date"),
+      loadHiddenMessageIds(user.id),
+    ]).then(([list, hidden]) => setMessages(list.filter((message) => !hidden.has(message.id))));
     load();
-    const unsub = base44.entities.ChatMessage.subscribe(() => load());
-    return safeUnsubscribe(unsub);
+    const unsubscribeMessages = safeUnsubscribe(base44.entities.ChatMessage.subscribe(load));
+    const unsubscribeVisibility = safeUnsubscribe(base44.entities.ChatMessageVisibility.subscribe(load));
+    return () => { unsubscribeMessages(); unsubscribeVisibility(); };
   }, [locksmithId, user?.id]);
 
   useEffect(() => {
@@ -135,6 +139,11 @@ export default function Chat() {
     }
   };
 
+  const handleHideMessage = async (messageId) => {
+    await hideChatMessage(messageId, user?.id);
+    setMessages((list) => list.filter((message) => message.id !== messageId));
+  };
+
   if (blocksLoading) return <div className="p-10 text-center text-muted-foreground">Carregando...</div>;
   const blocked = blockedIds.has(locksmith?.created_by_id);
   if (locksmith && blocked) return (
@@ -208,22 +217,7 @@ export default function Chat() {
             );
           }
           const mine = m.sender_type === "customer";
-          return (
-            <div key={m.id} className={`flex ${mine ? "justify-end" : "justify-start"}`}>
-              <div
-                className={`max-w-[78%] px-3.5 py-2 rounded-2xl text-sm ${
-                  m._error
-                    ? "bg-destructive/20 text-destructive rounded-br-sm"
-                    : mine
-                    ? "bg-primary text-primary-foreground rounded-br-sm"
-                    : "bg-secondary text-secondary-foreground rounded-bl-sm"
-                } ${m._pending ? "opacity-60" : ""}`}
-              >
-                <ChatMessageContent message={m} />
-                {m._error && <div className="text-[10px] mt-0.5">Falha ao enviar</div>}
-              </div>
-            </div>
-          );
+          return <ChatMessageBubble key={m.id} message={m} mine={mine} onHide={handleHideMessage} />;
         })}
         <div ref={scrollRef} />
       </div>
