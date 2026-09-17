@@ -5,8 +5,8 @@ export default async function(req) {
     const base44 = createClientFromRequest(req);
     const user = await base44.auth.me();
     if (!user) return Response.json({ error: 'Não autenticado' }, { status: 401 });
-    // Consulta financeira específica: não concede administração nem acesso aos dados pessoais.
-    if (String(user.email || '').toLowerCase() !== 'felipemotacs1@gmail.com') return Response.json({ error: 'Acesso não autorizado' }, { status: 403 });
+    // Consulta financeira restrita ao papel administrativo da plataforma.
+    if (user.role !== 'admin') return Response.json({ error: 'Acesso não autorizado' }, { status: 403 });
     const body = await req.json();
     const page = Number(body.page ?? 0);
     if (!Number.isSafeInteger(page) || page < 0) return Response.json({ error: 'Página inválida' }, { status: 400 });

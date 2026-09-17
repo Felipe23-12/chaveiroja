@@ -33,18 +33,32 @@ export default async function(req) {
     if (!isValidCpf(cpf)) {
       return Response.json({ error: 'CPF inválido — confira os números digitados' }, { status: 400 });
     }
+    const currentCpf = onlyDigits(user.cpf);
+    if (currentCpf) {
+      if (currentCpf === cpf) return Response.json({ success: true });
+      return Response.json({ error: 'Não foi possível vincular este CPF' }, { status: 409 });
+    }
+    const attemptedAfter = new Date(Date.now() - 15 * 60 * 1000).toISOString();
+    const recentAttempts = await base44.asServiceRole.entities.ClaimCpfAttempt.filter({
+      user_id: user.id,
+      attempted_at: { $gte: attemptedAfter },
+    });
+    if (recentAttempts.length >= 5) {
+      return Response.json({ error: 'Muitas tentativas. Aguarde 15 minutos e tente novamente.' }, { status: 429 });
+    }
+    await base44.asServiceRole.entities.ClaimCpfAttempt.create({
+      user_id: user.id,
+      attempted_at: new Date().toISOString(),
+    });
 
     const [plainMatches, formattedMatches, blockedMatches] = await Promise.all([
       base44.asServiceRole.entities.User.filter({ cpf }),
       base44.asServiceRole.entities.User.filter({ cpf: formatCpf(cpf) }),
       base44.asServiceRole.entities.BlockedCpf.filter({ cpf }),
     ]);
-    if (blockedMatches.length > 0) {
-      return Response.json({ error: 'Este CPF está impedido de realizar um novo cadastro' }, { status: 403 });
-    }
     const duplicate = [...plainMatches, ...formattedMatches].find((account) => account.id !== user.id);
-    if (duplicate) {
-      return Response.json({ error: 'Este CPF já está cadastrado em outra conta' }, { status: 409 });
+    if (blockedMatches.length > 0 || duplicate) {
+      return Response.json({ error: 'Não foi possível vincular este CPF' }, { status: 409 });
     }
 
     await base44.auth.updateMe({ cpf });

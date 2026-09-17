@@ -9,16 +9,31 @@ export default async function(req: Request): Promise<Response> {
 
     if (body.action === 'createReport') {
       const data = body.data || {};
-      if (!data.reported_id || data.reported_id === user.id || !data.category || !String(data.description || '').trim()) {
+      const categories = ['pornography', 'violence', 'harassment', 'discrimination', 'illegal_activity', 'human_dignity', 'other'];
+      const description = String(data.description || '').trim();
+      if (!data.reported_id || data.reported_id === user.id || !categories.includes(data.category) || !description || description.length > 3000) {
         return Response.json({ error: 'Dados da denúncia inválidos' }, { status: 400 });
       }
+      const reportedUser = await base44.asServiceRole.entities.User.get(data.reported_id).catch(() => null);
+      if (!reportedUser) return Response.json({ error: 'Usuário denunciado não encontrado' }, { status: 404 });
+      const contextType = data.context_type === 'service' ? 'service' : 'chat';
+      const photos = Array.isArray(data.photos)
+        ? data.photos.filter((url) => typeof url === 'string' && url.length <= 2000).slice(0, 5)
+        : [];
       const deadline = new Date(Date.now() + 2 * 24 * 60 * 60 * 1000).toISOString();
       const report = await base44.asServiceRole.entities.ConductReport.create({
-        ...data,
         reporter_id: user.id,
         reporter_name: user.full_name || user.email,
-        reporter_type: user.account_type || 'cliente',
-        description: String(data.description).trim(),
+        reported_id: reportedUser.id,
+        reported_name: reportedUser.full_name || reportedUser.email,
+        reporter_type: user.account_type === 'chaveiro' ? 'chaveiro' : 'cliente',
+        reported_type: reportedUser.account_type === 'chaveiro' ? 'chaveiro' : 'cliente',
+        context_type: contextType,
+        request_id: typeof data.request_id === 'string' ? data.request_id : undefined,
+        locksmith_id: typeof data.locksmith_id === 'string' ? data.locksmith_id : undefined,
+        category: data.category,
+        description,
+        photos,
         status: 'awaiting_defense',
         defense_deadline: deadline,
       });

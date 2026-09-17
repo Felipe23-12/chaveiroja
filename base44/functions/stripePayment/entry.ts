@@ -144,8 +144,15 @@ export default async function(req) {
       if (service.cash_received === true) {
         return Response.json({ success: true, already_confirmed: true });
       }
+      if (service.client_confirmed !== true || service.payment_method !== "dinheiro") {
+        return Response.json({ error: "O cliente ainda não confirmou o pagamento em dinheiro" }, { status: 409 });
+      }
+      const serviceAmount = Number(service.price);
+      if (!Number.isFinite(serviceAmount) || serviceAmount <= 0) {
+        return Response.json({ error: "Valor do atendimento inválido" }, { status: 409 });
+      }
 
-      const commission = Math.round(Number(body.amount || service.price || 0) * 0.15 * 100) / 100;
+      const commission = Math.round(serviceAmount * 0.15 * 100) / 100;
       const available = Math.max(0, Number(locksmith.wallet_balance || 0));
       const deductedNow = Math.min(available, commission);
       const pendingBefore = Math.max(0, Number(locksmith.pending_cash_commission || 0));
