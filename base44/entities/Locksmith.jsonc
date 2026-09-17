@@ -43,7 +43,8 @@
           "abertura_tetra",
           "abertura_eletronica",
           "confeccao_chave_carro",
-          "confeccao_chave_moto"
+          "confeccao_chave_moto",
+          "copia_chave"
         ]
       },
       "default": [],

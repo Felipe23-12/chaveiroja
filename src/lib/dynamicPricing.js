@@ -132,6 +132,26 @@ export function calculateDynamicPrice({
 }) {
   if (!service) return null;
 
+  // Serviços de preço fixo não sofrem ajustes dinâmicos (oferta/demanda,
+  // urgência, região, bairro, clima ou piso mínimo).
+  if (service.fixedPrice) {
+    return {
+      base: service.fixedPrice,
+      addons: 0,
+      distanceFee: 0,
+      brokenKeyFee: 0,
+      automotiveComplexityFee: 0,
+      complexityFee: 0,
+      alarmFee: 0,
+      total: service.fixedPrice,
+      breakdown: [
+        { label: `${service.label} (preço fixo)`, value: service.fixedPrice },
+      ],
+      timeTier: null,
+      factors: { fixed: true },
+    };
+  }
+
   // 1. Preço base do motor existente (já considera horário, complexidade, adicionais)
   // Passa locksmithsAvailable neutro (5) para evitar dupla contagem de oferta —
   // a oferta/demanda é tratada exclusivamente pelo multiplicador dinâmico abaixo.

@@ -135,6 +135,14 @@ export const SERVICE_CATALOG = [
     isMotoKey: true,
     baseRange: [200, 500],
   },
+  {
+    id: "copia_chave",
+    label: "Cópia de Chave",
+    description: "Cópia de chave residencial ou similar",
+    specialty: "Residencial",
+    baseRange: [4, 4],
+    fixedPrice: 4,
+  },
 ];
 
 export const WORK_MODES = {
