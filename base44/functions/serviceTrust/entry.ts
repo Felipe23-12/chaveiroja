@@ -304,6 +304,7 @@ export default async function(req) {
 
     return Response.json({ error: 'Ação inválida' }, { status: 400 });
   } catch (error) {
-    return Response.json({ error: error.message || 'Erro interno' }, { status: 500 });
+    const status = /Preço fora|Desconto inválido|Total de preço inválido|Linhas de preço inválidas/.test(error.message || '') ? 400 : 500;
+    return Response.json({ error: error.message || 'Erro interno' }, { status });
   }
 }

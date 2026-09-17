@@ -46,6 +46,7 @@ export default async function(req) {
     await syncApprovedPayment(base44, localPayment, providerPayment);
     return Response.json({ received: true });
   } catch (error) {
-    return Response.json({ error: error.message }, { status: 500 });
+    const status = error.message === "Identificador Mercado Pago inválido" ? 400 : 500;
+    return Response.json({ error: error.message }, { status });
   }
 }

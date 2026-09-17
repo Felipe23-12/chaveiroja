@@ -118,6 +118,7 @@ export default async function(req) {
 
     return Response.json({ error: "Ação inválida" }, { status: 400 });
   } catch (error) {
-    return Response.json({ error: error.message }, { status: 500 });
+    const status = error.message === "Identificador Mercado Pago inválido" ? 400 : 500;
+    return Response.json({ error: error.message }, { status });
   }
 }
