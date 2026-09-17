@@ -20,7 +20,7 @@ export default async function(req) {
 
     if (body.action === "get_status" || body.action === "onboarding_policy") {
       const connected = account?.status === "active";
-      const required = false; // Sem conexão, novos pagamentos geram créditos pendentes na plataforma.
+      const required = true; // Sem conexão, o chaveiro não pode aceitar chamados do Modo Aplicativo.
       return Response.json({ connected, account_id: account?.mercado_pago_user_id || null, onboarding_required: required, onboarding_completed: connected, required, completed: connected });
     }
     if (body.action === "connect") {

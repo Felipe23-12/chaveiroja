@@ -106,6 +106,19 @@ export default async function(req) {
       return Response.json({ payment_id: payment.id, checkout_url: preference.init_point });
     }
 
+    // Confirma que um crédito retido na plataforma (platform_pending) foi pago manualmente ao chaveiro.
+    if (body.action === "mark_transferred") {
+      if (user.role !== "admin") return Response.json({ error: "Acesso exclusivo para administradores" }, { status: 403 });
+      const payment = await base44.asServiceRole.entities.Payment.get(body.payment_id).catch(() => null);
+      if (!payment || payment.collection_mode !== "platform_pending") return Response.json({ error: "Crédito pendente não encontrado" }, { status: 404 });
+      if (payment.transfer_status !== "pending") return Response.json({ error: "Este crédito não está aguardando repasse" }, { status: 409 });
+      await base44.asServiceRole.entities.Payment.update(payment.id, {
+        transfer_status: "transferred",
+        transferred_at: new Date().toISOString(),
+      });
+      return Response.json({ success: true });
+    }
+
     if (body.action === "get_status" || body.action === "finalize_payment") {
       const payment = await base44.asServiceRole.entities.Payment.get(body.payment_id).catch(() => null);
       if (!payment || (user.role !== "admin" && payment.client_id !== user.id)) return Response.json({ error: "Pagamento não encontrado" }, { status: 404 });

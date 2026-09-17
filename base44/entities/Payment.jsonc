@@ -94,9 +94,15 @@
         "awaiting_payment",
         "pending",
         "under_review",
-        "reversed"
+        "reversed",
+        "transferred"
       ],
-      "description": "Cr\u00e9ditos retidos na plataforma; nenhum destes estados representa transfer\u00eancia realizada"
+      "description": "Cr\u00e9ditos retidos na plataforma; apenas \"transferred\" representa repasse manual j\u00e1 realizado ao chaveiro"
+    },
+    "transferred_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Quando um admin confirmou o repasse manual deste cr\u00e9dito pendente ao chaveiro"
     },
     "pending_transfer_amount": {
       "type": "number",

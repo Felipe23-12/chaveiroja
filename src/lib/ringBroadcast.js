@@ -34,10 +34,18 @@ export async function rejectRing(request, locksmithId) {
 
 /** Aceita o primeiro chamado ou reserva um segundo chamado normal e próximo. */
 export async function acceptRing(requestId, locksmith, extra = 0) {
-  const fresh = await base44.entities.ServiceRequest.get(requestId);
+  const [fresh, state, mercadoPagoStatus] = await Promise.all([
+    base44.entities.ServiceRequest.get(requestId),
+    getLocksmithQueueState(locksmith.id),
+    base44.functions.invoke("mercadoPagoConnect", { action: "get_status" }).then((r) => r.data).catch(() => ({ connected: false })),
+  ]);
   if (fresh.status !== "ringing") return { ok: false, reason: "Outro chaveiro assumiu este atendimento primeiro." };
 
-  const state = await getLocksmithQueueState(locksmith.id);
+  // Sem conta Mercado Pago conectada não há como repassar o valor do chamado ao chaveiro.
+  if (!mercadoPagoStatus?.connected) {
+    return { ok: false, reason: "Conecte sua conta Mercado Pago para aceitar chamados. Acesse Cadastro de recebimentos no seu perfil." };
+  }
+
   if (!canReceiveWhileBusy(fresh, state)) {
     const reason = state.queued
       ? "Você já atingiu o limite de dois chamados."

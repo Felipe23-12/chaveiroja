@@ -41,7 +41,7 @@ export async function readPendingCredits(base44, user, page) {
       if (p.transfer_status === "pending" && p.status !== "paid") continue;
       if (p.transfer_status === "pending") { totalCents += cents(p.pending_transfer_amount || 0); count += 1; }
       else reviewCount += 1;
-      if (seen >= page * 20 && items.length < 20) items.push({ id: p.id, service_request_id: p.service_request_id, locksmith_name: p.locksmith_name, amount: p.pending_transfer_amount || 0, gross: p.amount, commission: p.commission_amount, fee: p.provider_fee_amount, date: p.captured_at || p.created_date, status: p.transfer_status });
+      if (seen >= page * 20 && items.length < 20) items.push({ id: p.id, locksmith_id: p.locksmith_id, service_request_id: p.service_request_id, locksmith_name: p.locksmith_name, amount: p.pending_transfer_amount || 0, gross: p.amount, commission: p.commission_amount, fee: p.provider_fee_amount, date: p.captured_at || p.created_date, status: p.transfer_status });
       seen += 1;
     }
     if (rows.length < 200) break;

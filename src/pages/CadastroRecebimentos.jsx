@@ -21,7 +21,7 @@ export default function CadastroRecebimentos() {
     <AuthLayout
       icon={Wallet}
       title={active ? "Recebimentos configurados" : "Receber seus pagamentos"}
-      subtitle={active ? "Sua conta Mercado Pago já está vinculada ao ChaveiroJá" : policy?.required ? "Etapa final do seu cadastro: vincule os recebimentos para concluir sua entrada no aplicativo" : "Você pode conectar agora ou continuar e acumular créditos pendentes na plataforma"}
+      subtitle={active ? "Sua conta Mercado Pago já está vinculada ao ChaveiroJá" : "Etapa final do seu cadastro: você só poderá aceitar chamados depois de conectar sua conta Mercado Pago"}
     >
       {active ? (
         <MercadoPagoSetupSuccess onContinue={() => navigate("/painel-chaveiro")} />
