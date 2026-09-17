@@ -13,6 +13,7 @@ import ChatPhotoButton from "@/components/chat/ChatPhotoButton";
 import ChatMessageBubble from "@/components/chat/ChatMessageBubble";
 import QuickMessages from "@/components/chat/QuickMessages";
 import { hideChatMessage, loadHiddenMessageIds } from "@/lib/chatVisibility";
+import { containsLink } from "@/lib/chatMessageValidation";
 
 /**
  * Abas de conversas com clientes + resposta, para o chaveiro no modo livre.
@@ -120,6 +121,10 @@ export default function LocksmithChatConversations({ me }) {
     e?.preventDefault();
     const msg = quickMessage || text.trim();
     if (!msg || sending || !activeTab || blockedIds.has(activeTab)) return;
+    if (containsLink(msg)) {
+      toast({ title: "Links não são permitidos", description: "Remova o link para enviar a mensagem.", variant: "destructive" });
+      return;
+    }
     setSending(true);
     setText("");
     try {

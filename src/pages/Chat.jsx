@@ -15,10 +15,13 @@ import ModerationActions from "@/components/moderation/ModerationActions";
 import ChatPhotoButton from "@/components/chat/ChatPhotoButton";
 import ChatMessageBubble from "@/components/chat/ChatMessageBubble";
 import { hideChatMessage, loadHiddenMessageIds } from "@/lib/chatVisibility";
+import { containsLink } from "@/lib/chatMessageValidation";
+import { useToast } from "@/components/ui/use-toast";
 
 export default function Chat() {
   const { locksmithId } = useParams();
   const navigate = useNavigate();
+  const { toast } = useToast();
   // Taxa de cancelamento em aberto bloqueia o envio de mensagens
   const { debt } = useClientDebt();
   const { blockedIds, loading: blocksLoading } = useBlockedUsers();
@@ -59,9 +62,13 @@ export default function Chat() {
 
   const handleSend = async (e) => {
     e.preventDefault();
-    if (!text.trim() || sending || debt || blockedIds.has(locksmith?.created_by_id)) return;
-    setSending(true);
     const msg = text.trim();
+    if (!msg || sending || debt || blockedIds.has(locksmith?.created_by_id)) return;
+    if (containsLink(msg)) {
+      toast({ title: "Links não são permitidos", description: "Remova o link para enviar a mensagem.", variant: "destructive" });
+      return;
+    }
+    setSending(true);
     setText("");
     const tempId = `temp-${Date.now()}`;
     // Atualização otimista: exibe a mensagem imediatamente
