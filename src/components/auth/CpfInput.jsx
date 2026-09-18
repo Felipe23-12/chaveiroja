@@ -1,4 +1,4 @@
-import React from "react";
+import React, { forwardRef } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { CreditCard, CheckCircle2, AlertCircle } from "lucide-react";
@@ -6,7 +6,7 @@ import { cpfError, formatCpf, onlyDigits } from "@/lib/cpf";
 import TestCpfGeneratorButton from "@/components/auth/TestCpfGeneratorButton";
 
 // Campo de CPF com validação real dos dígitos verificadores em tempo real.
-export default function CpfInput({ value, onChange, email }) {
+const CpfInput = forwardRef(({ value, onChange, email }, ref) => {
   const digits = onlyDigits(value);
   const touched = digits.length === 11;
   const error = touched ? cpfError(value) : null;
@@ -18,6 +18,7 @@ export default function CpfInput({ value, onChange, email }) {
       <div className="relative">
         <CreditCard className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" aria-hidden="true" />
         <Input
+          ref={ref}
           id="cpf"
           type="text"
           inputMode="numeric"
@@ -39,4 +40,6 @@ export default function CpfInput({ value, onChange, email }) {
       <TestCpfGeneratorButton email={email} onGenerate={onChange} />
     </div>
   );
-}
+});
+CpfInput.displayName = "CpfInput";
+export default CpfInput;

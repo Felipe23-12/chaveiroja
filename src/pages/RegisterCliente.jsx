@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
 import { Button } from "@/components/ui/button";
@@ -20,6 +20,9 @@ import { registerEmailAccount, registrationErrorMessage } from "@/lib/emailRegis
 import ExistingAccountNotice from "@/components/auth/ExistingAccountNotice";
 import { isFullName } from "@/lib/fullName";
 
+// Campos que recebem foco além do scroll.
+const FOCUS_FIELDS = new Set(["fullName", "password", "confirmPassword"]);
+
 export default function RegisterCliente() {
   const [fullName, setFullName] = useState("");
   const [phone, setPhone] = useState("");
@@ -28,9 +31,33 @@ export default function RegisterCliente() {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState("");
+  const [fieldError, setFieldError] = useState("");
   const [loading, setLoading] = useState(false);
   const [showOtp, setShowOtp] = useState(false);
   const [acceptedTerms, setAcceptedTerms] = useState(false);
+
+  const fullNameRef = useRef(null);
+  const passwordRef = useRef(null);
+  const confirmPasswordRef = useRef(null);
+  const cpfRef = useRef(null);
+  const termsRef = useRef(null);
+
+  const refMap = {
+    fullName: fullNameRef,
+    password: passwordRef,
+    confirmPassword: confirmPasswordRef,
+    cpf: cpfRef,
+    terms: termsRef,
+  };
+
+  useEffect(() => {
+    if (!fieldError) return;
+    const ref = refMap[fieldError];
+    if (!ref?.current) return;
+    ref.current.scrollIntoView({ behavior: "smooth", block: "center" });
+    if (FOCUS_FIELDS.has(fieldError)) ref.current.focus();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [fieldError]);
 
   const returnTo = safeReturnTo();
   const qs = returnTo !== "/" ? "?returnTo=" + encodeURIComponent(returnTo) : "";
@@ -39,25 +66,31 @@ export default function RegisterCliente() {
     e.preventDefault();
     if (loading || showOtp) return;
     setError("");
+    setFieldError("");
     if (!isFullName(fullName)) {
       setError("Informe seu nome completo, com nome e sobrenome");
+      setFieldError("fullName");
       return;
     }
     if (!/^(?=.*[A-Za-z])(?=.*\d).{8,}$/.test(password)) {
       setError("A senha deve ter no mínimo 8 caracteres, com letras e números");
+      setFieldError("password");
       return;
     }
     if (password !== confirmPassword) {
       setError("As senhas não coincidem");
+      setFieldError("confirmPassword");
       return;
     }
     const cpfMsg = cpfError(cpf);
     if (cpfMsg) {
       setError(cpfMsg);
+      setFieldError("cpf");
       return;
     }
     if (!acceptedTerms) {
       setError("É necessário aceitar as regras e os termos de uso para criar a conta");
+      setFieldError("terms");
       return;
     }
     setLoading(true);
@@ -145,14 +178,19 @@ export default function RegisterCliente() {
           <div className="relative">
             <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" aria-hidden="true" />
             <Input
+              ref={fullNameRef}
               id="name"
               type="text"
               autoComplete="name"
               autoFocus
               placeholder="Seu nome"
               value={fullName}
-              onChange={(e) => setFullName(e.target.value)}
-              className="pl-10 h-12"
+              onChange={(e) => {
+                setFullName(e.target.value);
+                if (fieldError === "fullName") setFieldError("");
+              }}
+              className={`pl-10 h-12 ${fieldError === "fullName" ? "border-destructive" : ""}`}
+              aria-invalid={fieldError === "fullName" || undefined}
               required
             />
           </div>
@@ -175,7 +213,16 @@ export default function RegisterCliente() {
           </div>
         </div>
 
-        <CpfInput value={cpf} onChange={setCpf} email={email} />
+        <div ref={cpfRef}>
+          <CpfInput
+            value={cpf}
+            onChange={(v) => {
+              setCpf(v);
+              if (fieldError === "cpf") setFieldError("");
+            }}
+            email={email}
+          />
+        </div>
 
         <div className="space-y-2">
           <Label htmlFor="email">Email</Label>
@@ -197,11 +244,17 @@ export default function RegisterCliente() {
         <div className="space-y-2">
           <Label htmlFor="password">Senha</Label>
           <PasswordInput
+            ref={passwordRef}
             id="password"
             autoComplete="new-password"
             placeholder="••••••••"
             value={password}
-            onChange={(e) => setPassword(e.target.value)}
+            onChange={(e) => {
+              setPassword(e.target.value);
+              if (fieldError === "password") setFieldError("");
+            }}
+            className={fieldError === "password" ? "border-destructive" : ""}
+            aria-invalid={fieldError === "password" || undefined}
             required
           />
         </div>
@@ -209,16 +262,31 @@ export default function RegisterCliente() {
         <div className="space-y-2">
           <Label htmlFor="confirm">Confirmar senha</Label>
           <PasswordInput
+            ref={confirmPasswordRef}
             id="confirm"
             autoComplete="new-password"
             placeholder="••••••••"
             value={confirmPassword}
-            onChange={(e) => setConfirmPassword(e.target.value)}
+            onChange={(e) => {
+              setConfirmPassword(e.target.value);
+              if (fieldError === "confirmPassword") setFieldError("");
+            }}
+            className={fieldError === "confirmPassword" ? "border-destructive" : ""}
+            aria-invalid={fieldError === "confirmPassword" || undefined}
             required
           />
         </div>
 
-        <TermsAcceptance accountType="cliente" checked={acceptedTerms} onChange={setAcceptedTerms} />
+        <div ref={termsRef}>
+          <TermsAcceptance
+            accountType="cliente"
+            checked={acceptedTerms}
+            onChange={(v) => {
+              setAcceptedTerms(v);
+              if (fieldError === "terms") setFieldError("");
+            }}
+          />
+        </div>
 
         <Button type="submit" className="w-full h-12 font-medium" disabled={loading || !acceptedTerms}>
           {loading ? (

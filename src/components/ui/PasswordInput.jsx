@@ -1,20 +1,22 @@
-import React, { useState } from "react";
+import React, { useState, forwardRef } from "react";
 import { Lock, Eye, EyeOff } from "lucide-react";
 import { Input } from "@/components/ui/input";
+import { cn } from "@/lib/utils";
 
 /**
  * Campo de senha reutilizável com ícone de cadeado à esquerda e botão de
- * mostrar/ocultar à direita. Repassa todas as props de Input normalmente.
+ * mostrar/ocultar à direita. Repassa ref e todas as props de Input normalmente.
  */
-export default function PasswordInput(props) {
+const PasswordInput = forwardRef(({ className, ...props }, ref) => {
   const [visible, setVisible] = useState(false);
   return (
     <div className="relative">
       <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" aria-hidden="true" />
       <Input
+        ref={ref}
         {...props}
         type={visible ? "text" : "password"}
-        className="pl-10 pr-11 h-12"
+        className={cn("pl-10 pr-11 h-12", className)}
       />
       <button
         type="button"
@@ -27,4 +29,6 @@ export default function PasswordInput(props) {
       </button>
     </div>
   );
-}
+});
+PasswordInput.displayName = "PasswordInput";
+export default PasswordInput;
