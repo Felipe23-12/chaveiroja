@@ -53,19 +53,21 @@ export async function acceptRing(requestId, locksmith, extra = 0) {
   // no backend (serviceTrust / accept_request) — o cliente não pode mais
   // pular essa checagem chamando o update direto.
   const queued = Boolean(state.active);
-  const result = await base44.functions.invoke("serviceTrust", {
-    action: "accept_request",
-    request_id: requestId,
-    extra,
-    queued,
-    queued_after_request_id: queued ? state.active.id : undefined,
-  });
-  if (!result?.ok) {
-    const data = result?.data || {};
-    return { ok: false, reason: data.error || "Não foi possível aceitar o chamado." };
+  let result;
+  try {
+    result = await base44.functions.invoke("serviceTrust", {
+      action: "accept_request",
+      request_id: requestId,
+      extra,
+      queued,
+      queued_after_request_id: queued ? state.active.id : undefined,
+    });
+  } catch (err) {
+    const data = err?.response?.data || err?.data || err;
+    return { ok: false, reason: data?.error || err?.message || "Não foi possível aceitar o chamado." };
   }
   await base44.functions.invoke("serviceTrust", {
     action: "score_event", event_type: "accepted", request_id: requestId, locksmith_id: locksmith.id,
   }).catch(() => null);
-  return { ok: true, queued: result.data?.queued === true || queued };
+  return { ok: true, queued: result?.data?.queued === true || queued };
 }
