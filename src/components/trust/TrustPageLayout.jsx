@@ -1,6 +1,7 @@
 import React from "react";
 import { Link } from "react-router-dom";
 import { Image } from "@/components/ui/image";
+import { Button } from "@/components/ui/button";
 
 const LOGO_URL = "https://media.base44.com/images/public/6a975d266a8000184833026a/d4717d1d4_ChatGPTImage4desetde202604_02_02.png";
 
@@ -13,9 +14,12 @@ export default function TrustPageLayout({ children }) {
             <Image src={LOGO_URL} alt="Chaveiro Já" fittingType="fit" className="h-9 w-9 rounded-lg" />
             Chaveiro Já
           </Link>
-          <nav className="flex gap-4 text-sm font-medium" aria-label="Páginas institucionais">
+          <nav className="flex items-center gap-4 text-sm font-medium" aria-label="Páginas institucionais">
             <Link to="/about" className="hover:text-primary">Sobre</Link>
             <Link to="/contact" className="hover:text-primary">Contato</Link>
+            <Button asChild size="sm">
+              <Link to="/register">Criar conta</Link>
+            </Button>
           </nav>
         </div>
       </header>

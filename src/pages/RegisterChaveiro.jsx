@@ -3,10 +3,12 @@ import { Link } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import StepProgress from "@/components/ui/StepProgress";
+import PasswordInput from "@/components/ui/PasswordInput";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import SpecialtiesSelector from "@/components/locksmith/SpecialtiesSelector";
-import { Wrench, Mail, Lock, Loader2, User, Phone, CreditCard } from "lucide-react";
+import { Wrench, Mail, Loader2, User, Phone, CreditCard } from "lucide-react";
 import AuthLayout from "@/components/AuthLayout";
 import GoogleIcon from "@/components/GoogleIcon";
 import { safeReturnTo } from "@/lib/authReturnTo";
@@ -119,6 +121,7 @@ export default function RegisterChaveiro() {
 
   if (showOtp) return (
     <AuthLayout icon={Wrench} title="Confirme seu email" subtitle="Conclua a verificação para ativar seu cadastro">
+      <StepProgress step={2} total={3} labels={{ 1: "Dados", 2: "Verificação", 3: "Recebimentos" }} />
       <InlineOtpInput key={email} email={email} onSuccess={finishLocksmithRegistration} />
       <Button type="button" variant="ghost" className="w-full mt-3" onClick={() => setShowOtp(false)}>Voltar e corrigir os dados</Button>
       <ExistingAccountNotice query={qs} />
@@ -139,6 +142,7 @@ export default function RegisterChaveiro() {
         </>
       }
     >
+      <StepProgress step={1} total={3} labels={{ 1: "Dados", 2: "Verificação", 3: "Recebimentos" }} />
       <ExistingAccountNotice query={qs} />
       <Button
         variant="outline"
@@ -246,36 +250,26 @@ export default function RegisterChaveiro() {
 
         <div className="space-y-2">
           <Label htmlFor="password">Senha</Label>
-          <div className="relative">
-            <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" aria-hidden="true" />
-            <Input
-              id="password"
-              type="password"
-              autoComplete="new-password"
-              placeholder="••••••••"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="pl-10 h-12"
-              required
-            />
-          </div>
+          <PasswordInput
+            id="password"
+            autoComplete="new-password"
+            placeholder="••••••••"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            required
+          />
         </div>
 
         <div className="space-y-2">
           <Label htmlFor="confirm">Confirmar senha</Label>
-          <div className="relative">
-            <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" aria-hidden="true" />
-            <Input
-              id="confirm"
-              type="password"
-              autoComplete="new-password"
-              placeholder="••••••••"
-              value={confirmPassword}
-              onChange={(e) => setConfirmPassword(e.target.value)}
-              className="pl-10 h-12"
-              required
-            />
-          </div>
+          <PasswordInput
+            id="confirm"
+            autoComplete="new-password"
+            placeholder="••••••••"
+            value={confirmPassword}
+            onChange={(e) => setConfirmPassword(e.target.value)}
+            required
+          />
         </div>
 
         <TermsAcceptance accountType="chaveiro" checked={acceptedTerms} onChange={setAcceptedTerms} />

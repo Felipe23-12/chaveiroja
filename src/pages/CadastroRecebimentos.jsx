@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { Wallet } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import AuthLayout from "@/components/AuthLayout";
+import StepProgress from "@/components/ui/StepProgress";
 import MercadoPagoConnectSetup from "@/components/locksmith/MercadoPagoConnectSetup";
 import MercadoPagoSetupSuccess from "@/components/locksmith/MercadoPagoSetupSuccess";
 
@@ -23,6 +24,7 @@ export default function CadastroRecebimentos() {
       title={active ? "Recebimentos configurados" : "Receber seus pagamentos"}
       subtitle={active ? "Sua conta Mercado Pago já está vinculada ao ChaveiroJá" : "Etapa final do seu cadastro: você só poderá aceitar chamados depois de conectar sua conta Mercado Pago"}
     >
+      <StepProgress step={3} total={3} labels={{ 1: "Dados", 2: "Verificação", 3: "Recebimentos" }} />
       {active ? (
         <MercadoPagoSetupSuccess onContinue={() => navigate("/painel-chaveiro")} />
       ) : (

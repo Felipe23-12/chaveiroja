@@ -16,8 +16,9 @@ const STEP_LABELS = {
   8: "Avaliação",
 };
 
-export default function StepProgress({ step, total = 8 }) {
-  const currentLabel = STEP_LABELS[step] || "";
+export default function StepProgress({ step, total = 8, labels }) {
+  const labelMap = labels || STEP_LABELS;
+  const currentLabel = labelMap[step] || "";
   return (
     <div className="mb-6">
       <div className="flex items-center justify-between mb-2">
