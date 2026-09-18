@@ -17,6 +17,7 @@ import ReportCaseCenter from "@/components/moderation/ReportCaseCenter";
 import { useChatUnread } from "@/lib/chatUnreadStore";
 import PageTransition from "@/components/PageTransition";
 import ChargeCalculationsLink from "@/components/admin/ChargeCalculationsLink";
+import { getEffectiveRole, canAccess } from "@/lib/accessControl";
 
 const ALL_NAV = [
   { label: "Início", path: "/", icon: HomeIcon, roles: ["cliente"] },
@@ -33,18 +34,16 @@ const ALL_NAV = [
 function SidebarContent({ onNavigate }) {
   const location = useLocation();
   const { user } = useAuth();
-  const accountType = user?.account_type || (user?.role === "admin" ? "admin" : "cliente");
-  // Administrador enxerga os painéis de admin mesmo usando uma conta de cliente/chaveiro
-  const isAdmin = user?.role === "admin" || accountType === "admin";
-  const navItems = ALL_NAV.filter((i) => isAdmin || i.roles.includes(accountType));
-  const homePath = accountType === "chaveiro" ? "/painel-chaveiro" : accountType === "admin" ? "/painel-admin" : "/";
+  const effectiveRole = getEffectiveRole(user);
+  const navItems = ALL_NAV.filter((i) => canAccess(user, i.roles));
+  const homePath = effectiveRole === "chaveiro" ? "/painel-chaveiro" : effectiveRole === "admin" ? "/painel-admin" : "/";
 
   const handleLogout = async () => {
     await base44.auth.logout();
     window.location.href = "/login";
   };
 
-  const roleLabel = accountType === "chaveiro" ? "Chaveiro" : accountType === "admin" ? "Admin" : "Cliente";
+  const roleLabel = effectiveRole === "chaveiro" ? "Chaveiro" : effectiveRole === "admin" ? "Admin" : "Cliente";
   const chatUnread = useChatUnread();
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [photoOpen, setPhotoOpen] = useState(false);
@@ -163,13 +162,12 @@ function SidebarContent({ onNavigate }) {
 function MobileTopBar({ onMenu }) {
   const location = useLocation();
   const { user } = useAuth();
-  const accountType = user?.account_type || (user?.role === "admin" ? "admin" : "cliente");
-  const isAdmin = user?.role === "admin" || accountType === "admin";
-  const navItems = ALL_NAV.filter((i) => isAdmin || i.roles.includes(accountType));
+  const effectiveRole = getEffectiveRole(user);
+  const navItems = ALL_NAV.filter((i) => canAccess(user, i.roles));
   const current = navItems.find((i) => i.path === location.pathname);
   return (
     <div className="md:hidden sticky top-0 z-40 flex h-[calc(3.5rem+env(safe-area-inset-top))] items-center justify-between border-b border-border bg-card px-4 pt-safe">
-      <Link to={accountType === "chaveiro" ? "/painel-chaveiro" : accountType === "admin" ? "/painel-admin" : "/"} className="flex items-center gap-2">
+      <Link to={effectiveRole === "chaveiro" ? "/painel-chaveiro" : effectiveRole === "admin" ? "/painel-admin" : "/"} className="flex items-center gap-2">
         <Image
           src="https://media.base44.com/images/public/6a975d266a8000184833026a/d4717d1d4_ChatGPTImage4desetde202604_02_02.png"
           alt="Chaveiro Já"
