@@ -54,6 +54,7 @@ import AcceptedStep from "@/components/client/AcceptedStep";
 import QueuedServiceStep from "@/components/client/QueuedServiceStep";
 import ReviewStep from "@/components/client/ReviewStep";
 import useClientDebt from "@/hooks/useClientDebt";
+import { isUnpaidCompleted } from "@/lib/clientDebt";
 import { useRegionalPriceRange } from "@/hooks/useRegionalPriceRange";
 import useBlockedUsers from "@/hooks/useBlockedUsers";
 import useLiveLocksmiths from "@/hooks/useLiveLocksmiths";
@@ -322,6 +323,9 @@ export default function Home() {
         const active = returnedRequest || list.find((r) => {
           if (r.status === "ringing" || r.status === "queued" || r.status === "accepted" || r.status === "on_the_way") return true;
           if (r.end_photos?.length > 0 && r.status !== "completed" && r.status !== "cancelled") return true;
+          // Serviço concluído mas ainda não pago: trata como ativo para reabrir
+          // a tela de pagamento (step 7) ao reentrar no app.
+          if (isUnpaidCompleted(r)) return true;
           return false;
         });
         if (!active) {
@@ -355,33 +359,60 @@ export default function Home() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Débito pendente: reabre a tela de pagamento da taxa e avisa o cliente.
-  // Qualquer tentativa de sair (Voltar / novo pedido) volta para esta tela.
+  // Débito pendente: reabre a tela de pagamento e avisa o cliente.
+  // Cancelamento com taxa → tela de pagamento da taxa; serviço concluído não
+  // pago → tela de pagamento do serviço (step 7). Qualquer tentativa de sair
+  // (Voltar / novo pedido) volta para a tela de pagamento do débito.
   useEffect(() => {
     if (!debt) return;
-    if (activeRequest?.id === debt.request.id && cancelFeeData) return;
-    const r = debt.request;
-    setActiveRequest(r);
-    reqRef.current = r.id;
-    if (r.locksmith_id) {
-      base44.entities.Locksmith.get(r.locksmith_id).then(setSelectedLocksmith).catch(() => {});
-    }
-    setCancelFeeData({
-      fee: debt.fee,
-      locksmithAmount: Number(r.cancellation_locksmith_amount) || 0,
-      appFee: Number(r.cancellation_app_fee) || 0,
-    });
-    if (!debtNotified.current) {
-      debtNotified.current = true;
-      notifyClient("Débito pendente", `Você tem uma taxa de cancelamento de R$ ${debt.fee.toFixed(2)} em aberto. Pague para voltar a usar o app.`);
-      toast({
-        title: "Débito pendente",
-        description: `Taxa de cancelamento de R$ ${debt.fee.toFixed(2)} em aberto. Pague para liberar novos pedidos.`,
-        variant: "destructive",
+    if (debt.type === "cancellation_fee") {
+      if (activeRequest?.id === debt.request.id && cancelFeeData) return;
+      const r = debt.request;
+      setActiveRequest(r);
+      reqRef.current = r.id;
+      if (r.locksmith_id) {
+        base44.entities.Locksmith.get(r.locksmith_id).then(setSelectedLocksmith).catch(() => {});
+      }
+      setCancelFeeData({
+        fee: debt.fee,
+        locksmithAmount: Number(r.cancellation_locksmith_amount) || 0,
+        appFee: Number(r.cancellation_app_fee) || 0,
       });
+      if (!debtNotified.current) {
+        debtNotified.current = true;
+        notifyClient("Débito pendente", `Você tem uma taxa de cancelamento de R$ ${debt.fee.toFixed(2)} em aberto. Pague para voltar a usar o app.`);
+        toast({
+          title: "Débito pendente",
+          description: `Taxa de cancelamento de R$ ${debt.fee.toFixed(2)} em aberto. Pague para liberar novos pedidos.`,
+          variant: "destructive",
+        });
+      }
+      return;
+    }
+    // Serviço concluído sem pagamento — reabre a tela de pagamento do serviço.
+    if (debt.type === "unpaid_service") {
+      // Se o cliente já está normalmente na tela de pagamento desse mesmo
+      // pedido (step 7), não interfere — é o fluxo normal de pagamento.
+      if (activeRequest?.id === debt.request.id && step === 7) return;
+      const r = debt.request;
+      setActiveRequest(r);
+      reqRef.current = r.id;
+      if (r.locksmith_id) {
+        base44.entities.Locksmith.get(r.locksmith_id).then(setSelectedLocksmith).catch(() => {});
+      }
+      goToStep(7);
+      if (!debtNotified.current) {
+        debtNotified.current = true;
+        notifyClient("Pagamento pendente", "Você tem um serviço concluído sem pagamento. Finalize o pagamento para continuar usando o app.");
+        toast({
+          title: "Pagamento pendente",
+          description: "Você tem um serviço concluído sem pagamento. Finalize o pagamento para continuar usando o app.",
+          variant: "destructive",
+        });
+      }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [debt, activeRequest?.id, cancelFeeData]);
+  }, [debt, activeRequest?.id, cancelFeeData, step]);
 
   // Demanda ativa: conta solicitações em andamento (searching + ringing)
   // para alimentar o cálculo dinâmico de oferta vs. demanda.
@@ -1248,8 +1279,25 @@ export default function Home() {
         </div>
       )}
 
-      {/* Step 7: Avaliação final (após o chaveiro finalizar o serviço) */}
-      {step === 7 && activeRequest && activeRequest.status === "completed" && (
+      {/* Step 7: Pagamento de serviço concluído não pago, ou avaliação final */}
+      {step === 7 && activeRequest && activeRequest.status === "completed" && isUnpaidCompleted(activeRequest) && (
+        <div className="space-y-3 step-enter">
+          <DebtBlockNotice debt={debt} />
+          <PaymentStep
+            amount={activeRequest.price}
+            additionalAmount={getOpeningConditionFee(activeRequest)}
+            additionalLabel="Adicional de condição da abertura"
+            description={`${activeRequest.service_type} - ${activeRequest.address}`}
+            locksmithId={selectedLocksmith?.id}
+            serviceRequestId={activeRequest.id}
+            processing={paying}
+            onConfirm={handleServicePayment}
+            onCash={handleCashPayment}
+          />
+          <ErrorBanner message={searchError} />
+        </div>
+      )}
+      {step === 7 && activeRequest && activeRequest.status === "completed" && !isUnpaidCompleted(activeRequest) && (
         <ReviewStep
           request={activeRequest}
           locksmith={selectedLocksmith}
