@@ -8,20 +8,21 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import FeedbackPhotoUploader from "@/components/feedback/FeedbackPhotoUploader";
 
-const hasLink = (text) => /(https?:\/\/|www\.|(?:[a-z0-9-]+\.)+(?:com|net|org|io|app|dev|br)(?:[/?#\s]|$))/i.test(text);
+const hasLink = (text) => /(?:[a-z][a-z0-9+.-]*:\/\/|www\.|mailto:|\b(?:[a-z0-9-]+\.)+[a-z]{2,63}\b)/i.test(text.normalize("NFKC").replace(/[\u200B-\u200D\uFEFF]/g, ""));
 
 export default function FeedbackForm() {
   const [category, setCategory] = useState("suggestion");
   const [subject, setSubject] = useState("");
   const [message, setMessage] = useState("");
   const [photos, setPhotos] = useState([]);
+  const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [sent, setSent] = useState(false);
   const [error, setError] = useState("");
   const queryClient = useQueryClient();
   const submit = async (event) => {
     event.preventDefault();
-    if (saving || !subject.trim() || !message.trim()) return;
+    if (saving || uploading || !subject.trim() || !message.trim()) return;
     if (hasLink(subject) || hasLink(message)) { setError("Links não são permitidos nos relatos."); return; }
     setSaving(true); setError("");
     try {
@@ -42,9 +43,9 @@ export default function FeedbackForm() {
       <div className="space-y-2"><Label htmlFor="feedback-category">Tipo de relato</Label><select id="feedback-category" value={category} onChange={(e) => setCategory(e.target.value)} className="min-h-[44px] w-full rounded-md border border-input bg-background px-3 text-sm text-foreground"><option value="suggestion">Sugestão de melhoria</option><option value="experience">Minha experiência</option><option value="bug">Erro ou problema</option></select></div>
       <div className="space-y-2"><Label htmlFor="feedback-subject">Assunto</Label><Input id="feedback-subject" required maxLength={120} value={subject} onChange={(e) => setSubject(e.target.value)} placeholder="Resuma o que você gostaria de nos contar" className="min-h-[44px]" /></div>
       <div className="space-y-2"><Label htmlFor="feedback-message">Conte mais</Label><Textarea id="feedback-message" required maxLength={3000} rows={7} value={message} onChange={(e) => setMessage(e.target.value)} placeholder="Descreva sua experiência ou sugestão. Se ocorreu um erro, diga em qual tela e o que você estava tentando fazer." aria-describedby="feedback-hint" /><p id="feedback-hint" className="text-xs text-muted-foreground">Não inclua links, senhas, CPF ou dados de pagamento. {message.length}/3000 caracteres.</p></div>
-      <FeedbackPhotoUploader photos={photos} onChange={setPhotos} onError={setError} />
+      <FeedbackPhotoUploader photos={photos} onChange={setPhotos} onError={setError} onUploadingChange={setUploading} />
     </fieldset>
     {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
-    <Button type="submit" disabled={saving || !subject.trim() || !message.trim()} className="w-full min-h-[44px]">{saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}{saving ? "Enviando..." : "Enviar relato"}</Button>
+    <Button type="submit" disabled={saving || uploading || !subject.trim() || !message.trim()} className="w-full min-h-[44px]">{saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}{saving ? "Enviando..." : "Enviar relato"}</Button>
   </form>;
 }
