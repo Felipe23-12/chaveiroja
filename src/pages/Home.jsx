@@ -1,8 +1,7 @@
 import React, { useState, useEffect, useMemo, useRef } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
-import { ArrowRight, ArrowLeft, Bell, Loader2, Navigation, CheckCircle2, AlertTriangle, MessageCircle, MapPin } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Navigation, AlertTriangle } from "lucide-react";
 import { SERVICE_CATALOG, MIN_CAR_KEY_TOTAL, calculateCancellationFee, CANCELLATION_THRESHOLD_MINUTES, calculateLongDistanceFee, isOpeningService } from "@/lib/pricing";
 import { calculateDynamicPrice } from "@/lib/dynamicPricing";
 import { getCancellationWindow } from "@/lib/cancellationWindow";
@@ -10,10 +9,8 @@ import { resolveCarKeyValue, searchFipeAndKeyValue } from "@/lib/carKey";
 import { detectCarKeyProgramming } from "@/lib/carKeyProgramming";
 import { getKeyCancelBlock, createAppServiceRequest } from "@/lib/keyCancelBlock";
 import useAppCancellationBlock from "@/hooks/useAppCancellationBlock";
-import KeyBlockBanner from "@/components/locksmith/KeyBlockBanner";
 import { getMotoKeyRange, getMotoModel, MOTO_BRANDS } from "@/lib/motoKey";
 import MotoKeyConfig from "@/components/locksmith/MotoKeyConfig";
-import ServiceCard from "@/components/locksmith/ServiceCard";
 import ServiceConfig from "@/components/locksmith/ServiceConfig";
 import CarKeyConfig from "@/components/locksmith/CarKeyConfig";
 import RequestTracking from "@/components/locksmith/RequestTracking";
@@ -34,9 +31,7 @@ import { DEFAULT_RADIUS_KM, MAX_RADIUS_KM, expandUntilFound } from "@/lib/search
 import { useRadiusExpansion } from "@/hooks/useRadiusExpansion";
 import useWeatherSurge from "@/hooks/useWeatherSurge";
 import SearchRadiusSelector from "@/components/locksmith/SearchRadiusSelector";
-import PointsProgressCard from "@/components/locksmith/PointsProgressCard";
 import PaymentStep from "@/components/payment/PaymentStep";
-import ReceiptButton from "@/components/payment/ReceiptButton";
 import { confirmPaymentPaid } from "@/lib/payments";
 import { ensureNotificationPermission, notifyClient } from "@/lib/clientNotifications";
 import { sendServiceStatusMessage } from "@/lib/serviceStatusMessages";
@@ -61,12 +56,13 @@ import useLiveLocksmiths from "@/hooks/useLiveLocksmiths";
 import usePreciseLocation from "@/hooks/usePreciseLocation";
 import LocationStatusNotice from "@/components/location/LocationStatusNotice";
 import ModerationActions from "@/components/moderation/ModerationActions";
-import OpeningChargeSummary from "@/components/client/OpeningChargeSummary";
 import { OPENING_CONDITION_FEE, getOpeningConditionFee, hasLocksmithConditionCorrection, locksmithAddedConditionFee } from "@/lib/openingCondition";
 import { findVehicleKeyCatalog, manualParallelKeyPrice, parallelKeyPrice, parallelOptions, requiresParallelKey, technicalKeyDescription } from "@/lib/vehicleKeyCatalog";
 import buildChargeCalculation from "@/components/admin/buildChargeCalculation";
 import HomeConfigurationStep from "@/components/client/HomeConfigurationStep";
 import HomeTrackingStep from "@/components/client/HomeTrackingStep";
+import HomeServiceSelectionStep from "@/components/client/HomeServiceSelectionStep";
+import HomeCompletionPaymentStep from "@/components/client/HomeCompletionPaymentStep";
 
 export default function Home() {
   const { toast } = useToast();
@@ -1115,22 +1111,7 @@ export default function Home() {
 
       {/* Step 1: Serviço */}
       {step === 1 && showAppFlow && !cancelFeeData && (
-        <div className="space-y-5 step-enter">
-          <KeyBlockBanner block={keyBlock} />
-          <PointsProgressCard loyalty={loyalty} />
-          <div>
-            <h2 className="font-heading font-semibold text-lg text-foreground">Qual serviço você precisa?</h2>
-            <p className="text-sm text-muted-foreground">Selecione o tipo de atendimento</p>
-          </div>
-          <div className="grid grid-cols-2 gap-3">
-            {SERVICE_CATALOG.map((s) => (
-              <ServiceCard key={s.id} service={s} selected={serviceId === s.id} onClick={() => { setServiceId(s.id); setOpeningReason(null); setBrokenKeyInLock(null); }} />
-            ))}
-          </div>
-          <Button onClick={() => goToStep(2)} disabled={!serviceId || !keyBlock || keyBlock.blocked} size="lg" className="w-full">
-            Continuar <ArrowRight className="w-4 h-4 ml-2" />
-          </Button>
-        </div>
+        <HomeServiceSelectionStep config={{ keyBlock, loyalty, serviceId, setServiceId, setOpeningReason, setBrokenKeyInLock, goToStep }} />
       )}
 
       {/* Modo Livre: mapa interativo com chaveiros online */}
@@ -1204,79 +1185,7 @@ export default function Home() {
 
       {/* Step 6: Pagamento (após o chaveiro registrar o final do serviço) */}
       {step === 6 && activeRequest && activeRequest.end_photos?.length > 0 && activeRequest.status !== "completed" && (
-        <div className="space-y-3 step-enter">
-          <div className="flex flex-col items-center text-center py-4">
-            <div className="w-16 h-16 rounded-full bg-success/15 flex items-center justify-center mb-4">
-              <CheckCircle2 className="w-8 h-8 text-success" />
-            </div>
-            <h2 className="font-heading font-semibold text-lg text-foreground mb-1">Serviço concluído!</h2>
-            <p className="text-sm text-muted-foreground">{activeRequest.service_type} · {selectedLocksmith?.name}</p>
-          </div>
-
-          <OpeningChargeSummary request={activeRequest} />
-
-          {!activeRequest.client_confirmed ? (
-            <div className="p-4 rounded-2xl border-2 border-primary bg-primary/5 space-y-3">
-              <p className="text-sm font-medium text-foreground text-center">O chaveiro registrou a finalização do serviço. Confirme para prosseguir ao pagamento.</p>
-              <div className="flex gap-2">
-                <Button onClick={handleConfirmService} className="flex-1">
-                  <CheckCircle2 className="w-4 h-4 mr-1.5" /> Confirmar serviço
-                </Button>
-                <Button variant="outline" onClick={() => navigate(`/acompanhamento/${activeRequest.id}`)} className="flex-1">
-                  <MessageCircle className="w-4 h-4 mr-1.5" /> Falar com chaveiro
-                </Button>
-              </div>
-            </div>
-          ) : activeRequest.payment_method === "dinheiro" && !activeRequest.cash_received ? (
-            <div className="flex flex-col items-center text-center py-6">
-              <div className="w-14 h-14 rounded-full bg-warning/15 flex items-center justify-center mb-3">
-                <Loader2 className="w-7 h-7 text-warning animate-spin" />
-              </div>
-              <h3 className="font-heading font-semibold text-base text-foreground mb-1">
-                Aguardando recebimento em dinheiro
-              </h3>
-              <p className="text-sm text-muted-foreground">
-                O chaveiro irá confirmar o recebimento de <strong className="text-foreground">R$ {activeRequest.price?.toFixed(2)}</strong> em dinheiro.
-              </p>
-            </div>
-          ) : activeRequest.payment_status === "paid" ? (
-            <div className="flex flex-col items-center text-center py-6 space-y-4">
-              <div className="w-14 h-14 rounded-full bg-success/15 flex items-center justify-center mb-1">
-                <Loader2 className="w-7 h-7 text-success animate-spin" />
-              </div>
-              <div>
-                <h3 className="font-heading font-semibold text-base text-foreground mb-1">
-                  Pagamento confirmado!
-                </h3>
-                <p className="text-sm text-muted-foreground">
-                  Aguardando o chaveiro finalizar o serviço.
-                </p>
-              </div>
-              <div className="w-full max-w-xs">
-                <ReceiptButton
-                  customerView
-                  serviceRequest={activeRequest}
-                  locksmith={selectedLocksmith}
-                  customerName={customerName}
-                />
-              </div>
-            </div>
-          ) : (
-            <PaymentStep
-              amount={activeRequest.price}
-              additionalAmount={getOpeningConditionFee(activeRequest)}
-              additionalLabel="Adicional de condição da abertura"
-              description={`${activeRequest.service_type} - ${activeRequest.address}`}
-              locksmithId={selectedLocksmith?.id}
-              serviceRequestId={activeRequest.id}
-              processing={paying}
-              onConfirm={handleServicePayment}
-              onCash={handleCashPayment}
-              onBack={() => goToStep(5)}
-            />
-          )}
-          <ErrorBanner message={searchError} />
-        </div>
+        <HomeCompletionPaymentStep config={{ activeRequest, selectedLocksmith, handleConfirmService, navigate, handleServicePayment, handleCashPayment, paying, searchError, customerName, goToStep }} />
       )}
 
       {/* Step 7: Pagamento de serviço concluído não pago, ou avaliação final */}
