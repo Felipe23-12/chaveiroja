@@ -1,5 +1,5 @@
-import React from "react";
-import { Search, Calendar, Filter, X } from "lucide-react";
+import React, { useState } from "react";
+import { Search, Calendar, Filter, X, ChevronDown } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import NativeSelectDrawer from "@/components/ui/NativeSelectDrawer";
 import { Button } from "@/components/ui/button";
@@ -59,8 +59,10 @@ export function filterRequests(requests, { date, serviceType, status, locksmithN
 
 export default function ServiceFilters({ filters, onChange, onClear }) {
   const hasFilters = filters.date || filters.serviceType || filters.status || filters.locksmithName;
-  return (
-    <div className="flex flex-col sm:flex-row gap-2 items-end flex-wrap">
+  const [filtersOpen, setFiltersOpen] = useState(false);
+
+  const fields = (
+    <>
       <div className="flex flex-col gap-1 flex-1 min-w-[140px]">
         <label className="text-xs text-muted-foreground flex items-center gap-1">
           <Calendar className="w-3 h-3" /> Data
@@ -112,10 +114,38 @@ export default function ServiceFilters({ filters, onChange, onClear }) {
         />
       </div>
       {hasFilters && (
-        <Button variant="ghost" size="icon" onClick={onClear} title="Limpar filtros">
+        <Button variant="ghost" size="icon" onClick={onClear} title="Limpar filtros" className="sm:min-h-0 min-h-[44px]">
           <X className="w-4 h-4" />
         </Button>
       )}
+    </>
+  );
+
+  return (
+    <div>
+      {/* Botão "Filtros" exclusivo do mobile */}
+      <Button
+        variant="outline"
+        onClick={() => setFiltersOpen((v) => !v)}
+        className="sm:hidden w-full min-h-[44px] justify-between"
+        aria-expanded={filtersOpen}
+      >
+        <span className="flex items-center gap-2">
+          <Filter className="w-4 h-4" />
+          Filtros
+          {hasFilters && (
+            <span className="ml-1 inline-flex h-2 w-2 rounded-full bg-primary" aria-label="Há filtros ativos" />
+          )}
+        </span>
+        <ChevronDown className={`w-4 h-4 transition-transform ${filtersOpen ? "rotate-180" : ""}`} />
+      </Button>
+
+      {/* Container de filtros: no mobile respeita filtersOpen; no desktop sempre visível em linha */}
+      <div
+        className={`${filtersOpen ? "flex" : "hidden"} sm:flex flex-col sm:flex-row gap-2 items-end flex-wrap mt-2 sm:mt-0`}
+      >
+        {fields}
+      </div>
     </div>
   );
 }
