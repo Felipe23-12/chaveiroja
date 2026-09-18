@@ -280,9 +280,11 @@ export const TOYOTA_HIGH_COMPLEXITY_FEE = 700;
 export const TOYOTA_MEDIUM_COMPLEXITY_FEE = 300;
 const TOYOTA_HIGH_COMPLEXITY_MODELS = /\b(?:corolla|rav\s*4|sw\s*4)\b/i;
 export const RENAULT_HIGH_COMPLEXITY_FEE = 450;
+export const FORD_2020_FEE = 300;
 export const getCarKeyComplexityFee = (make, model = "", year = null) => {
   const brand = String(make || "").trim();
   const vehicleYear = Number(year);
+  if (/^ford(?:\s|$)/i.test(brand) && vehicleYear >= 2020) return FORD_2020_FEE;
   if (/^renault(?:\s|$)/i.test(brand)) {
     return vehicleYear >= 2015 || (/\bsandero\b/i.test(String(model || "")) && [2012, 2013].includes(vehicleYear))
       ? RENAULT_HIGH_COMPLEXITY_FEE : 0;
@@ -294,6 +296,7 @@ export const getCarKeyComplexityFee = (make, model = "", year = null) => {
 };
 export const getCarKeyComplexityLabel = (make, model = "", year = null) => {
   const fee = getCarKeyComplexityFee(make, model, year);
+  if (/^ford(?:\s|$)/i.test(String(make || "").trim()) && Number(year) >= 2020) return "Adicional Ford a partir de 2020";
   if (fee === RENAULT_HIGH_COMPLEXITY_FEE) return "Confecção de alta complexidade (Renault)";
   return fee === TOYOTA_HIGH_COMPLEXITY_FEE
     ? "Confecção de alta complexidade (Toyota)"

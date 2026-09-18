@@ -58,6 +58,7 @@ function lockExtras(locks) {
 }
 
 function vehicleComplexity(make, model, year) {
+  if (/^ford(?:\s|$)/i.test(make) && year >= 2020) return 300;
   if (/^renault(?:\s|$)/i.test(make) && (year >= 2015 || (/\bsandero\b/i.test(model) && [2012, 2013].includes(year)))) return 450;
   if (!/^toyota(?:\s|$)/i.test(make)) return 0;
   return /\b(?:corolla|rav\s*4|sw\s*4)\b/i.test(model) ? 700 : 300;
@@ -131,7 +132,7 @@ async function carKeyPrice(base44, userId, data, inputs, multiplier, distanceFee
       { label: 'Mão de obra calculada no servidor', value: round(labor * multiplier) },
       ...(onlineFee ? [{ label: 'Programação online', value: onlineFee }] : []),
       ...(distanceFee ? [{ label: 'Locomoção', value: distanceFee }] : []),
-      ...(complexityFee ? [{ label: 'Complexidade do veículo', value: complexityFee }] : []),
+      ...(complexityFee ? [{ label: /^ford(?:\s|$)/i.test(make) && year >= 2020 ? 'Adicional Ford a partir de 2020' : 'Complexidade do veículo', value: complexityFee }] : []),
       ...(alarmFee ? [{ label: 'Land Rover trancada no alarme', value: alarmFee }] : []),
     ],
   };
