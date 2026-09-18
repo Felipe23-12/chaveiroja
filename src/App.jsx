@@ -48,6 +48,7 @@ const Contato = lazy(() => import('@/pages/Contato'));
 const About = lazy(() => import('@/pages/About'));
 const Contact = lazy(() => import('@/pages/Contact'));
 const CalculosChamados = lazy(() => import('@/pages/CalculosChamados'));
+const Sugestoes = lazy(() => import('@/pages/Sugestoes'));
 // Add page imports here
 
 const PageFallback = () => (
@@ -109,6 +110,7 @@ const AuthenticatedApp = () => {
           <Route element={<MercadoPagoOnboardingGuard />}>
           <Route element={<Layout />}>
             <Route path="/calculos-chamados" element={<CalculosChamados />} />
+            <Route path="/sugestoes" element={<Sugestoes />} />
             <Route element={<RoleGuard allow={["cliente"]} />}>
               <Route path="/" element={<Home />} />
               <Route path="/mapa" element={<Mapa />} />

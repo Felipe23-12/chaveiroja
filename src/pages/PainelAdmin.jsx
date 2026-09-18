@@ -14,6 +14,7 @@ import WeeklyOperationsPanel from "@/components/admin/WeeklyOperationsPanel";
 import ConductReportsPanel from "@/components/admin/ConductReportsPanel";
 import VehicleKeyCatalogPanel from "@/components/admin/VehicleKeyCatalogPanel";
 import AdminPanelTabs from "@/components/admin/AdminPanelTabs";
+import FeedbackPanel from "@/components/admin/FeedbackPanel";
 import LocksmithQualityTable from "@/components/admin/LocksmithQualityTable";
 import { completeWithdrawal } from "@/lib/payments";
 import { useToast } from "@/components/ui/use-toast";
@@ -184,6 +185,8 @@ export default function PainelAdmin() {
       {activeTab === "overview" && <WeeklyOperationsPanel requests={requests} scores={scores} />}
 
       {activeTab === "reports" && <ConductReportsPanel />}
+
+      {activeTab === "feedback" && <FeedbackPanel users={users} />}
 
       {activeTab === "catalog" && <VehicleKeyCatalogPanel />}
 

@@ -1,5 +1,5 @@
 import React from "react";
-import { LayoutDashboard, Flag, KeyRound, Users, Wallet, ClipboardList } from "lucide-react";
+import { LayoutDashboard, Flag, KeyRound, Users, Wallet, ClipboardList, MessageSquare } from "lucide-react";
 
 const tabs = [
   ["overview", "Visão geral", LayoutDashboard],
@@ -8,6 +8,7 @@ const tabs = [
   ["people", "Usuários", Users],
   ["finance", "Financeiro", Wallet],
   ["requests", "Chamados", ClipboardList],
+  ["feedback", "Sugestões e problemas", MessageSquare],
 ];
 
 export default function AdminPanelTabs({ value, onChange }) {
