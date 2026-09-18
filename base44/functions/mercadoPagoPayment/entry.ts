@@ -77,7 +77,20 @@ export default async function(req) {
       }
       const baseCommission = kind === "subscription" ? 0 : Math.round(amount * 0.15 * 100) / 100;
       const locksmithFinancials = kind === "service" ? await getOrCreateFinancials(base44, locksmith) : null;
-      const pendingCash = locksmithFinancials ? Math.max(0, Number(locksmithFinancials.pending_cash_commission || 0)) : 0;
+      // Outros chamados do mesmo chaveiro já com checkout aberto (pre_authorized) podem ter
+      // reservado parte do mesmo débito de comissão em dinheiro — sem descontar isso aqui,
+      // dois checkouts concorrentes poderiam abater a mesma dívida duas vezes do chaveiro.
+      const reservationCutoff = Date.now() - 24 * 60 * 60 * 1000;
+      const reservedByOtherCheckouts = locksmithFinancials
+        ? (await base44.asServiceRole.entities.Payment.filter({ locksmith_id: locksmith.id, payment_kind: "service", collection_mode: "seller_split", status: "pre_authorized" }))
+            .filter((p) => p.service_request_id !== service?.id && Date.parse(p.pre_authorized_at || p.created_date || 0) >= reservationCutoff)
+            .reduce((sum, p) => {
+              const otherBase = Math.round(Number(p.amount) * 0.15 * 100) / 100;
+              const otherOffset = Math.max(0, Math.round((Number(p.commission_amount || 0) - otherBase) * 100) / 100);
+              return sum + otherOffset;
+            }, 0)
+        : 0;
+      const pendingCash = locksmithFinancials ? Math.max(0, Math.round((Number(locksmithFinancials.pending_cash_commission || 0) - reservedByOtherCheckouts) * 100) / 100) : 0;
       const maxCashOffset = Math.max(0, Math.round((amount - baseCommission - 0.01) * 100) / 100);
       const pendingCashOffset = Math.min(Math.round(pendingCash * 100) / 100, maxCashOffset);
       const commission = Math.round((baseCommission + pendingCashOffset) * 100) / 100;

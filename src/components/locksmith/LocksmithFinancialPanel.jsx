@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { base44 } from "@/api/base44Client";
 import { Wallet, TrendingUp, Percent, Receipt, BadgeCheck, Clock, Loader2, ChevronDown, ChevronUp } from "lucide-react";
-import { calculateRepasse, WORK_MODES } from "@/lib/pricing";
+import { calculateRepasse, WORK_MODES, allocateCashCommissionStatus } from "@/lib/pricing";
 
 const fmtMoney = (n) =>
   (Number(n) || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
@@ -48,6 +48,7 @@ export default function LocksmithFinancialPanel({ locksmith }) {
     let commissionPending = 0;
     let net = 0;
     let paidCount = 0;
+    const derivedStatus = isAppMode ? allocateCashCommissionStatus(completed, locksmith?.pending_cash_commission) : {};
 
     completed.forEach((r) => {
       const repasse = calculateRepasse({
@@ -59,7 +60,7 @@ export default function LocksmithFinancialPanel({ locksmith }) {
       commission += repasse.commission;
       net += repasse.locksmithAmount;
       if (isAppMode) {
-        if ((r.commission_status || "pending") === "paid") {
+        if ((derivedStatus[r.id] || "paid") === "paid") {
           commissionPaid += repasse.commission;
           paidCount += 1;
         } else {
@@ -99,6 +100,7 @@ export default function LocksmithFinancialPanel({ locksmith }) {
       cancellationTotal,
       cancellationAppFee,
       cancelledCount: cancelled.length,
+      derivedStatus,
     };
   }, [completed, cancelled, isAppMode, locksmith?.work_mode, locksmith?.pending_cash_commission]);
 
@@ -258,8 +260,8 @@ export default function LocksmithFinancialPanel({ locksmith }) {
                         )}
                         <p className="text-xs font-semibold text-success">{fmtMoney(repasse.locksmithAmount)}</p>
                         {isAppMode && (
-                          <span className={`inline-flex items-center gap-0.5 mt-0.5 px-1.5 py-0.5 rounded-full text-[10px] font-medium ${(r.commission_status || "pending") === "paid" ? "bg-success/15 text-success" : "bg-warning/15 text-warning"}`}>
-                            {(r.commission_status || "pending") === "paid" ? "Compensada" : "Pendente"}
+                          <span className={`inline-flex items-center gap-0.5 mt-0.5 px-1.5 py-0.5 rounded-full text-[10px] font-medium ${(stats.derivedStatus?.[r.id] || "paid") === "paid" ? "bg-success/15 text-success" : "bg-warning/15 text-warning"}`}>
+                            {(stats.derivedStatus?.[r.id] || "paid") === "paid" ? "Compensada" : "Pendente"}
                           </span>
                         )}
                       </div>

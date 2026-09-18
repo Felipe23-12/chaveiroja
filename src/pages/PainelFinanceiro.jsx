@@ -3,7 +3,7 @@ import { base44 } from "@/api/base44Client";
 import { Wallet, TrendingUp, Receipt, BadgeCheck, Clock, Loader2, FileDown, FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { fetchMyLocksmith, fetchLocksmithFinancials, mergeLocksmithFinancials } from "@/lib/myLocksmith";
-import { WORK_MODES, calculateRepasse } from "@/lib/pricing";
+import { WORK_MODES, calculateRepasse, allocateCashCommissionStatus } from "@/lib/pricing";
 import { downloadCommissionCSV, downloadCommissionPDF } from "@/lib/commissionReport";
 import WalletCard from "@/components/locksmith/WalletCard";
 import EarningsSplitCard from "@/components/locksmith/EarningsSplitCard";
@@ -74,6 +74,7 @@ export default function PainelFinanceiro() {
     let commissionPaid = 0;
     let commissionPending = 0;
     let paidCount = 0;
+    const derivedStatus = isAppMode ? allocateCashCommissionStatus(completed, me?.pending_cash_commission) : {};
     completed.forEach((r) => {
       const repasse = calculateRepasse({
         price: r.price,
@@ -83,7 +84,7 @@ export default function PainelFinanceiro() {
       gross += repasse.gross;
       commission += repasse.commission;
       if (isAppMode) {
-        if ((r.commission_status || "pending") === "paid") {
+        if ((derivedStatus[r.id] || "paid") === "paid") {
           commissionPaid += repasse.commission;
           paidCount += 1;
         } else {
@@ -117,6 +118,7 @@ export default function PainelFinanceiro() {
       paidCount,
       cancellationTotal,
       cancelledCount: cancelled.length,
+      derivedStatus,
     };
   }, [completed, cancelled, isAppMode, me?.work_mode, me?.pending_cash_commission]);
 
@@ -396,12 +398,12 @@ export default function PainelFinanceiro() {
                     {isAppMode && (
                       <span
                         className={`inline-flex items-center gap-1 mt-1.5 px-2 py-0.5 rounded-full text-[11px] font-medium ${
-                          (r.commission_status || "pending") === "paid"
+                          (stats.derivedStatus?.[r.id] || "paid") === "paid"
                             ? "bg-success/15 text-success"
                             : "bg-warning/15 text-warning"
                         }`}
                       >
-                        {(r.commission_status || "pending") === "paid" ? (
+                        {(stats.derivedStatus?.[r.id] || "paid") === "paid" ? (
                           <><BadgeCheck className="w-3 h-3" /> Comissão compensada</>
                         ) : (
                           <><Clock className="w-3 h-3" /> Comissão pendente</>

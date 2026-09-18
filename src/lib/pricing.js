@@ -412,6 +412,34 @@ export function calculateCancellationFee(price, { serviceType = "", urgency = "n
   return { fee, locksmithAmount, appFee, fixed: false };
 }
 
+// Deriva, só pra exibição, quais atendimentos concluídos no modo app ainda
+// têm comissão pendente. O backend guarda apenas um saldo agregado
+// (pending_cash_commission) — não um ledger por atendimento — então esta
+// função aloca o saldo atual contra os atendimentos que ficaram com
+// commission_status "pending" na confirmação em dinheiro, do mais antigo
+// para o mais novo (dívida mais antiga é considerada quitada primeiro à
+// medida que o saldo cai). Retorna um mapa { [serviceRequestId]: "paid" | "pending" }
+// só com as entradas que precisam mudar; o padrão pra quem não está no mapa é "paid".
+export function allocateCashCommissionStatus(completedRequests, pendingCashCommission) {
+  const pendingOnes = (completedRequests || [])
+    .filter((r) => (r.commission_status || "pending") !== "paid")
+    .slice()
+    .sort((a, b) => new Date(a.created_date) - new Date(b.created_date));
+  let remaining = Math.max(0, Number(pendingCashCommission) || 0);
+  const statusById = {};
+  pendingOnes.forEach((r) => {
+    const commission = calculateCommission(Number(r.price) || 0, "app");
+    if (remaining >= commission - 0.005) {
+      statusById[r.id] = "paid";
+      remaining = Math.max(0, Math.round((remaining - commission) * 100) / 100);
+    } else {
+      statusById[r.id] = "pending";
+      remaining = 0;
+    }
+  });
+  return statusById;
+}
+
 // Calcula o repasse (valor líquido) devido ao chaveiro para um serviço,
 // descontando a comissão do app conforme o modo de operação e a taxa de
 // cancelamento quando houver.
