@@ -1,0 +1,44 @@
+import { createClientFromRequest } from 'npm:@base44/sdk@0.8.48';
+
+const hasLink = (text) => /(https?:\/\/|www\.|(?:[a-z0-9-]+\.)+(?:com|net|org|io|app|dev|br)(?:[/?#\s]|$))/i.test(text);
+
+export default async function(req) {
+  try {
+    const base44 = createClientFromRequest(req);
+    const user = await base44.auth.me();
+    if (!user) return Response.json({ error: 'Não autorizado.' }, { status: 401 });
+    const body = await req.json();
+
+    if (body.action === 'submit') {
+      const category = String(body.category || '');
+      const subject = String(body.subject || '').trim();
+      const message = String(body.message || '').trim();
+      const photoUris = Array.isArray(body.photo_uris) ? body.photo_uris : [];
+      if (!['suggestion', 'experience', 'bug'].includes(category)) return Response.json({ error: 'Tipo de relato inválido.' }, { status: 400 });
+      if (!subject || subject.length > 120 || !message || message.length > 3000) return Response.json({ error: 'Preencha o assunto e a descrição nos limites indicados.' }, { status: 400 });
+      if (hasLink(subject) || hasLink(message)) return Response.json({ error: 'Links não são permitidos nos relatos.' }, { status: 400 });
+      if (photoUris.length > 3 || photoUris.some((uri) => typeof uri !== 'string' || uri.length > 1000)) return Response.json({ error: 'Envie no máximo 3 fotos válidas.' }, { status: 400 });
+      const feedback = await base44.asServiceRole.entities.AppFeedback.create({ category, subject, message, photo_uris: photoUris, reporter_id: user.id, reporter_name: user.full_name || '', reporter_email: user.email || '' });
+      return Response.json({ id: feedback.id });
+    }
+
+    if (body.action === 'list') {
+      if (user.role !== 'admin') return Response.json({ error: 'Acesso restrito ao administrador.' }, { status: 403 });
+      const page = Number(body.page || 0);
+      if (!Number.isInteger(page) || page < 0 || page > 1000) return Response.json({ error: 'Página inválida.' }, { status: 400 });
+      const records = await base44.asServiceRole.entities.AppFeedback.list('-created_date', 21, page * 20);
+      const items = await Promise.all(records.map(async (record) => {
+        const photo_urls = await Promise.all((record.photo_uris || []).map(async (file_uri) => {
+          const result = await base44.asServiceRole.integrations.Core.CreateFileSignedUrl({ file_uri, expires_in: 900 });
+          return result.signed_url;
+        }));
+        return { id: record.id, category: record.category, subject: record.subject, message: record.message, reporter_id: record.reporter_id, reporter_name: record.reporter_name, reporter_email: record.reporter_email, created_date: record.created_date, photo_urls };
+      }));
+      return Response.json({ items });
+    }
+
+    return Response.json({ error: 'Ação inválida.' }, { status: 400 });
+  } catch (error) {
+    return Response.json({ error: error?.message || 'Não foi possível processar o relato.' }, { status: 500 });
+  }
+}

@@ -10,7 +10,7 @@ export default function FeedbackPanel({ users = [] }) {
   const [page, setPage] = useState(0);
   const { data = [], isPending, isFetching, isError, refetch } = useQuery({
     queryKey: ["app-feedback", page],
-    queryFn: () => base44.entities.AppFeedback.list("-created_date", 21, page * 20),
+    queryFn: async () => (await base44.functions.invoke("feedbackOperations", { action: "list", page })).data.items,
   });
   const authors = new Map(users.map((user) => [user.id, user]));
   return <section className="space-y-4">
