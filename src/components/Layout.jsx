@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { Link, useLocation, Outlet } from "react-router-dom";
-import { Home as HomeIcon, Clock, LogOut, Briefcase, MapPin, RadioTower, Wallet, User, ShieldCheck, Menu, X, Trash2, Camera, CreditCard, Info, Mail } from "lucide-react";
+import { Home as HomeIcon, Clock, LogOut, Briefcase, MapPin, RadioTower, Wallet, Landmark, User, ShieldCheck, Menu, X, Trash2, Camera, CreditCard, Info, Mail } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { useAuth } from "@/lib/AuthContext";
 import { Image } from "@/components/ui/image";
@@ -28,7 +28,7 @@ const ALL_NAV = [
   { label: "Financeiro", path: "/painel-financeiro", icon: Wallet, roles: ["chaveiro"] },
   { label: "Modo de Trabalho", path: "/modo-trabalho", icon: Briefcase, roles: ["chaveiro"] },
   { label: "Painel Admin", path: "/painel-admin", icon: ShieldCheck, roles: ["admin"] },
-  { label: "Financeiro", path: "/painel-financeiro-admin", icon: Wallet, roles: ["admin"] },
+  { label: "Financeiro (Admin)", path: "/painel-financeiro-admin", icon: Landmark, roles: ["admin"] },
 ];
 
 function SidebarContent({ onNavigate }) {
