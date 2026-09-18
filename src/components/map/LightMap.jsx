@@ -25,6 +25,13 @@ function latToY(lat, z) {
   const s = Math.sin((lat * Math.PI) / 180);
   return (0.5 - Math.log((1 + s) / (1 - s)) / (4 * Math.PI)) * TILE * Math.pow(2, z);
 }
+function xToLng(x, z) {
+  return (x / (TILE * Math.pow(2, z))) * 360 - 180;
+}
+function yToLat(y, z) {
+  const n = Math.PI - (2 * Math.PI * y) / (TILE * Math.pow(2, z));
+  return (180 / Math.PI) * Math.atan(Math.sinh(n));
+}
 function project(lat, lng, c, z, w, h) {
   return {
     x: lngToX(lng, z) - lngToX(c.lng, z) + w / 2,
@@ -47,6 +54,8 @@ export default function LightMap({ center, markers = [], route = null, routePath
   const [selected, setSelected] = useState(null);
   const [userZoom, setUserZoom] = useState(null); // null = zoom automático
   const [userCenter, setUserCenter] = useState(null); // null = centro automático
+  const dragRef = useRef(null);
+  const [dragging, setDragging] = useState(false);
 
   // Mede o contêiner para compor a grade de tiles no tamanho exato
   useEffect(() => {
@@ -112,6 +121,35 @@ export default function LightMap({ center, markers = [], route = null, routePath
     setUserCenter(null);
   };
 
+  const startDrag = (event) => {
+    if (event.button !== undefined && event.button !== 0) return;
+    event.currentTarget.setPointerCapture(event.pointerId);
+    dragRef.current = {
+      x: event.clientX,
+      y: event.clientY,
+      centerX: lngToX(c.lng, ez),
+      centerY: latToY(c.lat, ez),
+    };
+    setDragging(true);
+    setSelected(null);
+  };
+
+  const moveDrag = (event) => {
+    if (!dragRef.current) return;
+    const nextX = dragRef.current.centerX - (event.clientX - dragRef.current.x);
+    const nextY = dragRef.current.centerY - (event.clientY - dragRef.current.y);
+    setUserCenter({ lat: yToLat(nextY, ez), lng: xToLng(nextX, ez) });
+  };
+
+  const stopDrag = (event) => {
+    if (!dragRef.current) return;
+    dragRef.current = null;
+    setDragging(false);
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+      event.currentTarget.releasePointerCapture(event.pointerId);
+    }
+  };
+
   // Grade de tiles que cobre a área visível
   const tiles = useMemo(() => {
     const topLeftX = lngToX(c.lng, ez) - fw / 2;
@@ -152,7 +190,11 @@ export default function LightMap({ center, markers = [], route = null, routePath
     <div
       ref={containerRef}
       onClick={() => setSelected(null)}
-      className="relative w-full touch-pan-y rounded-2xl overflow-hidden border border-border bg-muted/40"
+      onPointerDown={startDrag}
+      onPointerMove={moveDrag}
+      onPointerUp={stopDrag}
+      onPointerCancel={stopDrag}
+      className={`relative w-full touch-none rounded-2xl overflow-hidden border border-border bg-muted/40 select-none ${dragging ? "cursor-grabbing" : "cursor-grab"}`}
       style={{ height }}
     >
       {/* Fundo: grade mínima de tiles do OpenStreetMap */}
@@ -248,6 +290,7 @@ export default function LightMap({ center, markers = [], route = null, routePath
               key={m.id}
               className="absolute -translate-x-1/2 -translate-y-full z-20 cursor-pointer touch-manipulation"
               style={p}
+              onPointerDown={(e) => e.stopPropagation()}
               onClick={(e) => { e.stopPropagation(); setSelected(m); }}
             >
               <div
@@ -268,6 +311,7 @@ export default function LightMap({ center, markers = [], route = null, routePath
           <div
             className="absolute z-40"
             style={{ left: sp.left, top: sp.top, transform: "translate(-50%, calc(-100% - 30px))" }}
+            onPointerDown={(e) => e.stopPropagation()}
             onClick={(e) => e.stopPropagation()}
           >
             {renderPopup(selected, () => setSelected(null))}
@@ -284,6 +328,7 @@ export default function LightMap({ center, markers = [], route = null, routePath
       {/* Controles de zoom */}
       <div className="absolute right-2 bottom-8 z-30 flex flex-col gap-1.5">
         <button
+          onPointerDown={(e) => e.stopPropagation()}
           onClick={(e) => { e.stopPropagation(); zoomIn(); }}
           className="w-9 h-9 min-h-[44px] min-w-[44px] md:min-h-0 md:min-w-0 rounded-lg bg-white/95 hover:bg-white shadow-lg border border-border flex items-center justify-center text-foreground"
           aria-label="Aproximar"
@@ -291,6 +336,7 @@ export default function LightMap({ center, markers = [], route = null, routePath
           <Plus className="w-5 h-5" />
         </button>
         <button
+          onPointerDown={(e) => e.stopPropagation()}
           onClick={(e) => { e.stopPropagation(); zoomOut(); }}
           className="w-9 h-9 min-h-[44px] min-w-[44px] md:min-h-0 md:min-w-0 rounded-lg bg-white/95 hover:bg-white shadow-lg border border-border flex items-center justify-center text-foreground"
           aria-label="Afastar"
@@ -298,6 +344,7 @@ export default function LightMap({ center, markers = [], route = null, routePath
           <Minus className="w-5 h-5" />
         </button>
         <button
+          onPointerDown={(e) => e.stopPropagation()}
           onClick={(e) => { e.stopPropagation(); recenter(); }}
           className="w-9 h-9 min-h-[44px] min-w-[44px] md:min-h-0 md:min-w-0 rounded-lg bg-white/95 hover:bg-white shadow-lg border border-border flex items-center justify-center text-primary"
           aria-label="Centralizar"
