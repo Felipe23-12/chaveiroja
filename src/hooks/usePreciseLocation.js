@@ -6,6 +6,9 @@ export default function usePreciseLocation() {
   const [status, setStatus] = useState("locating");
   const [error, setError] = useState("");
   const [accuracy, setAccuracy] = useState(null);
+  // True assim que o callback de sucesso do watchPosition dispara pela primeira
+  // vez, independente da precisão — indica que já tivemos uma leitura utilizável.
+  const [hasFix, setHasFix] = useState(false);
   const [attempt, setAttempt] = useState(0);
   const retry = useCallback(() => setAttempt((value) => value + 1), []);
 
@@ -23,6 +26,7 @@ export default function usePreciseLocation() {
         setAccuracy(Math.round(position.coords.accuracy || 0));
         setStatus("ready");
         setError("");
+        setHasFix(true);
       },
       (reason) => {
         setStatus("fallback");
@@ -33,5 +37,5 @@ export default function usePreciseLocation() {
     return () => navigator.geolocation.clearWatch(watchId);
   }, [attempt]);
 
-  return { location, status, error, accuracy, retry };
+  return { location, status, error, accuracy, hasFix, retry };
 }
