@@ -26,6 +26,7 @@ export default function ReviewStep({ request, locksmith, customerName, onRate, o
           locksmithName={locksmith?.name}
           serviceType={request.service_type}
           workMode={locksmith?.work_mode}
+          serviceRequestId={request.id}
           onSubmitted={(r) => onRate(r)}
         />
       </div>

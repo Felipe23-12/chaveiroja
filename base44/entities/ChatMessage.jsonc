@@ -51,6 +51,16 @@
     "message"
   ],
   "rls": {
+    "create": {
+      "$or": [
+        {
+          "data.client_id": "{{user.id}}"
+        },
+        {
+          "data.locksmith_user_id": "{{user.id}}"
+        }
+      ]
+    },
     "read": {
       "$or": [
         {

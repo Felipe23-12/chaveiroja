@@ -5,7 +5,7 @@ export async function getReviews(locksmithId) {
   return base44.entities.Review.filter({ locksmith_id: locksmithId }, "-created_date");
 }
 
-// Cria uma avaliação e recalcula a nota média do chaveiro
+// Cria uma avaliação e recalcula a nota média do chaveiro (validação server-side)
 export async function submitReview({
   locksmithId,
   locksmithName,
@@ -14,21 +14,22 @@ export async function submitReview({
   serviceType,
   workMode,
   customerName,
+  serviceRequestId,
 }) {
-  await base44.entities.Review.create({
-    locksmith_id: locksmithId,
-    locksmith_name: locksmithName,
-    customer_name: customerName || "Cliente",
-    rating,
-    comment,
-    service_type: serviceType,
-    work_mode: workMode,
-  });
-
-  const reviews = await base44.entities.Review.filter({ locksmith_id: locksmithId });
-  const avg = reviews.reduce((s, r) => s + (r.rating || 0), 0) / reviews.length;
-  await base44.entities.Locksmith.update(locksmithId, {
-    rating: Math.round(avg * 10) / 10,
-    reviews_count: reviews.length,
-  });
+  try {
+    await base44.functions.invoke("serviceTrust", {
+      action: "submit_review",
+      locksmith_id: locksmithId,
+      locksmith_name: locksmithName,
+      rating,
+      comment,
+      service_type: serviceType,
+      work_mode: workMode,
+      customer_name: customerName,
+      service_request_id: serviceRequestId,
+    });
+  } catch (err) {
+    const data = err?.response?.data || err?.data || err;
+    throw new Error(data?.error || err?.message || "Não foi possível enviar a avaliação.");
+  }
 }

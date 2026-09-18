@@ -256,6 +256,41 @@ export default async function(req) {
       return Response.json({ success: true, request: updated, queued });
     }
 
+    if (action === 'submit_review') {
+      const locksmithId = body.locksmith_id;
+      const rating = Number(body.rating);
+      if (!locksmithId || !Number.isFinite(rating) || rating < 1 || rating > 5) {
+        return Response.json({ error: 'Informe o chaveiro e uma nota entre 1 e 5.' }, { status: 400 });
+      }
+      const workMode = body.work_mode;
+      if (workMode === 'app') {
+        if (!body.service_request_id) return Response.json({ error: 'Você só pode avaliar um atendimento concluído seu.' }, { status: 403 });
+        const sr = await base44.asServiceRole.entities.ServiceRequest.get(body.service_request_id).catch(() => null);
+        if (!sr || sr.created_by_id !== user.id || sr.locksmith_id !== locksmithId || sr.status !== 'completed') {
+          return Response.json({ error: 'Você só pode avaliar um atendimento concluído seu.' }, { status: 403 });
+        }
+      } else {
+        const msgs = await base44.asServiceRole.entities.ChatMessage.filter({ locksmith_id: locksmithId, client_id: user.id });
+        if (!msgs.length) return Response.json({ error: 'Você só pode avaliar um chaveiro com quem já conversou.' }, { status: 403 });
+      }
+      await base44.asServiceRole.entities.Review.create({
+        locksmith_id: locksmithId,
+        locksmith_name: body.locksmith_name,
+        customer_name: body.customer_name || 'Cliente',
+        rating,
+        comment: body.comment,
+        service_type: body.service_type,
+        work_mode: workMode,
+      });
+      const reviews = await base44.asServiceRole.entities.Review.filter({ locksmith_id: locksmithId });
+      const avg = reviews.reduce((s, r) => s + (Number(r.rating) || 0), 0) / reviews.length;
+      await base44.asServiceRole.entities.Locksmith.update(locksmithId, {
+        rating: Math.round(avg * 10) / 10,
+        reviews_count: reviews.length,
+      });
+      return Response.json({ success: true });
+    }
+
     if (action === 'open_case') {
       const request = await base44.asServiceRole.entities.ServiceRequest.get(body.request_id);
       if (!request || request.locksmith_user_id !== user.id || !request.locksmith_arrived) return Response.json({ error: 'Confirme sua chegada antes de justificar o cancelamento' }, { status: 403 });
