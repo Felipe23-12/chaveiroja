@@ -10,8 +10,8 @@ export default function ReviewStep({ request, locksmith, customerName, onRate, o
   return (
     <div className="space-y-5 step-enter">
       <div className="flex flex-col items-center text-center py-4">
-        <div className="w-16 h-16 rounded-full bg-emerald-100 flex items-center justify-center mb-4">
-          <CheckCircle2 className="w-8 h-8 text-emerald-600" />
+        <div className="w-16 h-16 rounded-full bg-success/15 flex items-center justify-center mb-4">
+          <CheckCircle2 className="w-8 h-8 text-success" />
         </div>
         <h2 className="font-heading font-semibold text-lg text-foreground mb-1">Pagamento confirmado!</h2>
         <p className="text-sm text-muted-foreground">{request.service_type} · {locksmith?.name}</p>

@@ -112,7 +112,7 @@ export default function MobileTabBar() {
               <div className="relative">
                 <Icon className="w-5 h-5" />
                 {t.path === "/painel-chaveiro" && chatUnread > 0 && (
-                  <span className="absolute -top-1.5 -right-2 min-w-[16px] h-4 px-1 rounded-full bg-red-500 text-white text-[9px] font-bold flex items-center justify-center">
+                  <span className="absolute -top-1.5 -right-2 min-w-[16px] h-4 px-1 rounded-full bg-destructive text-destructive-foreground text-[9px] font-bold flex items-center justify-center">
                     {chatUnread > 9 ? "9+" : chatUnread}
                   </span>
                 )}

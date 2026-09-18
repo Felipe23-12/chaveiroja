@@ -90,9 +90,9 @@ export function LivreModeLocked({ onPay, me }) {
   return (
     <div className="space-y-4 fade-in-up">
       {/* Aviso de mensalidade — banner compacto, não substitui o mapa */}
-      <div className="flex flex-col items-center text-center py-5 px-4 rounded-xl border-2 border-amber-300 bg-amber-50">
-        <div className="w-12 h-12 rounded-full bg-amber-100 flex items-center justify-center mb-3">
-          <Lock className="w-6 h-6 text-amber-600" />
+      <div className="flex flex-col items-center text-center py-5 px-4 rounded-xl border-2 border-warning/40 bg-warning/10">
+        <div className="w-12 h-12 rounded-full bg-warning/15 flex items-center justify-center mb-3">
+          <Lock className="w-6 h-6 text-warning" />
         </div>
         <h2 className="font-heading font-semibold text-base text-foreground mb-1">
           Mensalidade pendente

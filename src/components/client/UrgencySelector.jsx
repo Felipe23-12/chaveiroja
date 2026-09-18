@@ -18,7 +18,7 @@ export default function UrgencySelector({ urgency, setUrgency }) {
         <button
           onClick={() => setUrgency("urgent")}
           className={`p-3 rounded-xl border-2 text-sm font-medium transition-all flex items-center justify-center gap-1.5 ${
-            urgency === "urgent" ? "border-red-500 bg-red-50 text-red-600" : "border-border text-muted-foreground"
+            urgency === "urgent" ? "border-destructive bg-destructive/10 text-destructive" : "border-border text-muted-foreground"
           }`}
         >
           <Zap className="w-4 h-4" /> Urgente

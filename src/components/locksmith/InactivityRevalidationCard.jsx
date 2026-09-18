@@ -35,8 +35,8 @@ export default function InactivityRevalidationCard({ locksmith, onRevalidated })
     : null;
 
   return (
-    <div className="p-4 rounded-2xl border-2 border-red-400 bg-red-50 space-y-3 mb-5">
-      <div className="flex items-center gap-2 text-red-700">
+    <div className="p-4 rounded-2xl border-2 border-destructive/40 bg-destructive/10 space-y-3 mb-5">
+      <div className="flex items-center gap-2 text-destructive">
         <ShieldAlert className="w-5 h-5" />
         <p className="font-bold text-sm">Perfil desativado por inatividade</p>
       </div>

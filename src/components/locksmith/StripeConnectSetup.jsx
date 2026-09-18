@@ -121,16 +121,16 @@ export default function StripeConnectSetup({ onStatusChange }) {
       </div>
 
       {active ? (
-        <div className="flex items-center gap-2 text-sm text-emerald-700 bg-emerald-50 rounded-lg p-3">
+        <div className="flex items-center gap-2 text-sm text-success bg-success/10 rounded-lg p-3">
           <CheckCircle2 className="w-4 h-4" /> Conta Stripe ativa para receber pagamentos e repasses.
         </div>
       ) : underReview ? (
-        <div className="flex items-start gap-2 text-sm text-amber-700 bg-amber-50 rounded-lg p-3">
+        <div className="flex items-start gap-2 text-sm text-warning bg-warning/10 rounded-lg p-3">
           <Loader2 className="w-4 h-4 mt-0.5 animate-spin shrink-0" />
           <span><strong>Conta em análise pelo Stripe.</strong> Você pode usar o aplicativo normalmente. Os recebimentos serão liberados automaticamente após a aprovação.</span>
         </div>
       ) : (
-        <div className="flex items-center gap-2 text-sm text-amber-700 bg-amber-50 rounded-lg p-3">
+        <div className="flex items-center gap-2 text-sm text-warning bg-warning/10 rounded-lg p-3">
           <AlertTriangle className="w-4 h-4" /> Cadastro Stripe ainda precisa ser concluído.
         </div>
       )}
@@ -146,7 +146,7 @@ export default function StripeConnectSetup({ onStatusChange }) {
         <p className="text-xs text-muted-foreground">O Stripe ainda solicita algumas informações para liberar completamente a conta.</p>
       )}
 
-      {error && <p className="text-sm text-red-600 bg-red-50 p-3 rounded-lg">{error}</p>}
+      {error && <p className="text-sm text-destructive bg-destructive/10 p-3 rounded-lg">{error}</p>}
 
       <div className="flex flex-wrap gap-2">
         {!active && !underReview && <Button onClick={setup} disabled={working} size="sm">

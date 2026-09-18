@@ -1170,8 +1170,8 @@ export default function Home() {
       {step === 6 && activeRequest && activeRequest.end_photos?.length > 0 && activeRequest.status !== "completed" && (
         <div className="space-y-3 step-enter">
           <div className="flex flex-col items-center text-center py-4">
-            <div className="w-16 h-16 rounded-full bg-emerald-100 flex items-center justify-center mb-4">
-              <CheckCircle2 className="w-8 h-8 text-emerald-600" />
+            <div className="w-16 h-16 rounded-full bg-success/15 flex items-center justify-center mb-4">
+              <CheckCircle2 className="w-8 h-8 text-success" />
             </div>
             <h2 className="font-heading font-semibold text-lg text-foreground mb-1">Serviço concluído!</h2>
             <p className="text-sm text-muted-foreground">{activeRequest.service_type} · {selectedLocksmith?.name}</p>
@@ -1193,8 +1193,8 @@ export default function Home() {
             </div>
           ) : activeRequest.payment_method === "dinheiro" && !activeRequest.cash_received ? (
             <div className="flex flex-col items-center text-center py-6">
-              <div className="w-14 h-14 rounded-full bg-amber-100 flex items-center justify-center mb-3">
-                <Loader2 className="w-7 h-7 text-amber-600 animate-spin" />
+              <div className="w-14 h-14 rounded-full bg-warning/15 flex items-center justify-center mb-3">
+                <Loader2 className="w-7 h-7 text-warning animate-spin" />
               </div>
               <h3 className="font-heading font-semibold text-base text-foreground mb-1">
                 Aguardando recebimento em dinheiro
@@ -1205,8 +1205,8 @@ export default function Home() {
             </div>
           ) : activeRequest.payment_status === "paid" ? (
             <div className="flex flex-col items-center text-center py-6 space-y-4">
-              <div className="w-14 h-14 rounded-full bg-emerald-100 flex items-center justify-center mb-1">
-                <Loader2 className="w-7 h-7 text-emerald-600 animate-spin" />
+              <div className="w-14 h-14 rounded-full bg-success/15 flex items-center justify-center mb-1">
+                <Loader2 className="w-7 h-7 text-success animate-spin" />
               </div>
               <div>
                 <h3 className="font-heading font-semibold text-base text-foreground mb-1">
@@ -1258,8 +1258,8 @@ export default function Home() {
       {cancelFeeData && activeRequest && !cancelConfirmOpen && (
         <div className="space-y-3 step-enter">
           <div className="flex flex-col items-center text-center py-4">
-            <div className="w-16 h-16 rounded-full bg-amber-100 flex items-center justify-center mb-4">
-              <AlertTriangle className="w-8 h-8 text-amber-600" />
+            <div className="w-16 h-16 rounded-full bg-warning/15 flex items-center justify-center mb-4">
+              <AlertTriangle className="w-8 h-8 text-warning" />
             </div>
             <h2 className="font-heading font-semibold text-lg text-foreground mb-1">Taxa de cancelamento</h2>
             <p className="text-sm text-muted-foreground">

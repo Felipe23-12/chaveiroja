@@ -25,7 +25,7 @@ export default function AdminPricePreview({ price, service }) {
       {factors.combinedMultiplier != null && <div className="flex justify-between gap-3 font-semibold"><span>Multiplicador combinado</span><strong>{mult(factors.combinedMultiplier)}</strong></div>}
     </div>
     <div className="space-y-1 border-t border-border pt-3 text-sm">
-      {(price.breakdown || []).map((item, index) => <div key={`${item.label}-${index}`} className="flex justify-between gap-3"><span>{item.label}</span><strong className={item.value < 0 ? "text-emerald-600" : ""}>{item.value > 0 && item.isAdjustment ? "+ " : ""}{money(item.value)}</strong></div>)}
+      {(price.breakdown || []).map((item, index) => <div key={`${item.label}-${index}`} className="flex justify-between gap-3"><span>{item.label}</span><strong className={item.value < 0 ? "text-success" : ""}>{item.value > 0 && item.isAdjustment ? "+ " : ""}{money(item.value)}</strong></div>)}
       <div className="flex justify-between gap-3 border-t border-border pt-2 text-base font-bold"><span>Total da solicitação</span><strong className="text-primary">{money(price.total)}</strong></div>
     </div>
     {factors.distanceOverThreshold && <p className="text-xs text-muted-foreground">O total inclui {money(price.distanceFee)} de distância excedente acima de 20 km.</p>}

@@ -39,7 +39,7 @@ export default function ReviewForm({ locksmithId, locksmithName, serviceType, wo
   };
 
   if (done) {
-    return <p className="text-center text-sm text-emerald-600 py-2">Obrigado pela avaliação! ⭐</p>;
+    return <p className="text-center text-sm text-success py-2">Obrigado pela avaliação! ⭐</p>;
   }
 
   return (

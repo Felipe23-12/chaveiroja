@@ -830,7 +830,7 @@ export default function PainelChaveiro() {
       <PullToRefreshIndicator pull={pull} refreshing={refreshing} />
       {/* Banner fixo piscante no topo quando há solicitações pendentes */}
       {pendingCount > 0 && canReceiveAppCalls && (
-        <div className="fixed top-0 left-0 right-0 z-50 bg-red-500 text-white text-center py-2 pt-safe text-sm font-bold animate-alert-blink shadow-lg md:left-64">
+        <div className="fixed top-0 left-0 right-0 z-50 bg-destructive text-destructive-foreground text-center py-2 pt-safe text-sm font-bold animate-alert-blink shadow-lg md:left-64">
           <Bell className="w-4 h-4 inline mr-2 animate-bounce" />
           {pendingCount === 1 ? "1 solicitação aguardando resposta!" : `${pendingCount} solicitações aguardando resposta!`}
         </div>
@@ -845,7 +845,7 @@ export default function PainelChaveiro() {
           ? new Date(cached._cached_at).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })
           : null;
         return (
-          <div className="flex items-center gap-2 mb-4 p-3 rounded-xl bg-amber-50 border border-amber-300 text-amber-800">
+          <div className="flex items-center gap-2 mb-4 p-3 rounded-xl bg-warning/10 border border-warning/40 text-warning">
             <WifiOff className="w-4 h-4 shrink-0" />
             <p className="text-sm font-medium">
               Sem conexão — exibindo dados do último serviço em cache
@@ -868,7 +868,7 @@ export default function PainelChaveiro() {
         </div>
         <div className="flex items-center gap-2">
           {pendingCount > 0 && (
-            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-red-500 text-white text-sm font-bold animate-pulse">
+            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-destructive text-destructive-foreground text-sm font-bold animate-pulse">
               <Bell className="w-4 h-4" />
               {pendingCount}
             </div>
@@ -878,7 +878,7 @@ export default function PainelChaveiro() {
       </div>
 
       {profileChecked && !selectedId && (
-        <div className="p-4 rounded-xl border border-amber-300 bg-amber-50 text-amber-800 mb-5">
+        <div className="p-4 rounded-xl border border-warning/40 bg-warning/10 text-warning mb-5">
           <p className="font-medium">Nenhum perfil de chaveiro vinculado a esta conta.</p>
           <p className="text-sm mt-1">
             Acesse <Link to="/modo-trabalho" className="underline font-semibold">Modo de trabalho</Link> para criar o seu perfil profissional.
@@ -901,12 +901,12 @@ export default function PainelChaveiro() {
             <p className="font-medium text-foreground">{user?.username || user?.full_name || me.name}</p>
             <p className="text-xs text-muted-foreground">
               Modo {isLivre ? "Livre" : "Aplicativo"} ·{" "}
-              <span className={me.online ? "text-emerald-600" : "text-muted-foreground"}>
+              <span className={me.online ? "text-success" : "text-muted-foreground"}>
                 {me.online ? "Online" : "Offline"}
               </span>
             </p>
             {blockedOnline && (
-              <p className="text-xs text-amber-600 mt-1">
+              <p className="text-xs text-warning mt-1">
                 Pague a mensalidade para ficar online e visível no mapa.
               </p>
             )}
@@ -926,7 +926,7 @@ export default function PainelChaveiro() {
       {me && isAppMode && <LocksmithScoreCard score={trustScore} />}
 
       {trustBlocked && (
-        <div className="p-4 rounded-xl border-2 border-red-400 bg-red-50 text-red-700 mb-5"><p className="font-bold text-sm">Conta temporariamente suspensa</p><p className="text-sm mt-1">Você não receberá chamados até o fim da análise de segurança.</p></div>
+        <div className="p-4 rounded-xl border-2 border-destructive/40 bg-destructive/10 text-destructive mb-5"><p className="font-bold text-sm">Conta temporariamente suspensa</p><p className="text-sm mt-1">Você não receberá chamados até o fim da análise de segurança.</p></div>
       )}
 
       {/* Perfil desativado automaticamente por 30 dias sem aceitar chamados */}
@@ -936,7 +936,7 @@ export default function PainelChaveiro() {
 
       {/* Bloqueio temporário por excesso de recusas */}
       {me && rejectBlock.blocked && (
-        <div className="p-4 rounded-xl border-2 border-red-400 bg-red-50 text-red-700 mb-5">
+        <div className="p-4 rounded-xl border-2 border-destructive/40 bg-destructive/10 text-destructive mb-5">
           <p className="font-bold text-sm">Bloqueado por {rejectBlock.minutesLeft} min</p>
           <p className="text-sm mt-1">
             Você excedeu o limite de {DAILY_REJECT_LIMIT} recusas por dia e não receberá novos chamados
@@ -1136,8 +1136,8 @@ export default function PainelChaveiro() {
           )}
 
           {phase === "awaiting_payment" && !cashPending && (
-            <div className="p-4 rounded-xl border-2 border-amber-300 bg-amber-50 space-y-3">
-              <div className="flex items-center gap-2 text-amber-700">
+            <div className="p-4 rounded-xl border-2 border-warning/40 bg-warning/10 space-y-3">
+              <div className="flex items-center gap-2 text-warning">
                 <Loader2 className="w-5 h-5 animate-spin" />
                 <p className="font-medium text-sm">Aguardando pagamento do cliente</p>
               </div>
@@ -1150,8 +1150,8 @@ export default function PainelChaveiro() {
           )}
 
           {phase === "ready_to_finish" && (
-            <div className="p-4 rounded-xl border-2 border-emerald-300 bg-emerald-50 space-y-3">
-              <div className="flex items-center gap-2 text-emerald-700">
+            <div className="p-4 rounded-xl border-2 border-success/40 bg-success/10 space-y-3">
+              <div className="flex items-center gap-2 text-success">
                 <Check className="w-5 h-5" />
                 <p className="font-medium text-sm">Pagamento confirmado!</p>
               </div>
@@ -1178,7 +1178,7 @@ export default function PainelChaveiro() {
                   </p>
                 )}
               </div>
-              <div className="p-4 rounded-xl bg-emerald-50 text-emerald-700 text-sm flex items-center gap-2">
+              <div className="p-4 rounded-xl bg-success/10 text-success text-sm flex items-center gap-2">
                 <CheckCircle2 className="w-5 h-5" /> Serviço concluído com sucesso!
               </div>
               <Button

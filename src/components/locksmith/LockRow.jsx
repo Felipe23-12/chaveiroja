@@ -16,7 +16,7 @@ export default function LockRow({ lock, index, onChange, onRemove, canRemove }) 
         {canRemove && (
           <button
             onClick={onRemove}
-            className="p-1.5 rounded-lg text-red-600 hover:bg-red-50"
+            className="p-1.5 rounded-lg text-destructive hover:bg-destructive/10"
             aria-label="Remover fechadura"
           >
             <Trash2 className="w-4 h-4" />
@@ -51,7 +51,7 @@ export default function LockRow({ lock, index, onChange, onRemove, canRemove }) 
         </p>
       )}
       {model.custom && (
-        <p className="text-xs text-amber-600">
+        <p className="text-xs text-warning">
           O chaveiro avalia este modelo no local e informa o valor antes de iniciar.
         </p>
       )}

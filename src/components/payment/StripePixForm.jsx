@@ -48,18 +48,18 @@ export default function StripePixForm({ pixData, paymentIntentId, onConfirmed })
           onClick={handleCopy}
           className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-muted text-xs font-medium text-foreground hover:bg-muted/70"
         >
-          {copied ? <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
+          {copied ? <CheckCircle2 className="w-3.5 h-3.5 text-success" /> : <Copy className="w-3.5 h-3.5" />}
           {copied ? "Copiado!" : "Copiar código Pix"}
         </button>
       </div>
       <div
         className={`p-3 rounded-lg border text-left ${
-          status === "paid" ? "bg-emerald-50 border-emerald-100" : "bg-amber-50 border-amber-100"
+          status === "paid" ? "bg-success/10 border-success/20" : "bg-warning/10 border-warning/20"
         }`}
       >
         <p
           className={`text-xs flex items-center gap-1.5 ${
-            status === "paid" ? "text-emerald-800" : "text-amber-800"
+            status === "paid" ? "text-success" : "text-warning"
           }`}
         >
           {status === "paid" ? (

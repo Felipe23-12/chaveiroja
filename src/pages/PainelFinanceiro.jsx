@@ -137,7 +137,7 @@ export default function PainelFinanceiro() {
       </div>
 
       {noProfile && (
-        <div className="p-4 rounded-xl border border-amber-300 bg-amber-50 text-amber-800 mb-5">
+        <div className="p-4 rounded-xl border border-warning/40 bg-warning/10 text-warning mb-5">
           <p className="font-medium">Nenhum perfil de chaveiro vinculado a esta conta.</p>
           <p className="text-sm mt-1">Crie seu perfil em Modo de trabalho para acessar o painel financeiro.</p>
         </div>
@@ -197,15 +197,15 @@ export default function PainelFinanceiro() {
 
       {/* Cards de resumo */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-6">
-        <div className="p-4 rounded-xl bg-emerald-50 border border-emerald-100">
-          <div className="flex items-center gap-2 text-emerald-700 mb-1">
+        <div className="p-4 rounded-xl bg-success/10 border border-success/20">
+          <div className="flex items-center gap-2 text-success mb-1">
             <Wallet className="w-4 h-4" />
             <span className="text-xs font-medium">Líquido acumulado</span>
           </div>
-          <p className="font-heading font-bold text-2xl text-emerald-700">
+          <p className="font-heading font-bold text-2xl text-success">
             R$ {stats.net.toFixed(2)}
           </p>
-          <p className="text-[11px] text-emerald-600/80 mt-0.5">Histórico dos serviços concluídos</p>
+          <p className="text-[11px] text-success/80 mt-0.5">Histórico dos serviços concluídos</p>
         </div>
 
         <div className="p-4 rounded-xl bg-card border border-border">
@@ -217,7 +217,7 @@ export default function PainelFinanceiro() {
               </>
             ) : (
               <>
-                <BadgeCheck className="w-4 h-4 text-amber-600" />
+                <BadgeCheck className="w-4 h-4 text-warning" />
                 <span className="text-xs font-medium">Mensalidade</span>
               </>
             )}
@@ -235,7 +235,7 @@ export default function PainelFinanceiro() {
                 R$ {monthlyFee.toFixed(2)}/mês
               </p>
               <p className="text-[11px] mt-0.5">
-                <span className={me?.monthly_fee_paid ? "text-emerald-600" : "text-red-600"}>
+                <span className={me?.monthly_fee_paid ? "text-success" : "text-destructive"}>
                   {me?.monthly_fee_paid ? "Paga" : "Pendente"}
                 </span>
               </p>
@@ -268,7 +268,7 @@ export default function PainelFinanceiro() {
       {!isAppMode && me && (
         <div className="p-4 rounded-xl border border-border bg-card mb-6 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className={`w-10 h-10 rounded-full flex items-center justify-center ${me.monthly_fee_paid ? "bg-emerald-100 text-emerald-700" : "bg-amber-100 text-amber-700"}`}>
+            <div className={`w-10 h-10 rounded-full flex items-center justify-center ${me.monthly_fee_paid ? "bg-success/15 text-success" : "bg-warning/15 text-warning"}`}>
               {me.monthly_fee_paid ? <BadgeCheck className="w-5 h-5" /> : <Clock className="w-5 h-5" />}
             </div>
             <div>
@@ -295,25 +295,25 @@ export default function PainelFinanceiro() {
       {/* Resumo de compensação — modo app */}
       {isAppMode && completed.length > 0 && (
         <div className="grid grid-cols-2 gap-3 mb-5">
-          <div className="p-3 rounded-xl bg-emerald-50 border border-emerald-100">
-            <div className="flex items-center gap-2 text-emerald-700 mb-1">
+          <div className="p-3 rounded-xl bg-success/10 border border-success/20">
+            <div className="flex items-center gap-2 text-success mb-1">
               <BadgeCheck className="w-4 h-4" />
               <span className="text-xs font-medium">Comissões compensadas</span>
             </div>
-            <p className="font-heading font-bold text-lg text-emerald-700">
+            <p className="font-heading font-bold text-lg text-success">
               R$ {stats.commissionPaid.toFixed(2)}
             </p>
-            <p className="text-[11px] text-emerald-600/80 mt-0.5">{stats.paidCount} serviço(s)</p>
+            <p className="text-[11px] text-success/80 mt-0.5">{stats.paidCount} serviço(s)</p>
           </div>
-          <div className="p-3 rounded-xl bg-amber-50 border border-amber-100">
-            <div className="flex items-center gap-2 text-amber-700 mb-1">
+          <div className="p-3 rounded-xl bg-warning/10 border border-warning/20">
+            <div className="flex items-center gap-2 text-warning mb-1">
               <Clock className="w-4 h-4" />
               <span className="text-xs font-medium">Pendentes de processamento</span>
             </div>
-            <p className="font-heading font-bold text-lg text-amber-700">
+            <p className="font-heading font-bold text-lg text-warning">
               R$ {stats.commissionPending.toFixed(2)}
             </p>
-            <p className="text-[11px] text-amber-600/80 mt-0.5">{completed.length - stats.paidCount} serviço(s)</p>
+            <p className="text-[11px] text-warning/80 mt-0.5">{completed.length - stats.paidCount} serviço(s)</p>
           </div>
         </div>
       )}
@@ -324,15 +324,15 @@ export default function PainelFinanceiro() {
           <h2 className="font-heading font-semibold text-lg text-foreground mb-3">
             Taxas de cancelamento recebidas (20%)
           </h2>
-          <div className="p-4 rounded-xl bg-emerald-50 border border-emerald-100 mb-3">
-            <div className="flex items-center gap-2 text-emerald-700 mb-1">
+          <div className="p-4 rounded-xl bg-success/10 border border-success/20 mb-3">
+            <div className="flex items-center gap-2 text-success mb-1">
               <BadgeCheck className="w-4 h-4" />
               <span className="text-xs font-medium">Total recebido de cancelamentos</span>
             </div>
-            <p className="font-heading font-bold text-2xl text-emerald-700">
+            <p className="font-heading font-bold text-2xl text-success">
               R$ {stats.cancellationTotal.toFixed(2)}
             </p>
-            <p className="text-[11px] text-emerald-600/80 mt-0.5">
+            <p className="text-[11px] text-success/80 mt-0.5">
               {stats.cancelledCount} cancelamento(s) com taxa · 5% repassado ao app
             </p>
           </div>
@@ -361,7 +361,7 @@ export default function PainelFinanceiro() {
                     <div className="text-right shrink-0">
                       <p className="text-[11px] text-muted-foreground">Taxa do cliente (25%)</p>
                       <p className="text-sm font-medium text-foreground">R$ {fee.toFixed(2)}</p>
-                      <p className="text-[11px] text-emerald-600 mt-0.5">+ R$ {locksmithAmt.toFixed(2)} para você (20%)</p>
+                      <p className="text-[11px] text-success mt-0.5">+ R$ {locksmithAmt.toFixed(2)} para você (20%)</p>
                       <p className="text-[11px] text-muted-foreground">R$ {appFee.toFixed(2)} para o app (5%)</p>
                     </div>
                   </div>
@@ -410,8 +410,8 @@ export default function PainelFinanceiro() {
                       <span
                         className={`inline-flex items-center gap-1 mt-1.5 px-2 py-0.5 rounded-full text-[11px] font-medium ${
                           (r.commission_status || "pending") === "paid"
-                            ? "bg-emerald-100 text-emerald-700"
-                            : "bg-amber-100 text-amber-700"
+                            ? "bg-success/15 text-success"
+                            : "bg-warning/15 text-warning"
                         }`}
                       >
                         {(r.commission_status || "pending") === "paid" ? (
@@ -425,9 +425,9 @@ export default function PainelFinanceiro() {
                   <div className="text-right shrink-0 flex flex-col items-end gap-1">
                     <p className="text-sm font-medium text-foreground">R$ {price.toFixed(2)}</p>
                     {isAppMode && (
-                      <p className="text-[11px] text-red-500">- R$ {comm.toFixed(2)} (15%)</p>
+                      <p className="text-[11px] text-destructive">- R$ {comm.toFixed(2)} (15%)</p>
                     )}
-                    <p className="text-sm font-semibold text-emerald-600">R$ {net.toFixed(2)}</p>
+                    <p className="text-sm font-semibold text-success">R$ {net.toFixed(2)}</p>
 
                   </div>
                 </div>

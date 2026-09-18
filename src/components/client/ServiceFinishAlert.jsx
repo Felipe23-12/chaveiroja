@@ -101,7 +101,7 @@ export default function ServiceFinishAlert() {
   return (
     <button
       onClick={() => navigate("/")}
-      className="fixed bottom-36 right-4 left-4 md:left-auto md:right-6 md:bottom-24 z-[70] flex items-center gap-3 px-4 h-14 rounded-2xl bg-emerald-500 text-white font-bold shadow-2xl active:scale-[0.98] transition-all animate-alert-slide"
+      className="fixed bottom-36 right-4 left-4 md:left-auto md:right-6 md:bottom-24 z-[70] flex items-center gap-3 px-4 h-14 rounded-2xl bg-success text-success-foreground font-bold shadow-2xl active:scale-[0.98] transition-all animate-alert-slide"
     >
       <CheckCircle2 className="w-6 h-6 shrink-0" />
       <div className="flex-1 text-left">

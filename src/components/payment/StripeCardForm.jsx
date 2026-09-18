@@ -54,7 +54,7 @@ function CardForm({ clientSecret, onConfirm, processing }) {
         />
       </div>
 
-      {error && <p className="text-sm text-red-600">{error}</p>}
+      {error && <p className="text-sm text-destructive">{error}</p>}
 
       <Button type="submit" disabled={!stripe || processing || confirming} size="lg" className="w-full">
         {processing || confirming ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Lock className="w-4 h-4 mr-2" />}

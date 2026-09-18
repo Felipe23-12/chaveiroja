@@ -36,8 +36,8 @@ export default function PoliticaReembolso() {
 
             <section>
               <h2 className="text-lg font-bold text-slate-900 mb-3">2. Serviço não executado</h2>
-              <div className="flex gap-3 p-4 rounded-xl bg-emerald-50 border border-emerald-100">
-                <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0 mt-0.5" />
+              <div className="flex gap-3 p-4 rounded-xl bg-success/10 border border-success/20">
+                <CheckCircle2 className="w-5 h-5 text-success shrink-0 mt-0.5" />
                 <p>
                   Quando o cliente tiver realizado um pagamento e o serviço não tiver sido executado pelo chaveiro,
                   o cliente poderá solicitar a restituição do valor pago, observadas as condições da contratação e
@@ -76,8 +76,8 @@ export default function PoliticaReembolso() {
                 informações adicionais antes de concluir a análise. Isso não impede o consumidor de exercer os direitos
                 garantidos pela legislação brasileira.
               </p>
-              <div className="mt-4 flex gap-3 p-4 rounded-xl bg-amber-50 border border-amber-100 text-sm">
-                <AlertCircle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
+              <div className="mt-4 flex gap-3 p-4 rounded-xl bg-warning/10 border border-warning/20 text-sm">
+                <AlertCircle className="w-5 h-5 text-warning shrink-0 mt-0.5" />
                 <p>
                   O cliente deve informar o problema assim que identificá-lo e preservar, quando possível, documentos,
                   conversas e demais registros relacionados ao serviço.

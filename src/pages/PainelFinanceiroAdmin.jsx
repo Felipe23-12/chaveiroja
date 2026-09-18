@@ -27,12 +27,12 @@ const methodIcon = (m) => {
 
 const statusBadge = (s) => {
   const map = {
-    pre_authorized: "bg-amber-50 text-amber-600",
+    pre_authorized: "bg-warning/10 text-warning",
     captured: "bg-blue-50 text-blue-600",
-    paid: "bg-emerald-50 text-emerald-600",
-    cancelled: "bg-red-50 text-red-600",
+    paid: "bg-success/10 text-success",
+    cancelled: "bg-destructive/10 text-destructive",
     refunded: "bg-violet-50 text-violet-600",
-    failed: "bg-red-50 text-red-600",
+    failed: "bg-destructive/10 text-destructive",
   };
   const label = {
     pre_authorized: "Pré-autorizado",
@@ -174,10 +174,10 @@ export default function PainelFinanceiroAdmin() {
 
         <div className="rounded-xl border border-border bg-white p-4">
           <div className="flex items-center gap-2 text-muted-foreground mb-1">
-            <Wallet className="w-4 h-4 text-emerald-600" />
+            <Wallet className="w-4 h-4 text-success" />
             <span className="text-xs">Líquido aos chaveiros</span>
           </div>
-          <p className="font-heading font-bold text-xl text-emerald-600">{fmtMoney(totals.net)}</p>
+          <p className="font-heading font-bold text-xl text-success">{fmtMoney(totals.net)}</p>
           <p className="text-xs text-muted-foreground mt-1">Parcela dos chaveiros antes das tarifas; inclui créditos ainda não repassados</p>
         </div>
 
@@ -224,7 +224,7 @@ export default function PainelFinanceiroAdmin() {
                       <td className="px-4 py-2 text-right text-muted-foreground">{l.count}</td>
                       <td className="px-4 py-2 text-right text-muted-foreground">{fmtMoney(l.gross)}</td>
                       <td className="px-4 py-2 text-right text-blue-600">- {fmtMoney(l.commission)}</td>
-                      <td className="px-4 py-2 text-right font-semibold text-emerald-600">{fmtMoney(l.net)}</td>
+                      <td className="px-4 py-2 text-right font-semibold text-success">{fmtMoney(l.net)}</td>
                       <td className="px-4 py-2 text-right text-muted-foreground">{fmtMoney(l.walletBalance)}</td>
                     </tr>
                   ))}
@@ -235,7 +235,7 @@ export default function PainelFinanceiroAdmin() {
                     <td className="px-4 py-2 text-right font-medium text-foreground">{totals.paidCount}</td>
                     <td className="px-4 py-2 text-right font-medium text-foreground">{fmtMoney(totals.gross)}</td>
                     <td className="px-4 py-2 text-right font-medium text-blue-600">{fmtMoney(totals.commission)}</td>
-                    <td className="px-4 py-2 text-right font-bold text-emerald-600">{fmtMoney(totals.net)}</td>
+                    <td className="px-4 py-2 text-right font-bold text-success">{fmtMoney(totals.net)}</td>
                     <td className="px-4 py-2"></td>
                   </tr>
                 </tfoot>
@@ -287,7 +287,7 @@ export default function PainelFinanceiroAdmin() {
                         </td>
                         <td className="px-4 py-2 text-right text-foreground">{fmtMoney(p.amount)}</td>
                         <td className="px-4 py-2 text-right text-blue-600">- {fmtMoney(p.commission_amount)}</td>
-                        <td className="px-4 py-2 text-right font-semibold text-emerald-600">{fmtMoney(p.net_amount)}</td>
+                        <td className="px-4 py-2 text-right font-semibold text-success">{fmtMoney(p.net_amount)}</td>
                         <td className="px-4 py-2">{statusBadge(p.status)}{p.collection_mode === "platform_pending" && <p className="mt-1 text-xs text-muted-foreground">{p.transfer_status === "pending" ? `Crédito pendente: ${fmtMoney(p.pending_transfer_amount)}` : p.transfer_status === "under_review" ? "Crédito em revisão" : p.transfer_status === "reversed" ? "Crédito estornado" : "Aguardando pagamento · plataforma"}</p>}</td>
                       </tr>
                     );

@@ -182,7 +182,7 @@ export default function NearbyRequestsList({ locksmith }) {
                 <div className="text-right shrink-0">
                   <p className="text-xs font-bold text-primary">{req.distance.toFixed(1)} km</p>
                   {req.urgency === "urgent" && (
-                    <p className="text-[10px] text-red-500 font-medium">Urgente</p>
+                    <p className="text-[10px] text-destructive font-medium">Urgente</p>
                   )}
                 </div>
               </div>

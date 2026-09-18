@@ -30,7 +30,7 @@ export default function UpgradeToUrgentButton({ request, onUpdated }) {
 
   if (request.urgency_upgrade_status === "pending") {
     return (
-      <div className="p-3 rounded-xl border border-amber-300 bg-amber-50 text-amber-800 text-sm font-medium text-center">
+      <div className="p-3 rounded-xl border border-warning/40 bg-warning/10 text-warning text-sm font-medium text-center">
         Aguardando o chaveiro responder ao pedido de atendimento urgente (até 1 minuto)...
       </div>
     );
@@ -100,7 +100,7 @@ export default function UpgradeToUrgentButton({ request, onUpdated }) {
       <Button
         variant="outline"
         onClick={() => setOpen(true)}
-        className="w-full text-red-600 border-red-300 hover:bg-red-50"
+        className="w-full text-destructive border-destructive/40 hover:bg-destructive/10"
       >
         <Zap className="w-4 h-4 mr-2" /> Alterar para atendimento urgente
       </Button>

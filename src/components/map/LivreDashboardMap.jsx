@@ -64,8 +64,8 @@ export default function LivreDashboardMap({ me }) {
           <h3 className="font-heading font-semibold text-foreground">Clientes próximos</h3>
           <p className="text-xs text-muted-foreground">Solicitações ativas em tempo real</p>
         </div>
-        <div className="flex items-center gap-1.5 text-xs text-amber-600 font-medium">
-          <span className="w-2 h-2 rounded-full bg-amber-500" />
+        <div className="flex items-center gap-1.5 text-xs text-warning font-medium">
+          <span className="w-2 h-2 rounded-full bg-warning" />
           {nearby.length} aguardando
         </div>
       </div>

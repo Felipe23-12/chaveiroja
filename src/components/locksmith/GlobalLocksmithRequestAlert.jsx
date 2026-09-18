@@ -211,9 +211,9 @@ export default function GlobalLocksmithRequestAlert() {
       {/* Card expandido — flutua acima do botão, sem ocupar a tela toda */}
       {open && (
         <div className="fixed bottom-[calc(4.5rem+env(safe-area-inset-bottom))] right-4 left-4 sm:left-auto sm:w-96 md:bottom-4 z-[60] animate-alert-slide">
-          <div className="rounded-2xl border-2 border-red-500 bg-card shadow-2xl overflow-hidden animate-alert-flash">
+          <div className="rounded-2xl border-2 border-destructive bg-card shadow-2xl overflow-hidden animate-alert-flash">
             {/* Cabeçalho */}
-            <div className="flex items-center justify-between px-4 py-2.5 bg-red-500 text-white animate-alert-blink">
+            <div className="flex items-center justify-between px-4 py-2.5 bg-destructive text-destructive-foreground animate-alert-blink">
               <div className="flex items-center gap-2">
                 <Bell className="w-5 h-5 animate-bounce" />
                 <span className="font-heading font-bold text-sm">
@@ -254,11 +254,11 @@ export default function GlobalLocksmithRequestAlert() {
       {!open && (
         <button
           onClick={() => setOpen(true)}
-          className="fixed bottom-[calc(4.5rem+env(safe-area-inset-bottom))] right-4 z-[60] flex items-center gap-2 pl-3 pr-4 h-12 rounded-full bg-red-500 text-white font-bold text-sm shadow-2xl shadow-red-500/40 hover:bg-red-600 active:scale-95 transition-all animate-alert-blink md:bottom-4"
+          className="fixed bottom-[calc(4.5rem+env(safe-area-inset-bottom))] right-4 z-[60] flex items-center gap-2 pl-3 pr-4 h-12 rounded-full bg-destructive text-destructive-foreground font-bold text-sm shadow-2xl shadow-destructive/40 hover:bg-destructive/90 active:scale-95 transition-all animate-alert-blink md:bottom-4"
         >
           <div className="relative">
             <Bell className="w-5 h-5" />
-            <span className="absolute -top-2 -right-2 w-5 h-5 rounded-full bg-white text-red-600 text-[10px] font-bold flex items-center justify-center border-2 border-red-500">
+            <span className="absolute -top-2 -right-2 w-5 h-5 rounded-full bg-background text-destructive text-[10px] font-bold flex items-center justify-center border-2 border-destructive">
               {requests.length}
             </span>
           </div>
@@ -302,7 +302,7 @@ function RequestCard({ request, onAccept, onReject, accepting, showDivider }) {
             <MapPin className="w-3 h-3 shrink-0" /> {request.address}
           </p>
         </div>
-        <div className={`flex items-center gap-1 text-xs font-medium ${isUrgent ? "text-red-600" : "text-muted-foreground"}`}>
+        <div className={`flex items-center gap-1 text-xs font-medium ${isUrgent ? "text-destructive" : "text-muted-foreground"}`}>
           <Clock className="w-3 h-3" />
           <span className="tabular-nums">{formatElapsed(elapsed)}</span>
         </div>
@@ -347,7 +347,7 @@ function RequestCard({ request, onAccept, onReject, accepting, showDivider }) {
       </div>
 
       {isUrgent && (
-        <div className="flex items-center gap-1.5 text-xs text-red-600 bg-red-100 dark:bg-red-950/40 p-2 rounded-lg mb-2 animate-alert-blink">
+        <div className="flex items-center gap-1.5 text-xs text-destructive bg-destructive/15 p-2 rounded-lg mb-2 animate-alert-blink">
           <AlertCircle className="w-3.5 h-3.5 shrink-0" />
           <span>Responda rápido — a solicitação pode expirar!</span>
         </div>
@@ -372,7 +372,7 @@ function RequestCard({ request, onAccept, onReject, accepting, showDivider }) {
         <button
           onClick={handleAccept}
           disabled={accepting}
-          className="flex-1 h-12 rounded-xl bg-emerald-500 text-white font-bold text-sm flex items-center justify-center gap-1.5 hover:bg-emerald-600 active:scale-95 transition-all disabled:opacity-50 shadow-lg shadow-emerald-500/30"
+          className="flex-1 h-12 rounded-xl bg-success text-success-foreground font-bold text-sm flex items-center justify-center gap-1.5 hover:bg-success/90 active:scale-95 transition-all disabled:opacity-50 shadow-lg shadow-success/30"
         >
           {accepting ? (
             <>

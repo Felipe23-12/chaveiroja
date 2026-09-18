@@ -10,14 +10,14 @@ import { cn } from "@/lib/utils";
 // - Pronto/Finalizado: verde
 const STATUS_CONFIG = {
   moving: { label: "Em rota", className: "bg-blue-500 text-white", icon: Navigation },
-  arrived_detected: { label: "No local", className: "bg-amber-500 text-white", icon: MapPin },
-  arrived_pending: { label: "Aguardando cliente", className: "bg-amber-500 text-white", icon: Clock },
+  arrived_detected: { label: "No local", className: "bg-warning text-warning-foreground", icon: MapPin },
+  arrived_pending: { label: "Aguardando cliente", className: "bg-warning text-warning-foreground", icon: Clock },
   arrived_confirmed: { label: "Iniciar atendimento", className: "bg-primary text-primary-foreground", icon: Wrench },
   finishing: { label: "Em atendimento", className: "bg-primary text-primary-foreground", icon: Wrench },
-  awaiting_client: { label: "Aguardando cliente", className: "bg-amber-500 text-white", icon: Clock },
-  awaiting_payment: { label: "Aguardando pagamento", className: "bg-amber-500 text-white", icon: Wallet },
-  ready_to_finish: { label: "Pronto para finalizar", className: "bg-emerald-500 text-white", icon: CheckCircle2 },
-  completed: { label: "Finalizado", className: "bg-emerald-600 text-white", icon: CheckCircle2 },
+  awaiting_client: { label: "Aguardando cliente", className: "bg-warning text-warning-foreground", icon: Clock },
+  awaiting_payment: { label: "Aguardando pagamento", className: "bg-warning text-warning-foreground", icon: Wallet },
+  ready_to_finish: { label: "Pronto para finalizar", className: "bg-success text-success-foreground", icon: CheckCircle2 },
+  completed: { label: "Finalizado", className: "bg-success text-success-foreground", icon: CheckCircle2 },
 };
 
 export default function ServiceStatusBadge({ phase, className }) {
@@ -40,12 +40,12 @@ export default function ServiceStatusBadge({ phase, className }) {
 // Cor da borda lateral do card, alinhada ao badge (classes literais para o purge do Tailwind)
 export const PHASE_BORDER = {
   moving: "border-l-blue-500",
-  arrived_detected: "border-l-amber-500",
-  arrived_pending: "border-l-amber-500",
+  arrived_detected: "border-l-warning",
+  arrived_pending: "border-l-warning",
   arrived_confirmed: "border-l-primary",
   finishing: "border-l-primary",
-  awaiting_client: "border-l-amber-500",
-  awaiting_payment: "border-l-amber-500",
-  ready_to_finish: "border-l-emerald-500",
-  completed: "border-l-emerald-600",
+  awaiting_client: "border-l-warning",
+  awaiting_payment: "border-l-warning",
+  ready_to_finish: "border-l-success",
+  completed: "border-l-success",
 };

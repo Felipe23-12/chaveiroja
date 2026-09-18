@@ -38,7 +38,7 @@ export default function BrokenKeySelector({ value, onChange }) {
         ))}
       </div>
       {value == null && (
-        <p className="text-xs text-amber-600 mt-1.5 flex items-center gap-1">
+        <p className="text-xs text-warning mt-1.5 flex items-center gap-1">
           <AlertTriangle className="w-3.5 h-3.5" /> Confirmação obrigatória para solicitar o chamado.
         </p>
       )}

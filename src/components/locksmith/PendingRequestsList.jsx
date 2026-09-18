@@ -55,7 +55,7 @@ function CompactRequestCard({ request, onAccept, onReject }) {
   };
 
   return (
-    <div className="p-3 rounded-xl border-2 border-amber-300 bg-amber-50">
+    <div className="p-3 rounded-xl border-2 border-warning/40 bg-warning/10">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0 flex-1">
           <p className="text-xs font-bold text-foreground truncate">Cliente: {clientNameFromRequest(request)}</p>
@@ -63,7 +63,7 @@ function CompactRequestCard({ request, onAccept, onReject }) {
             {request.service_type}
           </p>
           <p className="text-xs text-muted-foreground truncate flex items-center gap-1 mt-0.5">
-            <span className="w-1.5 h-1.5 rounded-full bg-amber-500 shrink-0" />
+            <span className="w-1.5 h-1.5 rounded-full bg-warning shrink-0" />
             {request.address}
           </p>
           <p className="text-sm font-bold text-foreground mt-1">
@@ -114,7 +114,7 @@ function CompactRequestCard({ request, onAccept, onReject }) {
       <div className="flex gap-2 mt-2">
         <button
           onClick={handleAccept}
-          className="flex-1 min-h-[44px] rounded-lg bg-emerald-500 text-white text-xs font-bold flex items-center justify-center gap-1 hover:bg-emerald-600 active:scale-95 transition-all shadow-sm shadow-emerald-500/30"
+          className="flex-1 min-h-[44px] rounded-lg bg-success text-success-foreground text-xs font-bold flex items-center justify-center gap-1 hover:bg-success/90 active:scale-95 transition-all shadow-sm shadow-success/30"
         >
           <Check className="w-4 h-4" /> Aceitar
         </button>

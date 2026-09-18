@@ -60,7 +60,7 @@ export default function UrgentArrivalCountdown({ request }) {
 
   if (tolerance && !expired) {
     return (
-      <div className="flex items-start gap-2 p-3 rounded-xl border border-emerald-400 bg-emerald-50 text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-400 text-sm font-medium">
+      <div className="flex items-start gap-2 p-3 rounded-xl border border-success/40 bg-success/10 text-success text-sm font-medium">
         <Navigation className="w-4 h-4 shrink-0 mt-0.5" />
         <span>
           Seu chaveiro já está a menos de {NEARBY_TOLERANCE_KM} km e está chegando. Como ele está
@@ -75,8 +75,8 @@ export default function UrgentArrivalCountdown({ request }) {
     <div
       className={`flex items-center gap-2 p-3 rounded-xl border text-sm font-medium ${
         expired
-          ? "border-red-500 bg-red-50 text-red-700 dark:bg-red-950/40 dark:text-red-400 animate-alert-blink"
-          : "border-amber-400 bg-amber-50 text-amber-700 dark:bg-amber-950/30 dark:text-amber-400"
+          ? "border-destructive bg-destructive/10 text-destructive animate-alert-blink"
+          : "border-warning/40 bg-warning/10 text-warning"
       }`}
     >
       {expired ? <AlertCircle className="w-4 h-4 shrink-0" /> : <Clock className="w-4 h-4 shrink-0" />}

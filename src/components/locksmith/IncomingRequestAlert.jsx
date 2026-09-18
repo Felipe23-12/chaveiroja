@@ -41,7 +41,7 @@ export default function IncomingRequestAlert({ request, onAccept, onReject }) {
     <div
       className={`rounded-2xl border-2 mb-5 overflow-hidden animate-alert-slide ${
         isUrgent
-          ? "border-red-500 bg-red-50 animate-alert-flash"
+          ? "border-destructive bg-destructive/10 animate-alert-flash"
           : "border-primary bg-primary/5"
       }`}
     >
@@ -49,8 +49,8 @@ export default function IncomingRequestAlert({ request, onAccept, onReject }) {
       <div
         className={`flex items-center justify-between px-4 py-3 ${
           isUrgent
-            ? "bg-red-500 text-white animate-alert-blink"
-            : "bg-primary text-primary-foreground"
+          ? "bg-destructive text-destructive-foreground animate-alert-blink"
+          : "bg-primary text-primary-foreground"
         }`}
       >
         <div className="flex items-center gap-2">
@@ -119,7 +119,7 @@ export default function IncomingRequestAlert({ request, onAccept, onReject }) {
 
         {/* Aviso de tempo limite */}
         {isUrgent && (
-          <div className="flex items-center gap-2 text-xs text-red-600 bg-red-100 p-2 rounded-lg animate-alert-blink">
+          <div className="flex items-center gap-2 text-xs text-destructive bg-destructive/15 p-2 rounded-lg animate-alert-blink">
             <AlertCircle className="w-4 h-4 shrink-0" />
             <span>A solicitação pode expirar — aceite ou recuse o mais rápido possível!</span>
           </div>
@@ -143,7 +143,7 @@ export default function IncomingRequestAlert({ request, onAccept, onReject }) {
         <div className="flex gap-2">
           <button
             onClick={handleAccept}
-            className="flex-1 h-12 rounded-xl bg-emerald-500 text-white font-bold text-sm flex items-center justify-center gap-1.5 hover:bg-emerald-600 active:scale-95 transition-all shadow-lg shadow-emerald-500/30"
+            className="flex-1 h-12 rounded-xl bg-success text-success-foreground font-bold text-sm flex items-center justify-center gap-1.5 hover:bg-success/90 active:scale-95 transition-all shadow-lg shadow-success/30"
           >
             <Check className="w-5 h-5" /> Aceitar
           </button>

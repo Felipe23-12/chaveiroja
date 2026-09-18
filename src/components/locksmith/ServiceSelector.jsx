@@ -86,7 +86,7 @@ export default function ServiceSelector({ locksmith, onUpdate }) {
       </div>
 
       {selected.length === 0 && (
-        <p className="text-xs text-amber-600 bg-amber-50 p-2.5 rounded-lg">
+        <p className="text-xs text-warning bg-warning/10 p-2.5 rounded-lg">
           Você não selecionou nenhum serviço. Em branco, você atende todos os serviços por padrão.
         </p>
       )}

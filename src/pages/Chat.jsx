@@ -178,8 +178,8 @@ export default function Chat() {
         </div>
         <div className="flex-1">
           <p className="font-medium text-foreground">{locksmith?.name || "Carregando..."}</p>
-          <p className="text-xs text-emerald-600 flex items-center gap-1">
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" /> online · {locksmith?.specialty}
+          <p className="text-xs text-success flex items-center gap-1">
+            <span className="w-1.5 h-1.5 rounded-full bg-success" /> online · {locksmith?.specialty}
           </p>
         </div>
         <ModerationActions targetUserId={locksmith?.created_by_id} targetType="chaveiro" targetName={locksmith?.name} contextType="chat" locksmithId={locksmithId} />

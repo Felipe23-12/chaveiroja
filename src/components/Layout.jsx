@@ -84,7 +84,7 @@ function SidebarContent({ onNavigate }) {
               <Icon className="w-3 h-3 shrink-0" />
               <span>{item.label}</span>
               {item.path === "/painel-chaveiro" && chatUnread > 0 && (
-                <span className="ml-auto min-w-[18px] h-[18px] px-1 rounded-full bg-red-500 text-white text-[10px] font-bold flex items-center justify-center">
+                <span className="ml-auto min-w-[18px] h-[18px] px-1 rounded-full bg-destructive text-destructive-foreground text-[10px] font-bold flex items-center justify-center">
                   {chatUnread > 9 ? "9+" : chatUnread}
                 </span>
               )}

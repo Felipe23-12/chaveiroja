@@ -42,9 +42,9 @@ export default function ArrivalDeadlineCountdown({ request }) {
     <div
       className={`flex items-center gap-2 p-3 rounded-xl border text-sm font-medium ${
         expired
-          ? "border-red-500 bg-red-50 text-red-700 dark:bg-red-950/40 dark:text-red-400 animate-alert-blink"
+          ? "border-destructive bg-destructive/10 text-destructive animate-alert-blink"
           : urgent
-          ? "border-amber-400 bg-amber-50 text-amber-700 dark:bg-amber-950/30 dark:text-amber-400"
+          ? "border-warning/40 bg-warning/10 text-warning"
           : "border-border bg-muted/50 text-foreground"
       }`}
     >

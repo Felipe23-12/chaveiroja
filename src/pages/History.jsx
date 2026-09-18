@@ -69,7 +69,7 @@ export default function History() {
       </div>
 
       {offline && (
-        <div className="mb-4 p-3 rounded-lg bg-amber-50 text-amber-700 text-sm flex items-center gap-2">
+        <div className="mb-4 p-3 rounded-lg bg-warning/10 text-warning text-sm flex items-center gap-2">
           <WifiOff className="w-4 h-4 shrink-0" />
           <span>Você está offline. Exibindo o último atendimento armazenado.</span>
         </div>

@@ -255,12 +255,12 @@ export default function Acompanhamento() {
         <CancellationCaseNotice requestId={request.id} />
         <KeyServicePrice request={request} />
         {request.end_photos?.length > 0 && request.status !== "completed" && (
-          <div className="p-4 rounded-2xl border-2 border-emerald-500 bg-emerald-50 space-y-3">
-            <div className="flex items-center gap-2 text-emerald-700">
+          <div className="p-4 rounded-2xl border-2 border-success bg-success/10 space-y-3">
+            <div className="flex items-center gap-2 text-success">
               <CheckCircle2 className="w-5 h-5" />
               <p className="font-semibold text-sm">O chaveiro finalizou o serviço</p>
             </div>
-            <p className="text-xs text-emerald-800">Confirme a conclusão para seguir diretamente ao pagamento pelo Mercado Pago.</p>
+            <p className="text-xs text-success">Confirme a conclusão para seguir diretamente ao pagamento pelo Mercado Pago.</p>
             {finishError && <p className="text-xs font-medium text-destructive">{finishError}</p>}
             <Button onClick={confirmFinishedService} disabled={finishUpdating} className="w-full">
               {finishUpdating ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
@@ -358,8 +358,8 @@ export default function Acompanhamento() {
           <div className="flex items-center gap-2 px-4 py-3 border-b border-border bg-muted/50">
             <MessageCircle className="w-4 h-4 text-primary" />
             <p className="font-medium text-sm text-foreground">Chat com {locksmith?.name || "chaveiro"}</p>
-            <span className="ml-auto flex items-center gap-1 text-xs text-emerald-600">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" /> online
+            <span className="ml-auto flex items-center gap-1 text-xs text-success">
+              <span className="w-1.5 h-1.5 rounded-full bg-success" /> online
             </span>
           </div>
 

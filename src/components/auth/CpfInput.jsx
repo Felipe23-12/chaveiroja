@@ -25,18 +25,18 @@ const CpfInput = forwardRef(({ value, onChange, email }, ref) => {
           placeholder="000.000.000-00"
           value={value}
           onChange={(e) => onChange(formatCpf(e.target.value))}
-          className={`pl-10 pr-10 h-12 ${error ? "border-destructive" : valid ? "border-emerald-500" : ""}`}
+          className={`pl-10 pr-10 h-12 ${error ? "border-destructive" : valid ? "border-success" : ""}`}
           required
         />
         {valid && (
-          <CheckCircle2 className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-emerald-500" />
+          <CheckCircle2 className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-success" />
         )}
         {error && (
           <AlertCircle className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-destructive" />
         )}
       </div>
       {error && <p className="text-xs text-destructive">{error}</p>}
-      {valid && <p className="text-xs text-emerald-600">CPF válido</p>}
+      {valid && <p className="text-xs text-success">CPF válido</p>}
       <TestCpfGeneratorButton email={email} onGenerate={onChange} />
     </div>
   );

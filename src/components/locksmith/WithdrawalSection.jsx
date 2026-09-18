@@ -8,10 +8,10 @@ import NativeSelectDrawer from "@/components/ui/NativeSelectDrawer";
 import { requestWithdrawal } from "@/lib/payments";
 
 const STATUS_CONFIG = {
-  requested: { label: "Solicitado", icon: Clock, color: "text-amber-600 bg-amber-50" },
+  requested: { label: "Solicitado", icon: Clock, color: "text-warning bg-warning/10" },
   processing: { label: "Processando", icon: Loader2, color: "text-blue-600 bg-blue-50" },
-  completed: { label: "Concluído", icon: CheckCircle2, color: "text-emerald-600 bg-emerald-50" },
-  failed: { label: "Falhou", icon: XCircle, color: "text-red-600 bg-red-50" },
+  completed: { label: "Concluído", icon: CheckCircle2, color: "text-success bg-success/10" },
+  failed: { label: "Falhou", icon: XCircle, color: "text-destructive bg-destructive/10" },
 };
 
 export default function WithdrawalSection({ locksmith, onWithdrawalMade }) {
@@ -139,7 +139,7 @@ export default function WithdrawalSection({ locksmith, onWithdrawalMade }) {
               className="mt-1"
             />
           </div>
-          {error && <p className="text-sm text-red-600 bg-red-50 p-2 rounded-lg">{error}</p>}
+          {error && <p className="text-sm text-destructive bg-destructive/10 p-2 rounded-lg">{error}</p>}
           <div className="flex gap-2">
             <Button variant="outline" onClick={() => setShowForm(false)} className="flex-1">
               Cancelar

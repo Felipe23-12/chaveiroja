@@ -57,8 +57,8 @@ export default function UrgentNearbyAlert({ locksmith }) {
   if (!locksmith?.online || urgent.length === 0) return null;
 
   return (
-    <div className="mb-5 rounded-2xl border-2 border-red-500 bg-red-50 dark:bg-red-950/30 overflow-hidden animate-alert-slide">
-      <div className="flex items-center gap-2 px-4 py-2.5 bg-red-500 text-white animate-alert-blink">
+    <div className="mb-5 rounded-2xl border-2 border-destructive bg-destructive/10 overflow-hidden animate-alert-slide">
+      <div className="flex items-center gap-2 px-4 py-2.5 bg-destructive text-destructive-foreground animate-alert-blink">
         <AlertTriangle className="w-5 h-5" />
         <p className="font-heading font-bold text-sm">
           {urgent.length === 1
@@ -73,18 +73,18 @@ export default function UrgentNearbyAlert({ locksmith }) {
             { lat: r.customer_lat, lng: r.customer_lng }
           );
           return (
-            <div key={r.id} className="flex items-start gap-3 p-3 rounded-lg bg-background border border-red-200">
-              <div className="w-8 h-8 rounded-lg bg-red-100 flex items-center justify-center shrink-0">
-                <MapPin className="w-4 h-4 text-red-600" />
+            <div key={r.id} className="flex items-start gap-3 p-3 rounded-lg bg-background border border-destructive/30">
+              <div className="w-8 h-8 rounded-lg bg-destructive/15 flex items-center justify-center shrink-0">
+                <MapPin className="w-4 h-4 text-destructive" />
               </div>
               <div className="flex-1 min-w-0">
                 <p className="font-medium text-sm text-foreground truncate">{r.service_type}</p>
                 <p className="text-xs text-muted-foreground truncate">{r.address}</p>
-                <p className="text-[11px] text-red-600 font-medium flex items-center gap-1 mt-0.5">
+                <p className="text-[11px] text-destructive font-medium flex items-center gap-1 mt-0.5">
                   <Clock className="w-3 h-3" /> Chegada em até 35 min
                 </p>
               </div>
-              <span className="text-xs font-bold text-red-600 shrink-0">{dist.toFixed(1)} km</span>
+              <span className="text-xs font-bold text-destructive shrink-0">{dist.toFixed(1)} km</span>
             </div>
           );
         })}

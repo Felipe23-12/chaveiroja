@@ -72,7 +72,7 @@ export default function CancelServiceButton({ request }) {
         variant="outline"
         onClick={openConfirmation}
         disabled={loading}
-        className="w-full text-red-600 border-red-200 hover:bg-red-50"
+        className="w-full text-destructive border-destructive/30 hover:bg-destructive/10"
       >
         <XCircle className="w-4 h-4 mr-2" /> Cancelar serviço
       </Button>

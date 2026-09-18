@@ -3,12 +3,12 @@ import { Calendar, MapPin, Star, User, Wrench, Wallet } from "lucide-react";
 import { getOpeningConditionFee } from "@/lib/openingCondition";
 
 const STATUS = {
-  searching: { label: "Procurando", color: "bg-amber-100 text-amber-700" },
-  ringing: { label: "Aguardando", color: "bg-amber-100 text-amber-700" },
+  searching: { label: "Procurando", color: "bg-warning/15 text-warning" },
+  ringing: { label: "Aguardando", color: "bg-warning/15 text-warning" },
   accepted: { label: "Aceito", color: "bg-blue-100 text-blue-700" },
   on_the_way: { label: "A caminho", color: "bg-violet-100 text-violet-700" },
-  completed: { label: "Concluído", color: "bg-green-100 text-green-700" },
-  cancelled: { label: "Cancelado", color: "bg-red-100 text-red-700" },
+  completed: { label: "Concluído", color: "bg-success/15 text-success" },
+  cancelled: { label: "Cancelado", color: "bg-destructive/15 text-destructive" },
 };
 
 const PAYMENT = { credit_card: "Cartão de crédito", debit_card: "Cartão de débito", pix: "Pix", dinheiro: "Dinheiro" };
@@ -39,7 +39,7 @@ export default function ServiceHistoryCard({ request: r, perspective = "cliente"
             </span>
             <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${st.color}`}>{st.label}</span>
             {r.urgency === "urgent" && (
-              <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-red-100 text-red-700">Urgente</span>
+              <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-destructive/15 text-destructive">Urgente</span>
             )}
           </div>
           <p className="text-xs text-muted-foreground flex items-center gap-1 mt-1">
@@ -50,12 +50,12 @@ export default function ServiceHistoryCard({ request: r, perspective = "cliente"
           <p className="text-[11px] uppercase tracking-wide text-muted-foreground">
             {isCancelled ? "Taxa cobrada" : "Valor final"}
           </p>
-          <p className={`font-heading font-bold text-lg ${isCancelled ? "text-red-600" : "text-foreground"}`}>
+          <p className={`font-heading font-bold text-lg ${isCancelled ? "text-destructive" : "text-foreground"}`}>
             {hideValueUntilAccepted ? "Após aceite" : money(finalValue)}
           </p>
-          {getOpeningConditionFee(r) > 0 && !isCancelled && <p className="text-[11px] text-amber-700">Inclui adicional de condição +{money(getOpeningConditionFee(r))}</p>}
+          {getOpeningConditionFee(r) > 0 && !isCancelled && <p className="text-[11px] text-warning">Inclui adicional de condição +{money(getOpeningConditionFee(r))}</p>}
           {r.discount_amount > 0 && !isCancelled && (
-            <p className="text-[11px] text-emerald-700">Desconto fidelidade −{money(r.discount_amount)}</p>
+            <p className="text-[11px] text-success">Desconto fidelidade −{money(r.discount_amount)}</p>
           )}
         </div>
       </div>

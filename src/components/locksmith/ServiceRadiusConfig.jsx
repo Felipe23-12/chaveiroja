@@ -49,7 +49,7 @@ export default function ServiceRadiusConfig({ locksmith, onSave, saving }) {
           Salvar raio de {radius} km
         </Button>
       ) : (
-        <p className="text-xs text-emerald-600 font-medium flex items-center gap-1.5">
+        <p className="text-xs text-success font-medium flex items-center gap-1.5">
           <Check className="w-3.5 h-3.5" /> Raio salvo: {saved} km
         </p>
       )}

@@ -80,7 +80,7 @@ export default function RequestTracking({ request, locksmith, onAdvance, onCall 
           <Loader2 className="w-5 h-5 animate-spin" /> Chaveiro a caminho. Aguarde a conclusão do serviço.
         </div>
       ) : (
-        <div className="p-4 rounded-xl bg-emerald-50 text-emerald-700 text-sm flex items-center gap-2">
+        <div className="p-4 rounded-xl bg-success/10 text-success text-sm flex items-center gap-2">
           <CheckCircle2 className="w-5 h-5" /> Serviço concluído! Aguarde a confirmação.
         </div>
       )}

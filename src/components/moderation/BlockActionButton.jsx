@@ -24,5 +24,5 @@ export default function BlockActionButton({ targetUserId, targetType, targetName
 
   if (!targetUserId || targetUserId === user?.id) return null;
   if (incoming && !own) return <Button type="button" variant="outline" size="sm" disabled><Ban /> Contato bloqueado</Button>;
-  return <Button type="button" variant="outline" size="sm" onClick={toggle} className={blockedIds.has(targetUserId) ? "text-emerald-600" : "text-destructive"}>{own ? <UserRoundCheck /> : <Ban />}{own ? "Desbloquear" : "Bloquear"}</Button>;
+  return <Button type="button" variant="outline" size="sm" onClick={toggle} className={blockedIds.has(targetUserId) ? "text-success" : "text-destructive"}>{own ? <UserRoundCheck /> : <Ban />}{own ? "Desbloquear" : "Bloquear"}</Button>;
 }

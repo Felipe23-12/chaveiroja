@@ -60,7 +60,7 @@ export default function LocksmithPublicProfile() {
       </Button>
 
       {offline && (
-        <div className="mb-4 p-3 rounded-lg bg-amber-50 text-amber-700 text-sm flex items-center gap-2">
+        <div className="mb-4 p-3 rounded-lg bg-warning/10 text-warning text-sm flex items-center gap-2">
           <WifiOff className="w-4 h-4 shrink-0" />
           <span>Você está offline. Exibindo o perfil armazenado em cache.</span>
         </div>
@@ -92,8 +92,8 @@ export default function LocksmithPublicProfile() {
           {isLivre ? "Modo Livre" : "Modo Aplicativo"}
         </span>
         {locksmith.online && isLivre && (
-          <span className="text-xs text-emerald-600 flex items-center gap-1">
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" /> online
+          <span className="text-xs text-success flex items-center gap-1">
+            <span className="w-1.5 h-1.5 rounded-full bg-success" /> online
           </span>
         )}
       </div>

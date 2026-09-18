@@ -46,12 +46,12 @@ export default function RealLocksmithsMap({ me }) {
           <p className="text-xs text-muted-foreground">Modo Livre · atualização em tempo real</p>
         </div>
         <div className="flex items-center gap-3 text-xs">
-          <span className="flex items-center gap-1.5 text-emerald-600 font-medium">
-            <span className="w-2 h-2 rounded-full bg-emerald-500" />
+          <span className="flex items-center gap-1.5 text-success font-medium">
+            <span className="w-2 h-2 rounded-full bg-success" />
             {others.filter((l) => l.available).length} livres
           </span>
-          <span className="flex items-center gap-1.5 text-amber-600 font-medium">
-            <span className="w-2 h-2 rounded-full bg-amber-500" />
+          <span className="flex items-center gap-1.5 text-warning font-medium">
+            <span className="w-2 h-2 rounded-full bg-warning" />
             {others.filter((l) => !l.available).length} ocupados
           </span>
         </div>

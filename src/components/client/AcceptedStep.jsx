@@ -12,12 +12,12 @@ export default function AcceptedStep({ request, locksmith, serviceLabel, routePa
   return (
     <div className="space-y-5 step-enter">
       <div className="flex flex-col items-center text-center">
-        <div className="w-16 h-16 rounded-full bg-emerald-100 flex items-center justify-center mb-4">
-          <CheckCircle2 className="w-8 h-8 text-emerald-600" />
+        <div className="w-16 h-16 rounded-full bg-success/15 flex items-center justify-center mb-4">
+          <CheckCircle2 className="w-8 h-8 text-success" />
         </div>
         <h2 className="font-heading font-semibold text-lg text-foreground mb-1">Chaveiro aceitou seu pedido!</h2>
         <p className="text-sm text-muted-foreground mb-3">{locksmith?.name} · {serviceLabel}</p>
-        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-100 text-emerald-700 text-xs font-medium">
+        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-success/15 text-success text-xs font-medium">
           <CheckCircle2 className="w-3.5 h-3.5" /> Status: Em Andamento
         </span>
       </div>

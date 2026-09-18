@@ -173,18 +173,18 @@ export default function FinancialConsolidation({ requests, locksmiths }) {
         </div>
         <div className="rounded-xl border border-border bg-white p-4">
           <div className="flex items-center gap-2 text-muted-foreground mb-1">
-            <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+            <CheckCircle2 className="w-4 h-4 text-success" />
             <span className="text-xs">Comissões pagas (app)</span>
           </div>
-          <p className="font-heading font-bold text-xl text-emerald-600">{fmtMoney(summary.paidCommissions)}</p>
+          <p className="font-heading font-bold text-xl text-success">{fmtMoney(summary.paidCommissions)}</p>
           <p className="text-xs text-muted-foreground mt-1">Já compensadas</p>
         </div>
         <div className="rounded-xl border border-border bg-white p-4">
           <div className="flex items-center gap-2 text-muted-foreground mb-1">
-            <Clock className="w-4 h-4 text-amber-600" />
+            <Clock className="w-4 h-4 text-warning" />
             <span className="text-xs">Pendente de repasse</span>
           </div>
-          <p className="font-heading font-bold text-xl text-amber-600">{fmtMoney(summary.pendingRepasse)}</p>
+          <p className="font-heading font-bold text-xl text-warning">{fmtMoney(summary.pendingRepasse)}</p>
           <p className="text-xs text-muted-foreground mt-1">A repassar aos chaveiros</p>
         </div>
       </div>
@@ -211,8 +211,8 @@ export default function FinancialConsolidation({ requests, locksmiths }) {
                     <td className="px-4 py-2 text-foreground">{p.name}</td>
                     <td className="px-4 py-2 capitalize">{p.workMode}</td>
                     <td className="px-4 py-2 text-muted-foreground">{p.count}</td>
-                    <td className="px-4 py-2 font-medium text-amber-600">{fmtMoney(p.pending)}</td>
-                    <td className="px-4 py-2 font-medium text-emerald-600">{fmtMoney(p.paid)}</td>
+                    <td className="px-4 py-2 font-medium text-warning">{fmtMoney(p.pending)}</td>
+                    <td className="px-4 py-2 font-medium text-success">{fmtMoney(p.paid)}</td>
                   </tr>
                 ))}
               </tbody>

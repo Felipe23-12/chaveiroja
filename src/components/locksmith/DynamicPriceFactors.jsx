@@ -16,7 +16,7 @@ export default function DynamicPriceFactors({ price, nearestDistance, assumedNea
 
       {/* Estimativa considerando chaveiro dentro do raio de busca */}
       {assumedNearby && (
-        <div className="flex items-start gap-2 p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800">
+        <div className="flex items-start gap-2 p-3 rounded-xl bg-success/10 border border-success/30 text-success">
           <MapPin className="w-4 h-4 shrink-0 mt-0.5" />
           <p className="text-sm">
             Valor estimado considerando um chaveiro <strong>dentro do raio de busca escolhido</strong>,
@@ -29,7 +29,7 @@ export default function DynamicPriceFactors({ price, nearestDistance, assumedNea
 
       {/* Aviso de taxa de distância excedente */}
       {!assumedNearby && overThreshold && nearestDistance != null && (
-        <div className="flex items-start gap-2 p-3 rounded-xl bg-amber-50 border border-amber-300 text-amber-800">
+        <div className="flex items-start gap-2 p-3 rounded-xl bg-warning/10 border border-warning/30 text-warning">
           <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
           <p className="text-sm">
             <strong>Atenção:</strong> O chaveiro mais próximo está a{" "}
@@ -42,7 +42,7 @@ export default function DynamicPriceFactors({ price, nearestDistance, assumedNea
 
       {/* Aviso de fim de semana / feriado (valores no topo da faixa) */}
       {factors.timeTier?.tier === "high" && (
-        <div className="flex items-start gap-2 p-3 rounded-xl bg-red-50 border border-red-300 text-red-800">
+        <div className="flex items-start gap-2 p-3 rounded-xl bg-destructive/10 border border-destructive/30 text-destructive">
           <CalendarClock className="w-4 h-4 shrink-0 mt-0.5" />
           <p className="text-sm">
             <strong>{factors.timeTier.label}.</strong> Os valores estão sendo cobrados no topo da faixa definida para o modo aplicativo.
@@ -124,13 +124,13 @@ export default function DynamicPriceFactors({ price, nearestDistance, assumedNea
 
 function FactorBadge({ icon: Icon, label, value, tone }) {
   const toneClasses = {
-    high: "bg-red-50 text-red-700 border-red-200",
-    low: "bg-emerald-50 text-emerald-700 border-emerald-200",
+    high: "bg-destructive/10 text-destructive border-destructive/30",
+    low: "bg-success/10 text-success border-success/30",
     neutral: "bg-muted text-muted-foreground border-border",
   };
   const iconColor = {
-    high: "text-red-500",
-    low: "text-emerald-500",
+    high: "text-destructive",
+    low: "text-success",
     neutral: "text-muted-foreground",
   };
 

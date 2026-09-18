@@ -113,8 +113,8 @@ export default function LocksmithFinancialPanel({ locksmith }) {
   return (
     <div className="rounded-2xl border border-border bg-white p-4 space-y-4">
       <div className="flex items-center gap-2">
-        <div className="w-9 h-9 rounded-xl bg-emerald-50 flex items-center justify-center">
-          <Wallet className="w-4 h-4 text-emerald-600" />
+        <div className="w-9 h-9 rounded-xl bg-success/10 flex items-center justify-center">
+          <Wallet className="w-4 h-4 text-success" />
         </div>
         <div>
           <h3 className="font-heading font-semibold text-base text-foreground">Painel Financeiro</h3>
@@ -135,10 +135,10 @@ export default function LocksmithFinancialPanel({ locksmith }) {
 
         <div className="p-3 rounded-xl bg-muted/50">
           <div className="flex items-center gap-1.5 text-muted-foreground mb-1">
-            <Wallet className="w-3.5 h-3.5 text-emerald-600" />
+            <Wallet className="w-3.5 h-3.5 text-success" />
             <span className="text-[11px] font-medium">Líquido acumulado</span>
           </div>
-          <p className="font-heading font-bold text-lg text-emerald-600">{fmtMoney(stats.net)}</p>
+          <p className="font-heading font-bold text-lg text-success">{fmtMoney(stats.net)}</p>
           <p className="text-[11px] text-muted-foreground mt-0.5">Histórico dos serviços</p>
         </div>
       </div>
@@ -154,12 +154,12 @@ export default function LocksmithFinancialPanel({ locksmith }) {
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <p className="text-[11px] text-blue-600/80">Pendente de pagamento</p>
-                <p className="font-heading font-bold text-base text-amber-600">{fmtMoney(stats.commissionPending)}</p>
+                <p className="font-heading font-bold text-base text-warning">{fmtMoney(stats.commissionPending)}</p>
                 <p className="text-[11px] text-muted-foreground mt-0.5">{stats.count - stats.paidCount} serviço(s)</p>
               </div>
               <div>
                 <p className="text-[11px] text-blue-600/80">Já compensada</p>
-                <p className="font-heading font-bold text-base text-emerald-600">{fmtMoney(stats.commissionPaid)}</p>
+                <p className="font-heading font-bold text-base text-success">{fmtMoney(stats.commissionPaid)}</p>
                 <p className="text-[11px] text-muted-foreground mt-0.5">{stats.paidCount} serviço(s)</p>
               </div>
             </div>
@@ -170,13 +170,13 @@ export default function LocksmithFinancialPanel({ locksmith }) {
           </div>
 
           {stats.cancelledCount > 0 && (
-            <div className="p-3 rounded-xl border border-amber-100 bg-amber-50">
-              <div className="flex items-center gap-1.5 text-amber-700 mb-1">
+            <div className="p-3 rounded-xl border border-warning/20 bg-warning/10">
+              <div className="flex items-center gap-1.5 text-warning mb-1">
                 <Receipt className="w-3.5 h-3.5" />
                 <span className="text-xs font-medium">Taxas de cancelamento recebidas (20%)</span>
               </div>
-              <p className="font-heading font-bold text-lg text-amber-700">{fmtMoney(stats.cancellationTotal)}</p>
-              <p className="text-[11px] text-amber-600/80 mt-0.5">
+              <p className="font-heading font-bold text-lg text-warning">{fmtMoney(stats.cancellationTotal)}</p>
+              <p className="text-[11px] text-warning/80 mt-0.5">
                 {stats.cancelledCount} cancelamento(s) · {fmtMoney(stats.cancellationAppFee)} para o app (5%)
               </p>
             </div>
@@ -186,19 +186,19 @@ export default function LocksmithFinancialPanel({ locksmith }) {
 
       {/* Mensalidade — modo livre */}
       {!isAppMode && (
-        <div className="p-3 rounded-xl border border-amber-100 bg-amber-50">
-          <div className="flex items-center gap-1.5 text-amber-700 mb-1">
+        <div className="p-3 rounded-xl border border-warning/20 bg-warning/10">
+          <div className="flex items-center gap-1.5 text-warning mb-1">
             <BadgeCheck className="w-3.5 h-3.5" />
             <span className="text-xs font-medium">Mensalidade do Modo Livre</span>
           </div>
           <div className="flex items-center justify-between">
             <div>
-              <p className="font-heading font-bold text-lg text-amber-700">{fmtMoney(monthlyFee)}/mês</p>
-              <p className="text-[11px] text-amber-600/80 mt-0.5">
+              <p className="font-heading font-bold text-lg text-warning">{fmtMoney(monthlyFee)}/mês</p>
+              <p className="text-[11px] text-warning/80 mt-0.5">
                 {locksmith?.monthly_fee_paid ? "Paga neste ciclo" : "Em aberto"}
               </p>
             </div>
-            <span className={`inline-flex px-2.5 py-1 rounded-full text-xs font-medium ${locksmith?.monthly_fee_paid ? "bg-emerald-100 text-emerald-700" : "bg-red-100 text-red-700"}`}>
+            <span className={`inline-flex px-2.5 py-1 rounded-full text-xs font-medium ${locksmith?.monthly_fee_paid ? "bg-success/15 text-success" : "bg-destructive/15 text-destructive"}`}>
               {locksmith?.monthly_fee_paid ? "Em dia" : "Pendente"}
             </span>
           </div>
@@ -208,19 +208,19 @@ export default function LocksmithFinancialPanel({ locksmith }) {
       {/* Saldos internos são apenas valores legados; novos repasses vão ao Mercado Pago. */}
       {isAppMode && (
         <div className="grid grid-cols-2 gap-3">
-          <div className="p-3 rounded-xl bg-emerald-50 border border-emerald-100">
-            <div className="flex items-center gap-1.5 text-emerald-700 mb-1">
+          <div className="p-3 rounded-xl bg-success/10 border border-success/20">
+            <div className="flex items-center gap-1.5 text-success mb-1">
               <Wallet className="w-3.5 h-3.5" />
               <span className="text-[11px] font-medium">Saldo interno a repassar</span>
             </div>
-            <p className="font-heading font-bold text-base text-emerald-700">{fmtMoney(locksmith?.wallet_balance)}</p>
+            <p className="font-heading font-bold text-base text-success">{fmtMoney(locksmith?.wallet_balance)}</p>
           </div>
-          <div className="p-3 rounded-xl bg-amber-50 border border-amber-100">
-            <div className="flex items-center gap-1.5 text-amber-700 mb-1">
+          <div className="p-3 rounded-xl bg-warning/10 border border-warning/20">
+            <div className="flex items-center gap-1.5 text-warning mb-1">
               <Clock className="w-3.5 h-3.5" />
               <span className="text-[11px] font-medium">Saque interno solicitado</span>
             </div>
-            <p className="font-heading font-bold text-base text-amber-700">{fmtMoney(locksmith?.pending_balance)}</p>
+            <p className="font-heading font-bold text-base text-warning">{fmtMoney(locksmith?.pending_balance)}</p>
           </div>
         </div>
       )}
@@ -254,11 +254,11 @@ export default function LocksmithFinancialPanel({ locksmith }) {
                       <div className="text-right shrink-0">
                         <p className="text-xs text-muted-foreground">{fmtMoney(repasse.gross)}</p>
                         {isAppMode && (
-                          <p className="text-[11px] text-red-500">- {fmtMoney(repasse.commission)}</p>
+                          <p className="text-[11px] text-destructive">- {fmtMoney(repasse.commission)}</p>
                         )}
-                        <p className="text-xs font-semibold text-emerald-600">{fmtMoney(repasse.locksmithAmount)}</p>
+                        <p className="text-xs font-semibold text-success">{fmtMoney(repasse.locksmithAmount)}</p>
                         {isAppMode && (
-                          <span className={`inline-flex items-center gap-0.5 mt-0.5 px-1.5 py-0.5 rounded-full text-[10px] font-medium ${(r.commission_status || "pending") === "paid" ? "bg-emerald-100 text-emerald-700" : "bg-amber-100 text-amber-700"}`}>
+                          <span className={`inline-flex items-center gap-0.5 mt-0.5 px-1.5 py-0.5 rounded-full text-[10px] font-medium ${(r.commission_status || "pending") === "paid" ? "bg-success/15 text-success" : "bg-warning/15 text-warning"}`}>
                             {(r.commission_status || "pending") === "paid" ? "Compensada" : "Pendente"}
                           </span>
                         )}

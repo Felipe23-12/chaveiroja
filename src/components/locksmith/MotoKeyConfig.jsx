@@ -122,7 +122,7 @@ export default function MotoKeyConfig({
       )}
 
       {motoRule?.blocked && (
-        <div className="flex items-start gap-2 p-3 rounded-xl border border-amber-300 bg-amber-50 text-amber-800">
+        <div className="flex items-start gap-2 p-3 rounded-xl border border-warning/40 bg-warning/10 text-warning">
           <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
           <p className="text-sm">{motoRule.reason}</p>
         </div>

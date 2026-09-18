@@ -61,8 +61,8 @@ export default function UrgencyUpgradeAlert({ request, onResolved }) {
   const newPrice = request.urgency_upgrade_price || request.price || 0;
 
   return (
-    <div className="p-4 rounded-2xl border-2 border-red-500 bg-red-50 space-y-3 animate-alert-slide">
-      <div className="flex items-center justify-between gap-2 text-red-700">
+    <div className="p-4 rounded-2xl border-2 border-destructive bg-destructive/10 space-y-3 animate-alert-slide">
+      <div className="flex items-center justify-between gap-2 text-destructive">
         <p className="font-bold text-sm flex items-center gap-1.5">
           <Zap className="w-4 h-4" /> Cliente pediu atendimento URGENTE
         </p>
@@ -77,7 +77,7 @@ export default function UrgencyUpgradeAlert({ request, onResolved }) {
         <button
           onClick={() => resolve(true)}
           disabled={saving}
-          className="flex-1 h-11 rounded-xl bg-emerald-500 text-white font-bold text-sm flex items-center justify-center gap-1.5 hover:bg-emerald-600 active:scale-95 transition-all"
+          className="flex-1 h-11 rounded-xl bg-success text-success-foreground font-bold text-sm flex items-center justify-center gap-1.5 hover:bg-success/90 active:scale-95 transition-all"
         >
           <Check className="w-4 h-4" /> Aceitar urgente
         </button>

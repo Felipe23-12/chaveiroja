@@ -223,15 +223,15 @@ export default function LocksmithProfile() {
                   </div>
                   <span className="font-semibold text-foreground">15% por serviço</span>
                 </div>
-                <div className="p-3 rounded-xl bg-emerald-50">
+                <div className="p-3 rounded-xl bg-success/10">
                   <p className="text-xs text-muted-foreground">Exemplo: serviço de R$ 150,00</p>
                   <div className="flex justify-between text-sm mt-1">
                     <span>Comissão do app (15%)</span>
-                    <span className="font-medium text-red-600">- R$ {calculateCommission(150, "app").toFixed(2)}</span>
+                    <span className="font-medium text-destructive">- R$ {calculateCommission(150, "app").toFixed(2)}</span>
                   </div>
                   <div className="flex justify-between text-sm mt-1">
                     <span className="font-medium">Você recebe</span>
-                    <span className="font-bold text-emerald-700">R$ {(150 - calculateCommission(150, "app")).toFixed(2)}</span>
+                    <span className="font-bold text-success">R$ {(150 - calculateCommission(150, "app")).toFixed(2)}</span>
                   </div>
                 </div>
               </div>
@@ -286,7 +286,7 @@ export default function LocksmithProfile() {
             )}
             {selected.work_mode === "app" && (
               <>
-                <div className="p-4 rounded-2xl border border-emerald-200 bg-emerald-50 text-sm text-emerald-800">
+                <div className="p-4 rounded-2xl border border-success/30 bg-success/10 text-sm text-success">
                   No modo aplicativo, 15% do atendimento fica com o ChaveiroJá e o restante, descontadas as tarifas do processador,
                   cai <strong>direto na sua conta Mercado Pago</strong> após o pagamento do cliente.
                 </div>

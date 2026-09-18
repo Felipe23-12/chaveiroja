@@ -67,7 +67,7 @@ export default function GmailConnectCard() {
       </div>
       {connected ? (
         <Button variant="outline" size="sm" onClick={handleDisconnect}>
-          <Check className="w-4 h-4 mr-1.5 text-emerald-600" /> Desconectar
+          <Check className="w-4 h-4 mr-1.5 text-success" /> Desconectar
         </Button>
       ) : (
         <Button size="sm" onClick={handleConnect}>Conectar</Button>

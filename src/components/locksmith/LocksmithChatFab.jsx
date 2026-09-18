@@ -45,7 +45,7 @@ export default function LocksmithChatFab() {
         <div className="relative">
           <MessageCircle className="w-5 h-5" />
           {unread > 0 && (
-            <span className="absolute -top-2 -right-2 w-5 h-5 rounded-full bg-red-500 text-white text-[10px] font-bold flex items-center justify-center animate-alert-blink">
+            <span className="absolute -top-2 -right-2 w-5 h-5 rounded-full bg-destructive text-destructive-foreground text-[10px] font-bold flex items-center justify-center animate-alert-blink">
               {unread > 9 ? "9+" : unread}
             </span>
           )}

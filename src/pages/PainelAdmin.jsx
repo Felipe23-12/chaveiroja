@@ -151,17 +151,17 @@ export default function PainelAdmin() {
       <AdminPanelTabs value={activeTab} onChange={setActiveTab} />
 
       {activeTab === "finance" && pendingWithdrawals.length > 0 && (
-        <div className="flex items-center gap-3 p-4 rounded-xl bg-amber-50 border border-amber-200 animate-alert-slide">
-          <div className="w-10 h-10 rounded-full bg-amber-100 flex items-center justify-center shrink-0">
-            <Bell className="w-5 h-5 text-amber-600 animate-bounce" />
+        <div className="flex items-center gap-3 p-4 rounded-xl bg-warning/10 border border-warning/30 animate-alert-slide">
+          <div className="w-10 h-10 rounded-full bg-warning/15 flex items-center justify-center shrink-0">
+            <Bell className="w-5 h-5 text-warning animate-bounce" />
           </div>
           <div className="flex-1">
-            <p className="font-heading font-semibold text-amber-900">
+            <p className="font-heading font-semibold text-warning">
               {pendingWithdrawals.length === 1
                 ? "1 saque aguardando processamento"
                 : `${pendingWithdrawals.length} saques aguardando processamento`}
             </p>
-            <p className="text-sm text-amber-700">
+            <p className="text-sm text-warning">
               Total: {fmtMoney(pendingWithdrawalsTotal)} · Verifique a seção "Saques solicitados" abaixo
             </p>
           </div>
@@ -193,9 +193,9 @@ export default function PainelAdmin() {
 
       <section className={activeTab === "people" ? "" : "hidden"}>
         <h2 className="font-heading font-semibold text-lg text-foreground mb-3">Usuários</h2>
-        <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 mb-3 flex items-start gap-2">
-          <Info className="w-4 h-4 text-amber-600 mt-0.5 shrink-0" />
-          <p className="text-xs text-amber-800">
+        <div className="rounded-xl border border-warning/30 bg-warning/10 p-3 mb-3 flex items-start gap-2">
+          <Info className="w-4 h-4 text-warning mt-0.5 shrink-0" />
+          <p className="text-xs text-warning">
             O botão de exclusão abaixo remove <strong>apenas o registro do banco de dados</strong>. Para liberar o e-mail
             e permitir recadastro, é necessário excluir a conta de autenticação em <strong>Dashboard → Users → ícone de lixeira</strong> no painel do Base44.
           </p>
@@ -281,10 +281,10 @@ export default function PainelAdmin() {
                       <td className="px-4 py-2 text-muted-foreground">{w.bank_name || "—"}</td>
                       <td className="px-4 py-2">
                         <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${
-                          w.status === "completed" ? "bg-emerald-50 text-emerald-600"
+                          w.status === "completed" ? "bg-success/10 text-success"
                           : w.status === "processing" ? "bg-blue-50 text-blue-600"
-                          : w.status === "failed" ? "bg-red-50 text-red-600"
-                          : "bg-amber-50 text-amber-600"
+                          : w.status === "failed" ? "bg-destructive/10 text-destructive"
+                          : "bg-warning/10 text-warning"
                         }`}>
                           {w.status === "completed" ? "Concluído" : w.status === "processing" ? "Processando" : w.status === "failed" ? "Falhou" : "Solicitado"}
                         </span>
@@ -383,12 +383,12 @@ export default function PainelAdmin() {
 
 function StatCard({ icon: Icon, label, value, highlight }) {
   return (
-    <div className={`rounded-xl border p-4 ${highlight ? "border-amber-300 bg-amber-50" : "border-border bg-white"}`}>
-      <div className={`flex items-center gap-2 mb-1 ${highlight ? "text-amber-600" : "text-muted-foreground"}`}>
+    <div className={`rounded-xl border p-4 ${highlight ? "border-warning/40 bg-warning/10" : "border-border bg-white"}`}>
+      <div className={`flex items-center gap-2 mb-1 ${highlight ? "text-warning" : "text-muted-foreground"}`}>
         <Icon className="w-4 h-4" />
         <span className="text-xs">{label}</span>
       </div>
-      <p className={`font-heading font-bold text-xl ${highlight ? "text-amber-700" : "text-foreground"}`}>{value}</p>
+      <p className={`font-heading font-bold text-xl ${highlight ? "text-warning" : "text-foreground"}`}>{value}</p>
     </div>
   );
 }

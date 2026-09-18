@@ -108,7 +108,7 @@ export default function CarKeyConfig({
             </>
           )}
         </Button>
-        {searchError && <p className="text-sm text-red-600">{searchError}</p>}
+        {searchError && <p className="text-sm text-destructive">{searchError}</p>}
       </div>
 
       {/* O sistema calcula o serviço sem expor o valor antes do aceite. */}

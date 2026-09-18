@@ -8,15 +8,15 @@ export default function QueuedServiceStep({ request, locksmith, onCancel }) {
   return (
     <div className="space-y-5 step-enter">
       <div className="flex flex-col items-center text-center py-4">
-        <div className="w-16 h-16 rounded-full bg-amber-100 flex items-center justify-center mb-4">
-          <Clock3 className="w-8 h-8 text-amber-600" />
+        <div className="w-16 h-16 rounded-full bg-warning/15 flex items-center justify-center mb-4">
+          <Clock3 className="w-8 h-8 text-warning" />
         </div>
         <h2 className="font-heading font-semibold text-lg text-foreground">Chaveiro reservou seu chamado</h2>
         <p className="text-sm text-muted-foreground mt-2 max-w-sm">
           O chaveiro está finalizando outro atendimento próximo e depois irá até você. Sua rota começará automaticamente.
         </p>
       </div>
-      <div className="flex items-center gap-2 p-3 rounded-xl border border-amber-300 bg-amber-50 text-amber-800 text-sm">
+      <div className="flex items-center gap-2 p-3 rounded-xl border border-warning/40 bg-warning/10 text-warning text-sm">
         <CheckCircle2 className="w-5 h-5 shrink-0" /> Seu chamado está confirmado como o próximo da fila.
       </div>
       <KeyServicePrice request={request} />
