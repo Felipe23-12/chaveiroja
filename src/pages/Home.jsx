@@ -253,6 +253,10 @@ export default function Home() {
     return Math.min(...distances);
   }, [service, unblockedAppLocksmiths, customerLoc, searchRadius]);
 
+  // Se não houver chaveiro online dentro do raio, o cálculo assume um
+  // chaveiro no limite do raio (aviso explicado no DynamicPriceFactors).
+  const assumedNearby = nearestDistance == null;
+
   // Distância usada na estimativa de valor: sempre limitada ao raio escolhido.
   // Se não houver chaveiro online dentro do raio, o cálculo assume um chaveiro
   // no limite do raio — assim a taxa por km só aparece nos raios acima de 20 km.
@@ -1124,6 +1128,7 @@ export default function Home() {
         brokenKeyInLock, setBrokenKeyInLock, openingReason, setOpeningReason,
         searchRadius, setSearchRadius, inRadiusCount, urgency, setUrgency,
         goToStep, handleConfirmConfig, submitting, keyBlock, selectedKeyValue,
+        nearestDistance, assumedNearby,
       }} />}
 
       {/* Step 3: Procurando / tocando no chaveiro */}

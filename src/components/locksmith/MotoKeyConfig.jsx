@@ -38,6 +38,8 @@ export default function MotoKeyConfig({
   keyCatalog,
   showPriceBeforeAcceptance = false,
   calculationService = null,
+  nearestDistance,
+  assumedNearby = false,
 }) {
   const update = (field, value) => setMotoInfo((v) => ({ ...v, [field]: value }));
   const models = MOTO_MODELS[motoInfo.brandId] || [];
@@ -149,7 +151,7 @@ export default function MotoKeyConfig({
         />
       </div>
 
-      {showPriceBeforeAcceptance ? <PriceSummary price={price} service={calculationService || service} showCalculationDetails /> : <KeyServicePrice pending />}
+      {showPriceBeforeAcceptance ? <PriceSummary price={price} service={calculationService || service} showCalculationDetails nearestDistance={nearestDistance} assumedNearby={assumedNearby} /> : <KeyServicePrice pending />}
     </div>
   );
 }

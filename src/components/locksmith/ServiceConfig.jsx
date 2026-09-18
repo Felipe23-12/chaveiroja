@@ -30,6 +30,8 @@ export default function ServiceConfig({
   price,
   showCalculationDetails = false,
   calculationService = null,
+  nearestDistance,
+  assumedNearby = false,
 }) {
   const vehicleReady = Boolean(
     (vehicleInfo?.make || "").trim() &&
@@ -153,7 +155,7 @@ export default function ServiceConfig({
           Informe montadora, modelo e ano do veículo para calcularmos o valor do serviço.
         </div>
       ) : price ? (
-        <PriceSummary price={price} service={calculationService || service} showCalculationDetails={showCalculationDetails} />
+        <PriceSummary price={price} service={calculationService || service} showCalculationDetails={showCalculationDetails} nearestDistance={nearestDistance} assumedNearby={assumedNearby} />
       ) : (
         <div className="rounded-2xl bg-muted p-4 text-sm text-muted-foreground text-center">
           Informe o endereço acima para calcularmos o valor do serviço.

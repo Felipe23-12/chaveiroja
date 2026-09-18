@@ -1,8 +1,9 @@
 import React from "react";
 import { Info } from "lucide-react";
 import AdminPricePreview from "@/components/admin/AdminPricePreview";
+import DynamicPriceFactors from "@/components/locksmith/DynamicPriceFactors";
 
-export default function PriceSummary({ price, showCalculationDetails = false, service = null }) {
+export default function PriceSummary({ price, showCalculationDetails = false, service = null, nearestDistance, assumedNearby = false }) {
   if (!price) return null;
   return (
     <div className="space-y-3">
@@ -16,6 +17,7 @@ export default function PriceSummary({ price, showCalculationDetails = false, se
           <span>Valor estimado. O valor final pode variar conforme as condições do serviço.</span>
         </div>
       </div>
+      <DynamicPriceFactors price={price} nearestDistance={nearestDistance} assumedNearby={assumedNearby} />
       {showCalculationDetails && <AdminPricePreview price={price} service={service} />}
     </div>
   );
