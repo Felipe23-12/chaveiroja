@@ -263,18 +263,26 @@ export default async function(req) {
         return Response.json({ error: 'Informe o chaveiro e uma nota entre 1 e 5.' }, { status: 400 });
       }
       const workMode = body.work_mode;
+      let serviceRequestId;
       if (workMode === 'app') {
         if (!body.service_request_id) return Response.json({ error: 'Você só pode avaliar um atendimento concluído seu.' }, { status: 403 });
         const sr = await base44.asServiceRole.entities.ServiceRequest.get(body.service_request_id).catch(() => null);
         if (!sr || sr.created_by_id !== user.id || sr.locksmith_id !== locksmithId || sr.status !== 'completed') {
           return Response.json({ error: 'Você só pode avaliar um atendimento concluído seu.' }, { status: 403 });
         }
+        const existingReviews = await base44.asServiceRole.entities.Review.filter({ service_request_id: sr.id });
+        if (existingReviews.length || sr.rating != null) {
+          return Response.json({ error: 'Este atendimento já foi avaliado.' }, { status: 409 });
+        }
+        serviceRequestId = sr.id;
       } else {
         const msgs = await base44.asServiceRole.entities.ChatMessage.filter({ locksmith_id: locksmithId, client_id: user.id });
         if (!msgs.length) return Response.json({ error: 'Você só pode avaliar um chaveiro com quem já conversou.' }, { status: 403 });
       }
       await base44.asServiceRole.entities.Review.create({
         locksmith_id: locksmithId,
+        service_request_id: serviceRequestId,
+        reviewer_id: user.id,
         locksmith_name: body.locksmith_name,
         customer_name: body.customer_name || 'Cliente',
         rating,

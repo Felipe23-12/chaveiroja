@@ -22,6 +22,14 @@
     "service_type": {
       "type": "string"
     },
+    "service_request_id": {
+      "type": "string",
+      "description": "Atendimento conclu\u00eddo que originou a avalia\u00e7\u00e3o; usado para impedir avalia\u00e7\u00f5es duplicadas"
+    },
+    "reviewer_id": {
+      "type": "string",
+      "description": "Usu\u00e1rio autenticado que enviou a avalia\u00e7\u00e3o"
+    },
     "work_mode": {
       "type": "string",
       "enum": [
