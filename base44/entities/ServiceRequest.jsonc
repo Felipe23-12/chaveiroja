@@ -360,7 +360,9 @@
     "address"
   ],
   "rls": {
-    "create": null,
+    "create": {
+      "data.status": "ringing"
+    },
     "read": {
       "$or": [
         {

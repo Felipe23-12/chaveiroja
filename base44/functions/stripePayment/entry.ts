@@ -43,7 +43,9 @@ export default async function(req) {
       if (!service || service.created_by_id !== user.id || service.locksmith_id !== locksmith_id) {
         return Response.json({ error: "Atendimento não encontrado" }, { status: 404 });
       }
-      if (service.payment_status === "paid") {
+      const existingPayments = await base44.asServiceRole.entities.Payment.filter({ service_request_id: service.id });
+      const paidPayment = existingPayments.find((p) => p.status === "paid" || p.status === "captured");
+      if (paidPayment) {
         return Response.json({ error: "Este atendimento já foi pago" }, { status: 409 });
       }
 

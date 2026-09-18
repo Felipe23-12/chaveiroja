@@ -36,7 +36,9 @@ export default async function(req) {
       } else {
         service = await base44.asServiceRole.entities.ServiceRequest.get(body.service_request_id).catch(() => null);
         if (!service || service.created_by_id !== user.id || service.locksmith_id !== body.locksmith_id) return Response.json({ error: "Atendimento não encontrado" }, { status: 404 });
-        if (service.payment_status === "paid") return Response.json({ status: "paid", already_paid: true, payment_id: service.payment_id, method: service.payment_method });
+        const existingPayments = await base44.asServiceRole.entities.Payment.filter({ service_request_id: service.id });
+        const paidPayment = existingPayments.find((p) => p.status === "paid" || p.status === "captured");
+        if (paidPayment) return Response.json({ status: "paid", already_paid: true, payment_id: paidPayment.id, method: paidPayment.method });
         locksmith = await base44.asServiceRole.entities.Locksmith.get(body.locksmith_id).catch(() => null);
         if (!locksmith) return Response.json({ error: "Chaveiro não encontrado" }, { status: 404 });
         amount = Number(kind === "cancellation" ? service.cancellation_fee : service.price);

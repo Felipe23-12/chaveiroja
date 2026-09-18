@@ -143,7 +143,14 @@ async function loyaltyAvailable(base44, userId) {
     base44.asServiceRole.entities.ServiceRequest.filter({ created_by_id: userId, status: 'completed' }),
     base44.asServiceRole.entities.ServiceRequest.filter({ created_by_id: userId, discount_applied: true }),
   ]);
-  return Math.max(0, Math.floor(completed.length / 5) - used.length) > 0;
+  const paidRequestIds = completed.length
+    ? new Set((await base44.asServiceRole.entities.Payment.filter({
+        service_request_id: { $in: completed.map((r) => r.id) },
+        status: { $in: ['paid', 'captured'] },
+      })).map((p) => p.service_request_id))
+    : new Set();
+  const verifiedCompleted = completed.filter((r) => paidRequestIds.has(r.id));
+  return Math.max(0, Math.floor(verifiedCompleted.length / 5) - used.length) > 0;
 }
 
 export async function calculateServerServicePrice(base44, userId, data) {
