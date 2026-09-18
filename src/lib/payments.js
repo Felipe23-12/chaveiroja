@@ -37,13 +37,13 @@ export async function confirmPaymentPaid(paymentId, providerPaymentId) {
 
 // Mantém apenas a quitação de registros antigos em dinheiro; novos pagamentos usam Mercado Pago.
 export async function confirmCashReceived({ serviceRequestId, locksmithId, amount }) {
-  const response = await base44.functions.invoke("stripePayment", { action: "confirm_cash", service_request_id: serviceRequestId, locksmith_id: locksmithId, amount });
+  const response = await base44.functions.invoke("walletOperations", { action: "confirm_cash", service_request_id: serviceRequestId, locksmith_id: locksmithId, amount });
   return response.data;
 }
 
 export async function requestWithdrawal({ locksmithId, amount, pixKeyType, pixKeyValue, bankName }) {
   try {
-    const response = await base44.functions.invoke("stripePayment", { action: "request_withdrawal", locksmith_id: locksmithId, amount, pix_key_type: pixKeyType, pix_key_value: pixKeyValue, bank_name: bankName });
+    const response = await base44.functions.invoke("walletOperations", { action: "request_withdrawal", locksmith_id: locksmithId, amount, pix_key_type: pixKeyType, pix_key_value: pixKeyValue, bank_name: bankName });
     return response.data?.withdrawal;
   } catch (error) {
     const data = error?.response?.data || error?.data || error;
