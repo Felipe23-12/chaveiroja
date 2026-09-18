@@ -223,6 +223,39 @@ export default async function(req) {
       return Response.json({ success: true, request: updated });
     }
 
+    if (action === 'accept_request') {
+      const request = await base44.asServiceRole.entities.ServiceRequest.get(body.request_id);
+      if (!request) return Response.json({ error: 'Chamado não encontrado' }, { status: 404 });
+      if (request.status !== 'ringing') return Response.json({ error: 'Outro chaveiro assumiu este atendimento primeiro.' }, { status: 409 });
+      const profiles = await base44.asServiceRole.entities.Locksmith.filter({ created_by_id: user.id });
+      const locksmith = profiles?.[0];
+      if (!locksmith) return Response.json({ error: 'Perfil de chaveiro não encontrado' }, { status: 404 });
+      const accountsByUser = await base44.asServiceRole.entities.MercadoPagoAccount.filter({ locksmith_user_id: user.id });
+      const legacyAccounts = accountsByUser.length ? [] : await base44.asServiceRole.entities.MercadoPagoAccount.filter({ locksmith_id: locksmith.id });
+      const account = accountsByUser?.[0] || legacyAccounts?.[0];
+      if (account?.status !== 'active') return Response.json({ error: 'Conecte sua conta Mercado Pago para aceitar chamados. Acesse Cadastro de recebimentos no seu perfil.' }, { status: 403 });
+      const queued = body.queued === true;
+      const now = new Date().toISOString();
+      const extra = Number(body.extra || 0);
+      const newPrice = Math.round((Number(request.price || 0) + extra) * 100) / 100;
+      const updated = await base44.asServiceRole.entities.ServiceRequest.update(request.id, {
+        status: queued ? 'queued' : 'accepted',
+        accepted_at: now,
+        queued_at: queued ? now : undefined,
+        queued_after_request_id: queued ? body.queued_after_request_id : undefined,
+        locksmith_id: locksmith.id,
+        locksmith_name: locksmith.name,
+        locksmith_user_id: locksmith.created_by_id,
+        locksmith_lat: locksmith.lat,
+        locksmith_lng: locksmith.lng,
+        ringing_locksmith_ids: [locksmith.id],
+        ringing_locksmith_user_ids: [locksmith.created_by_id],
+        price: newPrice,
+        extra_cost: Number(request.extra_cost || 0) + extra,
+      });
+      return Response.json({ success: true, request: updated, queued });
+    }
+
     if (action === 'open_case') {
       const request = await base44.asServiceRole.entities.ServiceRequest.get(body.request_id);
       if (!request || request.locksmith_user_id !== user.id || !request.locksmith_arrived) return Response.json({ error: 'Confirme sua chegada antes de justificar o cancelamento' }, { status: 403 });

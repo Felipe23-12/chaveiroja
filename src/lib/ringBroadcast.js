@@ -34,17 +34,11 @@ export async function rejectRing(request, locksmithId) {
 
 /** Aceita o primeiro chamado ou reserva um segundo chamado normal e próximo. */
 export async function acceptRing(requestId, locksmith, extra = 0) {
-  const [fresh, state, mercadoPagoStatus] = await Promise.all([
+  const [fresh, state] = await Promise.all([
     base44.entities.ServiceRequest.get(requestId),
     getLocksmithQueueState(locksmith.id),
-    base44.functions.invoke("mercadoPagoConnect", { action: "get_status" }).then((r) => r.data).catch(() => ({ connected: false })),
   ]);
   if (fresh.status !== "ringing") return { ok: false, reason: "Outro chaveiro assumiu este atendimento primeiro." };
-
-  // Sem conta Mercado Pago conectada não há como repassar o valor do chamado ao chaveiro.
-  if (!mercadoPagoStatus?.connected) {
-    return { ok: false, reason: "Conecte sua conta Mercado Pago para aceitar chamados. Acesse Cadastro de recebimentos no seu perfil." };
-  }
 
   if (!canReceiveWhileBusy(fresh, state)) {
     const reason = state.queued
@@ -55,26 +49,23 @@ export async function acceptRing(requestId, locksmith, extra = 0) {
     return { ok: false, reason };
   }
 
+  // A validação de conta Mercado Pago conectada e o aceite em si agora rodam
+  // no backend (serviceTrust / accept_request) — o cliente não pode mais
+  // pular essa checagem chamando o update direto.
   const queued = Boolean(state.active);
-  const now = new Date().toISOString();
-  const newPrice = Math.round(((fresh.price || 0) + extra) * 100) / 100;
-  await base44.entities.ServiceRequest.update(requestId, {
-    status: queued ? "queued" : "accepted",
-    accepted_at: now,
-    queued_at: queued ? now : undefined,
+  const result = await base44.functions.invoke("serviceTrust", {
+    action: "accept_request",
+    request_id: requestId,
+    extra,
+    queued,
     queued_after_request_id: queued ? state.active.id : undefined,
-    locksmith_id: locksmith.id,
-    locksmith_name: locksmith.name,
-    locksmith_user_id: locksmith.created_by_id,
-    locksmith_lat: locksmith.lat,
-    locksmith_lng: locksmith.lng,
-    ringing_locksmith_ids: [locksmith.id],
-    ringing_locksmith_user_ids: [locksmith.created_by_id],
-    price: newPrice,
-    extra_cost: Number(fresh.extra_cost || 0) + Number(extra || 0),
   });
+  if (!result?.ok) {
+    const data = result?.data || {};
+    return { ok: false, reason: data.error || "Não foi possível aceitar o chamado." };
+  }
   await base44.functions.invoke("serviceTrust", {
     action: "score_event", event_type: "accepted", request_id: requestId, locksmith_id: locksmith.id,
   }).catch(() => null);
-  return { ok: true, queued };
+  return { ok: true, queued: result.data?.queued === true || queued };
 }
