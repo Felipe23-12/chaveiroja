@@ -99,12 +99,8 @@ export default function LightMap({ center, markers = [], route = null, routePath
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [allPoints, fw, fh]);
 
-  // Reseta zoom/centro manuais quando o conjunto de pontos muda (nova rota/marcadores)
-  useEffect(() => {
-    setUserZoom(null);
-    setUserCenter(null);
-  }, [allPoints]);
-
+  // Mantém o zoom escolhido pelo usuário durante atualizações em tempo real.
+  // O enquadramento automático só volta quando ele toca em centralizar.
   const { c: autoC, z } = view;
   const c = userCenter || autoC;
   const ez = userZoom ?? z;
