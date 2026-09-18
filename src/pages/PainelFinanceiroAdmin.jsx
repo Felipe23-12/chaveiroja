@@ -113,32 +113,47 @@ export default function PainelFinanceiroAdmin() {
   // Líquido acumulado por chaveiro
   const perLocksmith = useMemo(() => {
     const map = {};
-    payments.forEach((p) => {
-      if (p.status !== "paid" && p.status !== "captured") return;
-      const id = p.locksmith_id;
-      if (!id) return;
+    const ensure = (id) => {
       if (!map[id]) {
         const l = locksmithMap[id];
         const fin = financialsMap[id];
         map[id] = {
           id,
-          name: p.locksmith_name || l?.name || "—",
+          name: l?.name || "—",
           workMode: l?.work_mode || "—",
           walletBalance: fin?.wallet_balance || 0,
           pendingBalance: fin?.pending_balance || 0,
+          pendingCashCommission: fin?.pending_cash_commission || 0,
           gross: 0,
           commission: 0,
           net: 0,
           count: 0,
         };
       }
-      map[id].gross += p.amount || 0;
-      map[id].commission += p.commission_amount || 0;
-      map[id].net += p.net_amount || 0;
-      map[id].count += 1;
+      return map[id];
+    };
+    payments.forEach((p) => {
+      if (p.status !== "paid" && p.status !== "captured") return;
+      const id = p.locksmith_id;
+      if (!id) return;
+      const entry = ensure(id);
+      if (p.locksmith_name) entry.name = p.locksmith_name;
+      entry.gross += p.amount || 0;
+      entry.commission += p.commission_amount || 0;
+      entry.net += p.net_amount || 0;
+      entry.count += 1;
     });
-    return Object.values(map).sort((a, b) => b.net - a.net);
-  }, [payments, locksmithMap, financialsMap]);
+    // Garante que chaveiros com dívida de comissão em dinheiro apareçam mesmo sem nenhum pagamento via MP ainda.
+    financials.forEach((fin) => {
+      if (Number(fin.pending_cash_commission || 0) > 0) ensure(fin.locksmith_id);
+    });
+    return Object.values(map).sort((a, b) => (b.pendingCashCommission || 0) - (a.pendingCashCommission || 0) || b.net - a.net);
+  }, [payments, financials, locksmithMap, financialsMap]);
+
+  const totalPendingCashCommission = useMemo(
+    () => perLocksmith.reduce((sum, l) => sum + (l.pendingCashCommission || 0), 0),
+    [perLocksmith]
+  );
 
   if (loading) {
     return (
@@ -231,6 +246,7 @@ export default function PainelFinanceiroAdmin() {
                     <th className="px-4 py-2 font-medium text-right">Comissão</th>
                     <th className="px-4 py-2 font-medium text-right">Líquido</th>
                     <th className="px-4 py-2 font-medium text-right">Carteira</th>
+                    <th className="px-4 py-2 font-medium text-right">Dívida (dinheiro)</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -243,6 +259,9 @@ export default function PainelFinanceiroAdmin() {
                       <td className="px-4 py-2 text-right text-blue-600">- {fmtMoney(l.commission)}</td>
                       <td className="px-4 py-2 text-right font-semibold text-success">{fmtMoney(l.net)}</td>
                       <td className="px-4 py-2 text-right text-muted-foreground">{fmtMoney(l.walletBalance)}</td>
+                      <td className={`px-4 py-2 text-right font-medium ${l.pendingCashCommission > 0 ? "text-destructive" : "text-muted-foreground"}`}>
+                        {l.pendingCashCommission > 0 ? fmtMoney(l.pendingCashCommission) : "—"}
+                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -254,6 +273,7 @@ export default function PainelFinanceiroAdmin() {
                     <td className="px-4 py-2 text-right font-medium text-blue-600">{fmtMoney(totals.commission)}</td>
                     <td className="px-4 py-2 text-right font-bold text-success">{fmtMoney(totals.net)}</td>
                     <td className="px-4 py-2"></td>
+                    <td className="px-4 py-2 text-right font-bold text-destructive">{totalPendingCashCommission > 0 ? fmtMoney(totalPendingCashCommission) : "—"}</td>
                   </tr>
                 </tfoot>
               </table>
