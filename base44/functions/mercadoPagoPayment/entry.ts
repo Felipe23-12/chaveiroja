@@ -2,6 +2,7 @@ import { createClientFromRequest } from "npm:@base44/sdk@0.8.44";
 import { secrets } from "base44:runtime";
 import { APP_URL, MP_WEBHOOK_URL, fetchPayment, getSellerAccount, reconcilePaidPayment, syncApprovedPayment } from "../../shared/mercadoPago.ts";
 import { readPendingCredits } from "../../shared/pendingPaymentCredits.ts";
+import { getOrCreateFinancials } from "../../shared/locksmithFinancials.ts";
 
 const MP_API = "https://api.mercadopago.com";
 
@@ -75,7 +76,8 @@ export default async function(req) {
         }
       }
       const baseCommission = kind === "subscription" ? 0 : Math.round(amount * 0.15 * 100) / 100;
-      const pendingCash = kind === "service" ? Math.max(0, Number(locksmith.pending_cash_commission || 0)) : 0;
+      const locksmithFinancials = kind === "service" ? await getOrCreateFinancials(base44, locksmith) : null;
+      const pendingCash = locksmithFinancials ? Math.max(0, Number(locksmithFinancials.pending_cash_commission || 0)) : 0;
       const maxCashOffset = Math.max(0, Math.round((amount - baseCommission - 0.01) * 100) / 100);
       const pendingCashOffset = Math.min(Math.round(pendingCash * 100) / 100, maxCashOffset);
       const commission = Math.round((baseCommission + pendingCashOffset) * 100) / 100;

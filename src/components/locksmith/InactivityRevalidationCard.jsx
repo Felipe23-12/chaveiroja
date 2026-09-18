@@ -16,15 +16,18 @@ export default function InactivityRevalidationCard({ locksmith, onRevalidated })
     if (docs.length < 1) return;
     setSaving(true);
     try {
-      const now = new Date().toISOString();
-      const updated = await base44.entities.Locksmith.update(locksmith.id, {
-        revalidation_documents: docs,
-        revalidated_at: now,
-        last_accepted_at: now,
-        inactive_deactivated: false,
-        available: true,
+      const { data } = await base44.functions.invoke("locksmithFinancials", {
+        action: "save_revalidation",
+        documents: docs,
       });
-      onRevalidated?.(updated);
+      // Preserva os demais campos financeiros já carregados em `locksmith`
+      // (vêm de uma entity separada, o retorno da function só traz o que mudou).
+      onRevalidated?.({
+        ...locksmith,
+        ...data.locksmith,
+        revalidation_documents: data.revalidation_documents,
+        revalidated_at: data.revalidated_at,
+      });
     } finally {
       setSaving(false);
     }

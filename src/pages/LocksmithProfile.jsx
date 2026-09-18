@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
-import { fetchMyLocksmith } from "@/lib/myLocksmith";
+import { fetchMyLocksmith, preserveFinancials } from "@/lib/myLocksmith";
 import { Briefcase, Check, Loader2, Wallet, Percent, Power } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -77,7 +77,7 @@ export default function LocksmithProfile() {
     if (!myLocksmith) return;
     setSaving(true);
     base44.entities.Locksmith.update(myLocksmith.id, { work_mode: mode })
-      .then((updated) => setMyLocksmith(updated))
+      .then((updated) => setMyLocksmith((prev) => preserveFinancials(prev, updated)))
       .finally(() => setSaving(false));
   };
 
@@ -85,7 +85,7 @@ export default function LocksmithProfile() {
     if (!myLocksmith) return;
     setSaving(true);
     base44.entities.Locksmith.update(myLocksmith.id, { custom_price_base: Number(value) || 0 })
-      .then((updated) => setMyLocksmith(updated))
+      .then((updated) => setMyLocksmith((prev) => preserveFinancials(prev, updated)))
       .finally(() => setSaving(false));
   };
 
@@ -93,7 +93,7 @@ export default function LocksmithProfile() {
     if (!myLocksmith) return Promise.resolve(null);
     setSaving(true);
     return base44.entities.Locksmith.update(myLocksmith.id, data)
-      .then((updated) => setMyLocksmith(updated))
+      .then((updated) => setMyLocksmith((prev) => preserveFinancials(prev, updated)))
       .finally(() => setSaving(false));
   };
 

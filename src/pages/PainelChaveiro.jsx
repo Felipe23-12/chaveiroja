@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { useNavigate, useLocation, Link } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
 import { useAuth } from "@/lib/AuthContext";
-import { fetchMyLocksmith } from "@/lib/myLocksmith";
+import { fetchMyLocksmith, fetchLocksmithFinancials, mergeLocksmithFinancials, preserveFinancials } from "@/lib/myLocksmith";
 import { Wrench, Bell, Check, X, Navigation, Power, Loader2, MapPin, WifiOff, CheckCircle2, Wallet, ArrowLeft, MessageCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { usePullToRefresh, PullToRefreshIndicator } from "@/components/ui/PullToRefresh";
@@ -216,26 +216,31 @@ export default function PainelChaveiro() {
 
   useEffect(() => {
     if (!selectedId) return;
-    base44.entities.Locksmith.get(selectedId)
-      .then((data) => {
-        setMe(data);
-        saveLocksmithProfile(data);
-      })
-      .catch(() => {
-        // Offline: usa perfil em cache
-        const cached = getLocksmithProfile(selectedId);
-        if (cached) setMe(cached);
-      });
+    const loadMe = () =>
+      Promise.all([base44.entities.Locksmith.get(selectedId), fetchLocksmithFinancials(selectedId)])
+        .then(([locksmith, financials]) => {
+          const merged = mergeLocksmithFinancials(locksmith, financials);
+          setMe(merged);
+          saveLocksmithProfile(merged);
+        })
+        .catch(() => {
+          // Offline: usa perfil em cache
+          const cached = getLocksmithProfile(selectedId);
+          if (cached) setMe(cached);
+        });
+    loadMe();
     const unsub = base44.entities.Locksmith.subscribe((event) => {
-      if (event.data?.id === selectedId)
-        base44.entities.Locksmith.get(selectedId)
-          .then((data) => {
-            setMe(data);
-            saveLocksmithProfile(data);
-          })
-          .catch(() => {});
+      if (event.data?.id === selectedId) loadMe();
     });
-    return safeUnsubscribe(unsub);
+    const unsubFinancials = base44.entities.LocksmithFinancials.subscribe((event) => {
+      if (event.data?.locksmith_id === selectedId) loadMe();
+    });
+    const cleanupLocksmith = safeUnsubscribe(unsub);
+    const cleanupFinancials = safeUnsubscribe(unsubFinancials);
+    return () => {
+      cleanupLocksmith();
+      cleanupFinancials();
+    };
   }, [selectedId]);
 
   useEffect(() => {
@@ -538,7 +543,7 @@ export default function PainelChaveiro() {
       try {
         const loc = await getPreciseLocation();
         const updated = await base44.entities.Locksmith.update(me.id, { online: true, lat: loc.lat, lng: loc.lng });
-        setMe(updated);
+        setMe((prev) => preserveFinancials(prev, updated));
         await base44.functions.invoke("serviceTrust", { action: "sync_online_requests", locksmith_id: me.id });
         toast({ title: "Você está online", description: `Localização atualizada via GPS${loc.accuracy ? ` (precisão de ${Math.round(loc.accuracy)} m)` : ""}.` });
       } catch (error) {
@@ -597,7 +602,7 @@ export default function PainelChaveiro() {
     if (me) {
       const { count } = await registerRejection(me, reqId);
       const fresh = await base44.entities.Locksmith.get(me.id);
-      setMe(fresh);
+      setMe((prev) => preserveFinancials(prev, fresh));
       toast({
         title: "Chamado recusado",
         description: count % 3 === 0 ? "A cada 3 recusas, seu score diminui 1 ponto." : `${count % 3} de 3 recusas para a próxima redução de score.`,
@@ -981,7 +986,11 @@ export default function PainelChaveiro() {
           <div id="withdrawal-section" className="mt-3">
             <WithdrawalSection
               locksmith={me}
-              onWithdrawalMade={() => base44.entities.Locksmith.get(selectedId).then(setMe)}
+              onWithdrawalMade={() =>
+                Promise.all([base44.entities.Locksmith.get(selectedId), fetchLocksmithFinancials(selectedId)]).then(
+                  ([locksmith, financials]) => setMe(mergeLocksmithFinancials(locksmith, financials))
+                )
+              }
             />
           </div>
         </div>
@@ -1232,7 +1241,7 @@ export default function PainelChaveiro() {
             me={me}
             onUpdateMe={async (data) => {
               const updated = await base44.entities.Locksmith.update(me.id, data);
-              setMe(updated);
+              setMe((prev) => preserveFinancials(prev, updated));
               if (updated.online && updated.receive_app_requests !== false) {
                 await base44.functions.invoke("serviceTrust", { action: "sync_online_requests", locksmith_id: updated.id });
               }

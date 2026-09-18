@@ -53,25 +53,32 @@ const statusBadge = (s) => {
 export default function PainelFinanceiroAdmin() {
   const [payments, setPayments] = useState([]);
   const [locksmiths, setLocksmiths] = useState([]);
+  const [financials, setFinancials] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const load = async () => {
       setLoading(true);
       try {
-        const [p, l] = await Promise.all([
+        const [p, l, f] = await Promise.all([
           base44.entities.Payment.list("-created_date", 1000),
           base44.entities.Locksmith.list(),
+          base44.entities.LocksmithFinancials.list(),
         ]);
         setPayments(p);
         setLocksmiths(l);
+        setFinancials(f);
       } finally {
         setLoading(false);
       }
     };
     load();
     const unsub = base44.entities.Payment.subscribe(() => load());
-    return unsub;
+    const unsubFinancials = base44.entities.LocksmithFinancials.subscribe(() => load());
+    return () => {
+      if (typeof unsub === "function") unsub();
+      if (typeof unsubFinancials === "function") unsubFinancials();
+    };
   }, []);
 
   const locksmithMap = useMemo(() => {
@@ -79,6 +86,12 @@ export default function PainelFinanceiroAdmin() {
     locksmiths.forEach((l) => { map[l.id] = l; });
     return map;
   }, [locksmiths]);
+
+  const financialsMap = useMemo(() => {
+    const map = {};
+    financials.forEach((f) => { map[f.locksmith_id] = f; });
+    return map;
+  }, [financials]);
 
   // Totais gerais
   const totals = useMemo(() => {
@@ -106,12 +119,13 @@ export default function PainelFinanceiroAdmin() {
       if (!id) return;
       if (!map[id]) {
         const l = locksmithMap[id];
+        const fin = financialsMap[id];
         map[id] = {
           id,
           name: p.locksmith_name || l?.name || "—",
           workMode: l?.work_mode || "—",
-          walletBalance: l?.wallet_balance || 0,
-          pendingBalance: l?.pending_balance || 0,
+          walletBalance: fin?.wallet_balance || 0,
+          pendingBalance: fin?.pending_balance || 0,
           gross: 0,
           commission: 0,
           net: 0,
@@ -124,7 +138,7 @@ export default function PainelFinanceiroAdmin() {
       map[id].count += 1;
     });
     return Object.values(map).sort((a, b) => b.net - a.net);
-  }, [payments, locksmithMap]);
+  }, [payments, locksmithMap, financialsMap]);
 
   if (loading) {
     return (

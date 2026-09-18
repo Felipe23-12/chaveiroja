@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo } from "react";
 import { base44 } from "@/api/base44Client";
 import { Wallet, TrendingUp, Receipt, BadgeCheck, Clock, Loader2, FileDown, FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { fetchMyLocksmith } from "@/lib/myLocksmith";
+import { fetchMyLocksmith, fetchLocksmithFinancials, mergeLocksmithFinancials } from "@/lib/myLocksmith";
 import { WORK_MODES, calculateRepasse } from "@/lib/pricing";
 import { downloadCommissionCSV, downloadCommissionPDF } from "@/lib/commissionReport";
 import WalletCard from "@/components/locksmith/WalletCard";
@@ -35,7 +35,11 @@ export default function PainelFinanceiro() {
   useEffect(() => {
     if (!selectedId) return;
     setLoading(true);
-    base44.entities.Locksmith.get(selectedId).then(setMe);
+    const refreshMe = () =>
+      Promise.all([base44.entities.Locksmith.get(selectedId), fetchLocksmithFinancials(selectedId)]).then(
+        ([locksmith, financials]) => setMe(mergeLocksmithFinancials(locksmith, financials))
+      );
+    refreshMe();
     const load = () =>
       base44.entities.ServiceRequest
         .filter({ locksmith_id: selectedId, status: "completed" }, "-created_date")
@@ -48,11 +52,15 @@ export default function PainelFinanceiro() {
     load();
     const unsub = base44.entities.ServiceRequest.subscribe(() => load());
     const unsubBalance = base44.entities.Locksmith.subscribe((event) => {
-      if (event.data?.id === selectedId) base44.entities.Locksmith.get(selectedId).then(setMe);
+      if (event.data?.id === selectedId) refreshMe();
+    });
+    const unsubFinancials = base44.entities.LocksmithFinancials.subscribe((event) => {
+      if (event.data?.locksmith_id === selectedId) refreshMe();
     });
     return () => {
       if (typeof unsub === "function") unsub();
       if (typeof unsubBalance === "function") unsubBalance();
+      if (typeof unsubFinancials === "function") unsubFinancials();
     };
   }, [selectedId]);
 

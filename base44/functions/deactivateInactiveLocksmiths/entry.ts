@@ -18,13 +18,18 @@ export default async function (req: Request): Promise<Response> {
     }
 
     const limit = Date.now() - INACTIVITY_DAYS * 24 * 60 * 60 * 1000;
-    const locksmiths = await base44.asServiceRole.entities.Locksmith.list('-created_date', 500);
+    const [locksmiths, financials] = await Promise.all([
+      base44.asServiceRole.entities.Locksmith.list('-created_date', 500),
+      base44.asServiceRole.entities.LocksmithFinancials.list('-created_date', 500),
+    ]);
+    const financialsByLocksmith = {};
+    financials.forEach((f) => { financialsByLocksmith[f.locksmith_id] = f; });
     const deactivated = [];
 
     for (const l of locksmiths) {
       if (l.inactive_deactivated) continue;
 
-      let lastActivity = l.last_accepted_at || l.revalidated_at || null;
+      let lastActivity = l.last_accepted_at || financialsByLocksmith[l.id]?.revalidated_at || null;
       if (!lastActivity) {
         const last = await base44.asServiceRole.entities.ServiceRequest.filter(
           { locksmith_id: l.id },

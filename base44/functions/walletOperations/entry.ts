@@ -1,4 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.44';
+import { getOrCreateFinancials } from '../../shared/locksmithFinancials.ts';
 
 export default async function(req) {
   try {
@@ -27,13 +28,14 @@ export default async function(req) {
         return Response.json({ error: "Valor do atendimento inválido" }, { status: 409 });
       }
 
+      const financials = await getOrCreateFinancials(base44, locksmith);
       const commission = Math.round(serviceAmount * 0.15 * 100) / 100;
-      const available = Math.max(0, Number(locksmith.wallet_balance || 0));
+      const available = Math.max(0, Number(financials.wallet_balance || 0));
       const deductedNow = Math.min(available, commission);
-      const pendingBefore = Math.max(0, Number(locksmith.pending_cash_commission || 0));
+      const pendingBefore = Math.max(0, Number(financials.pending_cash_commission || 0));
       const pendingAfter = Math.round((pendingBefore + commission - deductedNow) * 100) / 100;
 
-      await base44.asServiceRole.entities.Locksmith.update(locksmith.id, {
+      await base44.asServiceRole.entities.LocksmithFinancials.update(financials.id, {
         wallet_balance: Math.round((available - deductedNow) * 100) / 100,
         pending_cash_commission: pendingAfter,
       });
@@ -52,8 +54,9 @@ export default async function(req) {
       if (!locksmith || locksmith.created_by_id !== user.id) {
         return Response.json({ error: "Carteira não encontrada" }, { status: 404 });
       }
+      const financials = await getOrCreateFinancials(base44, locksmith);
       const amount = Math.round(Number(body.amount) * 100) / 100;
-      const balance = Math.round(Number(locksmith.wallet_balance || 0) * 100) / 100;
+      const balance = Math.round(Number(financials.wallet_balance || 0) * 100) / 100;
       if (amount <= 0 || amount > balance) {
         return Response.json({ error: "Saldo insuficiente para saque" }, { status: 400 });
       }
@@ -79,9 +82,9 @@ export default async function(req) {
         requested_at: new Date().toISOString(),
       });
       try {
-        await base44.asServiceRole.entities.Locksmith.update(locksmith.id, {
+        await base44.asServiceRole.entities.LocksmithFinancials.update(financials.id, {
           wallet_balance: Math.round((balance - amount) * 100) / 100,
-          pending_balance: Math.round((Number(locksmith.pending_balance || 0) + amount) * 100) / 100,
+          pending_balance: Math.round((Number(financials.pending_balance || 0) + amount) * 100) / 100,
         });
       } catch (error) {
         await base44.asServiceRole.entities.Withdrawal.delete(withdrawal.id).catch(() => null);

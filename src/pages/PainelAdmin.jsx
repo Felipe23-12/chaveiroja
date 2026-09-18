@@ -9,6 +9,7 @@ import ServiceSearchBar from "@/components/admin/ServiceSearchBar";
 import ServiceGallery from "@/components/locksmith/ServiceGallery";
 import FinancialConsolidation from "@/components/admin/FinancialConsolidation";
 import ResetLocksmithsDialog from "@/components/admin/ResetLocksmithsDialog";
+import MigrateLocksmithFinancialsDialog from "@/components/admin/MigrateLocksmithFinancialsDialog";
 import WeeklyOperationsPanel from "@/components/admin/WeeklyOperationsPanel";
 import ConductReportsPanel from "@/components/admin/ConductReportsPanel";
 import VehicleKeyCatalogPanel from "@/components/admin/VehicleKeyCatalogPanel";
@@ -168,7 +169,8 @@ export default function PainelAdmin() {
         </div>
       )}
 
-      {activeTab === "overview" && <div className="flex justify-end">
+      {activeTab === "overview" && <div className="flex justify-end gap-2">
+        <MigrateLocksmithFinancialsDialog />
         <ResetLocksmithsDialog onReset={load} />
       </div>}
 

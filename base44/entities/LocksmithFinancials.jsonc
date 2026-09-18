@@ -1,0 +1,93 @@
+{
+  "name": "LocksmithFinancials",
+  "type": "object",
+  "properties": {
+    "locksmith_id": {
+      "type": "string",
+      "description": "ID do Locksmith dono destes dados"
+    },
+    "locksmith_user_id": {
+      "type": "string",
+      "description": "ID do usuário (User) dono do perfil de chaveiro — mesmo valor de created_by_id, mantido explícito para consultas server-side"
+    },
+    "revalidation_documents": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "default": [],
+      "description": "Documentos enviados pelo chaveiro na revalidação do cadastro"
+    },
+    "revalidated_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Data/hora da última revalidação de documentos concluída"
+    },
+    "wallet_balance": {
+      "type": "number",
+      "default": 0,
+      "description": "Saldo disponível para saque na carteira digital"
+    },
+    "pending_balance": {
+      "type": "number",
+      "default": 0,
+      "description": "Saldo em processamento (saques solicitados)"
+    },
+    "pending_cash_commission": {
+      "type": "number",
+      "default": 0,
+      "description": "Comissão acumulada de serviços pagos em dinheiro, a ser descontada do próximo pagamento via app"
+    },
+    "pix_key_type": {
+      "type": "string",
+      "enum": [
+        "cpf",
+        "cnpj",
+        "email",
+        "phone",
+        "random"
+      ],
+      "description": "Tipo da chave Pix do chaveiro"
+    },
+    "pix_key_value": {
+      "type": "string",
+      "description": "Chave Pix do chaveiro para receber saques"
+    },
+    "bank_name": {
+      "type": "string",
+      "description": "Nome do banco do chaveiro"
+    }
+  },
+  "required": [
+    "locksmith_id"
+  ],
+  "rls": {
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "read": {
+      "$or": [
+        {
+          "created_by_id": "{{user.id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

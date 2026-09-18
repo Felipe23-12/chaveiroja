@@ -1,5 +1,6 @@
 import { secrets } from "base44:runtime";
 import { pendingCreditUpdate } from "./pendingPaymentCredits.ts";
+import { getOrCreateFinancials } from "./locksmithFinancials.ts";
 
 const MP_API = "https://api.mercadopago.com";
 const encoder = new TextEncoder();
@@ -193,8 +194,9 @@ export async function syncApprovedPayment(base44, localPayment, providerPayment)
     : 0;
   if (status === "paid" && !wasPaid && pendingCashOffset > 0 && localPayment.locksmith_id) {
     const locksmith = await base44.asServiceRole.entities.Locksmith.get(localPayment.locksmith_id);
-    await base44.asServiceRole.entities.Locksmith.update(localPayment.locksmith_id, {
-      pending_cash_commission: Math.max(0, Math.round((Number(locksmith.pending_cash_commission || 0) - pendingCashOffset) * 100) / 100),
+    const financials = await getOrCreateFinancials(base44, locksmith);
+    await base44.asServiceRole.entities.LocksmithFinancials.update(financials.id, {
+      pending_cash_commission: Math.max(0, Math.round((Number(financials.pending_cash_commission || 0) - pendingCashOffset) * 100) / 100),
     });
   }
   if (status === "paid") {

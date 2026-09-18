@@ -1,5 +1,6 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.44';
 import { secrets } from 'base44:runtime';
+import { getOrCreateFinancials } from '../../shared/locksmithFinancials.ts';
 
 const STRIPE_API = "https://api.stripe.com/v1";
 
@@ -85,8 +86,9 @@ export default async function(req) {
         return Response.json({ error: "O chaveiro precisa concluir a ativação dos recebimentos antes do pagamento." }, { status: 400 });
       }
 
+      const profileFinancials = await getOrCreateFinancials(base44, profile);
       const baseApplicationFee = Math.round(cents * 0.15);
-      const pendingOffset = Math.min(Math.round(Number(profile.pending_cash_commission || 0) * 100), Math.max(0, cents - baseApplicationFee));
+      const pendingOffset = Math.min(Math.round(Number(profileFinancials.pending_cash_commission || 0) * 100), Math.max(0, cents - baseApplicationFee));
       const params: Record<string, string> = {
         amount: String(cents),
         currency: "brl",
@@ -197,18 +199,20 @@ export default async function(req) {
       const pendingOffset = Number(intent.metadata?.pending_cash_offset_cents || 0) / 100;
       if (transferredDirectly && payment.locksmith_id && pendingOffset > 0) {
         const locksmith = await base44.asServiceRole.entities.Locksmith.get(payment.locksmith_id);
-        await base44.asServiceRole.entities.Locksmith.update(payment.locksmith_id, {
-          pending_cash_commission: Math.max(0, Math.round((Number(locksmith.pending_cash_commission || 0) - pendingOffset) * 100) / 100),
+        const financials = await getOrCreateFinancials(base44, locksmith);
+        await base44.asServiceRole.entities.LocksmithFinancials.update(financials.id, {
+          pending_cash_commission: Math.max(0, Math.round((Number(financials.pending_cash_commission || 0) - pendingOffset) * 100) / 100),
         });
       }
       if (!transferredDirectly && payment.locksmith_id && payment.net_amount) {
         const locksmith = await base44.asServiceRole.entities.Locksmith.get(payment.locksmith_id);
-        const pendingCash = Number(locksmith.pending_cash_commission || 0);
+        const financials = await getOrCreateFinancials(base44, locksmith);
+        const pendingCash = Number(financials.pending_cash_commission || 0);
         const netAmount = Number(payment.net_amount || 0);
         const creditAmount = Math.max(0, Math.round((netAmount - pendingCash) * 100) / 100);
         const pendingAfter = Math.max(0, Math.round((pendingCash - netAmount) * 100) / 100);
-        await base44.asServiceRole.entities.Locksmith.update(payment.locksmith_id, {
-          wallet_balance: Math.round(((locksmith.wallet_balance || 0) + creditAmount) * 100) / 100,
+        await base44.asServiceRole.entities.LocksmithFinancials.update(financials.id, {
+          wallet_balance: Math.round(((financials.wallet_balance || 0) + creditAmount) * 100) / 100,
           pending_cash_commission: pendingAfter,
         });
       }

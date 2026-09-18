@@ -51,11 +51,17 @@ export async function requestWithdrawal({ locksmithId, amount, pixKeyType, pixKe
   }
 }
 
+// Só admin chega até aqui (tela de admin) — LocksmithFinancials permite update só pra admin.
 export async function completeWithdrawal(withdrawalId) {
   const withdrawal = await base44.entities.Withdrawal.get(withdrawalId);
   if (!withdrawal || withdrawal.status === "completed") return;
   const updated = await base44.entities.Withdrawal.update(withdrawalId, { status: "completed", completed_at: new Date().toISOString() });
-  const locksmith = await base44.entities.Locksmith.get(withdrawal.locksmith_id);
-  await base44.entities.Locksmith.update(withdrawal.locksmith_id, { pending_balance: Math.max(0, Math.round(((locksmith.pending_balance || 0) - withdrawal.amount) * 100) / 100) });
+  const financialsList = await base44.entities.LocksmithFinancials.filter({ locksmith_id: withdrawal.locksmith_id });
+  const financials = financialsList[0];
+  if (financials) {
+    await base44.entities.LocksmithFinancials.update(financials.id, {
+      pending_balance: Math.max(0, Math.round(((financials.pending_balance || 0) - withdrawal.amount) * 100) / 100),
+    });
+  }
   return updated;
 }
