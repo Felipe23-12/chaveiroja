@@ -4,6 +4,7 @@ import { Wallet, TrendingUp, Receipt, Percent, Loader2, CreditCard, QrCode, Bank
 import { COMMISSION_RATE } from "@/lib/payments";
 import FinanceCharts from "@/components/admin/FinanceCharts";
 import PendingCreditsCard from "@/components/payment/PendingCreditsCard";
+import PendingPayoutsOverview from "@/components/admin/PendingPayoutsOverview";
 import NotifyMissingMercadoPagoButton from "@/components/admin/NotifyMissingMercadoPagoButton";
 
 const fmtMoney = (n) =>
@@ -144,6 +145,8 @@ export default function PainelFinanceiroAdmin() {
           <p className="text-sm text-muted-foreground">Pagamentos, comissões e repasses líquidos</p>
         </div>
       </div>
+
+      <PendingPayoutsOverview />
 
       <PendingCreditsCard />
 
