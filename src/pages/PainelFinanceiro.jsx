@@ -17,7 +17,6 @@ export default function PainelFinanceiro() {
   const [completed, setCompleted] = useState([]);
   const [cancelled, setCancelled] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [togglingFee, setTogglingFee] = useState(false);
   const [noProfile, setNoProfile] = useState(false);
 
   // Carrega apenas o perfil de chaveiro da conta logada
@@ -112,17 +111,6 @@ export default function PainelFinanceiro() {
       cancelledCount: cancelled.length,
     };
   }, [completed, cancelled, isAppMode, me?.work_mode, me?.pending_cash_commission]);
-
-  const handleToggleFee = async () => {
-    if (!me) return;
-    setTogglingFee(true);
-    try {
-      await base44.entities.Locksmith.update(me.id, { monthly_fee_paid: !me.monthly_fee_paid });
-      setMe({ ...me, monthly_fee_paid: !me.monthly_fee_paid });
-    } finally {
-      setTogglingFee(false);
-    }
-  };
 
   return (
     <div className="max-w-2xl mx-auto px-4 py-6 md:py-10">
@@ -280,15 +268,6 @@ export default function PainelFinanceiro() {
               </p>
             </div>
           </div>
-          <Button
-            variant={me.monthly_fee_paid ? "outline" : "default"}
-            size="sm"
-            onClick={handleToggleFee}
-            disabled={togglingFee}
-          >
-            {togglingFee ? <Loader2 className="w-4 h-4 mr-1.5 animate-spin" /> : null}
-            {me.monthly_fee_paid ? "Reverter" : "Marcar como paga"}
-          </Button>
         </div>
       )}
 
