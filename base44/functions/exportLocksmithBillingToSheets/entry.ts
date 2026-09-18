@@ -18,12 +18,21 @@ export default async function(req) {
 
     const body = await req.json().catch(() => ({}));
     const now = new Date();
-    const targetMonth = body.month || `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+    const currentMonth = monthKey(now);
+    const targetMonth = body.month === undefined ? currentMonth : body.month;
+    if (typeof targetMonth !== 'string' || !/^\d{4}-(0[1-9]|1[0-2])$/.test(targetMonth)) {
+      return Response.json({ error: 'Mês inválido. Use AAAA-MM.' }, { status: 400 });
+    }
 
     // Perfil do chaveiro logado — cada chaveiro exporta apenas os próprios dados
     const profiles = await base44.entities.Locksmith.filter({ created_by_id: user.id });
     const me = profiles[0];
     if (!me) return Response.json({ error: 'Nenhum perfil de chaveiro vinculado a esta conta' }, { status: 404 });
+    // Limita as abas aos meses reais de existência deste perfil, sem meses futuros.
+    const firstMonth = monthKey(me.created_date);
+    if (!/^\d{4}-(0[1-9]|1[0-2])$/.test(firstMonth) || targetMonth < firstMonth || targetMonth > currentMonth) {
+      return Response.json({ error: 'Escolha um mês entre a criação do perfil e o mês atual.' }, { status: 400 });
+    }
 
     const isAppMode = me.work_mode === "app";
     const rate = isAppMode ? COMMISSION_RATE : 0;
@@ -91,25 +100,30 @@ export default async function(req) {
       ["Total líquido", round2(net + cancellationTotal)],
     ];
 
-    // Aba individual por chaveiro (nome saneado para o Google Sheets)
-    const safeName = (me.display_name || me.name || "Chaveiro").replace(/[\\/?*[\]:]/g, "").slice(0, 60);
-    const sheetName = `${safeName} - ${targetMonth}`;
-    const range = encodeURIComponent(`'${sheetName}'`);
+    // Identidade imutável evita colisões entre chaveiros e novas abas por renomeação.
+    const sheetName = `Chaveiro ${me.id} - ${targetMonth}`;
+    const range = encodeURIComponent(`'${sheetName.replace(/'/g, "''")}'`);
 
     const { accessToken } = await base44.asServiceRole.connectors.getConnection("googlesheets");
     const authHeaders = { "Authorization": `Bearer ${accessToken}`, "Content-Type": "application/json" };
 
-    // Garante que a aba existe (ignora erro se já existir)
-    await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}:batchUpdate`, {
-      method: "POST",
-      headers: authHeaders,
-      body: JSON.stringify({ requests: [{ addSheet: { properties: { title: sheetName } } }] }),
-    }).catch(() => {});
+    const metadataRes = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}?fields=sheets.properties.title`, { headers: authHeaders });
+    if (!metadataRes.ok) return Response.json({ error: 'Falha ao consultar as abas da planilha' }, { status: 502 });
+    const metadata = await metadataRes.json();
+    if (!(metadata.sheets || []).some((sheet) => sheet.properties.title === sheetName)) {
+      const createRes = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}:batchUpdate`, {
+        method: 'POST',
+        headers: authHeaders,
+        body: JSON.stringify({ requests: [{ addSheet: { properties: { title: sheetName } } }] }),
+      });
+      if (!createRes.ok) return Response.json({ error: 'Falha ao criar a aba de faturamento' }, { status: 502 });
+    }
 
-    await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${range}!A:Z:clear`, {
-      method: "POST",
+    const clearRes = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${range}!A:Z:clear`, {
+      method: 'POST',
       headers: authHeaders,
-    }).catch(() => {});
+    });
+    if (!clearRes.ok) return Response.json({ error: 'Falha ao atualizar a aba de faturamento' }, { status: 502 });
 
     const updateRes = await fetch(
       `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${range}!A1?valueInputOption=RAW`,

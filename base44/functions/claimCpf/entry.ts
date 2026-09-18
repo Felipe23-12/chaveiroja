@@ -33,11 +33,10 @@ export default async function(req) {
     if (!isValidCpf(cpf)) {
       return Response.json({ error: 'CPF inválido — confira os números digitados' }, { status: 400 });
     }
+    // Confirma apenas o recebimento, nunca a disponibilidade de um CPF.
+    const received = () => Response.json({ received: true, message: 'Solicitação de vínculo recebida.' });
     const currentCpf = onlyDigits(user.cpf);
-    if (currentCpf) {
-      if (currentCpf === cpf) return Response.json({ success: true });
-      return Response.json({ error: 'Não foi possível vincular este CPF' }, { status: 409 });
-    }
+    if (currentCpf) return received();
     const attemptedAfter = new Date(Date.now() - 15 * 60 * 1000).toISOString();
     const recentAttempts = await base44.asServiceRole.entities.ClaimCpfAttempt.filter({
       user_id: user.id,
@@ -57,13 +56,11 @@ export default async function(req) {
       base44.asServiceRole.entities.BlockedCpf.filter({ cpf }),
     ]);
     const duplicate = [...plainMatches, ...formattedMatches].find((account) => account.id !== user.id);
-    if (blockedMatches.length > 0 || duplicate) {
-      return Response.json({ error: 'Não foi possível vincular este CPF' }, { status: 409 });
+    if (!blockedMatches.length && !duplicate) {
+      await base44.auth.updateMe({ cpf });
     }
-
-    await base44.auth.updateMe({ cpf });
-    return Response.json({ success: true });
+    return received();
   } catch (error) {
-    return Response.json({ error: error?.message || 'Não foi possível validar o CPF' }, { status: 500 });
+    return Response.json({ error: 'Não foi possível processar a solicitação de CPF' }, { status: 500 });
   }
 }
