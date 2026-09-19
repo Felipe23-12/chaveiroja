@@ -673,7 +673,8 @@ export default function PainelChaveiro() {
     const isAdmin = user?.role === "admin";
     if (!navigator.geolocation) {
       if (isAdmin) {
-        await updateStatus({ locksmith_arrived: true });
+        const response = await base44.functions.invoke("serviceTrust", { action: "locksmith_arrived", request_id: active.id });
+        setActive(response.data.request);
         return;
       }
       toast({
@@ -692,7 +693,8 @@ export default function PainelChaveiro() {
     );
     if (!pos) {
       if (isAdmin) {
-        await updateStatus({ locksmith_arrived: true });
+        const response = await base44.functions.invoke("serviceTrust", { action: "locksmith_arrived", request_id: active.id });
+        setActive(response.data.request);
         return;
       }
       toast({
@@ -716,11 +718,13 @@ export default function PainelChaveiro() {
       });
       return;
     }
-    await updateStatus({
-      locksmith_arrived: true,
-      locksmith_lat: pos.coords.latitude,
-      locksmith_lng: pos.coords.longitude,
+    const response = await base44.functions.invoke("serviceTrust", {
+      action: "locksmith_arrived",
+      request_id: active.id,
+      lat: pos.coords.latitude,
+      lng: pos.coords.longitude,
     });
+    setActive(response.data.request);
   };
 
   // Registra as fotos do final do serviço — sinaliza ao cliente que o trabalho acabou

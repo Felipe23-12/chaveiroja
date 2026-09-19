@@ -809,7 +809,7 @@ export default function Home() {
     // Solicita permissão de notificação nativa ao iniciar o acompanhamento
     ensureNotificationPermission();
     const unsub = base44.entities.ServiceRequest.subscribe((event) => {
-      if (event.data?.id === activeRequest.id) {
+      if (event.id === activeRequest.id || event.data?.id === activeRequest.id) {
         base44.entities.ServiceRequest.get(activeRequest.id).catch(() => null).then((updated) => {
           if (!updated) return; // falha de rede momentânea — ignora e espera o próximo evento
           setActiveRequest(updated);
@@ -963,16 +963,24 @@ export default function Home() {
   // Cliente confirma que o chaveiro chegou ao local
   const handleConfirmArrival = async () => {
     if (!activeRequest) return;
-    await base44.entities.ServiceRequest.update(activeRequest.id, { client_arrived_confirmed: true });
-    setActiveRequest((prev) => ({ ...prev, client_arrived_confirmed: true }));
+    const response = await base44.functions.invoke("serviceTrust", {
+      action: "client_arrival_response",
+      request_id: activeRequest.id,
+      confirmed: true,
+    });
+    setActiveRequest(response.data.request);
   };
 
   // Cliente informa que o chaveiro ainda NÃO chegou — desfaz a confirmação do
   // chaveiro e o devolve para o acompanhamento de deslocamento.
   const handleDenyArrival = async () => {
     if (!activeRequest) return;
-    await base44.entities.ServiceRequest.update(activeRequest.id, { locksmith_arrived: false });
-    setActiveRequest((prev) => ({ ...prev, locksmith_arrived: false }));
+    const response = await base44.functions.invoke("serviceTrust", {
+      action: "client_arrival_response",
+      request_id: activeRequest.id,
+      confirmed: false,
+    });
+    setActiveRequest(response.data.request);
     notifiedArrived.current = false;
     sendServiceStatusMessage("not_arrived", { request: activeRequest, locksmith: selectedLocksmith });
     toast({

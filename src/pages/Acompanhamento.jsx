@@ -62,7 +62,7 @@ export default function Acompanhamento() {
     const promise = load();
     const unsub = safeUnsubscribe(
       base44.entities.ServiceRequest.subscribe((event) => {
-        if (event.data?.id === requestId) {
+        if (event.id === requestId || event.data?.id === requestId) {
           base44.entities.ServiceRequest.get(requestId).then((updated) => {
             if (updated.status === "cancelled") {
               navigate("/", { replace: true });
@@ -179,10 +179,12 @@ export default function Acompanhamento() {
     setArrivalUpdating(true);
     setArrivalError("");
     try {
-      const updated = await base44.entities.ServiceRequest.update(request.id, confirmed
-        ? { client_arrived_confirmed: true }
-        : { locksmith_arrived: false });
-      setRequest(updated);
+      const response = await base44.functions.invoke("serviceTrust", {
+        action: "client_arrival_response",
+        request_id: request.id,
+        confirmed,
+      });
+      setRequest(response.data.request);
     } catch (error) {
       setArrivalError(error?.message || "Não foi possível registrar sua resposta. Tente novamente.");
     } finally {

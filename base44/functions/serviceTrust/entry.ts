@@ -102,6 +102,38 @@ export default async function(req) {
       if (!request || (request.created_by_id !== user.id && request.locksmith_user_id !== user.id && user.role !== 'admin')) return Response.json({ error: 'Acesso negado' }, { status: 403 });
       return Response.json({ paid: await confirmedServicePayment(base44, request) });
     }
+
+    if (action === 'locksmith_arrived') {
+      const request = await base44.asServiceRole.entities.ServiceRequest.get(body.request_id);
+      if (!request) return Response.json({ error: 'Chamado não encontrado' }, { status: 404 });
+      if (request.locksmith_user_id !== user.id && user.role !== 'admin') return Response.json({ error: 'Acesso negado' }, { status: 403 });
+      if (!['accepted', 'on_the_way'].includes(request.status)) return Response.json({ error: 'Este chamado não aceita confirmação de chegada' }, { status: 409 });
+      const lat = Number(body.lat);
+      const lng = Number(body.lng);
+      if ((!Number.isFinite(lat) || !Number.isFinite(lng)) && user.role !== 'admin') return Response.json({ error: 'Localização inválida' }, { status: 400 });
+      if (user.role !== 'admin') {
+        const distance = distanceKm({ lat, lng }, { lat: request.customer_lat, lng: request.customer_lng });
+        if (!Number.isFinite(distance) || distance > 0.1) return Response.json({ error: 'A confirmação só é liberada a até 100 m do endereço do cliente.' }, { status: 403 });
+      }
+      const updated = await base44.asServiceRole.entities.ServiceRequest.update(request.id, {
+        locksmith_arrived: true,
+        ...(Number.isFinite(lat) && Number.isFinite(lng) ? { locksmith_lat: lat, locksmith_lng: lng } : {}),
+      });
+      return Response.json({ request: updated });
+    }
+
+    if (action === 'client_arrival_response') {
+      const request = await base44.asServiceRole.entities.ServiceRequest.get(body.request_id);
+      if (!request) return Response.json({ error: 'Chamado não encontrado' }, { status: 404 });
+      if (request.created_by_id !== user.id && user.role !== 'admin') return Response.json({ error: 'Acesso negado' }, { status: 403 });
+      const confirmed = body.confirmed === true;
+      if (confirmed && request.locksmith_arrived !== true) return Response.json({ error: 'O chaveiro ainda não confirmou a chegada' }, { status: 409 });
+      const updated = await base44.asServiceRole.entities.ServiceRequest.update(request.id, confirmed
+        ? { client_arrived_confirmed: true }
+        : { locksmith_arrived: false, client_arrived_confirmed: false });
+      return Response.json({ request: updated });
+    }
+
     if (action === 'create_request') {
       if (await clientDebt(base44, user.id)) return Response.json({ error: 'Quite seu débito pendente antes de solicitar outro atendimento.' }, { status: 409 });
       const data = body.data || {};
