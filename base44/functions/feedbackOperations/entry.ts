@@ -9,6 +9,23 @@ export default async function(req) {
     if (!user) return Response.json({ error: 'Não autorizado.' }, { status: 401 });
     const body = await req.json();
 
+    if (body.action === 'client_error') {
+      const message = String(body.message || 'Erro desconhecido').slice(0, 500);
+      const stack = String(body.stack || '').slice(0, 1000);
+      const componentStack = String(body.component_stack || '').slice(0, 1000);
+      const path = String(body.path || '/').slice(0, 300);
+      const feedback = await base44.asServiceRole.entities.AppFeedback.create({
+        category: 'bug',
+        subject: 'Falha automática na interface',
+        message: [`Rota: ${path}`, `Erro: ${message}`, `Stack: ${stack}`, `Componentes: ${componentStack}`].join('\n'),
+        photo_uris: [],
+        reporter_id: user.id,
+        reporter_name: user.full_name || '',
+        reporter_email: user.email || '',
+      });
+      return Response.json({ id: feedback.id });
+    }
+
     if (body.action === 'submit') {
       const category = String(body.category || '');
       const subject = String(body.subject || '').trim();
