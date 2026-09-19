@@ -2,8 +2,18 @@ import React from "react";
 import { AlertTriangle, RotateCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
+const CACHE_RECOVERY_KEY = "app-cache-recovery";
+
 export default class AppErrorBoundary extends React.Component {
   state = { failed: false };
+
+  componentDidMount() {
+    this.recoveryTimer = window.setTimeout(() => sessionStorage.removeItem(CACHE_RECOVERY_KEY), 10000);
+  }
+
+  componentWillUnmount() {
+    window.clearTimeout(this.recoveryTimer);
+  }
 
   static getDerivedStateFromError() {
     return { failed: true };
@@ -11,9 +21,22 @@ export default class AppErrorBoundary extends React.Component {
 
   componentDidCatch(error, info) {
     console.error("Falha inesperada na interface", error, info);
+    const message = String(error?.message || error || "");
+    const staleModule = /requested module|dynamically imported module|module script|chunkloaderror/i.test(message);
+    if (staleModule && !sessionStorage.getItem(CACHE_RECOVERY_KEY)) {
+      sessionStorage.setItem(CACHE_RECOVERY_KEY, "1");
+      const url = new URL(window.location.href);
+      url.searchParams.set("app_refresh", Date.now().toString());
+      window.location.replace(url.toString());
+    }
   }
 
-  reload = () => window.location.reload();
+  reload = () => {
+    sessionStorage.removeItem(CACHE_RECOVERY_KEY);
+    const url = new URL(window.location.href);
+    url.searchParams.set("app_refresh", Date.now().toString());
+    window.location.replace(url.toString());
+  };
 
   render() {
     if (!this.state.failed) return this.props.children;
