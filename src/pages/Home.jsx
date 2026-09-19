@@ -49,7 +49,7 @@ import AcceptedStep from "@/components/client/AcceptedStep";
 import QueuedServiceStep from "@/components/client/QueuedServiceStep";
 import ReviewStep from "@/components/client/ReviewStep";
 import useClientDebt from "@/hooks/useClientDebt";
-import { isUnpaidCompleted } from "@/lib/clientDebt";
+import { isUnpaidCompleted } from "@/lib/servicePaymentState";
 import { useRegionalPriceRange } from "@/hooks/useRegionalPriceRange";
 import useBlockedUsers from "@/hooks/useBlockedUsers";
 import useLiveLocksmiths from "@/hooks/useLiveLocksmiths";
