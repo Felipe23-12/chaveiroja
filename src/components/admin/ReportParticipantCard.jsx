@@ -4,8 +4,9 @@ import { base44 } from "@/api/base44Client";
 import { Button } from "@/components/ui/button";
 import { Image } from "@/components/ui/image";
 
-export default function ReportParticipantCard({ label, participant, locksmith, fallbackName, type }) {
-  const [blocked, setBlocked] = useState(participant?.moderation_blocked === true);
+export default function ReportParticipantCard({ label, participant, locksmith, score, fallbackName, type }) {
+  const suspended = score?.banned === true || (score?.suspended_until && Date.parse(score.suspended_until) > Date.now()) || (locksmith?.blocked_until && Date.parse(locksmith.blocked_until) > Date.now()) || locksmith?.inactive_deactivated === true;
+  const [blocked, setBlocked] = useState(participant?.moderation_blocked === true || Boolean(suspended));
   const [saving, setSaving] = useState(false);
   const toggle = async () => {
     if (!participant?.id || saving) return;

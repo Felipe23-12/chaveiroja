@@ -432,6 +432,32 @@ export default async function(req) {
       const item = await base44.asServiceRole.entities.ServiceCancellationCase.create({ request_id: request.id, client_id: request.created_by_id, locksmith_id: request.locksmith_id, locksmith_user_id: user.id, reason, report: body.report, evidence_photo: body.evidence_photo, status, deadline });
       if (reason === 'threat') {
         const profiles = await base44.asServiceRole.entities.Locksmith.filter({ created_by_id: user.id });
+        const client = await base44.asServiceRole.entities.User.get(request.created_by_id).catch(() => null);
+        const report = await base44.asServiceRole.entities.ConductReport.create({
+          reporter_id: user.id,
+          reporter_name: user.full_name || user.email,
+          reported_id: request.created_by_id,
+          reported_name: client?.full_name || client?.email || 'Cliente',
+          reporter_type: 'chaveiro',
+          reported_type: 'cliente',
+          context_type: 'service',
+          request_id: request.id,
+          locksmith_id: request.locksmith_id,
+          category: 'violence',
+          description: String(body.report || '').trim(),
+          photos: body.evidence_photo ? [body.evidence_photo] : [],
+          status: 'awaiting_defense',
+          defense_deadline: deadline,
+        });
+        await base44.asServiceRole.entities.ReportMessage.create({
+          report_id: report.id,
+          sender_id: user.id,
+          sender_name: 'Administração Chaveiro Já',
+          sender_role: 'system',
+          reporter_id: user.id,
+          reported_id: request.created_by_id,
+          message: `Ocorrência de segurança registrada. A parte denunciada pode apresentar sua versão até ${new Date(deadline).toLocaleString('pt-BR')}.`,
+        });
         const score = await scoreFor(base44, profiles[0]);
         await base44.asServiceRole.entities.LocksmithScore.update(score.id, { suspended_until: deadline });
         await base44.asServiceRole.entities.Locksmith.update(request.locksmith_id, { online: false });

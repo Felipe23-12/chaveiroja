@@ -51,7 +51,7 @@ export default async function(req: Request): Promise<Response> {
 
     if (body.action === 'adminListReports') {
       if (user.role !== 'admin') return Response.json({ error: 'Forbidden' }, { status: 403 });
-      const reports = [], users = [], locksmiths = [];
+      const reports = [], users = [], locksmiths = [], scores = [];
       for (let offset = 0; offset < 2000; offset += 100) {
         const page = await base44.asServiceRole.entities.ConductReport.filter({}, '-created_date', 100, offset);
         reports.push(...page);
@@ -65,10 +65,15 @@ export default async function(req: Request): Promise<Response> {
       }
       for (let offset = 0; offset < 5000; offset += 100) {
         const page = await base44.asServiceRole.entities.Locksmith.filter({}, 'created_date', 100, offset);
-        locksmiths.push(...page.filter((item) => participantIds.has(item.created_by_id)).map((item) => ({ id: item.id, created_by_id: item.created_by_id, name: item.name, display_name: item.display_name, phone: item.phone, avatar_url: item.avatar_url, specialty: item.specialty, rating: item.rating, available: item.available, online: item.online })));
+        locksmiths.push(...page.filter((item) => participantIds.has(item.created_by_id)).map((item) => ({ id: item.id, created_by_id: item.created_by_id, name: item.name, display_name: item.display_name, phone: item.phone, avatar_url: item.avatar_url, specialty: item.specialty, rating: item.rating, available: item.available, online: item.online, inactive_deactivated: item.inactive_deactivated, blocked_until: item.blocked_until })));
         if (page.length < 100) break;
       }
-      return Response.json({ reports, users, locksmiths });
+      for (let offset = 0; offset < 5000; offset += 100) {
+        const page = await base44.asServiceRole.entities.LocksmithScore.filter({}, 'created_date', 100, offset);
+        scores.push(...page.filter((item) => participantIds.has(item.locksmith_user_id)).map((item) => ({ id: item.id, locksmith_id: item.locksmith_id, locksmith_user_id: item.locksmith_user_id, banned: item.banned, suspended_until: item.suspended_until })));
+        if (page.length < 100) break;
+      }
+      return Response.json({ reports, users, locksmiths, scores });
     }
 
     if (body.action === 'adminSetUserBlock') {
@@ -81,6 +86,11 @@ export default async function(req: Request): Promise<Response> {
         moderation_block_reason: blocked ? String(body.reason || 'Bloqueio administrativo').slice(0, 300) : '',
         moderation_blocked_at: blocked ? new Date().toISOString() : target.moderation_blocked_at,
       });
+      if (!blocked) {
+        await base44.asServiceRole.entities.LocksmithScore.updateMany({ locksmith_user_id: target.id }, { $set: { banned: false }, $unset: { suspended_until: '' } });
+        await base44.asServiceRole.entities.Locksmith.updateMany({ created_by_id: target.id }, { $set: { available: true, inactive_deactivated: false }, $unset: { blocked_until: '' } });
+        await base44.asServiceRole.entities.ServiceCancellationCase.updateMany({ locksmith_user_id: target.id, status: 'threat_suspended' }, { $set: { status: 'resolved', resolved_at: new Date().toISOString() } });
+      }
       return Response.json({ user: updated });
     }
 

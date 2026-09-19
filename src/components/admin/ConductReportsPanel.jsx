@@ -20,7 +20,7 @@ export default function ConductReportsPanel({ users: initialUsers = [], locksmit
     <h2 className="mb-1 flex items-center gap-2 font-heading text-lg font-semibold"><Flag className="h-5 w-5 text-destructive" /> Denúncias de conduta</h2>
     <p className="mb-4 text-sm text-muted-foreground">Ocorrências registradas antes, durante ou depois dos atendimentos.</p>
     {loading ? <div className="flex justify-center py-10"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div> : <div className="space-y-4">
-      {data.reports.length === 0 ? <p className="rounded-xl border p-5 text-center text-sm text-muted-foreground">Nenhuma denúncia recebida.</p> : data.reports.map((report) => <ConductReportCard key={report.id} report={report} users={data.users} locksmiths={data.locksmiths} onStatus={update} />)}
+      {data.reports.length === 0 ? <p className="rounded-xl border p-5 text-center text-sm text-muted-foreground">Nenhuma denúncia recebida.</p> : data.reports.map((report) => <ConductReportCard key={report.id} report={report} users={data.users} locksmiths={data.locksmiths} scores={data.scores} onStatus={update} />)}
     </div>}
   </section>;
 }
