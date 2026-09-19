@@ -4,27 +4,32 @@ import { base44 } from "@/api/base44Client";
 import { getReviews } from "@/lib/reviews";
 import ReplacedPartsSummary from "@/components/locksmith/ReplacedPartsSummary";
 import ServiceHistoryCard from "@/components/history/ServiceHistoryCard";
+import ClientReviewForm from "@/components/locksmith/ClientReviewForm";
+import ClientRatingSummary from "@/components/history/ClientRatingSummary";
 
 export default function LocksmithHistorySummary({ locksmithId }) {
   const [services, setServices] = useState([]);
   const [reviews, setReviews] = useState([]);
+  const [clientReviews, setClientReviews] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     if (!locksmithId) return;
     let active = true;
     const load = async () => {
-      const [reqs, revs] = await Promise.all([
+      const [reqs, revs, clientRevs] = await Promise.all([
         base44.entities.ServiceRequest.filter(
           { locksmith_id: locksmithId, status: "completed" },
           "-created_date",
           20
         ),
         getReviews(locksmithId),
+        base44.entities.Review.filter({ locksmith_id: locksmithId, review_type: "client" }, "-created_date"),
       ]);
       if (active) {
         setServices(reqs);
         setReviews(revs);
+        setClientReviews(clientRevs);
       }
     };
     load().finally(() => active && setLoading(false));
@@ -140,6 +145,9 @@ export default function LocksmithHistorySummary({ locksmithId }) {
             {services.map((s) => (
               <ServiceHistoryCard key={s.id} request={s} perspective="chaveiro">
                 <ReplacedPartsSummary parts={s.replaced_parts} />
+                {clientReviews.find((review) => review.service_request_id === s.id)
+                  ? <ClientRatingSummary review={clientReviews.find((review) => review.service_request_id === s.id)} label="Sua avaliação do cliente:" />
+                  : <ClientReviewForm request={s} onSubmitted={(review) => setClientReviews((current) => [review, ...current])} />}
               </ServiceHistoryCard>
             ))}
           </div>

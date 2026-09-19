@@ -10,12 +10,14 @@ import { saveLastService, getLastService } from "@/lib/offlineCache";
 import { WifiOff } from "lucide-react";
 import LoadingCard from "@/components/ui/LoadingCard";
 import ReplacedPartsSummary from "@/components/locksmith/ReplacedPartsSummary";
+import ClientRatingSummary from "@/components/history/ClientRatingSummary";
 import { usePullToRefresh, PullToRefreshIndicator } from "@/components/ui/PullToRefresh";
 
 export default function History() {
   const [requests, setRequests] = useState([]);
   const [loading, setLoading] = useState(true);
   const [offline, setOffline] = useState(false);
+  const [clientReviews, setClientReviews] = useState([]);
   const [filters, setFilters] = useState({ date: "", serviceType: "", status: "", locksmithName: "", search: "" });
 
   const loadRequests = async () => {
@@ -28,6 +30,8 @@ export default function History() {
         50
       );
       setRequests(data);
+      const reviews = await base44.entities.Review.filter({ client_id: user.id, review_type: "client" }, "-created_date");
+      setClientReviews(reviews);
       if (data.length > 0) saveLastService(data[0]);
       setOffline(false);
     } catch {
@@ -103,6 +107,7 @@ export default function History() {
           {filtered.map((req) => (
             <ServiceHistoryCard key={req.id} request={req} perspective="cliente">
               <ReplacedPartsSummary parts={req.replaced_parts} />
+              <ClientRatingSummary review={clientReviews.find((review) => review.service_request_id === req.id)} />
               <ServiceGallery startPhotos={req.start_photos} endPhotos={req.end_photos} />
               {req.status === "completed" && <SaveToCalendarButton request={req} />}
             </ServiceHistoryCard>

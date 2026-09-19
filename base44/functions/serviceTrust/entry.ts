@@ -3,7 +3,7 @@ import { scoreFor, penalizeLocksmithCancellation, recordClientCancellation, getC
 import { validatedLocation } from '../../shared/cancellationSafety.ts';
 import { calculateServerServicePrice } from '../../shared/servicePricing.ts';
 import { clientDebt, confirmedServicePayment } from '../../shared/paymentVerification.ts';
-import { submitTrustedReview } from '../../shared/trustedReviews.ts';
+import { submitTrustedClientReview, submitTrustedReview } from '../../shared/trustedReviews.ts';
 
 const waitMinutes = (minutes) => new Date(Date.now() + minutes * 60000).toISOString();
 
@@ -417,6 +417,7 @@ export default async function(req) {
     }
 
     if (action === 'submit_review') return await submitTrustedReview(base44, user, body);
+    if (action === 'submit_client_review') return await submitTrustedClientReview(base44, user, body);
 
     if (action === 'open_case') {
       const request = await base44.asServiceRole.entities.ServiceRequest.get(body.request_id);

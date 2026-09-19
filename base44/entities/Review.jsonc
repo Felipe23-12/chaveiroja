@@ -8,6 +8,10 @@
     "locksmith_name": {
       "type": "string"
     },
+    "client_id": {
+      "type": "string",
+      "description": "Cliente avaliado pelo chaveiro"
+    },
     "customer_name": {
       "type": "string"
     },
@@ -17,7 +21,8 @@
       "maximum": 5
     },
     "comment": {
-      "type": "string"
+      "type": "string",
+      "maxLength": 3000
     },
     "service_type": {
       "type": "string"
@@ -29,6 +34,14 @@
     "reviewer_id": {
       "type": "string",
       "description": "Usu\u00e1rio autenticado que enviou a avalia\u00e7\u00e3o"
+    },
+    "review_type": {
+      "type": "string",
+      "enum": [
+        "locksmith",
+        "client"
+      ],
+      "default": "locksmith"
     },
     "work_mode": {
       "type": "string",
@@ -47,6 +60,26 @@
     "rating"
   ],
   "rls": {
+    "read": {
+      "$or": [
+        {
+          "data.review_type": {
+            "$ne": "client"
+          }
+        },
+        {
+          "data.client_id": "{{user.id}}"
+        },
+        {
+          "data.reviewer_id": "{{user.id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
     "create": {
       "user_condition": {
         "role": "admin"

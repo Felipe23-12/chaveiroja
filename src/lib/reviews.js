@@ -2,7 +2,8 @@ import { base44 } from "@/api/base44Client";
 
 // Busca as avaliações de um chaveiro (mais recentes primeiro)
 export async function getReviews(locksmithId) {
-  return base44.entities.Review.filter({ locksmith_id: locksmithId }, "-created_date");
+  const reviews = await base44.entities.Review.filter({ locksmith_id: locksmithId }, "-created_date");
+  return reviews.filter((review) => review.review_type !== "client");
 }
 
 // Cria uma avaliação e recalcula a nota média do chaveiro (validação server-side)
