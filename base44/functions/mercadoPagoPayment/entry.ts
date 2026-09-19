@@ -3,15 +3,24 @@ import { secrets } from "base44:runtime";
 import { APP_URL, MP_WEBHOOK_URL, fetchPayment, getSellerAccount, reconcilePaidPayment, syncApprovedPayment } from "../../shared/mercadoPago.ts";
 import { readPendingCredits } from "../../shared/pendingPaymentCredits.ts";
 import { getOrCreateFinancials } from "../../shared/locksmithFinancials.ts";
+import { verifyInternalCall } from "../../shared/internalCall.ts";
+import { reconcilePendingMercadoPago } from "../../shared/reconcilePendingMercadoPago.ts";
 
 const MP_API = "https://api.mercadopago.com";
 
 export default async function(req) {
   try {
     const base44 = createClientFromRequest(req);
+    const body = await req.json();
+    if (body.action === 'reconcile_pending') {
+      if (!verifyInternalCall(req, body)) {
+        const admin = await base44.auth.me();
+        if (!admin || admin.role !== 'admin') return Response.json({ error: 'Forbidden' }, { status: 403 });
+      }
+      return Response.json(await reconcilePendingMercadoPago(base44, body.dry_run === true));
+    }
     const user = await base44.auth.me();
     if (!user) return Response.json({ error: "Unauthorized" }, { status: 401 });
-    const body = await req.json();
 
     if (body.action === "get_pending_credits") {
       const page = body.page ?? 0;
@@ -163,11 +172,20 @@ export default async function(req) {
     }
 
     if (body.action === "get_status" || body.action === "finalize_payment") {
-      const payment = await base44.asServiceRole.entities.Payment.get(body.payment_id).catch(() => null);
+      let payment;
+      if (body.service_request_id) {
+        const service = await base44.asServiceRole.entities.ServiceRequest.get(body.service_request_id).catch(() => null);
+        if (!service || (user.role !== 'admin' && service.created_by_id !== user.id)) return Response.json({ error: 'Atendimento não encontrado' }, { status: 404 });
+        const payments = await base44.asServiceRole.entities.Payment.filter({ service_request_id: service.id, provider: 'mercado_pago', payment_kind: body.payment_kind === 'cancellation' ? 'cancellation' : 'service' }, '-created_date', 20);
+        payment = payments.find(p => p.status === 'paid') || payments.find(p => p.status === 'pre_authorized');
+        if (!payment) return Response.json({ status: 'pending' });
+      } else {
+        payment = await base44.asServiceRole.entities.Payment.get(body.payment_id).catch(() => null);
+      }
       if (!payment || (user.role !== "admin" && payment.client_id !== user.id)) return Response.json({ error: "Pagamento não encontrado" }, { status: 404 });
       if (payment.status === "paid") return Response.json({ ...(await reconcilePaidPayment(base44, payment)), already_finalized: true });
       const providerPayment = await fetchPayment(base44, payment, body.provider_payment_id);
-      if (!providerPayment) return Response.json({ status: "pending" });
+      if (!providerPayment) return Response.json({ status: "pending", payment_id: payment.id });
       const result = await syncApprovedPayment(base44, payment, providerPayment);
       return Response.json(result);
     }

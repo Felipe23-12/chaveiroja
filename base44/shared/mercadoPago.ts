@@ -90,11 +90,14 @@ export async function fetchPayment(base44, localPayment, providerPaymentId) {
   const token = localPayment.payment_kind === "subscription" || localPayment.collection_mode === "platform_pending"
     ? secrets.get("MERCADO_PAGO_ACCESS_TOKEN")
     : (await getSellerAccount(base44, localPayment.locksmith_id)).access_token;
-  let paymentId = providerPaymentId || localPayment.mercado_pago_payment_id;
-  if (!paymentId) {
-    const search = await fetch(`${MP_API}/v1/payments/search?external_reference=${encodeURIComponent(localPayment.id)}&sort=date_created&criteria=desc`, { headers: { Authorization: `Bearer ${token}` } });
+  let paymentId = /^\d+$/.test(String(providerPaymentId || '')) ? providerPaymentId : localPayment.mercado_pago_payment_id;
+  if (!providerPaymentId && !localPayment.captured_at || !paymentId) {
+    const search = await fetch(`${MP_API}/v1/payments/search?external_reference=${encodeURIComponent(localPayment.id)}&sort=date_created&criteria=desc&limit=100`, { headers: { Authorization: `Bearer ${token}` } });
     const result = await search.json();
-    paymentId = result.results?.[0]?.id;
+    if (!search.ok) throw new Error(result.message || 'Não foi possível consultar o pagamento no Mercado Pago');
+    const matches = (result.results || []).filter(item => String(item.external_reference) === String(localPayment.id));
+    const match = matches.find(item => item.status === 'approved') || matches.find(item => ['pending', 'in_process'].includes(item.status)) || matches[0];
+    paymentId = match?.id || paymentId;
   }
   if (!paymentId) return null;
   paymentId = normalizeMercadoPagoPaymentId(paymentId);
@@ -141,6 +144,9 @@ export async function reconcilePaidPayment(base44, localPayment, method = localP
   const request = await base44.asServiceRole.entities.ServiceRequest.get(localPayment.service_request_id).catch(() => null);
   if (!request) return { status: "paid", method, payment_id: localPayment.id };
   const isService = localPayment.payment_kind === "service";
+  if (request.payment_id === localPayment.id && request.payment_status === 'paid' && request.status === (isService ? 'completed' : 'cancelled')) {
+    return { status: 'paid', method, payment_id: localPayment.id, request_id: request.id, request_status: request.status };
+  }
   await base44.asServiceRole.entities.ServiceRequest.update(request.id, {
     payment_id: localPayment.id,
     payment_method: method,
@@ -166,7 +172,7 @@ export async function syncApprovedPayment(base44, localPayment, providerPayment)
   const held = localPayment.collection_mode === "platform_pending";
   if (localPayment.collector_id && String(providerPayment.collector_id) !== localPayment.collector_id) throw new Error("A conta recebedora não confere com a cobrança");
   if (held && providerPayment.currency_id !== "BRL") throw new Error("Moeda do pagamento inválida");
-  if (localPayment.mercado_pago_payment_id && String(providerPayment.id) !== localPayment.mercado_pago_payment_id) throw new Error("Pagamento diferente do já confirmado para esta cobrança");
+  if (localPayment.captured_at && localPayment.mercado_pago_payment_id && String(providerPayment.id) !== localPayment.mercado_pago_payment_id) throw new Error("Pagamento diferente do já confirmado para esta cobrança");
   if (held && Date.parse(providerPayment.date_last_updated) < Date.parse(localPayment.provider_updated_at)) return { status: localPayment.status, method: localPayment.method };
   const statusMap = { approved: "paid", refunded: "refunded", cancelled: "cancelled", rejected: "failed", charged_back: "refunded" };
   const status = statusMap[providerPayment.status] || "pre_authorized";

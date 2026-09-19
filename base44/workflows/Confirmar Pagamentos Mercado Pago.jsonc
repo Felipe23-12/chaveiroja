@@ -1,0 +1,48 @@
+{
+  "trigger": {
+    "condition": null,
+    "config": {
+      "trigger_type": "scheduled",
+      "events": [],
+      "schedule_mode": "recurring",
+      "cron_expression": "*/5 * * * *",
+      "one_time_date": null,
+      "timezone": "UTC",
+      "interval_value": null,
+      "interval_unit": null,
+      "interval_anchor": null,
+      "ends_type": "never",
+      "ends_on_date": null,
+      "ends_after_count": null
+    }
+  },
+  "definition": {
+    "document": {
+      "dsl": "1.0.0",
+      "name": "confirmar_pagamentos_mercado_pago",
+      "version": "1.0",
+      "namespace": "base44"
+    },
+    "do": [
+      {
+        "consultar_pagamentos": {
+          "call": "invoke_backend_function",
+          "with": {
+            "function_name": "mercadoPagoPayment",
+            "args": {
+              "action": "reconcile_pending",
+              "_internal_token": "${ .secrets.INTERNAL_CALL_TOKEN }"
+            }
+          },
+          "then": "end",
+          "x-base44": {
+            "title": "Confirmar pagamentos pendentes",
+            "description": "Concluir somente ap\u00f3s aprova\u00e7\u00e3o do Mercado Pago"
+          }
+        }
+      }
+    ]
+  },
+  "description": "Recupera confirma\u00e7\u00f5es de pagamentos pendentes a cada cinco minutos, mesmo se o cliente pagar o Pix em outro banco e n\u00e3o voltar ao aplicativo. N\u00e3o cria cobran\u00e7as.",
+  "name": "Confirmar Pagamentos Mercado Pago"
+}
