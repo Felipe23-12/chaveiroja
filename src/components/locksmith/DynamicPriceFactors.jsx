@@ -5,7 +5,7 @@ import WeatherSurgeNotice from "@/components/locksmith/WeatherSurgeNotice";
 // Exibe os fatores dinâmicos de precificação (oferta/demanda, região, bairro,
 // urgência) como badges informativas, além do aviso de taxa de distância.
 export default function DynamicPriceFactors({ price, nearestDistance, assumedNearby = false }) {
-  if (!price?.factors) return null;
+  if (!price?.factors || price.factors.fixed) return null;
 
   const { factors } = price;
   const overThreshold = factors.distanceOverThreshold;
