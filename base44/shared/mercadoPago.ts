@@ -196,14 +196,22 @@ export async function syncApprovedPayment(base44, localPayment, providerPayment)
 
   const baseCommission = localPayment.payment_kind === "subscription" ? 0 : Math.round(Number(localPayment.amount) * 0.15 * 100) / 100;
   const pendingCashOffset = localPayment.payment_kind === "service"
-    ? Math.max(0, Math.round((Number(localPayment.commission_amount || 0) - baseCommission) * 100) / 100)
+    ? Math.max(0, Number(localPayment.cash_offset_amount) || Math.round((Number(localPayment.commission_amount || 0) - baseCommission) * 100) / 100)
     : 0;
   if (status === "paid" && !wasPaid && pendingCashOffset > 0 && localPayment.locksmith_id) {
-    const locksmith = await base44.asServiceRole.entities.Locksmith.get(localPayment.locksmith_id);
-    const financials = await getOrCreateFinancials(base44, locksmith);
-    await base44.asServiceRole.entities.LocksmithFinancials.update(financials.id, {
-      pending_cash_commission: Math.max(0, Math.round((Number(financials.pending_cash_commission || 0) - pendingCashOffset) * 100) / 100),
-    });
+    const settlementToken = crypto.randomUUID();
+    await base44.asServiceRole.entities.Payment.updateMany(
+      { id: localPayment.id, cash_offset_settled: { $ne: true } },
+      { $set: { cash_offset_settled: true, cash_offset_settlement_token: settlementToken, cash_offset_settled_at: new Date().toISOString() } },
+    );
+    const claimedPayment = await base44.asServiceRole.entities.Payment.get(localPayment.id);
+    if (claimedPayment.cash_offset_settlement_token === settlementToken) {
+      const locksmith = await base44.asServiceRole.entities.Locksmith.get(localPayment.locksmith_id);
+      const financials = await getOrCreateFinancials(base44, locksmith);
+      await base44.asServiceRole.entities.LocksmithFinancials.update(financials.id, {
+        pending_cash_commission: Math.max(0, Math.round((Number(financials.pending_cash_commission || 0) - pendingCashOffset) * 100) / 100),
+      });
+    }
   }
   if (status === "paid") {
     const result = await reconcilePaidPayment(base44, { ...localPayment, status, method }, method);

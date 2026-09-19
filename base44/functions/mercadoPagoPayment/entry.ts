@@ -109,6 +109,8 @@ export default async function(req) {
         amount,
         commission_amount: commission,
         net_amount: Math.round((amount - commission) * 100) / 100,
+        cash_offset_amount: pendingCashOffset,
+        cash_offset_settled: false,
         method: "credit_card",
         status: "pre_authorized",
         provider: "mercado_pago",

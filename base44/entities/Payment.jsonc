@@ -34,6 +34,25 @@
       "type": "number",
       "default": 0
     },
+    "cash_offset_amount": {
+      "type": "number",
+      "minimum": 0,
+      "default": 0,
+      "description": "Parcela da d\u00edvida anterior de comiss\u00e3o em dinheiro reservada neste pagamento"
+    },
+    "cash_offset_settled": {
+      "type": "boolean",
+      "default": false,
+      "description": "Confirma que a parcela reservada j\u00e1 foi baixada do saldo devedor"
+    },
+    "cash_offset_settlement_token": {
+      "type": "string",
+      "description": "Trava idempotente interna do processamento da baixa"
+    },
+    "cash_offset_settled_at": {
+      "type": "string",
+      "format": "date-time"
+    },
     "method": {
       "type": "string",
       "enum": [
