@@ -178,6 +178,8 @@ export default function CarKeyConfig({
           price={price}
           fipeValue={fipeValue}
           year={vehicleInfo.year}
+          make={vehicleInfo.make}
+          model={vehicleInfo.model}
           hasCodedKey={hasCodedKey}
           keyValue={keyValue}
           keyType={carKeyType}

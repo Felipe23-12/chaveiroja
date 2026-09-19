@@ -7,8 +7,13 @@ export const CAR_KEY_COST_PER_KM = 1.5;
 
 // Confecção de chave de carro (modo aplicativo): taxa de mão de obra por ano
 // e presença de codificação eletrônica, aplicada sobre o valor da Tabela FIPE.
-export function getCarKeyFipeLaborRate(year, hasCodedKey = false) {
+export function getCarKeyFipeLaborRate(year, hasCodedKey = false, make = "", model = "") {
   const y = Number(year) || 0;
+  const brand = String(make).toLowerCase();
+  const jetta = /\b(vw|volkswagen)\b/.test(brand) && /\bjetta\b/i.test(String(model));
+  if (jetta && y >= 2015 && y <= 2019) return 0.013;
+  if (jetta && y >= 2020 && y <= 2022) return 0.015;
+  if (/\b(gm|chevrolet)\b/.test(brand) && y >= 2020) return 0.013;
   if (y >= 2020) return 0.008;
   if (y >= 2010) return 0.009;
   if (y >= 2000) return 0.011;
@@ -44,9 +49,9 @@ export const CAR_KEY_TYPES = [
 ];
 
 // Mão de obra e valor da chave conforme o tipo escolhido pelo cliente
-export function carKeyComponents({ fipeValue = 0, keyValue = 0, keyType = "simples", year, hasCodedKey = false, chargeSimpleKeyValue = false }) {
+export function carKeyComponents({ fipeValue = 0, keyValue = 0, keyType = "simples", year, hasCodedKey = false, chargeSimpleKeyValue = false, make = "", model = "" }) {
   const fipe = Number(fipeValue) || 0;
-  const rate = getCarKeyFipeLaborRate(year, hasCodedKey);
+  const rate = getCarKeyFipeLaborRate(year, hasCodedKey, make, model);
   const fipeLabor = Math.round(fipe * rate * 100) / 100;
   const type = CAR_KEY_TYPES.find((t) => t.id === keyType) || CAR_KEY_TYPES[0];
   if (type.usesOriginalKey) {
@@ -325,7 +330,7 @@ export function calculateCarKeyPrice({
   alarmLocked = null,
   chargeSimpleKeyValue = false,
 }) {
-  const comp = keyType ? carKeyComponents({ fipeValue, keyValue, keyType, year, hasCodedKey, chargeSimpleKeyValue }) : null;
+  const comp = keyType ? carKeyComponents({ fipeValue, keyValue, keyType, year, hasCodedKey, chargeSimpleKeyValue, make, model }) : null;
   const kv = comp ? comp.keyValue : Number(keyValue) || 0;
   const dist = Number(distanceKm) || 0;
   const extra = Number(extraCost) || 0;

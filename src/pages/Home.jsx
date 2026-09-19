@@ -630,7 +630,7 @@ export default function Home() {
         location_context: locationContext,
         expected_price: expectedPrice,
         pricing_inputs: { ...pricingData.pricing_inputs, vehicle_catalog_id: requestCatalog?.id || null },
-        pricing_calculation: buildChargeCalculation(price, pricingService, { year: vehicleInfo.year, fipeValue, keyType: carKeyType, hasCodedKey }),
+        pricing_calculation: buildChargeCalculation(price, pricingService, { make: vehicleInfo.make, model: vehicleInfo.model, year: vehicleInfo.year, fipeValue, keyType: carKeyType, hasCodedKey }),
         service_type: service.label,
         address,
         description: [`Cliente: ${customerName}`, locksText, openingReasonText, brokenKeyText, keyTechnicalText, description].filter(Boolean).join(" — "),

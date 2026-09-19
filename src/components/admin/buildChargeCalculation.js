@@ -13,7 +13,7 @@ export default function buildChargeCalculation(price, service, vehicle = {}) {
   const factors = price.factors || {};
   const notes = [price.timeTier?.label, service.baseRange ? `Faixa base utilizada: R$ ${service.baseRange[0]} a R$ ${service.baseRange[1]}` : null, ...[factors.supplyDemand, factors.urgency, factors.region, factors.neighborhood, factors.weather].filter(Boolean).map((factor) => `${factor.label}: ×${factor.multiplier}`)].filter(Boolean);
   if (service.isCarKey) {
-    const rate = getCarKeyFipeLaborRate(vehicle.year, vehicle.hasCodedKey);
+    const rate = getCarKeyFipeLaborRate(vehicle.year, vehicle.hasCodedKey, vehicle.make, vehicle.model);
     notes.push(`Mão de obra antes do ajuste dinâmico: FIPE R$ ${Number(vehicle.fipeValue || 0).toFixed(2)} × ${(rate * 100).toFixed(2)}%${vehicle.keyType === "simples" ? ` + R$ ${CAR_KEY_SIMPLE_FIXED} (chave simples)` : ""}.`);
   }
   return { lines, total: price.total, notes };

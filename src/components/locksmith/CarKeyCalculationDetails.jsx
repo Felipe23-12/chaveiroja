@@ -6,12 +6,12 @@ import { manualParallelKeyPrice, parallelKeyPrice, requiresParallelKey } from "@
 const money = (value) => `R$ ${(Number(value) || 0).toFixed(2)}`;
 const multiplier = (value) => `×${(Number(value) || 1).toFixed(2)}`;
 
-export default function CarKeyCalculationDetails({ price, fipeValue, year, hasCodedKey, keyValue, keyType, keyOrigin, catalog }) {
+export default function CarKeyCalculationDetails({ price, fipeValue, year, hasCodedKey, keyValue, keyType, keyOrigin, catalog, make = "", model = "" }) {
   if (!price) return null;
   const original = Number(keyValue) || 250;
   const selected = keyOrigin === "paralela" ? parallelKeyPrice(catalog, original, keyType) : original;
-  const components = carKeyComponents({ fipeValue, keyValue: selected, keyType, year, hasCodedKey, chargeSimpleKeyValue: keyOrigin === "paralela" && manualParallelKeyPrice(catalog, keyType) > 0 });
-  const rate = getCarKeyFipeLaborRate(year, hasCodedKey);
+  const components = carKeyComponents({ fipeValue, keyValue: selected, keyType, year, hasCodedKey, make, model, chargeSimpleKeyValue: keyOrigin === "paralela" && manualParallelKeyPrice(catalog, keyType) > 0 });
+  const rate = getCarKeyFipeLaborRate(year, hasCodedKey, make, model);
   const factors = price.factors || {};
   const factorRows = [
     ["Oferta e demanda", factors.supplyDemand?.label, factors.supplyDemand?.multiplier],

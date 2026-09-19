@@ -118,7 +118,12 @@ async function carKeyPrice(base44, userId, data, inputs, multiplier, distanceFee
   if (keyOrigin === 'paralela' && !catalog) throw new Error('Catálogo da chave paralela é obrigatório');
   const keyValue = catalogKeyValue(catalog, quote.keyValue, keyType, keyOrigin);
   if (keyOrigin === 'paralela' && keyValue <= 0) throw new Error('Preço da chave paralela não confirmado no catálogo');
-  const rate = year >= 2020 ? 0.008 : year >= 2010 ? 0.009 : year >= 2000 ? 0.011 : quote.hasCodedKey ? 0.013 : 0.011;
+  const brand = normalizeVehicleText(make);
+  const jetta = /\b(vw|volkswagen)\b/.test(brand) && /\bjetta\b/.test(normalizeVehicleText(model));
+  const rate = jetta && year >= 2015 && year <= 2019 ? 0.013
+    : jetta && year >= 2020 && year <= 2022 ? 0.015
+    : /\b(gm|chevrolet)\b/.test(brand) && year >= 2020 ? 0.013
+    : year >= 2020 ? 0.008 : year >= 2010 ? 0.009 : year >= 2000 ? 0.011 : quote.hasCodedKey ? 0.013 : 0.011;
   const labor = round(fipe * rate + (keyType === 'simples' ? 120 : 0));
   const chargedKey = keyType === 'simples' && !(keyOrigin === 'paralela' && Number(catalog?.parallel_simple_price) > 0) ? 0 : keyValue;
   const onlineFee = serverProgrammingFee(make, model, year);
