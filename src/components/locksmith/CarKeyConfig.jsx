@@ -98,7 +98,7 @@ export default function CarKeyConfig({
           </div>
         </div>
 
-        <Button type="button" variant="outline" onClick={onSearch} disabled={searching} className="w-full">
+        <Button type="button" variant="outline" onClick={onSearch} disabled={searching || programming?.dealerOnly} className="w-full">
           {searching ? (
             <>
               <Loader2 className="w-4 h-4 mr-2 animate-spin" /> Consultando disponibilidade...
@@ -113,7 +113,7 @@ export default function CarKeyConfig({
       </div>
 
       {/* O sistema calcula o serviço sem expor o valor antes do aceite. */}
-      {fipeValue != null && (
+      {fipeValue != null && !programming?.dealerOnly && (
         <div className="p-4 rounded-xl border border-border bg-muted/40 text-center">
           <p className="text-sm font-medium text-foreground">Veículo e chave consultados</p>
           <p className="text-xs text-muted-foreground mt-1">Disponibilidade confirmada para continuar o chamado.</p>
@@ -125,7 +125,7 @@ export default function CarKeyConfig({
       )}
       <CarKeyProgrammingNotice programming={programming} hidePriceDetails />
 
-      {fipeValue != null && (
+      {fipeValue != null && !programming?.dealerOnly && (
         <KeyOriginSelector value={keyOrigin} onChange={setKeyOrigin} catalog={keyCatalog} keyType={carKeyType} hidePriceDetails />
       )}
 
@@ -173,7 +173,7 @@ export default function CarKeyConfig({
         />
       </div>
 
-      {showPriceBeforeAcceptance && price?.serverPricing ? <ServerPriceSummary pricing={price.serverPricing} showDetails /> : showPriceBeforeAcceptance ? (
+      {programming?.dealerOnly ? null : showPriceBeforeAcceptance && price?.serverPricing ? <ServerPriceSummary pricing={price.serverPricing} showDetails /> : showPriceBeforeAcceptance ? (
         <CarKeyCalculationDetails
           price={price}
           fipeValue={fipeValue}

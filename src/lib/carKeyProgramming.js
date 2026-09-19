@@ -38,6 +38,13 @@ export function detectCarKeyProgramming(model, year) {
   const m = (model || "").toLowerCase().trim();
   const y = Number(String(year ?? "").trim()) || 0;
   if (!m) return { onlineFee: 0, dealerOnly: false, reason: "" };
+  if (/\bmercedes(?:[\s-]*benz)?\b/.test(m) && y >= 2015) {
+    return {
+      onlineFee: 0,
+      dealerOnly: true,
+      reason: "Mercedes-Benz a partir de 2015: confecção de chave somente na concessionária autorizada. Serviço indisponível pelo aplicativo, sem orçamento ou abertura de chamado.",
+    };
+  }
 
   const vw = isVW(m);
   const gm = isGM(m);

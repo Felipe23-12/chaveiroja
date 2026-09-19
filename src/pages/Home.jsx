@@ -478,6 +478,10 @@ export default function Home() {
   };
 
   const handleSearchKey = async () => {
+    if (programming?.dealerOnly) {
+      setSearchError(programming.reason);
+      return;
+    }
     if (!vehicleInfo.make.trim() || !vehicleInfo.model.trim() || !vehicleInfo.year.trim()) {
       setSearchError("Informe montadora, modelo e ano do veículo");
       return;

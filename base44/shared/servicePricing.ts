@@ -1,4 +1,5 @@
 import { verifyVehiclePricingQuote } from './vehiclePricingQuote.ts';
+import { carKeyUnavailableReason } from './carKeyAvailability.ts';
 
 const RULES = {
   'Abertura Residencial': { range: [80, 250], id: 'abertura_residencial' },
@@ -157,6 +158,11 @@ export async function calculateServerServicePrice(base44, userId, data) {
   const rule = RULES[data.service_type];
   if (!rule) throw new Error('Serviço inválido');
   const inputs = data.pricing_inputs && typeof data.pricing_inputs === 'object' ? data.pricing_inputs : {};
+  if (rule.carKey) {
+    const vehicle = inputs.vehicle || {};
+    const unavailable = carKeyUnavailableReason(vehicle.make, vehicle.model, vehicle.year);
+    if (unavailable) throw new Error(unavailable);
+  }
   const [online, searching, ringing] = await Promise.all([
     base44.asServiceRole.entities.Locksmith.filter({ online: true }, '-updated_date', 500),
     base44.asServiceRole.entities.ServiceRequest.filter({ status: 'searching' }, '-created_date', 500),

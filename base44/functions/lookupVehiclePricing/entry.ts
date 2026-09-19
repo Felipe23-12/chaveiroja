@@ -1,5 +1,6 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.46';
 import { createVehiclePricingQuote } from '../../shared/vehiclePricingQuote.ts';
+import { carKeyUnavailableReason } from '../../shared/carKeyAvailability.ts';
 
 export default async function(req: Request): Promise<Response> {
   try {
@@ -31,6 +32,9 @@ export default async function(req: Request): Promise<Response> {
     if (!model || !/^\d{4}$/.test(year)) {
       return Response.json({ error: 'Modelo e ano válido são obrigatórios' }, { status: 400 });
     }
+
+    const unavailable = carKeyUnavailableReason(make, model, year);
+    if (unavailable) return Response.json({ code: 'DEALER_ONLY', error: unavailable }, { status: 400 });
 
     const localOffers = [];
     let manualCatalogOffer = null;
