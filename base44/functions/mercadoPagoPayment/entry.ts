@@ -57,6 +57,11 @@ export default async function(req) {
         }
       }
       if (!locksmith || !Number.isFinite(amount) || Math.round(Number(body.amount) * 100) !== Math.round(amount * 100) || amount < 1) return Response.json({ error: "O valor da cobrança não confere" }, { status: 400 });
+      // No split, a tarifa do Mercado Pago também sai da parte do chaveiro.
+      // Preservar este saldo evita que a comissão acumulada torne o pagamento impossível.
+      const providerCostReserve = kind === "service" && collectionMode === "seller_split"
+        ? Math.max(1, Math.round(amount * 0.1 * 100) / 100)
+        : 0.01;
       if (service) {
         const existingPayments = await base44.asServiceRole.entities.Payment.filter({ service_request_id: service.id, provider: "mercado_pago", payment_kind: kind }, "-created_date", 20);
         const existing = existingPayments.find((item) => item.status === "paid" || item.status === "pre_authorized");
@@ -67,7 +72,7 @@ export default async function(req) {
             const synced = await syncApprovedPayment(base44, existing, providerPayment);
             if (synced.status === "paid") return Response.json({ ...synced, already_paid: true });
           }
-          if (existing.mercado_pago_preference_id) {
+          if (existing.mercado_pago_preference_id && Number(existing.net_amount || 0) >= providerCostReserve) {
             const preferenceResponse = await fetch(`${MP_API}/checkout/preferences/${encodeURIComponent(existing.mercado_pago_preference_id)}`, { headers: { Authorization: `Bearer ${token}` } });
             const preference = await preferenceResponse.json();
             if (preferenceResponse.ok && preference.init_point) return Response.json({ payment_id: existing.id, checkout_url: preference.init_point, reused: true });
@@ -91,7 +96,7 @@ export default async function(req) {
             }, 0)
         : 0;
       const pendingCash = locksmithFinancials ? Math.max(0, Math.round((Number(locksmithFinancials.pending_cash_commission || 0) - reservedByOtherCheckouts) * 100) / 100) : 0;
-      const maxCashOffset = Math.max(0, Math.round((amount - baseCommission - 0.01) * 100) / 100);
+      const maxCashOffset = Math.max(0, Math.round((amount - baseCommission - providerCostReserve) * 100) / 100);
       const pendingCashOffset = Math.min(Math.round(pendingCash * 100) / 100, maxCashOffset);
       const commission = Math.round((baseCommission + pendingCashOffset) * 100) / 100;
       const payment = await base44.asServiceRole.entities.Payment.create({
