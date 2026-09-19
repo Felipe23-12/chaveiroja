@@ -509,9 +509,24 @@ export default function Home() {
     }
   };
 
-  // Solicita o serviço: encontra o chaveiro do modo app mais próximo e "toca" nele
-  // O pagamento acontece APÓS a conclusão do serviço, não antes.
-  const handleConfirmConfig = async () => {
+  const [quoteRevision, setQuoteRevision] = useState(0);
+  const pricingData = {
+    service_type: service?.label, address, urgency,
+    customer_lat: customerLoc.lat, customer_lng: customerLoc.lng,
+    key_type: service?.isMotoKey ? motoInfo.keyType : carKeyType,
+    discount_applied: loyalty?.available > 0,
+    pricing_inputs: {
+      selected_options: selectedOptions, custom_addons: customAddons,
+      locks: service?.hasLocks ? locks.map(({ model, miolo }) => ({ model, miolo })) : [],
+      vehicle: { ...vehicleInfo, alarm_locked: vehicleInfo.alarmLocked },
+      vehicle_pricing_quote: vehiclePricingQuote,
+      vehicle_catalog_id: keyCatalog?.id || null,
+      key_origin: keyOrigin, broken_key_in_lock: openingConditionFee > 0,
+    },
+  };
+
+  // A prévia e o envio usam o mesmo cálculo; alterações exigem nova confirmação.
+  const handleConfirmConfig = async (expectedPrice) => {
     if (!address || submitting) return;
     if (debt) {
       setSearchError("Você possui uma taxa de cancelamento em aberto. Pague o débito para solicitar novos serviços.");
@@ -609,16 +624,8 @@ export default function Home() {
         : "";
       const base = {
         location_context: locationContext,
-        pricing_inputs: {
-          selected_options: selectedOptions,
-          custom_addons: customAddons,
-          locks: service.hasLocks ? locks.map(({ model, miolo }) => ({ model, miolo })) : [],
-          vehicle: { ...vehicleInfo, alarm_locked: vehicleInfo.alarmLocked },
-          vehicle_pricing_quote: vehiclePricingQuote,
-          vehicle_catalog_id: requestCatalog?.id || null,
-          key_origin: keyOrigin,
-          broken_key_in_lock: openingConditionFee > 0,
-        },
+        expected_price: expectedPrice,
+        pricing_inputs: { ...pricingData.pricing_inputs, vehicle_catalog_id: requestCatalog?.id || null },
         pricing_calculation: buildChargeCalculation(price, pricingService, { year: vehicleInfo.year, fipeValue, keyType: carKeyType, hasCodedKey }),
         service_type: service.label,
         address,
@@ -718,6 +725,7 @@ export default function Home() {
       reqRef.current = req.id;
       goToStep(3);
     } catch (error) {
+      if (error?.response?.data?.code === "PRICE_CHANGED") setQuoteRevision((value) => value + 1);
       setSearchError(error?.response?.data?.error || error.message || "Não foi possível solicitar o serviço.");
     } finally {
       setSubmitting(false);
@@ -1136,7 +1144,7 @@ export default function Home() {
         brokenKeyInLock, setBrokenKeyInLock, openingReason, setOpeningReason,
         searchRadius, setSearchRadius, inRadiusCount, urgency, setUrgency,
         goToStep, handleConfirmConfig, submitting, keyBlock, selectedKeyValue,
-        nearestDistance, assumedNearby,
+        nearestDistance, assumedNearby, pricingData, quoteRevision,
       }} />}
 
       {/* Step 3: Procurando / tocando no chaveiro */}

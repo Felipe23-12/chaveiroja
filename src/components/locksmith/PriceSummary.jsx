@@ -2,9 +2,11 @@ import React from "react";
 import { Info } from "lucide-react";
 import AdminPricePreview from "@/components/admin/AdminPricePreview";
 import DynamicPriceFactors from "@/components/locksmith/DynamicPriceFactors";
+import ServerPriceSummary from "@/components/client/ServerPriceSummary";
 
 export default function PriceSummary({ price, showCalculationDetails = false, service = null, nearestDistance, assumedNearby = false }) {
   if (!price) return null;
+  if (price.serverPricing) return <ServerPriceSummary pricing={price.serverPricing} showDetails={showCalculationDetails} />;
   return (
     <div className="space-y-3">
       <div className="rounded-2xl bg-muted p-4 space-y-2">

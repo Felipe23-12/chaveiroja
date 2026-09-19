@@ -13,6 +13,7 @@ import { safeUnsubscribe } from "@/lib/safeUnsubscribe";
 import useBlockedUsers from "@/hooks/useBlockedUsers";
 import { filterRingableWhileBusy, getLocksmithQueueState } from "@/lib/serviceQueue";
 import { clientNameFromRequest } from "@/lib/clientName";
+import AcceptRequestError from "@/components/locksmith/AcceptRequestError";
 
 function formatElapsed(seconds) {
   const m = Math.floor(seconds / 60);
@@ -54,6 +55,7 @@ export default function GlobalLocksmithRequestAlert() {
   const [requests, setRequests] = useState([]);
   const [open, setOpen] = useState(false);
   const [accepting, setAccepting] = useState(null);
+  const [acceptError, setAcceptError] = useState(null);
   const [queuedCount, setQueuedCount] = useState(queuedActionsCount());
   const online = useOnlineStatus();
   const { blockedIds, loading: blocksLoading } = useBlockedUsers();
@@ -165,19 +167,24 @@ export default function GlobalLocksmithRequestAlert() {
   useEffect(() => () => stopAlarm(), []);
 
   const handleAccept = async (reqId, extra = 0) => {
-    if (requests.length === 1) stopAlarm();
+    if (accepting) return;
+    setAcceptError(null);
     setAccepting(reqId);
     try {
       if (!locksmith) return;
-      // O chamado toca para vários chaveiros — o primeiro que aceitar atende
       const result = await acceptRing(reqId, locksmith, extra);
+      if (!result.ok) { setAcceptError(result); return; }
+      if (requests.length === 1) stopAlarm();
       setRequests((prev) => prev.filter((r) => r.id !== reqId));
-      if (result.ok) navigate("/painel-chaveiro");
-    } catch (e) {
-      // Sem conexão: guarda o aceite e envia assim que reconectar
-      enqueueAction({ type: "accept", requestId: reqId, locksmith, extra });
-      setQueuedCount(queuedActionsCount());
-      setRequests((prev) => prev.filter((r) => r.id !== reqId));
+      navigate("/painel-chaveiro");
+    } catch (error) {
+      if (!navigator.onLine) {
+        enqueueAction({ type: "accept", requestId: reqId, locksmith, extra });
+        setQueuedCount(queuedActionsCount());
+        setAcceptError({ reason: "Sem conexão. O aceite será tentado ao reconectar; o atendimento ainda não está confirmado." });
+      } else {
+        setAcceptError({ reason: error?.response?.data?.error || error.message || "Não foi possível aceitar. Tente novamente." });
+      }
     } finally {
       setAccepting(null);
     }
@@ -235,6 +242,7 @@ export default function GlobalLocksmithRequestAlert() {
 
             {/* Corpo */}
             <div className="p-4 space-y-3 max-h-[60vh] overflow-y-auto">
+              <AcceptRequestError error={acceptError} />
               {requests.map((req, idx) => (
                 <RequestCard
                   key={req.id}

@@ -4,6 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import KeyServicePrice from "@/components/client/KeyServicePrice";
+import ServerPriceSummary from "@/components/client/ServerPriceSummary";
 import CarKeyCalculationDetails from "./CarKeyCalculationDetails";
 import AddressAutocomplete from "./AddressAutocomplete";
 import { CAR_KEY_TYPES, getCarKeyComplexityFee, getCarKeyComplexityLabel, isLandRoverFrom2020 } from "@/lib/pricing";
@@ -172,7 +173,7 @@ export default function CarKeyConfig({
         />
       </div>
 
-      {showPriceBeforeAcceptance ? (
+      {showPriceBeforeAcceptance && price?.serverPricing ? <ServerPriceSummary pricing={price.serverPricing} showDetails /> : showPriceBeforeAcceptance ? (
         <CarKeyCalculationDetails
           price={price}
           fipeValue={fipeValue}

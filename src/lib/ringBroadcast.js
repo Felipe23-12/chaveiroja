@@ -66,10 +66,10 @@ export async function acceptRing(requestId, locksmith, extra = 0) {
     });
   } catch (err) {
     const data = err?.response?.data || err?.data || err;
-    return { ok: false, reason: data?.error || err?.message || "Não foi possível aceitar o chamado." };
+    return { ok: false, code: data?.code, reason: data?.error || err?.message || "Não foi possível aceitar o chamado." };
   }
   await base44.functions.invoke("serviceTrust", {
     action: "score_event", event_type: "accepted", request_id: requestId, locksmith_id: locksmith.id,
   }).catch(() => null);
-  return { ok: true, queued: result?.data?.queued === true || queued };
+  return { ok: true, request: result?.data?.request, queued: result?.data?.queued === true || queued };
 }

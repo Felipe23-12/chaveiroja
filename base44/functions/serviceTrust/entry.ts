@@ -255,6 +255,9 @@ export default async function(req) {
       const data = body.data || {};
       if (!data.service_type || !String(data.address || '').trim()) return Response.json({ error: 'Informe o serviço e o endereço' }, { status: 400 });
       const pricing = await calculateServerServicePrice(base44, user.id, data);
+      if (data.expected_price !== undefined && (!Number.isFinite(Number(data.expected_price)) || Math.round(Number(data.expected_price) * 100) !== Math.round(pricing.price * 100))) {
+        return Response.json({ code: 'PRICE_CHANGED', error: 'O valor foi atualizado. Confira o novo total e toque em Solicitar chaveiro novamente.' }, { status: 409 });
+      }
       if (data.service_type === 'Confecção de Chave de Carro') {
         const vehicle = String(data.vehicle_info || '').trim();
         const toyota = /^toyota(?:\s|$)/i.test(vehicle);
@@ -393,7 +396,7 @@ export default async function(req) {
       const accountsByUser = await base44.asServiceRole.entities.MercadoPagoAccount.filter({ locksmith_user_id: user.id });
       const legacyAccounts = accountsByUser.length ? [] : await base44.asServiceRole.entities.MercadoPagoAccount.filter({ locksmith_id: locksmith.id });
       const account = accountsByUser?.[0] || legacyAccounts?.[0];
-      if (account?.status !== 'active') return Response.json({ error: 'Conecte sua conta Mercado Pago para aceitar chamados. Acesse Cadastro de recebimentos no seu perfil.' }, { status: 403 });
+      if (account?.status !== 'active') return Response.json({ code: 'MERCADO_PAGO_REQUIRED', error: 'Conecte sua conta Mercado Pago para aceitar chamados. Acesse Cadastro de recebimentos no seu perfil.' }, { status: 403 });
       const queued = body.queued === true;
       const now = new Date().toISOString();
       const extra = Number(body.extra || 0);

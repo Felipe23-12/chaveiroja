@@ -61,6 +61,7 @@ import QueuedRequestCard from "@/components/locksmith/QueuedRequestCard";
 import { filterRingableWhileBusy, getLocksmithQueueState, startNextQueuedRequest } from "@/lib/serviceQueue";
 import ClientReviewForm from "@/components/locksmith/ClientReviewForm";
 import ClientRatingSummary from "@/components/history/ClientRatingSummary";
+import AcceptRequestError from "@/components/locksmith/AcceptRequestError";
 
 // Raio de cobertura para considerar um pedido "na região" do chaveiro (km)
 const REGION_RADIUS_KM = 15;
@@ -120,6 +121,8 @@ export default function PainelChaveiro() {
   const [gpsLoading, setGpsLoading] = useState(false);
   const [trustScore, setTrustScore] = useState(null);
   const [completedClientReview, setCompletedClientReview] = useState(null);
+  const [acceptError, setAcceptError] = useState(null);
+  const acceptingRequest = useRef(false);
   const emailedStatus = useRef(new Set());
 
   const selected = locksmiths.find((l) => l.id === selectedId) || me;
@@ -580,18 +583,23 @@ export default function PainelChaveiro() {
   }, [me?.id, me?.online]);
 
   const handleAccept = async (reqId, extra = 0) => {
-    if (!me) return;
-    // Corrida entre os chaveiros: o primeiro que aceitar fica com o chamado
-    const result = await acceptRing(reqId, me, extra);
-    if (result.ok) {
-      base44.entities.Locksmith.update(me.id, { last_accepted_at: new Date().toISOString() }).catch(() => {});
-      toast({
-        title: result.queued ? "Segundo chamado reservado" : "Chamado aceito",
-        description: result.queued ? "Ele começará automaticamente após o atendimento atual." : "O atendimento foi confirmado.",
-      });
-    } else {
-      toast({ title: "Não foi possível aceitar", description: result.reason, variant: "destructive" });
+    if (!me || acceptingRequest.current) return;
+    acceptingRequest.current = true;
+    setAcceptError(null);
+    try {
+      const result = await acceptRing(reqId, me, extra);
+      if (!result.ok) { setAcceptError(result); return; }
       setPendingRequests((prev) => prev.filter((r) => r.id !== reqId));
+      if (result.request) {
+        if (result.queued) setQueuedRequest(result.request);
+        else { setActive(result.request); saveLastService(result.request); }
+      }
+      base44.entities.Locksmith.update(me.id, { last_accepted_at: new Date().toISOString() }).catch(() => {});
+      toast({ title: result.queued ? "Segundo chamado reservado" : "Chamado aceito", description: result.queued ? "Ele começará automaticamente após o atendimento atual." : "O atendimento foi confirmado." });
+    } catch (error) {
+      setAcceptError({ reason: error?.response?.data?.error || error.message || "Não foi possível aceitar. Tente novamente." });
+    } finally {
+      acceptingRequest.current = false;
     }
   };
 
@@ -1003,6 +1011,7 @@ export default function PainelChaveiro() {
         </div>
       )}
 
+      {acceptError && <div className="mb-4"><AcceptRequestError error={acceptError} /></div>}
       {/* Fila de solicitações pendentes — modo app */}
       {pendingCount > 0 && canReceiveAppCalls && !rejectBlock.blocked && !trustBlocked && (
         <PendingRequestsList

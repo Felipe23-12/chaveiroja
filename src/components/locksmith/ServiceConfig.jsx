@@ -158,7 +158,7 @@ export default function ServiceConfig({
         <PriceSummary price={price} service={calculationService || service} showCalculationDetails={showCalculationDetails} nearestDistance={nearestDistance} assumedNearby={assumedNearby} />
       ) : (
         <div className="rounded-2xl bg-muted p-4 text-sm text-muted-foreground text-center">
-          Informe o endereço acima para calcularmos o valor do serviço.
+          {address ? "Complete os dados para consultar o valor do serviço." : "Informe o endereço acima para calcularmos o valor do serviço."}
         </div>
       )}
     </div>
