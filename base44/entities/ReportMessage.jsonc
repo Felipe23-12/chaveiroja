@@ -20,6 +20,10 @@
         "system"
       ]
     },
+    "recipient_id": {
+      "type": "string",
+      "description": "Usu\u00e1rio participante que pode ver esta mensagem individual"
+    },
     "reporter_id": {
       "type": "string"
     },
@@ -54,10 +58,10 @@
     "read": {
       "$or": [
         {
-          "data.reporter_id": "{{user.id}}"
+          "data.sender_id": "{{user.id}}"
         },
         {
-          "data.reported_id": "{{user.id}}"
+          "data.recipient_id": "{{user.id}}"
         },
         {
           "user_condition": {

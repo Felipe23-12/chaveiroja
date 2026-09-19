@@ -37,15 +37,11 @@ export default async function(req: Request): Promise<Response> {
         status: 'awaiting_defense',
         defense_deadline: deadline,
       });
-      await base44.asServiceRole.entities.ReportMessage.create({
-        report_id: report.id,
-        sender_id: user.id,
-        sender_name: 'Administração Chaveiro Já',
-        sender_role: 'system',
-        reporter_id: user.id,
-        reported_id: data.reported_id,
-        message: `Denúncia registrada. A parte denunciada pode apresentar sua defesa até ${new Date(deadline).toLocaleString('pt-BR')}.`,
-      });
+      const systemMessage = `Denúncia registrada. A parte denunciada pode apresentar sua defesa até ${new Date(deadline).toLocaleString('pt-BR')}.`;
+      await base44.asServiceRole.entities.ReportMessage.bulkCreate([
+        { report_id: report.id, sender_id: user.id, sender_name: 'Administração Chaveiro Já', sender_role: 'system', recipient_id: user.id, reporter_id: user.id, reported_id: data.reported_id, message: systemMessage },
+        { report_id: report.id, sender_id: user.id, sender_name: 'Administração Chaveiro Já', sender_role: 'system', recipient_id: data.reported_id, reporter_id: user.id, reported_id: data.reported_id, message: systemMessage },
+      ]);
       return Response.json({ report });
     }
 
@@ -102,12 +98,15 @@ export default async function(req: Request): Promise<Response> {
       const message = String(body.message || '').trim();
       const mediaUrl = String(body.media_url || '').trim();
       const mediaType = body.media_type === 'video' ? 'video' : 'image';
+      const recipientId = isAdmin ? String(body.recipientId || '') : user.id;
+      if (isAdmin && ![report.reporter_id, report.reported_id].includes(recipientId)) return Response.json({ error: 'Selecione o destinatário' }, { status: 400 });
       if (!message && !mediaUrl) return Response.json({ error: 'Mensagem ou arquivo obrigatório' }, { status: 400 });
       const created = await base44.asServiceRole.entities.ReportMessage.create({
         report_id: report.id,
         sender_id: user.id,
         sender_name: isAdmin ? 'Administração Chaveiro Já' : (user.full_name || user.email),
         sender_role: isAdmin ? 'admin' : (user.account_type || 'cliente'),
+        recipient_id: recipientId,
         reporter_id: report.reporter_id,
         reported_id: report.reported_id,
         message,

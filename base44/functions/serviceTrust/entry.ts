@@ -449,15 +449,11 @@ export default async function(req) {
           status: 'awaiting_defense',
           defense_deadline: deadline,
         });
-        await base44.asServiceRole.entities.ReportMessage.create({
-          report_id: report.id,
-          sender_id: user.id,
-          sender_name: 'Administração Chaveiro Já',
-          sender_role: 'system',
-          reporter_id: user.id,
-          reported_id: request.created_by_id,
-          message: `Ocorrência de segurança registrada. A parte denunciada pode apresentar sua versão até ${new Date(deadline).toLocaleString('pt-BR')}.`,
-        });
+        const systemMessage = `Ocorrência de segurança registrada. A parte denunciada pode apresentar sua versão até ${new Date(deadline).toLocaleString('pt-BR')}.`;
+        await base44.asServiceRole.entities.ReportMessage.bulkCreate([
+          { report_id: report.id, sender_id: user.id, sender_name: 'Administração Chaveiro Já', sender_role: 'system', recipient_id: user.id, reporter_id: user.id, reported_id: request.created_by_id, message: systemMessage },
+          { report_id: report.id, sender_id: user.id, sender_name: 'Administração Chaveiro Já', sender_role: 'system', recipient_id: request.created_by_id, reporter_id: user.id, reported_id: request.created_by_id, message: systemMessage },
+        ]);
         const score = await scoreFor(base44, profiles[0]);
         await base44.asServiceRole.entities.LocksmithScore.update(score.id, { suspended_until: deadline });
         await base44.asServiceRole.entities.Locksmith.update(request.locksmith_id, { online: false });
