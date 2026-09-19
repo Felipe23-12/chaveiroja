@@ -2,6 +2,8 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.46';
 import { scoreFor, penalizeLocksmithCancellation, recordClientCancellation, getClientCancelBlock, clientCancellationQuote } from '../../shared/cancellationRules.ts';
 import { validatedLocation } from '../../shared/cancellationSafety.ts';
 import { calculateServerServicePrice } from '../../shared/servicePricing.ts';
+import { clientDebt, confirmedServicePayment } from '../../shared/paymentVerification.ts';
+import { submitTrustedReview } from '../../shared/trustedReviews.ts';
 
 const waitMinutes = (minutes) => new Date(Date.now() + minutes * 60000).toISOString();
 
@@ -94,7 +96,14 @@ export default async function(req) {
       return Response.json({ pricing: await calculateServerServicePrice(base44, user.id, data) });
     }
 
+    if (action === 'client_debt') return Response.json({ debt: await clientDebt(base44, user.id) });
+    if (action === 'payment_status') {
+      const request = await base44.asServiceRole.entities.ServiceRequest.get(body.request_id);
+      if (!request || (request.created_by_id !== user.id && request.locksmith_user_id !== user.id && user.role !== 'admin')) return Response.json({ error: 'Acesso negado' }, { status: 403 });
+      return Response.json({ paid: await confirmedServicePayment(base44, request) });
+    }
     if (action === 'create_request') {
+      if (await clientDebt(base44, user.id)) return Response.json({ error: 'Quite seu débito pendente antes de solicitar outro atendimento.' }, { status: 409 });
       const data = body.data || {};
       if (!data.service_type || !String(data.address || '').trim()) return Response.json({ error: 'Informe o serviço e o endereço' }, { status: 400 });
       const pricing = await calculateServerServicePrice(base44, user.id, data);
@@ -144,7 +153,7 @@ export default async function(req) {
       const location = validatedLocation(data);
       const detail = location.place_type === 'condominium' ? `Bloco/torre: ${location.building} · Unidade: ${location.unit}` : '';
       if (detail) values.description = [values.description, detail].filter(Boolean).join(' — ');
-      const request = await base44.entities.ServiceRequest.create({ ...values, status: 'ringing' });
+      const request = await base44.entities.ServiceRequest.create({ ...values, status: 'ringing', payment_status: 'pending', cash_received: false, client_confirmed: false, locksmith_confirmed: false, cancellation_fee: 0, review_claimed: false });
       await base44.asServiceRole.entities.ServiceRequestContext.create({ ...location, request_id: request.id, client_id: user.id });
       return Response.json({ request });
     }
@@ -227,6 +236,9 @@ export default async function(req) {
       const request = await base44.asServiceRole.entities.ServiceRequest.get(body.request_id);
       if (!request) return Response.json({ error: 'Chamado não encontrado' }, { status: 404 });
       if (request.status !== 'ringing') return Response.json({ error: 'Outro chaveiro assumiu este atendimento primeiro.' }, { status: 409 });
+      const contexts = await base44.asServiceRole.entities.ServiceRequestContext.filter({ request_id: request.id, client_id: request.created_by_id }, '-created_date', 1);
+      if (!contexts.length || await clientDebt(base44, request.created_by_id)) return Response.json({ error: 'Solicitação não autorizada ou cliente com débito pendente.' }, { status: 409 });
+      if (!(request.ringing_locksmith_user_ids || []).includes(user.id)) return Response.json({ error: 'Este chamado não foi direcionado a você.' }, { status: 403 });
       const profiles = await base44.asServiceRole.entities.Locksmith.filter({ created_by_id: user.id });
       const locksmith = profiles?.[0];
       if (!locksmith) return Response.json({ error: 'Perfil de chaveiro não encontrado' }, { status: 404 });
@@ -256,48 +268,7 @@ export default async function(req) {
       return Response.json({ success: true, request: updated, queued });
     }
 
-    if (action === 'submit_review') {
-      const locksmithId = body.locksmith_id;
-      const rating = Number(body.rating);
-      if (!locksmithId || !Number.isFinite(rating) || rating < 1 || rating > 5) {
-        return Response.json({ error: 'Informe o chaveiro e uma nota entre 1 e 5.' }, { status: 400 });
-      }
-      const workMode = body.work_mode;
-      let serviceRequestId;
-      if (workMode === 'app') {
-        if (!body.service_request_id) return Response.json({ error: 'Você só pode avaliar um atendimento concluído seu.' }, { status: 403 });
-        const sr = await base44.asServiceRole.entities.ServiceRequest.get(body.service_request_id).catch(() => null);
-        if (!sr || sr.created_by_id !== user.id || sr.locksmith_id !== locksmithId || sr.status !== 'completed') {
-          return Response.json({ error: 'Você só pode avaliar um atendimento concluído seu.' }, { status: 403 });
-        }
-        const existingReviews = await base44.asServiceRole.entities.Review.filter({ service_request_id: sr.id });
-        if (existingReviews.length || sr.rating != null) {
-          return Response.json({ error: 'Este atendimento já foi avaliado.' }, { status: 409 });
-        }
-        serviceRequestId = sr.id;
-      } else {
-        const msgs = await base44.asServiceRole.entities.ChatMessage.filter({ locksmith_id: locksmithId, client_id: user.id });
-        if (!msgs.length) return Response.json({ error: 'Você só pode avaliar um chaveiro com quem já conversou.' }, { status: 403 });
-      }
-      await base44.asServiceRole.entities.Review.create({
-        locksmith_id: locksmithId,
-        service_request_id: serviceRequestId,
-        reviewer_id: user.id,
-        locksmith_name: body.locksmith_name,
-        customer_name: body.customer_name || 'Cliente',
-        rating,
-        comment: body.comment,
-        service_type: body.service_type,
-        work_mode: workMode,
-      });
-      const reviews = await base44.asServiceRole.entities.Review.filter({ locksmith_id: locksmithId });
-      const avg = reviews.reduce((s, r) => s + (Number(r.rating) || 0), 0) / reviews.length;
-      await base44.asServiceRole.entities.Locksmith.update(locksmithId, {
-        rating: Math.round(avg * 10) / 10,
-        reviews_count: reviews.length,
-      });
-      return Response.json({ success: true });
-    }
+    if (action === 'submit_review') return await submitTrustedReview(base44, user, body);
 
     if (action === 'open_case') {
       const request = await base44.asServiceRole.entities.ServiceRequest.get(body.request_id);
