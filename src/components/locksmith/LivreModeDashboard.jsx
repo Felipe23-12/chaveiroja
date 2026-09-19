@@ -7,7 +7,7 @@ import LocksmithChatConversations from "@/components/locksmith/LocksmithChatConv
 
 /**
  * Dashboard do Modo Livre — exibido quando o chaveiro pagou a mensalidade.
- * Mostra o mapa interativo em tempo real + conversas com clientes.
+ * Mostra a própria localização no mapa privado + conversas com clientes.
  * Inclui toggle para receber/não receber solicitações do modo aplicativo.
  */
 export default function LivreModeDashboard({ me, onUpdateMe }) {
@@ -53,11 +53,11 @@ export default function LivreModeDashboard({ me, onUpdateMe }) {
         />
       </div>
 
-      {/* Mapa interativo em tempo real — clientes próximos */}
+      {/* Mapa privado — somente o próprio chaveiro */}
       <div>
         <div className="flex items-center gap-2 mb-2">
           <MapPin className="w-4 h-4 text-primary" />
-          <h3 className="font-heading font-semibold text-foreground">Mapa em tempo real</h3>
+          <h3 className="font-heading font-semibold text-foreground">Meu mapa</h3>
         </div>
         <LivreDashboardMap me={mapMe} />
       </div>
@@ -99,18 +99,18 @@ export function LivreModeLocked({ onPay, me }) {
         </h2>
         <p className="text-xs text-muted-foreground max-w-sm mb-3">
           Pague a mensalidade do modo livre para liberar sua visibilidade no mapa para os clientes.
-          O mapa abaixo permanece visível como referência dos chamados.
+          O mapa abaixo permanece visível apenas com a sua própria localização.
         </p>
         <Button onClick={onPay} size="sm">
           <CreditCard className="w-4 h-4 mr-2" /> Pagar mensalidade
         </Button>
       </div>
 
-      {/* Mapa visível mesmo com mensalidade pendente — referência dos chamados */}
+      {/* Mapa privado visível mesmo com mensalidade pendente */}
       <div>
         <div className="flex items-center gap-2 mb-2">
           <MapPin className="w-4 h-4 text-primary" />
-          <h3 className="font-heading font-semibold text-foreground">Mapa em tempo real</h3>
+          <h3 className="font-heading font-semibold text-foreground">Meu mapa</h3>
         </div>
         <LivreDashboardMap me={mapMe} />
       </div>

@@ -33,9 +33,9 @@ export default function LiveLocksmithsMap({ customerLoc, livreOnly = false }) {
   useEffect(() => {
     let active = true;
     const isVisible = (profile) =>
-      profile?.online === true && (!livreOnly || profile.work_mode === "livre");
+      (profile?.online === true || profile?.available === false) && (!livreOnly || profile.work_mode === "livre");
     const load = () =>
-      base44.entities.Locksmith.filter({ online: true }, "-updated_date", 500).then((list) => {
+      base44.entities.Locksmith.list("-updated_date", 500).then((list) => {
         if (active) setLocksmiths(list.filter(isVisible));
       });
     const onEvent = (event) => {
@@ -301,7 +301,7 @@ export default function LiveLocksmithsMap({ customerLoc, livreOnly = false }) {
         <div className="text-center py-6 rounded-xl border border-dashed border-border">
           <Wrench className="w-7 h-7 text-muted-foreground mx-auto mb-2" />
           <p className="text-sm text-muted-foreground">
-            {isFiltering ? "Nenhum chaveiro encontrado com esses filtros." : "Nenhum chaveiro online agora."}
+            {isFiltering ? "Nenhum chaveiro encontrado com esses filtros." : "Nenhum chaveiro online ou ocupado agora."}
           </p>
           <p className="text-xs text-muted-foreground mt-1">
             {isFiltering
