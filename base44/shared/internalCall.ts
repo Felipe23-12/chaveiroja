@@ -8,8 +8,7 @@ function safeEqual(a, b) {
 }
 
 export function verifyInternalCall(req, body = {}) {
-  const authorization = req?.headers?.get('base44-service-authorization') || '';
   const providedToken = String(body?._internal_token || '');
   const expectedToken = String(secrets.get('INTERNAL_CALL_TOKEN') || '');
-  return /^Bearer [^.]+\.[^.]+\.[^.]+$/.test(authorization) && safeEqual(providedToken, expectedToken);
+  return safeEqual(providedToken, expectedToken);
 }
