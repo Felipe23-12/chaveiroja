@@ -184,7 +184,7 @@ export default function PainelAdmin() {
 
       {activeTab === "overview" && <WeeklyOperationsPanel requests={requests} scores={scores} />}
 
-      {activeTab === "reports" && <ConductReportsPanel />}
+      {activeTab === "reports" && <ConductReportsPanel users={users} locksmiths={locksmiths} />}
 
       {activeTab === "feedback" && <FeedbackPanel users={users} />}
 

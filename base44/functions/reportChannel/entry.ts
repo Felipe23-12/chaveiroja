@@ -49,6 +49,41 @@ export default async function(req: Request): Promise<Response> {
       return Response.json({ report });
     }
 
+    if (body.action === 'adminListReports') {
+      if (user.role !== 'admin') return Response.json({ error: 'Forbidden' }, { status: 403 });
+      const reports = [], users = [], locksmiths = [];
+      for (let offset = 0; offset < 2000; offset += 100) {
+        const page = await base44.asServiceRole.entities.ConductReport.filter({}, '-created_date', 100, offset);
+        reports.push(...page);
+        if (page.length < 100) break;
+      }
+      const participantIds = new Set(reports.flatMap((report) => [report.reporter_id, report.reported_id]));
+      for (let offset = 0; offset < 5000; offset += 100) {
+        const page = await base44.asServiceRole.entities.User.filter({}, 'created_date', 100, offset);
+        users.push(...page.filter((item) => participantIds.has(item.id)).map((item) => ({ id: item.id, full_name: item.full_name, username: item.username, email: item.email, phone: item.phone, account_type: item.account_type, avatar_url: item.avatar_url, moderation_blocked: item.moderation_blocked, moderation_block_reason: item.moderation_block_reason })));
+        if (page.length < 100) break;
+      }
+      for (let offset = 0; offset < 5000; offset += 100) {
+        const page = await base44.asServiceRole.entities.Locksmith.filter({}, 'created_date', 100, offset);
+        locksmiths.push(...page.filter((item) => participantIds.has(item.created_by_id)).map((item) => ({ id: item.id, created_by_id: item.created_by_id, name: item.name, display_name: item.display_name, phone: item.phone, avatar_url: item.avatar_url, specialty: item.specialty, rating: item.rating, available: item.available, online: item.online })));
+        if (page.length < 100) break;
+      }
+      return Response.json({ reports, users, locksmiths });
+    }
+
+    if (body.action === 'adminSetUserBlock') {
+      if (user.role !== 'admin') return Response.json({ error: 'Forbidden' }, { status: 403 });
+      const target = await base44.asServiceRole.entities.User.get(String(body.userId || '')).catch(() => null);
+      if (!target || target.role === 'admin') return Response.json({ error: 'Perfil inválido' }, { status: 400 });
+      const blocked = body.blocked === true;
+      const updated = await base44.asServiceRole.entities.User.update(target.id, {
+        moderation_blocked: blocked,
+        moderation_block_reason: blocked ? String(body.reason || 'Bloqueio administrativo').slice(0, 300) : '',
+        moderation_blocked_at: blocked ? new Date().toISOString() : target.moderation_blocked_at,
+      });
+      return Response.json({ user: updated });
+    }
+
     if (body.action === 'sendMessage') {
       const report = await base44.asServiceRole.entities.ConductReport.get(body.reportId);
       const isAdmin = user.role === 'admin';

@@ -15,6 +15,7 @@ import TermsGate from '@/components/TermsGate';
 import LoadingCard from '@/components/ui/LoadingCard';
 import Layout from '@/components/Layout';
 import MercadoPagoOnboardingGuard from '@/components/MercadoPagoOnboardingGuard';
+import ModerationBlockGate from '@/components/ModerationBlockGate';
 
 // Páginas carregadas sob demanda — reduz o tempo de inicialização em
 // conexões móveis lentas (WebView), pois só o código da rota atual é baixado.
@@ -102,6 +103,7 @@ const AuthenticatedApp = () => {
         <Route path="/contato" element={<Contato />} />
         <Route path="/contact" element={<Contact />} />
         <Route element={<ProtectedRoute unauthenticatedElement={<Navigate to="/login" replace />} />}>
+          <Route element={<ModerationBlockGate />}>
           <Route path="/criar-senha" element={<CreatePassword />} />
           <Route element={<PasswordCreationGuard />}>
           <Route element={<ProfileCompletionGuard />}>
@@ -130,6 +132,7 @@ const AuthenticatedApp = () => {
               <Route path="/painel-admin" element={<PainelAdmin />} />
               <Route path="/painel-financeiro-admin" element={<PainelFinanceiroAdmin />} />
             </Route>
+          </Route>
           </Route>
           </Route>
           </Route>

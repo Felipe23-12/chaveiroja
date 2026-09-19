@@ -50,6 +50,20 @@
     "terms_version": {
       "type": "string",
       "description": "Vers\u00e3o dos termos e regras aceita pelo usu\u00e1rio \u2014 quando os termos mudam, o app exige novo aceite"
+    },
+    "moderation_blocked": {
+      "type": "boolean",
+      "default": false,
+      "description": "Bloqueio administrativo de acesso ao aplicativo"
+    },
+    "moderation_block_reason": {
+      "type": "string",
+      "description": "Motivo administrativo do bloqueio"
+    },
+    "moderation_blocked_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Data e hora do bloqueio administrativo"
     }
   },
   "required": [
