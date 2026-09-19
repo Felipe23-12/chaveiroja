@@ -59,6 +59,8 @@ import OpeningChargeSummary from "@/components/client/OpeningChargeSummary";
 import KeyTechnicalDetails from "@/components/locksmith/KeyTechnicalDetails";
 import QueuedRequestCard from "@/components/locksmith/QueuedRequestCard";
 import { filterRingableWhileBusy, getLocksmithQueueState, startNextQueuedRequest } from "@/lib/serviceQueue";
+import ClientReviewForm from "@/components/locksmith/ClientReviewForm";
+import ClientRatingSummary from "@/components/history/ClientRatingSummary";
 
 // Raio de cobertura para considerar um pedido "na região" do chaveiro (km)
 const REGION_RADIUS_KM = 15;
@@ -117,6 +119,7 @@ export default function PainelChaveiro() {
   const [profileChecked, setProfileChecked] = useState(false);
   const [gpsLoading, setGpsLoading] = useState(false);
   const [trustScore, setTrustScore] = useState(null);
+  const [completedClientReview, setCompletedClientReview] = useState(null);
   const emailedStatus = useRef(new Set());
 
   const selected = locksmiths.find((l) => l.id === selectedId) || me;
@@ -405,7 +408,7 @@ export default function PainelChaveiro() {
             });
           } else if (!queued) {
             clearLastService();
-            setActive(null);
+            setActive((current) => current?.status === "completed" ? current : null);
           }
           // Notifica quando o cliente seleciona pagamento em dinheiro (aguardando confirmação)
           if (ongoing?.payment_method === "dinheiro" && !ongoing?.cash_received) {
@@ -749,9 +752,9 @@ export default function PainelChaveiro() {
       setActive(next);
       toast({ title: "Próxima rota iniciada", description: `Agora siga para ${next.address}.` });
     } else {
-      dismissedCompletedIds.current.add(finished.id);
       clearLastService();
-      setActive(null);
+      setCompletedClientReview(null);
+      setActive({ ...finished, status: "completed", locksmith_confirmed: true });
     }
   };
 
@@ -1194,10 +1197,17 @@ export default function PainelChaveiro() {
               <div className="p-4 rounded-xl bg-success/10 text-success text-sm flex items-center gap-2">
                 <CheckCircle2 className="w-5 h-5" /> Serviço concluído com sucesso!
               </div>
+              {completedClientReview
+                ? <ClientRatingSummary review={completedClientReview} label="Sua avaliação do cliente:" />
+                : <ClientReviewForm request={active} onSubmitted={(review) => {
+                    setCompletedClientReview(review);
+                    toast({ title: "Avaliação enviada", description: "Sua avaliação do cliente foi registrada." });
+                  }} />}
               <Button
                 onClick={() => {
                   dismissedCompletedIds.current.add(active.id);
                   clearLastService();
+                  setCompletedClientReview(null);
                   setActive(null);
                 }}
                 variant="outline"

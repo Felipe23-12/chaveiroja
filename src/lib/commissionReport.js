@@ -1,4 +1,5 @@
 import { jsPDF } from "jspdf";
+import { findServicePayment, getServiceDeductions } from "@/lib/paymentDeductions";
 
 const formatBRL = (n) =>
   (Number(n) || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
@@ -45,7 +46,7 @@ function fileBase(me) {
   return `comissoes-${slug}-${monthLabel().replace(/\s+/g, "-")}`;
 }
 
-export function downloadCommissionCSV({ me, completed, cancelled, isAppMode, commissionRate }) {
+export function downloadCommissionCSV({ me, completed, cancelled, payments = [], isAppMode, commissionRate }) {
   const mc = currentMonthRecords(completed);
   const mca = currentMonthRecords(cancelled);
   const s = buildSummary({ completed: mc, cancelled: mca, isAppMode, commissionRate });
@@ -67,14 +68,13 @@ export function downloadCommissionCSV({ me, completed, cancelled, isAppMode, com
   lines.push(`Liquido;${formatBRL(s.net)}`);
   lines.push("");
   lines.push("SERVICOS CONCLUIDOS");
-  lines.push("Data;Tipo;Endereco;Valor;Comissao (15%);Liquido;Status");
+  lines.push("Data;Tipo;Endereco;Valor original;Desconto fidelidade;Valor cobrado;Comissao atual (15%);Divida anterior abatida;Tarifa Mercado Pago;Total de descontos;Liquido do chaveiro;Status");
   mc.forEach((r) => {
-    const price = Number(r.price) || 0;
-    const comm = isAppMode ? price * commissionRate : 0;
-    const net = price - comm;
+    const payment = findServicePayment(payments, r.id);
+    const d = getServiceDeductions(r, payment, isAppMode);
     const status = (r.commission_status || "pending") === "paid" ? "Compensada" : "Pendente";
     lines.push(
-      `${formatDate(r.created_date)};${r.service_type};${(r.address || "").replace(/;/g, ",")};${formatBRL(price)};${formatBRL(comm)};${formatBRL(net)};${status}`
+      `${formatDate(r.created_date)};${r.service_type};${(r.address || "").replace(/;/g, ",")};${formatBRL(d.originalAmount)};${formatBRL(d.loyaltyDiscount)};${formatBRL(d.chargedAmount)};${formatBRL(d.baseCommission)};${formatBRL(d.previousDebt)};${formatBRL(d.providerFee)};${formatBRL(d.loyaltyDiscount + d.totalCommission + d.providerFee)};${formatBRL(d.netAmount)};${status}`
     );
   });
   if (isAppMode && mca.length > 0) {
@@ -96,7 +96,7 @@ export function downloadCommissionCSV({ me, completed, cancelled, isAppMode, com
   URL.revokeObjectURL(url);
 }
 
-export function downloadCommissionPDF({ me, completed, cancelled, isAppMode, commissionRate }) {
+export function downloadCommissionPDF({ me, completed, cancelled, payments = [], isAppMode, commissionRate }) {
   const mc = currentMonthRecords(completed);
   const mca = currentMonthRecords(cancelled);
   const s = buildSummary({ completed: mc, cancelled: mca, isAppMode, commissionRate });
@@ -128,16 +128,14 @@ export function downloadCommissionPDF({ me, completed, cancelled, isAppMode, com
   doc.text("Servicos concluidos", 14, y); y += 6;
   doc.setFontSize(9);
   mc.forEach((r) => {
-    if (y > 280) { doc.addPage(); y = 18; }
-    const price = Number(r.price) || 0;
-    const comm = isAppMode ? price * commissionRate : 0;
-    const net = price - comm;
+    if (y > 265) { doc.addPage(); y = 18; }
+    const payment = findServicePayment(payments, r.id);
+    const d = getServiceDeductions(r, payment, isAppMode);
     const status = (r.commission_status || "pending") === "paid" ? "Compensada" : "Pendente";
-    doc.text(
-      `${formatDate(r.created_date)} - ${r.service_type} - ${formatBRL(price)} (comissao ${formatBRL(comm)}, liquido ${formatBRL(net)}, ${status})`,
-      14, y, { maxWidth: 185 }
-    );
-    y += 5;
+    doc.text(`${formatDate(r.created_date)} - ${r.service_type} - ${status}`, 14, y, { maxWidth: 185 }); y += 5;
+    doc.text(`Original ${formatBRL(d.originalAmount)} | desconto fidelidade -${formatBRL(d.loyaltyDiscount)} | cobrado ${formatBRL(d.chargedAmount)}`, 18, y, { maxWidth: 180 }); y += 5;
+    doc.text(`Comissao atual -${formatBRL(d.baseCommission)} | divida anterior -${formatBRL(d.previousDebt)} | tarifa MP -${formatBRL(d.providerFee)}`, 18, y, { maxWidth: 180 }); y += 5;
+    doc.text(`Total de descontos -${formatBRL(d.loyaltyDiscount + d.totalCommission + d.providerFee)} | liquido do chaveiro ${formatBRL(d.netAmount)}`, 18, y, { maxWidth: 180 }); y += 7;
   });
 
   if (isAppMode && mca.length > 0) {

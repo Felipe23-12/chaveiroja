@@ -10,12 +10,14 @@ import EarningsSplitCard from "@/components/locksmith/EarningsSplitCard";
 import WithdrawalSection from "@/components/locksmith/WithdrawalSection";
 import SheetsExportButton from "@/components/locksmith/SheetsExportButton";
 import PendingCreditsCard from "@/components/payment/PendingCreditsCard";
+import { findServicePayment, getServiceDeductions } from "@/lib/paymentDeductions";
 
 export default function PainelFinanceiro() {
   const [selectedId, setSelectedId] = useState("");
   const [me, setMe] = useState(null);
   const [completed, setCompleted] = useState([]);
   const [cancelled, setCancelled] = useState([]);
+  const [payments, setPayments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [noProfile, setNoProfile] = useState(false);
 
@@ -41,13 +43,16 @@ export default function PainelFinanceiro() {
       );
     refreshMe();
     const load = () =>
-      base44.entities.ServiceRequest
-        .filter({ locksmith_id: selectedId, status: "completed" }, "-created_date")
-        .then(setCompleted)
-        .then(() =>
-          base44.entities.ServiceRequest.filter({ locksmith_id: selectedId, status: "cancelled" }, "-created_date")
-        )
-        .then((list) => setCancelled(list.filter((r) => Number(r.cancellation_fee) > 0)))
+      Promise.all([
+        base44.entities.ServiceRequest.filter({ locksmith_id: selectedId, status: "completed" }, "-created_date"),
+        base44.entities.ServiceRequest.filter({ locksmith_id: selectedId, status: "cancelled" }, "-created_date"),
+        base44.entities.Payment.filter({ locksmith_id: selectedId }, "-created_date", 200),
+      ])
+        .then(([services, cancelledServices, paymentRows]) => {
+          setCompleted(services);
+          setCancelled(cancelledServices.filter((r) => Number(r.cancellation_fee) > 0));
+          setPayments(paymentRows);
+        })
         .finally(() => setLoading(false));
     load();
     const unsub = base44.entities.ServiceRequest.subscribe(() => load());
@@ -173,14 +178,14 @@ export default function PainelFinanceiro() {
           <Button
             variant="outline"
             size="sm"
-            onClick={() => downloadCommissionPDF({ me, completed, cancelled, isAppMode, commissionRate })}
+            onClick={() => downloadCommissionPDF({ me, completed, cancelled, payments, isAppMode, commissionRate })}
           >
             <FileDown className="w-4 h-4" /> Relatório PDF
           </Button>
           <Button
             variant="outline"
             size="sm"
-            onClick={() => downloadCommissionCSV({ me, completed, cancelled, isAppMode, commissionRate })}
+            onClick={() => downloadCommissionCSV({ me, completed, cancelled, payments, isAppMode, commissionRate })}
           >
             <FileText className="w-4 h-4" /> Relatório CSV
           </Button>
@@ -378,14 +383,9 @@ export default function PainelFinanceiro() {
       ) : (
         <div className="space-y-2">
           {completed.map((r) => {
-            const repasse = calculateRepasse({
-              price: r.price,
-              workMode: me?.work_mode,
-              status: r.status,
-            });
-            const price = repasse.gross;
-            const comm = repasse.commission;
-            const net = repasse.locksmithAmount;
+            const payment = findServicePayment(payments, r.id);
+            const deductions = getServiceDeductions(r, payment, isAppMode);
+            const money = (value) => `R$ ${Number(value || 0).toFixed(2)}`;
             return (
               <div key={r.id} className="p-3 rounded-xl border border-border bg-card">
                 <div className="flex items-start justify-between gap-3">
@@ -396,29 +396,28 @@ export default function PainelFinanceiro() {
                       {new Date(r.created_date).toLocaleDateString("pt-BR")}
                     </p>
                     {isAppMode && (
-                      <span
-                        className={`inline-flex items-center gap-1 mt-1.5 px-2 py-0.5 rounded-full text-[11px] font-medium ${
-                          (stats.derivedStatus?.[r.id] || "paid") === "paid"
-                            ? "bg-success/15 text-success"
-                            : "bg-warning/15 text-warning"
-                        }`}
-                      >
-                        {(stats.derivedStatus?.[r.id] || "paid") === "paid" ? (
-                          <><BadgeCheck className="w-3 h-3" /> Comissão compensada</>
-                        ) : (
-                          <><Clock className="w-3 h-3" /> Comissão pendente</>
-                        )}
+                      <span className={`inline-flex items-center gap-1 mt-1.5 px-2 py-0.5 rounded-full text-[11px] font-medium ${(stats.derivedStatus?.[r.id] || "paid") === "paid" ? "bg-success/15 text-success" : "bg-warning/15 text-warning"}`}>
+                        {(stats.derivedStatus?.[r.id] || "paid") === "paid"
+                          ? <><BadgeCheck className="w-3 h-3" /> Comissão compensada</>
+                          : <><Clock className="w-3 h-3" /> Comissão pendente</>}
                       </span>
                     )}
                   </div>
-                  <div className="text-right shrink-0 flex flex-col items-end gap-1">
-                    <p className="text-sm font-medium text-foreground">R$ {price.toFixed(2)}</p>
-                    {isAppMode && (
-                      <p className="text-[11px] text-destructive">- R$ {comm.toFixed(2)} (15%)</p>
-                    )}
-                    <p className="text-sm font-semibold text-success">R$ {net.toFixed(2)}</p>
-
+                  <div className="text-right shrink-0">
+                    <p className="text-[11px] text-muted-foreground">Líquido deste pagamento</p>
+                    <p className="text-base font-semibold text-success">{money(deductions.netAmount)}</p>
                   </div>
+                </div>
+                <div className="mt-3 pt-3 border-t border-border space-y-1.5 text-xs">
+                  <div className="flex justify-between"><span className="text-muted-foreground">Valor original do serviço</span><span>{money(deductions.originalAmount)}</span></div>
+                  <div className="flex justify-between"><span className="text-muted-foreground">Desconto de fidelidade</span><span className={deductions.loyaltyDiscount > 0 ? "text-success" : "text-muted-foreground"}>− {money(deductions.loyaltyDiscount)}</span></div>
+                  <div className="flex justify-between font-medium"><span>Valor cobrado do cliente</span><span>{money(deductions.chargedAmount)}</span></div>
+                  {isAppMode && <div className="flex justify-between"><span className="text-muted-foreground">Comissão deste serviço (15%)</span><span className="text-destructive">− {money(deductions.baseCommission)}</span></div>}
+                  {isAppMode && <div className="flex justify-between"><span className="text-muted-foreground">Dívida anterior abatida</span><span className={deductions.previousDebt > 0 ? "text-destructive" : "text-muted-foreground"}>− {money(deductions.previousDebt)}</span></div>}
+                  <div className="flex justify-between"><span className="text-muted-foreground">Tarifa do Mercado Pago</span><span className={deductions.providerFee > 0 ? "text-destructive" : "text-muted-foreground"}>− {money(deductions.providerFee)}</span></div>
+                  <div className="flex justify-between pt-1.5 border-t border-border font-semibold"><span>Total de descontos neste pagamento</span><span className="text-destructive">− {money(deductions.loyaltyDiscount + deductions.totalCommission + deductions.providerFee)}</span></div>
+                  <div className="flex justify-between font-semibold text-success"><span>Valor líquido do chaveiro</span><span>{money(deductions.netAmount)}</span></div>
+                  {!payment && r.payment_method === "dinheiro" && <p className="pt-1 text-warning">Pagamento em dinheiro: a comissão de 15% fica pendente e será abatida no próximo pagamento online.</p>}
                 </div>
               </div>
             );

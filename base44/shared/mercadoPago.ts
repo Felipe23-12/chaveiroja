@@ -180,6 +180,12 @@ export async function syncApprovedPayment(base44, localPayment, providerPayment)
       ...pendingCreditUpdate(localPayment, providerPayment),
       ...(providerPayment.date_last_updated ? { provider_updated_at: providerPayment.date_last_updated } : {}),
     });
+  } else if (status === "paid") {
+    const receivedNet = Number(providerPayment.transaction_details?.net_received_amount);
+    if (Number.isFinite(receivedNet)) {
+      const providerFee = Math.max(0, Math.round((Number(localPayment.amount) - Number(localPayment.commission_amount || 0) - receivedNet) * 100) / 100);
+      await base44.asServiceRole.entities.Payment.update(localPayment.id, { provider_fee_amount: providerFee });
+    }
   }
   await base44.asServiceRole.entities.Payment.update(localPayment.id, {
     status,
