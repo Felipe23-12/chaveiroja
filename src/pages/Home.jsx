@@ -765,12 +765,11 @@ export default function Home() {
     setPaying(true);
     setSearchError("");
     try {
-      const updated = await base44.entities.ServiceRequest.update(activeRequest.id, {
-        payment_method: "dinheiro",
-        payment_status: "pending",
-        cash_received: false,
+      const response = await base44.functions.invoke("serviceTrust", {
+        action: "select_cash_payment",
+        request_id: activeRequest.id,
       });
-      setActiveRequest(updated);
+      setActiveRequest(response.data.request);
     } catch (e) {
       setSearchError(e?.message || "Não foi possível selecionar o pagamento em dinheiro.");
     } finally {
@@ -784,16 +783,6 @@ export default function Home() {
     setPaying(true);
     try {
       await confirmPaymentPaid(paymentId);
-      await base44.entities.ServiceRequest.update(activeRequest.id, {
-        status: "cancelled",
-        cancelled_by: "cliente",
-        cancellation_fee: cancelFeeData.fee,
-        cancellation_locksmith_amount: cancelFeeData.locksmithAmount,
-        cancellation_app_fee: cancelFeeData.appFee,
-        payment_id: paymentId,
-        payment_method: method,
-        payment_status: "paid",
-      });
       await refreshDebt();
       handleNewRequest();
     } catch (e) {
@@ -935,21 +924,17 @@ export default function Home() {
     });
   }, [step, activeRequest?.locksmith_lat, activeRequest?.locksmith_lng, activeRequest?.customer_lat, activeRequest?.customer_lng]);
 
-  const handleAdvance = () => {
-    if (!activeRequest) return;
-    // O cliente só confirma que o chaveiro está a caminho; a conclusão do serviço
-    // é controlada pelo chaveiro, após o pagamento.
-    if (activeRequest.status === "accepted") {
-      base44.entities.ServiceRequest.update(activeRequest.id, { status: "on_the_way" }).then(setActiveRequest);
-    }
+  const handleAdvance = async () => {
+    if (!activeRequest || activeRequest.status !== "accepted") return;
+    const response = await base44.functions.invoke("serviceTrust", {
+      action: "client_mark_on_the_way",
+      request_id: activeRequest.id,
+    });
+    setActiveRequest(response.data.request);
   };
 
-  const handleRate = async (n, comment = "") => {
-    const updated = await base44.entities.ServiceRequest.update(activeRequest.id, {
-      rating: n,
-      review: comment,
-    });
-    setActiveRequest(updated);
+  const handleRate = async () => {
+    // A avaliação já é persistida com validação no servidor pelo formulário.
     // Envia o resumo do serviço por email ao cliente (após pagamento e avaliação)
     try {
       await base44.functions.invoke("sendServiceCompletionEmail", {
@@ -992,8 +977,11 @@ export default function Home() {
   // Cliente confirma que o serviço foi finalizado (libera o pagamento)
   const handleConfirmService = async () => {
     if (!activeRequest) return;
-    await base44.entities.ServiceRequest.update(activeRequest.id, { client_confirmed: true });
-    setActiveRequest((prev) => ({ ...prev, client_confirmed: true }));
+    const response = await base44.functions.invoke("serviceTrust", {
+      action: "client_confirm_service",
+      request_id: activeRequest.id,
+    });
+    setActiveRequest(response.data.request);
   };
 
   const handleCancel = async () => {

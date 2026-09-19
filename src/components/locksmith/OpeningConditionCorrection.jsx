@@ -3,7 +3,7 @@ import { AlertTriangle, Loader2 } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { Button } from "@/components/ui/button";
 import PhotoUploader from "@/components/locksmith/PhotoUploader";
-import { LOCKSMITH_CORRECTION_MARKER, OPENING_CONDITION_FEE, hasLocksmithConditionCorrection, hasOpeningConditionFee, isOpeningRequest } from "@/lib/openingCondition";
+import { hasLocksmithConditionCorrection, isOpeningRequest } from "@/lib/openingCondition";
 
 export default function OpeningConditionCorrection({ request, onApplied }) {
   const [conditions, setConditions] = useState([]);
@@ -16,15 +16,13 @@ export default function OpeningConditionCorrection({ request, onApplied }) {
     if (!conditions.length || !photos.length) return;
     setSaving(true); setError("");
     try {
-      const feeDue = hasOpeningConditionFee(request) ? 0 : OPENING_CONDITION_FEE;
-      const labels = conditions.map((id) => id === "lock_problem" ? "fechadura com problema" : "chave quebrada dentro da fechadura").join(" e ");
-      const updated = await base44.entities.ServiceRequest.update(request.id, {
-        price: Math.round((Number(request.price || 0) + feeDue) * 100) / 100,
-        extra_cost: Number(request.extra_cost || 0) + feeDue,
-        start_photos: [...(request.start_photos || []), ...photos],
-        description: [request.description, `${LOCKSMITH_CORRECTION_MARKER}: ${labels}. Prova fotográfica anexada.${feeDue ? " Adicional único de R$ 25,00 aplicado." : " Adicional já incluído anteriormente."}`].filter(Boolean).join(" — "),
+      const response = await base44.functions.invoke("serviceTrust", {
+        action: "opening_condition_correction",
+        request_id: request.id,
+        conditions,
+        photos,
       });
-      onApplied(updated);
+      onApplied(response.data.request);
     } catch (e) { setError(e?.message || "Não foi possível registrar o ajuste."); setSaving(false); }
   };
   return <div className="rounded-2xl border-2 border-warning/40 bg-warning/10 p-4 space-y-3">

@@ -26,10 +26,12 @@ export function isRingingFor(request, locksmithId) {
  * a tocar 2 minutos depois, caso nenhum outro chaveiro tenha assumido.
  */
 export async function rejectRing(request, locksmithId) {
-  const rering_at = new Date(Date.now() + RERING_DELAY_MS).toISOString();
-  const rejections = (request.rejections || []).filter((r) => r.locksmith_id !== locksmithId);
-  rejections.push({ locksmith_id: locksmithId, rering_at });
-  return base44.entities.ServiceRequest.update(request.id, { rejections });
+  const response = await base44.functions.invoke("serviceTrust", {
+    action: "reject_request",
+    request_id: request.id,
+    locksmith_id: locksmithId,
+  });
+  return response.data.request;
 }
 
 /** Aceita o primeiro chamado ou reserva um segundo chamado normal e próximo. */

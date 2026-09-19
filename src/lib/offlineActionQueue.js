@@ -52,7 +52,11 @@ export async function flushActionQueue() {
       } else if (action.type === "reject") {
         await rejectRing(action.request, action.locksmithId);
       } else if (action.type === "status_update") {
-        await base44.entities.ServiceRequest.update(action.requestId, action.data);
+        await base44.functions.invoke("serviceTrust", {
+          action: "locksmith_progress",
+          request_id: action.requestId,
+          data: action.data,
+        });
       }
       sent += 1;
     } catch (e) {
@@ -74,10 +78,16 @@ export async function flushActionQueue() {
  */
 export async function syncServiceUpdate(requestId, data) {
   try {
-    const updated = await base44.entities.ServiceRequest.update(requestId, data);
+    const response = await base44.functions.invoke("serviceTrust", {
+      action: "locksmith_progress",
+      request_id: requestId,
+      data,
+    });
+    const updated = response.data.request;
     saveLastService(updated);
     return updated;
   } catch (e) {
+    if (navigator.onLine) throw e;
     enqueueAction({ type: "status_update", requestId, data });
     const cached = getLastService();
     const merged = cached?.id === requestId ? { ...cached, ...data } : { id: requestId, ...data };

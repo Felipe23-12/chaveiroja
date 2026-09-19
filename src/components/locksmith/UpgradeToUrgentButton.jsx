@@ -55,11 +55,12 @@ export default function UpgradeToUrgentButton({ request, onUpdated }) {
   const handleConfirm = async () => {
     setSaving(true);
     try {
-      const updated = await base44.entities.ServiceRequest.update(request.id, {
-        urgency_upgrade_status: "pending",
-        urgency_upgrade_requested_at: new Date().toISOString(),
-        urgency_upgrade_price: newPrice,
+      const response = await base44.functions.invoke("serviceTrust", {
+        action: "request_urgency_upgrade",
+        request_id: request.id,
+        price: newPrice,
       });
+      const updated = response.data.request;
       try {
         const user = await base44.auth.me();
         await base44.entities.ChatMessage.create({

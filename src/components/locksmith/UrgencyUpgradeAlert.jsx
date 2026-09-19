@@ -34,15 +34,12 @@ export default function UrgencyUpgradeAlert({ request, onResolved }) {
     doneRef.current = true;
     setSaving(true);
     try {
-      const data = accepted
-        ? {
-            urgency: "urgent",
-            price: request.urgency_upgrade_price || request.price,
-            urgency_upgrade_status: "accepted",
-          }
-        : { urgency_upgrade_status: "declined" };
-      const updated = await base44.entities.ServiceRequest.update(request.id, data);
-      onResolved?.(updated);
+      const response = await base44.functions.invoke("serviceTrust", {
+        action: "resolve_urgency_upgrade",
+        request_id: request.id,
+        accepted,
+      });
+      onResolved?.(response.data.request);
     } finally {
       setSaving(false);
     }

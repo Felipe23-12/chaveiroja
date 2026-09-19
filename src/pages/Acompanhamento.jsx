@@ -198,7 +198,11 @@ export default function Acompanhamento() {
     setFinishError("");
     try {
       if (!request.client_confirmed) {
-        await base44.entities.ServiceRequest.update(request.id, { client_confirmed: true });
+        const response = await base44.functions.invoke("serviceTrust", {
+          action: "client_confirm_service",
+          request_id: request.id,
+        });
+        setRequest(response.data.request);
       }
       navigate("/", { replace: true });
     } catch (error) {

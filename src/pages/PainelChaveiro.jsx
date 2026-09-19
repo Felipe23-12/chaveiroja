@@ -491,7 +491,7 @@ export default function PainelChaveiro() {
         lastLat = newLat;
         lastLng = newLng;
         lastTime = now;
-        await base44.entities.ServiceRequest.update(active.id, {
+        await syncServiceUpdate(active.id, {
           status: "on_the_way",
           locksmith_lat: newLat,
           locksmith_lng: newLng,
