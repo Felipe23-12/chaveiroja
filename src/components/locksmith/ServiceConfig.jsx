@@ -54,7 +54,7 @@ export default function ServiceConfig({
       )}
 
       {/* Fechaduras: quantas portas abrir e quais miolos trocar */}
-      {service.hasLocks && <LocksConfig locks={locks} setLocks={setLocks} />}
+      {service.hasLocks && <LocksConfig locks={locks} setLocks={setLocks} pricing={price?.serverPricing} />}
 
       {/* Adicionais */}
       {service.options && service.options.length > 0 && (
@@ -111,8 +111,8 @@ export default function ServiceConfig({
             <div className="grid grid-cols-1 gap-2">
               {[
                 { id: "simples", label: "Abertura simples", description: "Abertura convencional, sem dificuldade adicional" },
-                { id: "media", label: "Média complexidade", description: "Possivelmente existe algum problema para abrir · + R$ 25,00" },
-                { id: "alta", label: "Alta complexidade", description: "Sistema do veículo não permite uma abertura simples · + R$ 50,00" },
+                { id: "media", label: "Média complexidade", description: "Possivelmente existe algum problema para abrir · adicional conforme tabela vigente" },
+                { id: "alta", label: "Alta complexidade", description: "Sistema do veículo não permite uma abertura simples · adicional conforme tabela vigente" },
               ].map((item) => (
                 <button type="button" key={item.id} onClick={() => updateVehicle("complexity", item.id)} className={`min-h-[44px] rounded-xl border-2 p-3 text-left transition-all ${vehicleInfo.complexity === item.id ? "border-primary bg-primary/5" : "border-border"}`}>
                   <span className="block text-sm font-medium text-foreground">{item.label}</span>

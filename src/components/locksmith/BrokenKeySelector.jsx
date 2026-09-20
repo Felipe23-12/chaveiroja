@@ -1,6 +1,5 @@
 import React from "react";
 import { KeyRound, AlertTriangle } from "lucide-react";
-import { BROKEN_KEY_FEE } from "@/lib/pricing";
 
 /**
  * Confirmação obrigatória: a chave está quebrada dentro da fechadura?
@@ -12,7 +11,7 @@ export default function BrokenKeySelector({ value, onChange }) {
     {
       id: true,
       label: "Sim, está quebrada na fechadura",
-      hint: `Acréscimo de R$ ${BROKEN_KEY_FEE},00 pela retirada da chave`,
+      hint: 'Adicional de retirada incluído no total conforme a tabela vigente',
     },
   ];
 

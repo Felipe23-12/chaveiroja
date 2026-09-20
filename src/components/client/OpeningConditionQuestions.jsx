@@ -14,7 +14,7 @@ export default function OpeningConditionQuestions({ reason, onReasonChange, brok
         </button>
       ))}
     </div>
-    {reason === "lock_problem" && <p className="text-xs font-medium text-warning">Será incluído um adicional único de R$ 25,00.</p>}
+    {reason === "lock_problem" && <p className="text-xs font-medium text-warning">O adicional único será incluído no total conforme a tabela de cobranças vigente.</p>}
     {!automotive && <BrokenKeySelector value={brokenKey} onChange={onBrokenKeyChange} />}
   </div>;
 }

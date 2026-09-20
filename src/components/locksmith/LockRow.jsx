@@ -40,16 +40,10 @@ export default function LockRow({ lock, index, onChange, onRemove, canRemove }) 
           className="w-4 h-4 accent-primary"
         />
         <span className="text-sm text-foreground flex-1">Trocar o miolo desta fechadura</span>
-        {model.mioloPrice > 0 && (
-          <span className="text-xs text-muted-foreground">+ R$ {model.mioloPrice.toFixed(2)}</span>
-        )}
+        <span className="text-xs text-muted-foreground">Conforme tabela vigente</span>
       </label>
 
-      {index > 0 && model.openPrice > 0 && (
-        <p className="text-xs text-muted-foreground">
-          Abertura adicional: + R$ {model.openPrice.toFixed(2)}
-        </p>
-      )}
+      {index > 0 && <p className="text-xs text-muted-foreground">Abertura adicional incluída na cotação conforme a tabela vigente.</p>}
       {model.custom && (
         <p className="text-xs text-warning">
           O chaveiro avalia este modelo no local e informa o valor antes de iniciar.

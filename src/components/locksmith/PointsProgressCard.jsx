@@ -35,7 +35,7 @@ export default function PointsProgressCard({ loyalty }) {
             </div>
             <div>
               <p className="font-heading font-bold text-base text-white">
-                🎉 Desconto de 10% liberado!
+                Desconto de fidelidade liberado!
               </p>
               <p className="text-xs text-white/90 mt-0.5">
                 Você concluiu {next} serviços e ganhou {available} {available === 1 ? "desconto disponível" : "descontos disponíveis"} para usar no próximo pedido.
@@ -59,7 +59,7 @@ export default function PointsProgressCard({ loyalty }) {
             />
           </div>
           <p className="text-sm font-medium text-foreground mt-2">
-            Faltam apenas <span className="text-primary font-bold">{remaining}</span> {remaining === 1 ? "serviço" : "serviços"} para liberar 10% off no próximo pedido.
+            Faltam apenas <span className="text-primary font-bold">{remaining}</span> {remaining === 1 ? "serviço" : "serviços"} para liberar o desconto de fidelidade no próximo pedido, conforme a tabela do serviço.
           </p>
         </div>
       )}

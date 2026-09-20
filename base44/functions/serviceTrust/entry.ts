@@ -2,6 +2,7 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.46';
 import { scoreFor, penalizeLocksmithCancellation, recordClientCancellation, getClientCancelBlock, clientCancellationQuote } from '../../shared/cancellationRules.ts';
 import { validatedLocation } from '../../shared/cancellationSafety.ts';
 import { calculateServerServicePrice } from '../../shared/servicePricing.ts';
+import { loadServicePricing } from '../../shared/servicePricingSettings.ts';
 import { clientDebt, confirmedServicePayment } from '../../shared/paymentVerification.ts';
 import { submitTrustedClientReview, submitTrustedReview } from '../../shared/trustedReviews.ts';
 
@@ -93,7 +94,9 @@ export default async function(req) {
     if (action === 'price_quote') {
       const data = body.data || {};
       if (!data.service_type) return Response.json({ error: 'Informe o serviço' }, { status: 400 });
-      return Response.json({ pricing: await calculateServerServicePrice(base44, user.id, data) });
+      // A cotação oficial inclui a tabela administrativa, o calendário e o clima verificado.
+      const pricing = await calculateServerServicePrice(base44, user.id, data);
+      return Response.json({ pricing });
     }
 
     if (action === 'client_debt') return Response.json({ debt: await clientDebt(base44, user.id) });
@@ -237,13 +240,19 @@ export default async function(req) {
       const conditions = Array.isArray(body.conditions) ? body.conditions.filter((item) => ['lock_problem', 'broken_key'].includes(item)) : [];
       const photos = Array.isArray(body.photos) ? body.photos.filter((item) => typeof item === 'string').slice(0, 10) : [];
       if (!conditions.length || !photos.length) return Response.json({ error: 'Informe a condição e anexe as fotos' }, { status: 400 });
-      const alreadyCharged = /Cliente informou: fechadura com problema|Chave quebrada dentro da fechadura|Adicional único de R\$ 25,00 aplicado/.test(String(request.description || ''));
-      const fee = alreadyCharged ? 0 : 25;
+      const alreadyCharged = /Cliente informou: fechadura com problema|Chave quebrada dentro da fechadura|Adicional único de R\$ [\d.,]+ aplicado/.test(String(request.description || ''));
+      const config = await loadServicePricing(base44, request.service_type);
+      const fee = alreadyCharged ? 0 : config.values.condition_fee;
       const labels = conditions.map((item) => item === 'lock_problem' ? 'fechadura com problema' : 'chave quebrada dentro da fechadura').join(' e ');
-      const note = `Ajuste no local confirmado pelo chaveiro: ${labels}. Prova fotográfica anexada.${fee ? ' Adicional único de R$ 25,00 aplicado.' : ' Adicional já incluído anteriormente.'}`;
+      const note = `Ajuste no local confirmado pelo chaveiro: ${labels}. Prova fotográfica anexada.${fee ? ` Adicional único de R$ ${fee.toFixed(2).replace('.', ',')} aplicado.` : ' Nenhum novo adicional aplicado.'}`;
       const updated = await base44.asServiceRole.entities.ServiceRequest.update(request.id, {
         price: Math.round((Number(request.price || 0) + fee) * 100) / 100,
         extra_cost: Number(request.extra_cost || 0) + fee,
+        ...(request.pricing_calculation && !alreadyCharged ? { pricing_calculation: {
+          ...request.pricing_calculation,
+          total: Math.round((Number(request.pricing_calculation.total || 0) + fee) * 100) / 100,
+          lines: [...request.pricing_calculation.lines, { label: 'Adicional de condição da abertura', value: fee }],
+        } } : {}),
         start_photos: [...(request.start_photos || []), ...photos].slice(0, 10),
         description: [request.description, note].filter(Boolean).join(' — '),
       });
@@ -260,31 +269,21 @@ export default async function(req) {
       }
       if (data.service_type === 'Confecção de Chave de Carro') {
         const vehicle = String(data.vehicle_info || '').trim();
-        const toyota = /^toyota(?:\s|$)/i.test(vehicle);
-        const highComplexityToyota = toyota && /\b(?:corolla|rav\s*4|sw\s*4)\b/i.test(vehicle);
-        const toyotaComplexityFee = toyota ? (highComplexityToyota ? 700 : 300) : 0;
         const landRover2020 = /^land\s*rover(?:\s|$)/i.test(vehicle) && /Ano\s+(20(?:2\d|[3-9]\d)|2[1-9]\d{2})/i.test(vehicle);
         if (landRover2020 && !/Alarme:\s*(?:trancado|não trancado)/i.test(vehicle)) {
           return Response.json({ error: 'Informe se a Land Rover está trancada no alarme.' }, { status: 400 });
         }
-        const alarmLocked = landRover2020 && /Alarme:\s*trancado/i.test(vehicle);
-        const minimum = 380 + toyotaComplexityFee + (alarmLocked ? 8000 : 0);
-        if (pricing.price < minimum) {
-          return Response.json({ error: alarmLocked
-            ? 'Land Rover 2020 ou mais nova trancada no alarme exige o adicional de R$ 8.000,00.'
-            : highComplexityToyota
-              ? 'Corolla, RAV4 e SW4 são de alta complexidade: mínimo de R$ 380,00 mais R$ 700,00 de adicional, mesmo após descontos.'
-              : toyota
-                ? 'Este modelo Toyota é de média complexidade: mínimo de R$ 380,00 mais R$ 300,00 de adicional, mesmo após descontos.'
-                : 'O valor mínimo da confecção de chave de carro é R$ 380,00, mesmo após descontos.' }, { status: 400 });
-        }
+        const minimum = pricing.minimum;
+        if (pricing.price < minimum) return Response.json({ error: `O valor mínimo desta confecção é R$ ${minimum.toFixed(2)}, conforme a tabela administrativa.` }, { status: 400 });
       }
       const block = user.role === 'admin' ? { blocked: false } : await getClientCancelBlock(base44, user.id);
       if (block.blocked) return Response.json({ error: `${block.message} Liberação em ${block.minutesLeft} min.`, ...block }, { status: 403 });
       const allowed = ['service_type', 'address', 'description', 'urgency', 'customer_lat', 'customer_lng', 'key_value', 'fipe_value', 'key_type', 'vehicle_info', 'labor_cost', 'locomotion_cost', 'distance_km', 'extra_cost', 'discount_applied'];
       const values = Object.fromEntries(allowed.filter((key) => data[key] !== undefined).map((key) => [key, data[key]]));
+      Object.assign(values, pricing.fields || {});
       values.price = pricing.price;
       values.discount_amount = pricing.discount;
+      values.discount_applied = pricing.discount > 0;
       values.pricing_calculation = pricing.calculation;
 
       const customerLat = Number(data.customer_lat);

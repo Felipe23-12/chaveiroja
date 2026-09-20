@@ -70,7 +70,7 @@ export default function CarKeyConfig({
               <button type="button" onClick={() => updateVehicle("alarmLocked", true)} className={`min-h-[44px] rounded-xl border-2 text-sm font-medium ${vehicleInfo.alarmLocked === true ? "border-primary bg-primary/5 text-foreground" : "border-border text-muted-foreground"}`}>Sim</button>
               <button type="button" onClick={() => updateVehicle("alarmLocked", false)} className={`min-h-[44px] rounded-xl border-2 text-sm font-medium ${vehicleInfo.alarmLocked === false ? "border-primary bg-primary/5 text-foreground" : "border-border text-muted-foreground"}`}>Não</button>
             </div>
-            {showPriceBeforeAcceptance && vehicleInfo.alarmLocked === true && <p className="mt-2 text-xs text-muted-foreground">Será aplicado o adicional de R$ 8.000,00 na confecção.</p>}
+            {showPriceBeforeAcceptance && vehicleInfo.alarmLocked === true && <p className="mt-2 text-xs text-muted-foreground">O adicional de alarme será incluído conforme a tabela de cobranças vigente.</p>}
           </div>
         )}
 
@@ -121,7 +121,7 @@ export default function CarKeyConfig({
       )}
 
       {showPriceBeforeAcceptance && getCarKeyComplexityFee(vehicleInfo.make, vehicleInfo.model, vehicleInfo.year) > 0 && (
-        <p className="rounded-xl border border-primary/40 bg-primary/5 p-3 text-sm text-foreground">{getCarKeyComplexityLabel(vehicleInfo.make, vehicleInfo.model, vehicleInfo.year)} (+{getCarKeyComplexityFee(vehicleInfo.make, vehicleInfo.model, vehicleInfo.year).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}).</p>
+        <p className="rounded-xl border border-primary/40 bg-primary/5 p-3 text-sm text-foreground">{getCarKeyComplexityLabel(vehicleInfo.make, vehicleInfo.model, vehicleInfo.year)}: consulte o adicional na composição do cálculo abaixo.</p>
       )}
       <CarKeyProgrammingNotice programming={programming} hidePriceDetails />
 

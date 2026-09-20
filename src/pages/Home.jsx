@@ -591,7 +591,7 @@ export default function Home() {
         usedRadius = searchRadius;
         queue = allEligible.filter((q) => q.d <= searchRadius);
       }
-      const broadcast = selectScoreBroadcast(queue, price?.total || 0);
+      const broadcast = selectScoreBroadcast(queue, expectedPrice);
       queueRef.current = broadcast;
       setCurrentRadius(usedRadius);
       const nearest = broadcast[0];
@@ -674,7 +674,7 @@ export default function Home() {
           locomotion_cost: kmFee,
           distance_km: initialDistanceKm,
           extra_cost: onlineFee + fixedVehicleFees,
-          discount_applied: useDiscount && disc.amount > 0,
+          discount_applied: useDiscount,
           discount_amount: disc.amount,
         });
       } else {
@@ -844,8 +844,9 @@ export default function Home() {
           if (hasLocksmithConditionCorrection(updated) && !notifiedConditionAdjustment.current) {
             notifiedConditionAdjustment.current = true;
             const charged = locksmithAddedConditionFee(updated);
-            notifyClient(charged ? "Valor do chamado atualizado" : "Condição do chamado atualizada", charged ? "O chaveiro comprovou uma condição diferente com fotos. Foi aplicado o adicional único de R$ 25,00." : "O chaveiro registrou com fotos a condição encontrada no local. Nenhum novo adicional foi aplicado.");
-            toast({ title: charged ? "Valor atualizado em R$ 25,00" : "Condição registrada pelo chaveiro", description: charged ? "As fotos comprobatórias foram anexadas ao chamado." : "A prova fotográfica foi anexada sem nova cobrança." });
+            const feeText = getOpeningConditionFee(updated).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+            notifyClient(charged ? "Valor do chamado atualizado" : "Condição do chamado atualizada", charged ? `O chaveiro comprovou uma condição diferente com fotos. Foi aplicado o adicional único de ${feeText}.` : "O chaveiro registrou com fotos a condição encontrada no local. Nenhum novo adicional foi aplicado.");
+            toast({ title: charged ? `Valor atualizado em ${feeText}` : "Condição registrada pelo chaveiro", description: charged ? "As fotos comprobatórias foram anexadas ao chamado." : "A prova fotográfica foi anexada sem nova cobrança." });
           }
           // Chaveiro registrou o final do serviço → cliente paga
           if (updated.end_photos?.length > 0 && step === 5) {

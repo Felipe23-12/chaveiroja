@@ -1,5 +1,8 @@
 import { verifyVehiclePricingQuote } from './vehiclePricingQuote.ts';
 import { carKeyUnavailableReason } from './carKeyAvailability.ts';
+import { loadServicePricing } from './servicePricingSettings.ts';
+import { pricingCalendar, pricingFactors, adjustedCharge } from './servicePricingConditions.ts';
+import { pricingWeather } from './serviceWeather.ts';
 
 const RULES = {
   'Abertura Residencial': { range: [80, 250], id: 'abertura_residencial' },
@@ -22,25 +25,7 @@ const LOCKS = {
 const round = (value) => Math.round(Number(value || 0) * 100) / 100;
 const bounded = (value, min, max) => Math.min(max, Math.max(min, Number(value) || 0));
 
-function saoPauloTimeFactor(now = new Date()) {
-  const parts = Object.fromEntries(new Intl.DateTimeFormat('en-US', {
-    timeZone: 'America/Sao_Paulo', weekday: 'short', hour: '2-digit', hourCycle: 'h23',
-  }).formatToParts(now).map((part) => [part.type, part.value]));
-  if (parts.weekday === 'Sat' || parts.weekday === 'Sun') return 0.9;
-  const hour = Number(parts.hour);
-  return hour >= 8 && hour < 17 ? 0.2 : 0.6;
-}
 
-function supplyMultiplier(supply, demand) {
-  if (!supply) return 1.25;
-  const ratio = demand / supply;
-  if (ratio >= 2) return 1.25;
-  if (ratio >= 1.5) return 1.15;
-  if (ratio >= 1) return 1.05;
-  if (ratio >= 0.5) return 0.95;
-  if (ratio >= 0.25) return 0.88;
-  return 0.82;
-}
 
 function distanceKm(a, b) {
   const rad = (value) => value * Math.PI / 180;
@@ -50,26 +35,26 @@ function distanceKm(a, b) {
   return 6371 * 2 * Math.atan2(Math.sqrt(h), Math.sqrt(1 - h));
 }
 
-function lockExtras(locks) {
+function lockExtras(locks, settings) {
   if (!Array.isArray(locks)) return 0;
   return round(locks.slice(0, 20).reduce((total, lock, index) => {
-    const rule = LOCKS[String(lock?.model || '')] || LOCKS.outro;
-    return total + (index > 0 ? rule.open : 0) + (lock?.miolo === true ? rule.core : 0);
+    const type = Object.hasOwn(LOCKS, String(lock?.model || '')) ? lock.model : 'outro';
+    return total + (index > 0 ? settings[`lock_${type}`] : 0) + (lock?.miolo === true ? settings[`core_${type}`] : 0);
   }, 0));
 }
 
-function vehicleComplexity(make, model, year) {
-  if (/^ford(?:\s|$)/i.test(make) && year >= 2020) return 300;
-  if (/^renault(?:\s|$)/i.test(make) && (year >= 2015 || (/\bsandero\b/i.test(model) && [2012, 2013].includes(year)))) return 450;
+function vehicleComplexity(make, model, year, settings) {
+  if (/^ford(?:\s|$)/i.test(make) && year >= 2020) return settings.ford_fee;
+  if (/^renault(?:\s|$)/i.test(make) && (year >= 2015 || (/\bsandero\b/i.test(model) && [2012, 2013].includes(year)))) return settings.renault_fee;
   if (!/^toyota(?:\s|$)/i.test(make)) return 0;
-  return /\b(?:corolla|rav\s*4|sw\s*4)\b/i.test(model) ? 700 : 300;
+  return /\b(?:corolla|rav\s*4|sw\s*4)\b/i.test(model) ? settings.toyota_high : settings.toyota_medium;
 }
 
 function normalizeVehicleText(value) {
   return String(value || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
 }
 
-function serverProgrammingFee(make, model, year) {
+function serverProgrammingFee(make, model, year, settings) {
   const text = normalizeVehicleText(`${make} ${model}`);
   const vw = /\b(vw|volkswagen)\b/.test(text);
   const gm = /\b(gm|chevrolet)\b/.test(text);
@@ -77,7 +62,7 @@ function serverProgrammingFee(make, model, year) {
   if (vw && dealerOnly.some((item) => text.includes(item))) throw new Error('Este veículo só pode ser programado na concessionária');
   const vwOnline = ['polo', 'virtus', 't cross', 'tcross', 'nivus', 'jetta', 'golf', 'saveiro', 'gol', 'voyage'];
   const gmOnline = ['onix', 'onix plus', 'tracker', 'spin', 's10', 'cruze', 'montana', 'trailblazer', 'equinox'];
-  if ((gm && year >= 2020 && gmOnline.some((item) => text.includes(item))) || (vw && year >= 2018 && vwOnline.some((item) => text.includes(item)))) return 250;
+  if ((gm && year >= 2020 && gmOnline.some((item) => text.includes(item))) || (vw && year >= 2018 && vwOnline.some((item) => text.includes(item)))) return settings.online_fee;
   return 0;
 }
 
@@ -92,7 +77,7 @@ function catalogMatches(catalog, vehicle) {
     (!catalog.year_start || year >= catalog.year_start) && (!catalog.year_end || year <= catalog.year_end);
 }
 
-function catalogKeyValue(catalog, quoteKeyValue, keyType, keyOrigin) {
+function catalogKeyValue(catalog, quoteKeyValue, keyType, keyOrigin, settings) {
   const original = Number(catalog?.original_price) > 0 ? Number(catalog.original_price) : quoteKeyValue;
   if (keyOrigin !== 'paralela') return original;
   const manualField = keyType === 'simples' ? 'parallel_simple_price' : keyType === 'presenca' ? 'parallel_proximity_price' : 'parallel_flip_price';
@@ -100,10 +85,10 @@ function catalogKeyValue(catalog, quoteKeyValue, keyType, keyOrigin) {
   if (manual > 0) return manual;
   const generated = Math.max(Number(catalog?.vvdi_price) || 0, Number(catalog?.kd_price) || 0, Number(catalog?.km100_price) || 0);
   if (generated > 0) return generated;
-  return catalog?.factory_alarm_status === 'ausente' ? 0 : round(original * 0.65);
+  return catalog?.factory_alarm_status === 'ausente' ? 0 : round(original * (1 - settings.parallel_discount / 100));
 }
 
-async function carKeyPrice(base44, userId, data, inputs, multiplier, distanceFee) {
+async function carKeyPrice(base44, userId, data, inputs, factors, distanceFee, settings) {
   const vehicle = inputs.vehicle || {};
   const year = bounded(vehicle.year, 1900, 2200);
   const make = String(vehicle.make || '').trim();
@@ -116,26 +101,31 @@ async function carKeyPrice(base44, userId, data, inputs, multiplier, distanceFee
   const keyType = ['simples', 'canivete', 'telecomando', 'presenca'].includes(data.key_type) ? data.key_type : 'simples';
   const keyOrigin = inputs.key_origin === 'paralela' ? 'paralela' : 'original';
   if (keyOrigin === 'paralela' && !catalog) throw new Error('Catálogo da chave paralela é obrigatório');
-  const keyValue = catalogKeyValue(catalog, quote.keyValue, keyType, keyOrigin);
+  const keyValue = catalogKeyValue(catalog, quote.keyValue, keyType, keyOrigin, settings);
   if (keyOrigin === 'paralela' && keyValue <= 0) throw new Error('Preço da chave paralela não confirmado no catálogo');
   const brand = normalizeVehicleText(make);
   const jetta = /\b(vw|volkswagen)\b/.test(brand) && /\bjetta\b/.test(normalizeVehicleText(model));
-  const rate = jetta && year >= 2015 && year <= 2019 ? 0.013
-    : jetta && year >= 2020 && year <= 2022 ? 0.015
-    : /\b(gm|chevrolet)\b/.test(brand) && year >= 2020 ? 0.013
-    : year >= 2020 ? 0.008 : year >= 2010 ? 0.009 : year >= 2000 ? 0.011 : quote.hasCodedKey ? 0.013 : 0.011;
-  const labor = round(fipe * rate + (keyType === 'simples' ? 120 : 0));
+  const rateKey = jetta && year >= 2015 && year <= 2019 ? 'fipe_jetta_2015'
+    : jetta && year >= 2020 && year <= 2022 ? 'fipe_jetta_2020'
+    : /\b(gm|chevrolet)\b/.test(brand) && year >= 2020 ? 'fipe_chevrolet_2020'
+    : year >= 2020 ? 'fipe_2020' : year >= 2010 ? 'fipe_2010' : year >= 2000 ? 'fipe_2000' : quote.hasCodedKey ? 'fipe_old_coded' : 'fipe_old_plain';
+  const rate = settings[rateKey] / 100;
+  const labor = round(fipe * rate + (keyType === 'simples' ? settings.simple_fixed : 0));
+  const adjusted = adjustedCharge(labor, factors, `Mão de obra: ${settings[rateKey]}% da FIPE${keyType === 'simples' ? ` + R$ ${settings.simple_fixed.toFixed(2)} (chave simples)` : ''}`);
   const chargedKey = keyType === 'simples' && !(keyOrigin === 'paralela' && Number(catalog?.parallel_simple_price) > 0) ? 0 : keyValue;
-  const onlineFee = serverProgrammingFee(make, model, year);
-  const complexityFee = vehicleComplexity(make, model, year);
-  const alarmFee = /^land\s*rover(?:\s|$)/i.test(make) && year >= 2020 && vehicle.alarm_locked === true ? 8000 : 0;
-  const base = Math.max(380, round(chargedKey + round(labor * multiplier) + onlineFee + distanceFee));
+  const onlineFee = serverProgrammingFee(make, model, year, settings);
+  const complexityFee = vehicleComplexity(make, model, year, settings);
+  const alarmFee = /^land\s*rover(?:\s|$)/i.test(make) && year >= 2020 && vehicle.alarm_locked === true ? settings.alarm_fee : 0;
+  const raw = round(chargedKey + adjusted.total + onlineFee + distanceFee);
+  const base = Math.max(settings.minimum, raw);
   return {
     total: round(base + complexityFee + alarmFee),
     protectedFees: complexityFee + alarmFee,
+    fields: { key_value: chargedKey, fipe_value: fipe, labor_cost: adjusted.total, locomotion_cost: distanceFee, extra_cost: onlineFee + complexityFee + alarmFee },
     lines: [
       { label: 'Valor da chave', value: chargedKey },
-      { label: 'Mão de obra calculada no servidor', value: round(labor * multiplier) },
+      ...adjusted.lines,
+      ...(base > raw ? [{ label: 'Ajuste ao piso mínimo', value: round(base - raw) }] : []),
       ...(onlineFee ? [{ label: 'Programação online', value: onlineFee }] : []),
       ...(distanceFee ? [{ label: 'Locomoção', value: distanceFee }] : []),
       ...(complexityFee ? [{ label: /^ford(?:\s|$)/i.test(make) && year >= 2020 ? 'Adicional Ford a partir de 2020' : 'Complexidade do veículo', value: complexityFee }] : []),
@@ -168,57 +158,70 @@ export async function calculateServerServicePrice(base44, userId, data) {
     const unavailable = carKeyUnavailableReason(vehicle.make, vehicle.model, vehicle.year);
     if (unavailable) throw new Error(unavailable);
   }
-  const [online, searching, ringing] = await Promise.all([
+  const [online, searching, ringing, config, weather] = await Promise.all([
     base44.asServiceRole.entities.Locksmith.filter({ online: true }, '-updated_date', 500),
     base44.asServiceRole.entities.ServiceRequest.filter({ status: 'searching' }, '-created_date', 500),
     base44.asServiceRole.entities.ServiceRequest.filter({ status: 'ringing' }, '-created_date', 500),
+    loadServicePricing(base44, data.service_type),
+    rule.fixed ? Promise.resolve({ key: null, label: 'Preço fixo: sem ajuste climático' }) : pricingWeather(data.customer_lat == null ? NaN : Number(data.customer_lat), data.customer_lng == null ? NaN : Number(data.customer_lng)),
   ]);
+  const settings = config.values;
   const urgency = data.urgency === 'urgent' ? 'urgent' : 'normal';
-  const timeFactor = saoPauloTimeFactor();
-  const tierFactor = urgency === 'urgent' ? Math.max(timeFactor, 0.6) : Math.min(timeFactor, 0.6);
-  const multiplier = round(Math.min(1.6, Math.max(0.7, supplyMultiplier(online.length, searching.length + ringing.length) * (urgency === 'urgent' ? 1.3 : 1))));
+  const calendar = pricingCalendar(settings);
+  const tierFactor = urgency === 'urgent' ? Math.max(calendar.tier, settings.tier_urgent_floor / 100) : Math.min(calendar.tier, settings.tier_normal_cap / 100);
+  const factors = rule.fixed ? [] : pricingFactors(settings, online.length, searching.length + ringing.length, urgency === 'urgent', calendar, weather);
   const customer = { lat: Number(data.customer_lat), lng: Number(data.customer_lng) };
   const distances = Number.isFinite(customer.lat) && Number.isFinite(customer.lng)
     ? online.filter((item) => Number.isFinite(Number(item.lat)) && Number.isFinite(Number(item.lng))).map((item) => distanceKm(customer, { lat: Number(item.lat), lng: Number(item.lng) }))
     : [];
   const nearest = distances.length ? Math.min(...distances) : 0;
-  const distanceFee = nearest > 20 ? round(nearest * 0.9) : 0;
+  const distanceFee = !rule.fixed && nearest > settings.distance_threshold ? round(nearest * settings.distance_rate) : 0;
 
   let calculation;
   if (rule.fixed) {
-    calculation = { total: rule.fixed, protectedFees: 0, lines: [{ label: `${data.service_type} (preço fixo)`, value: rule.fixed }] };
+    calculation = { total: settings.fixed, protectedFees: 0, fields: { extra_cost: 0, locomotion_cost: 0 }, lines: [{ label: `${data.service_type} (preço fixo)`, value: settings.fixed }] };
   } else if (rule.carKey) {
-    calculation = await carKeyPrice(base44, userId, data, inputs, multiplier, distanceFee);
+    calculation = await carKeyPrice(base44, userId, data, inputs, factors, distanceFee, settings);
   } else {
-    const base = Math.round(rule.range[0] + (rule.range[1] - rule.range[0]) * tierFactor);
-    let adjusted = round(base * multiplier);
+    const base = Math.round(settings.base_min + (settings.base_max - settings.base_min) * tierFactor);
     const vehicle = inputs.vehicle || {};
-    if (rule.id === 'abertura_automotiva' && Number(vehicle.year) >= 2020) adjusted = round(adjusted * 1.25);
-    const automotiveFee = rule.id === 'abertura_automotiva' ? ({ media: 25, alta: 50 }[vehicle.complexity] || 0) : 0;
-    const locks = rule.id === 'abertura_residencial' || rule.id === 'abertura_tetra' || rule.id === 'abertura_eletronica' ? lockExtras(inputs.locks) : 0;
-    const brokenFee = rule.id.startsWith('abertura_') && inputs.broken_key_in_lock === true ? 25 : 0;
-    const total = round(Math.max(['abertura_residencial', 'abertura_automotiva'].includes(rule.id) ? 50 : 0, adjusted + locks + distanceFee) + automotiveFee + brokenFee);
+    const openingFactors = rule.id === 'abertura_automotiva' && Number(vehicle.year) >= 2020 ? [...factors, { label: 'Veículo de 2020 em diante', percent: settings.opening_2020 }] : factors;
+    const adjusted = adjustedCharge(base, openingFactors, `${data.service_type} (base)`);
+    const automotiveFee = rule.id === 'abertura_automotiva' ? ({ media: settings.opening_medium, alta: settings.opening_high }[vehicle.complexity] || 0) : 0;
+    const locks = rule.id === 'abertura_residencial' || rule.id === 'abertura_tetra' || rule.id === 'abertura_eletronica' ? lockExtras(inputs.locks, settings) : 0;
+    const brokenFee = rule.id.startsWith('abertura_') && inputs.broken_key_in_lock === true ? settings.condition_fee : 0;
+    const raw = round(adjusted.total + locks + distanceFee);
+    const floorAdjustment = round(Math.max(0, settings.minimum - raw));
+    const total = round(raw + floorAdjustment + automotiveFee + brokenFee);
     calculation = {
       total,
       protectedFees: brokenFee,
+      fields: { labor_cost: adjusted.total, extra_cost: locks + automotiveFee + brokenFee, locomotion_cost: distanceFee },
       lines: [
-        { label: `${data.service_type} (calculado no servidor)`, value: adjusted },
+        ...adjusted.lines,
+        ...(floorAdjustment ? [{ label: 'Ajuste ao piso mínimo', value: floorAdjustment }] : []),
         ...(locks ? [{ label: 'Fechaduras e miolos adicionais', value: locks }] : []),
         ...(distanceFee ? [{ label: 'Locomoção', value: distanceFee }] : []),
         ...(automotiveFee ? [{ label: 'Complexidade automotiva', value: automotiveFee }] : []),
-        ...(brokenFee ? [{ label: 'Adicional de condição da abertura', value: brokenFee }] : []),
+        ...(rule.id.startsWith('abertura_') && inputs.broken_key_in_lock === true ? [{ label: 'Adicional de condição da abertura', value: brokenFee }] : []),
       ],
     };
   }
 
   const useDiscount = data.discount_applied === true && await loyaltyAvailable(base44, userId);
   const discountBase = Math.max(0, calculation.total - calculation.protectedFees);
-  const discount = useDiscount ? round(discountBase * 0.1) : 0;
-  const minimum = rule.carKey ? 380 + calculation.protectedFees : 0;
+  const discount = useDiscount ? round(discountBase * settings.loyalty / 100) : 0;
+  const minimum = rule.carKey ? settings.minimum + calculation.protectedFees : 0;
   const price = Math.max(minimum, round(calculation.total - discount));
   return {
     price,
     discount: round(calculation.total - price),
-    calculation: { total: calculation.total, lines: calculation.lines, notes: ['Preço recalculado e validado pelo servidor.'] },
+    minimum,
+    fields: calculation.fields,
+    calculation: { total: calculation.total, lines: calculation.lines, notes: [
+      'Preço recalculado e validado pelo servidor.',
+      config.version ? `Tabela de cobranças: ${config.version}` : 'Tabela de cobranças inicial.',
+      ...(!rule.fixed ? [weather.label, 'Calendário de Brasília: nacionais e São Paulo. Feriado substitui sábado/domingo.'] : []),
+    ] },
   };
 }

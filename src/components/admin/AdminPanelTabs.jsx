@@ -5,6 +5,7 @@ const tabs = [
   ["overview", "Visão geral", LayoutDashboard],
   ["reports", "Denúncias", Flag],
   ["catalog", "Catálogo de chaves", KeyRound],
+  ["pricing", "Preços e percentuais", Wallet],
   ["people", "Usuários", Users],
   ["finance", "Financeiro", Wallet],
   ["requests", "Chamados", ClipboardList],

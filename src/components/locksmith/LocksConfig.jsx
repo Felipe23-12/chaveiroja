@@ -2,14 +2,14 @@ import React from "react";
 import { Plus, KeyRound } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import LockRow from "./LockRow";
-import { calculateLocksExtra, createLock } from "@/lib/locks";
+import { createLock } from "@/lib/locks";
 
 /**
  * Permite ao cliente informar quantas portas precisa abrir, o modelo de cada
  * fechadura e em quais delas quer trocar o miolo.
  */
-export default function LocksConfig({ locks, setLocks }) {
-  const extra = calculateLocksExtra(locks);
+export default function LocksConfig({ locks, setLocks, pricing }) {
+  const extra = pricing?.calculation?.lines?.find(line => line.label === 'Fechaduras e miolos adicionais')?.value || 0;
 
   const update = (uid, next) =>
     setLocks((prev) => prev.map((l) => (l.uid === uid ? next : l)));
@@ -50,7 +50,7 @@ export default function LocksConfig({ locks, setLocks }) {
         <span>
           {locks.length} fechadura{locks.length > 1 ? "s" : ""} para abrir
           {mioloCount > 0 ? ` · ${mioloCount} troca${mioloCount > 1 ? "s" : ""} de miolo` : ""}
-          {extra.total > 0 ? ` · adicionais de R$ ${extra.total.toFixed(2)}` : ""}
+          {extra > 0 ? ` · adicionais de R$ ${extra.toFixed(2)}` : (locks.length > 1 || mioloCount > 0) && !pricing ? ' · adicionais calculados na cotação' : ''}
         </span>
       </div>
     </div>

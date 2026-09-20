@@ -1,0 +1,53 @@
+{
+  "name": "ServicePricingConfig",
+  "type": "object",
+  "properties": {
+    "service_type": {
+      "type": "string",
+      "enum": [
+        "Abertura Residencial",
+        "Abertura Automotiva",
+        "Abertura Fechadura Tetra",
+        "Abertura Fechadura Eletr\u00f4nica",
+        "Confec\u00e7\u00e3o de Chave de Carro",
+        "Confec\u00e7\u00e3o de Chave de Moto",
+        "C\u00f3pia de Chave"
+      ]
+    },
+    "values": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "number"
+      }
+    },
+    "edited_by": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "service_type",
+    "values"
+  ],
+  "rls": {
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}
