@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import PricingSettingsEditor from '@/components/admin/PricingSettingsEditor';
+import RegionalPricingPanel from '@/components/admin/RegionalPricingPanel';
 
 export default function PricingSettingsPanel() {
   const [service, setService] = useState('Confecção de Chave de Carro');
@@ -12,8 +13,10 @@ export default function PricingSettingsPanel() {
       <p>Na confecção de carro, oferta/demanda, urgência, calendário e chuva incidem somente sobre a mão de obra; chave, programação e adicionais fixos ficam separados. Jetta e Chevrolet seguem os mesmos fatores.</p>
       <p>Domingo e feriado iniciam em +30%, editáveis abaixo. Feriado substitui o adicional de fim de semana; chuva e calendário são aplicados após o limite de oferta/demanda e urgência.</p>
       <p>Calendário: feriados nacionais, Carnaval, Sexta-feira Santa, Corpus Christi, aniversário de São Paulo e 9 de julho. Clima no endereço: Open-Meteo, com previsão horária de MET Norway quando necessário; se ambas as consultas falharem, não há adicional climático.</p>
+      <p>Nas aberturas, a faixa regional ativa substitui o início e fim da faixa geral abaixo; os demais percentuais continuam valendo. Sem referência regional ativa ou localização, usa-se a faixa geral.</p>
       <p>Os preços individuais das chaves continuam no Catálogo de chaves. Esta tabela não altera comissões, mensalidades ou cancelamentos.</p>
     </div>
+    <RegionalPricingPanel />
     <label className="block text-sm font-medium">Serviço a configurar<select value={service} onChange={e => { if (!dirty || window.confirm('Trocar de serviço e descartar alterações não salvas?')) { setDirty(false); setService(e.target.value); } }} className="mt-2 block w-full min-h-[44px] rounded-md border border-input bg-background px-3 text-foreground">{services.map(s => <option key={s} value={s}>{s}</option>)}</select></label>
     <PricingSettingsEditor key={service} service={service} onServices={setServices} onDirty={setDirty} />
   </section>;

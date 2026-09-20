@@ -3,6 +3,7 @@ import { carKeyUnavailableReason } from './carKeyAvailability.ts';
 import { loadServicePricing } from './servicePricingSettings.ts';
 import { pricingCalendar, pricingFactors, adjustedCharge } from './servicePricingConditions.ts';
 import { pricingWeather } from './serviceWeather.ts';
+import { regionalPriceForLocation } from './regionalServicePricing.ts';
 
 const RULES = {
   'Abertura Residencial': { range: [80, 250], id: 'abertura_residencial' },
@@ -158,12 +159,14 @@ export async function calculateServerServicePrice(base44, userId, data) {
     const unavailable = carKeyUnavailableReason(vehicle.make, vehicle.model, vehicle.year);
     if (unavailable) throw new Error(unavailable);
   }
-  const [online, searching, ringing, config, weather] = await Promise.all([
+  const [online, searching, ringing, config, weather, regional] = await Promise.all([
     base44.asServiceRole.entities.Locksmith.filter({ online: true }, '-updated_date', 500),
     base44.asServiceRole.entities.ServiceRequest.filter({ status: 'searching' }, '-created_date', 500),
     base44.asServiceRole.entities.ServiceRequest.filter({ status: 'ringing' }, '-created_date', 500),
     loadServicePricing(base44, data.service_type),
+
     rule.fixed ? Promise.resolve({ key: null, label: 'Preço fixo: sem ajuste climático' }) : pricingWeather(data.customer_lat == null ? NaN : Number(data.customer_lat), data.customer_lng == null ? NaN : Number(data.customer_lng)),
+    regionalPriceForLocation(base44, data.service_type, data.customer_lat, data.customer_lng),
   ]);
   const settings = config.values;
   const urgency = data.urgency === 'urgent' ? 'urgent' : 'normal';
@@ -183,7 +186,8 @@ export async function calculateServerServicePrice(base44, userId, data) {
   } else if (rule.carKey) {
     calculation = await carKeyPrice(base44, userId, data, inputs, factors, distanceFee, settings);
   } else {
-    const base = Math.round(settings.base_min + (settings.base_max - settings.base_min) * tierFactor);
+    const [baseMin, baseMax] = regional?.range || [settings.base_min, settings.base_max];
+    const base = Math.round(baseMin + (baseMax - baseMin) * tierFactor);
     const vehicle = inputs.vehicle || {};
     const openingFactors = rule.id === 'abertura_automotiva' && Number(vehicle.year) >= 2020 ? [...factors, { label: 'Veículo de 2020 em diante', percent: settings.opening_2020 }] : factors;
     const adjusted = adjustedCharge(base, openingFactors, `${data.service_type} (base)`);
@@ -221,6 +225,7 @@ export async function calculateServerServicePrice(base44, userId, data) {
     calculation: { total: calculation.total, lines: calculation.lines, notes: [
       'Preço recalculado e validado pelo servidor.',
       config.version ? `Tabela de cobranças: ${config.version}` : 'Tabela de cobranças inicial.',
+      ...(regional?.note ? [regional.note] : []),
       ...(!rule.fixed ? [weather.label, 'Calendário de Brasília: nacionais e São Paulo. Feriado substitui sábado/domingo.'] : []),
     ] },
   };

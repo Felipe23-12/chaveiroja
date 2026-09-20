@@ -1,5 +1,6 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.46';
 import { serviceTypes, pricingFields, loadServicePricing, validatePricing } from '../../shared/servicePricingSettings.ts';
+import { manageRegionalPricing } from '../../shared/regionalServicePricing.ts';
 
 export default async function(req) {
   try {
@@ -8,6 +9,7 @@ export default async function(req) {
     if (!user) return Response.json({ error: 'Não autenticado' }, { status: 401 });
     if (user.role !== 'admin') return Response.json({ error: 'Somente administradores podem acessar a tabela de cobranças' }, { status: 403 });
     const body = await req.json();
+    if (['regional_get', 'regional_save'].includes(body.action)) return await manageRegionalPricing(base44, body);
     const service = body.service_type || 'Confecção de Chave de Carro';
     if (!serviceTypes.includes(service)) return Response.json({ error: 'Serviço inválido' }, { status: 400 });
     const current = await loadServicePricing(base44, service);
