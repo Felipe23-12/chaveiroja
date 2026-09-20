@@ -3,9 +3,10 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import KeyProgrammingFields from "@/components/admin/KeyProgrammingFields";
 import ManualKeyPriceFields from "@/components/admin/ManualKeyPriceFields";
+import VehicleMakeModelFields from "@/components/locksmith/VehicleMakeModelFields";
 
 const fields = [
-  ["make", "Montadora"], ["model", "Modelo"], ["year_start", "Ano inicial"], ["year_end", "Ano final"],
+  ["year_start", "Ano inicial"], ["year_end", "Ano final"],
   ["catalog_code", "Código da chave"], ["key_type_detail", "Produto / botões"], ["frequency_mhz", "Frequência (MHz)"],
   ["transponder", "Chip/transponder"], ["blade", "Lâmina"],
   ["vvdi_file", "Arquivo VVDI"], ["vvdi_price", "Preço VVDI"], ["kd_file", "Arquivo KD"], ["kd_price", "Preço KD"],
@@ -26,6 +27,11 @@ export default function VehicleKeyCatalogForm({ value, onChange, onSave, saving 
       </select>
       <KeyProgrammingFields value={value} onChange={onChange} />
       <ManualKeyPriceFields value={value} onChange={onChange} />
+      {(value.vehicle_type || "carro") === "carro" ? (
+        <VehicleMakeModelFields vehicleInfo={value} updateVehicle={(field, nextValue) => onChange(previous => ({ ...previous, [field]: nextValue }))} />
+      ) : [["make", "Montadora"], ["model", "Modelo"]].map(([name, label]) => (
+        <Input key={name} placeholder={label} value={value[name] || ""} onChange={e => onChange({ ...value, [name]: e.target.value })} />
+      ))}
       {fields.map(([name, label]) => <Input key={name} type={name.includes("price") || name.includes("year") ? "number" : "text"} placeholder={label} value={value[name] ?? ""} onChange={(e) => onChange({ ...value, [name]: e.target.value })} />)}
       {["vvdi", "kd", "km100"].map((brand) => <label key={brand} className="flex items-center gap-2 text-sm"><input type="checkbox" checked={value[`${brand}_supported`] || false} onChange={(e) => onChange({ ...value, [`${brand}_supported`]: e.target.checked })} /> {brand.toUpperCase()} possui arquivo</label>)}
       <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={value.verified || false} onChange={(e) => onChange({ ...value, verified: e.target.checked })} /> Dados verificados</label>
