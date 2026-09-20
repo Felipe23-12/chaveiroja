@@ -7,7 +7,10 @@ export default async function(req) {
   try {
     const base44 = createClientFromRequest(req);
     const body = await req.json().catch(() => ({}));
-    if (!verifyInternalCall(req, body)) return Response.json({ error: 'Unauthorized' }, { status: 401 });
+    const internalCall = verifyInternalCall(req, body);
+    const user = internalCall ? null : await base44.auth.me().catch(() => null);
+    if (!internalCall && !user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
+    if (!internalCall && user.role !== 'admin') return Response.json({ error: 'Forbidden' }, { status: 403 });
 
     const serviceRequestId = body.service_request_id;
     if (!serviceRequestId) {
@@ -64,6 +67,8 @@ export default async function(req) {
     if (alreadySent.includes(key)) {
       return Response.json({ skipped: true, reason: `aviso ${key} já enviado` });
     }
+
+    if (body.dry_run === true) return Response.json({ success: true, dry_run: true, key });
 
     await base44.asServiceRole.integrations.Core.SendPushNotification({
       user_id: clientUserId,

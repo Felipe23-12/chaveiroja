@@ -15,7 +15,7 @@
     "document": {
       "dsl": "1.0.0",
       "name": "push_cliente_andamento",
-      "version": "1.0",
+      "version": "1.1",
       "namespace": "base44"
     },
     "do": [
@@ -25,7 +25,6 @@
           "with": {
             "function_name": "sendClientPushNotification",
             "args": {
-              "_internal_token": "${ .secrets.INTERNAL_CALL_TOKEN }",
               "service_request_id": "${ .trigger.entity_id }"
             }
           },
