@@ -3,6 +3,7 @@ import { scoreFor, penalizeLocksmithCancellation, recordClientCancellation, getC
 import { validatedLocation } from '../../shared/cancellationSafety.ts';
 import { calculateServerServicePrice } from '../../shared/servicePricing.ts';
 import { loadServicePricing } from '../../shared/servicePricingSettings.ts';
+import { urgencyServicePrice } from '../../shared/urgencyServicePricing.ts';
 import { clientDebt, confirmedServicePayment } from '../../shared/paymentVerification.ts';
 import { submitTrustedClientReview, submitTrustedReview } from '../../shared/trustedReviews.ts';
 
@@ -210,12 +211,14 @@ export default async function(req) {
       return Response.json({ request: updated });
     }
 
-    if (action === 'request_urgency_upgrade') {
+    if (['urgency_upgrade_quote', 'request_urgency_upgrade'].includes(action)) {
       const request = await base44.asServiceRole.entities.ServiceRequest.get(body.request_id);
       if (!request || request.created_by_id !== user.id) return Response.json({ error: 'Chamado não encontrado' }, { status: 403 });
       if (request.urgency === 'urgent' || !['accepted', 'on_the_way'].includes(request.status)) return Response.json({ error: 'Alteração indisponível' }, { status: 409 });
-      const price = Number(body.price);
-      if (!Number.isFinite(price) || price <= Number(request.price || 0)) return Response.json({ error: 'Novo valor inválido' }, { status: 400 });
+      const pricing = await urgencyServicePrice(base44, request);
+      if (action === 'urgency_upgrade_quote') return Response.json({ pricing });
+      if (!Number.isFinite(Number(body.price)) || Math.round(Number(body.price) * 100) !== Math.round(pricing.price * 100)) return Response.json({ code: 'PRICE_CHANGED', pricing, error: 'O valor foi atualizado. Confira o novo total e confirme novamente.' }, { status: 409 });
+      const price = pricing.price;
       const updated = await base44.asServiceRole.entities.ServiceRequest.update(request.id, {
         urgency_upgrade_status: 'pending', urgency_upgrade_requested_at: new Date().toISOString(), urgency_upgrade_price: Math.round(price * 100) / 100,
       });
@@ -228,7 +231,12 @@ export default async function(req) {
       if (request.urgency_upgrade_status !== 'pending') return Response.json({ error: 'Solicitação já respondida' }, { status: 409 });
       const accepted = body.accepted === true;
       const updated = await base44.asServiceRole.entities.ServiceRequest.update(request.id, accepted
-        ? { urgency: 'urgent', price: request.urgency_upgrade_price || request.price, urgency_upgrade_status: 'accepted' }
+        ? { urgency: 'urgent', price: request.urgency_upgrade_price ?? request.price, urgency_upgrade_status: 'accepted',
+            ...(request.pricing_calculation ? { pricing_calculation: { ...request.pricing_calculation,
+              total: Math.round((request.pricing_calculation.total + (request.urgency_upgrade_price - request.price)) * 100) / 100,
+              lines: [...request.pricing_calculation.lines, { label: 'Alteração para urgente (tabela administrativa)', value: Math.round((request.urgency_upgrade_price - request.price) * 100) / 100 }],
+            } } : {}),
+          }
         : { urgency_upgrade_status: 'declined' });
       return Response.json({ request: updated });
     }

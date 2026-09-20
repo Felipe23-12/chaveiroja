@@ -2,8 +2,7 @@ import React, { useState, useEffect, useMemo, useRef } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
 import { Navigation, AlertTriangle } from "lucide-react";
-import { SERVICE_CATALOG, MIN_CAR_KEY_TOTAL, calculateCancellationFee, CANCELLATION_THRESHOLD_MINUTES, calculateLongDistanceFee, isOpeningService } from "@/lib/pricing";
-import { calculateDynamicPrice } from "@/lib/dynamicPricing";
+import { SERVICE_CATALOG, calculateCancellationFee, CANCELLATION_THRESHOLD_MINUTES, isOpeningService } from "@/lib/pricing";
 import { getCancellationWindow } from "@/lib/cancellationWindow";
 import { resolveCarKeyValue, searchFipeAndKeyValue } from "@/lib/carKey";
 import { detectCarKeyProgramming } from "@/lib/carKeyProgramming";
@@ -21,7 +20,7 @@ import UpgradeToUrgentButton from "@/components/locksmith/UpgradeToUrgentButton"
 import UrgencySelector from "@/components/client/UrgencySelector";
 import UrgentArrivalCountdown from "@/components/locksmith/UrgentArrivalCountdown";
 import { DEFAULT_CENTER, haversineKm, calculateInitialServiceDistance, fetchDrivingRoute, etaMinutes } from "@/lib/geo";
-import { getClientLoyalty, applyLoyaltyDiscount } from "@/lib/loyalty";
+import { getClientLoyalty } from "@/lib/loyalty";
 import { buildEligibleQueue } from "@/lib/ringRotation";
 import { selectScoreBroadcast } from "@/lib/locksmithScore";
 import { safeUnsubscribe } from "@/lib/safeUnsubscribe";
@@ -58,7 +57,7 @@ import LocationStatusNotice from "@/components/location/LocationStatusNotice";
 import ModerationActions from "@/components/moderation/ModerationActions";
 import { OPENING_CONDITION_FEE, getOpeningConditionFee, hasLocksmithConditionCorrection, locksmithAddedConditionFee } from "@/lib/openingCondition";
 import { findVehicleKeyCatalog, manualParallelKeyPrice, parallelKeyPrice, parallelOptions, requiresParallelKey, technicalKeyDescription } from "@/lib/vehicleKeyCatalog";
-import buildChargeCalculation from "@/components/admin/buildChargeCalculation";
+
 import HomeConfigurationStep from "@/components/client/HomeConfigurationStep";
 import HomeTrackingStep from "@/components/client/HomeTrackingStep";
 import HomeServiceSelectionStep from "@/components/client/HomeServiceSelectionStep";
@@ -180,7 +179,7 @@ export default function Home() {
     fallbackUsed: keyValueFallback && catalogOriginalValue <= 0,
   });
   const selectedKeyValue = keyOrigin === "paralela"
-    ? parallelKeyPrice(keyCatalog, originalKeyValue, carKeyType)
+    ? parallelKeyPrice(keyCatalog, originalKeyValue, service?.isMotoKey ? motoInfo.keyType : carKeyType)
     : originalKeyValue;
 
   useEffect(() => {
@@ -191,18 +190,19 @@ export default function Home() {
   }, [service?.isMotoKey, motoInfo.brandId, motoInfo.modelId, motoInfo.year]);
 
   useEffect(() => {
-    if (!keyCatalog?.id) return;
-    const catalogId = keyCatalog.id;
-    const unsubscribe = base44.entities.VehicleKeyCatalog.subscribe((event) => {
-      if (event.id !== catalogId && event.data?.id !== catalogId) return;
-      if (event.type === "delete") {
-        setKeyCatalog(null);
-        return;
-      }
-      base44.entities.VehicleKeyCatalog.get(catalogId).then(setKeyCatalog);
+    if (!service?.isCarKey && !service?.isMotoKey) return;
+    const make = service.isMotoKey ? MOTO_BRANDS.find(b => b.id === motoInfo.brandId)?.label : vehicleInfo.make;
+    const model = service.isMotoKey ? getMotoModel(motoInfo.brandId, motoInfo.modelId)?.label : vehicleInfo.model;
+    const year = service.isMotoKey ? motoInfo.year : vehicleInfo.year;
+    if (!make || !model || !year) return;
+    let cancelled = false;
+    const refresh = () => findVehicleKeyCatalog(make, model, year, service.isMotoKey ? 'moto' : 'carro').then(row => {
+      if (!cancelled) { setKeyCatalog(row); setQuoteRevision(value => value + 1); }
     });
-    return safeUnsubscribe(unsubscribe);
-  }, [keyCatalog?.id]);
+    const subscriptions = ['VehicleKeyCatalog', 'VehicleRemoteCompatibility', 'UniversalRemote'].map(name => safeUnsubscribe(base44.entities[name].subscribe(refresh)));
+    window.addEventListener('focus', refresh);
+    return () => { cancelled = true; subscriptions.forEach(unsubscribe => unsubscribe()); window.removeEventListener('focus', refresh); };
+  }, [service?.id, vehicleInfo.make, vehicleInfo.model, vehicleInfo.year, motoInfo.brandId, motoInfo.modelId, motoInfo.year]);
 
   // Faixa de referência do estado/capital mais próximo (ajustada pela distância
   // até a capital: perto = médias maiores, longe = médias menores)
@@ -265,33 +265,7 @@ export default function Home() {
   // Supply: chaveiros online no modo app
   const onlineLocksmithsCount = unblockedAppLocksmiths.filter((l) => l.online).length;
 
-  // Preço dinâmico (modo aplicativo): oferta/demanda + urgência + região + bairro + distância
-  const price = useMemo(() => {
-    if (!pricingService) return null;
-    if (service?.isMotoKey && !motoRule?.range) return null;
-    return calculateDynamicPrice({
-      service: pricingService,
-      selectedOptions,
-      customAddons,
-      vehicleInfo,
-      locks: service?.hasLocks ? locks : [],
-      onlineLocksmiths: onlineLocksmithsCount,
-      activeRequests: activeRequestsCount,
-      urgency,
-      customerLat: customerLoc.lat,
-      customerLng: customerLoc.lng,
-      address,
-      nearestDistanceKm: pricingDistance,
-      keyValue: selectedKeyValue,
-      fipeValue,
-      carKeyType,
-      hasCodedKey,
-      onlineProgrammingFee: programming?.onlineFee || 0,
-      weather,
-      brokenKeyInLock: openingConditionFee > 0,
-      chargeSimpleKeyValue: keyOrigin === "paralela" && carKeyType === "simples" && manualParallelKeyPrice(keyCatalog, carKeyType) > 0,
-    });
-  }, [pricingService, service, motoRule, selectedOptions, customAddons, vehicleInfo, locks, onlineLocksmithsCount, activeRequestsCount, urgency, customerLoc, address, pricingDistance, selectedKeyValue, fipeValue, carKeyType, hasCodedKey, programming, weather, openingConditionFee]);
+  // A cotação exibida e confirmada é calculada exclusivamente no servidor.
 
   useEffect(() => {
     if (!locationContext.coordinates_confirmed && gps.status === "ready") setCustomerLoc(gps.location);
@@ -522,16 +496,20 @@ export default function Home() {
     pricing_inputs: {
       selected_options: selectedOptions, custom_addons: customAddons,
       locks: service?.hasLocks ? locks.map(({ model, miolo }) => ({ model, miolo })) : [],
-      vehicle: { ...vehicleInfo, alarm_locked: vehicleInfo.alarmLocked },
+      vehicle: service?.isMotoKey
+        ? { make: MOTO_BRANDS.find(b => b.id === motoInfo.brandId)?.label, model: getMotoModel(motoInfo.brandId, motoInfo.modelId)?.label, year: motoInfo.year }
+        : { ...vehicleInfo, alarm_locked: vehicleInfo.alarmLocked },
       vehicle_pricing_quote: vehiclePricingQuote,
       vehicle_catalog_id: keyCatalog?.id || null,
+      catalog_revision: keyCatalog?.updated_date || null,
       key_origin: keyOrigin, broken_key_in_lock: openingConditionFee > 0,
     },
   };
 
   // A prévia e o envio usam o mesmo cálculo; alterações exigem nova confirmação.
-  const handleConfirmConfig = async (expectedPrice) => {
-    if (!address || submitting) return;
+  const handleConfirmConfig = async (confirmedPricing) => {
+    if (!address || submitting || !confirmedPricing) return;
+    const expectedPrice = confirmedPricing.price;
     if (debt) {
       setSearchError("Você possui uma taxa de cancelamento em aberto. Pague o débito para solicitar novos serviços.");
       return;
@@ -544,7 +522,7 @@ export default function Home() {
       setSearchError("Informe se a Land Rover está trancada no alarme.");
       return;
     }
-    if ((service?.isCarKey || service?.isMotoKey) && keyOrigin === "paralela" && parallelOptions(keyCatalog).length === 0 && parallelKeyPrice(keyCatalog, 0, carKeyType) <= 0) {
+    if ((service?.isCarKey || service?.isMotoKey) && keyOrigin === "paralela" && parallelOptions(keyCatalog).length === 0 && parallelKeyPrice(keyCatalog, 0, service?.isMotoKey ? motoInfo.keyType : carKeyType) <= 0) {
       setSearchError("Não há chave paralela confirmada para este veículo e ano. Escolha uma opção disponível.");
       return;
     }
@@ -630,7 +608,7 @@ export default function Home() {
         location_context: locationContext,
         expected_price: expectedPrice,
         pricing_inputs: { ...pricingData.pricing_inputs, vehicle_catalog_id: requestCatalog?.id || null },
-        pricing_calculation: buildChargeCalculation(price, pricingService, { make: vehicleInfo.make, model: vehicleInfo.model, year: vehicleInfo.year, fipeValue, keyType: carKeyType, hasCodedKey }),
+        pricing_calculation: confirmedPricing.calculation,
         service_type: service.label,
         address,
         description: [`Cliente: ${customerName}`, locksText, openingReasonText, brokenKeyText, keyTechnicalText, description].filter(Boolean).join(" — "),
@@ -648,59 +626,22 @@ export default function Home() {
       };
 
       const useDiscount = loyalty?.available > 0;
-
-      let req;
-      if (service.isCarKey) {
-        // Preço dinâmico: valor da chave + mão de obra pela faixa de ano/codificação da FIPE
-        const effectiveKeyValue = carKeyType === "simples" && !(keyOrigin === "paralela" && manualParallelKeyPrice(requestCatalog, carKeyType) > 0) ? 0 : selectedKeyValue;
-        const onlineFee = programming?.onlineFee || 0;
-        const complexityFee = price?.complexityFee || 0;
-        const alarmFee = price?.alarmFee || 0;
-        const fixedVehicleFees = complexityFee + alarmFee;
-        const basePrice = Math.max(MIN_CAR_KEY_TOTAL, (price?.total || 0) - fixedVehicleFees);
-        const adjustedLabor = price
-          ? Math.round((price.base - effectiveKeyValue - onlineFee) * 100) / 100
-          : 0;
-        const kmFee = calculateLongDistanceFee(initialDistanceKm);
-        const disc = useDiscount ? applyLoyaltyDiscount(basePrice, MIN_CAR_KEY_TOTAL) : { amount: 0, final: basePrice };
-        req = await createAppServiceRequest({
-          ...base,
-          price: disc.final + fixedVehicleFees,
-          key_value: effectiveKeyValue,
-          fipe_value: fipeValue,
+      const motoModel = service.isMotoKey ? getMotoModel(motoInfo.brandId, motoInfo.modelId) : null;
+      const complexity = confirmedPricing.calculation?.lines?.find(line => /complexidade do veículo|adicional ford/i.test(line.label) && line.value > 0);
+      const req = await createAppServiceRequest({
+        ...base,
+        ...confirmedPricing.fields,
+        price: expectedPrice,
+        distance_km: initialDistanceKm,
+        discount_applied: useDiscount,
+        ...(service.isCarKey ? {
           key_type: carKeyType,
-          vehicle_info: `${vehicleInfo.make} ${vehicleInfo.model} · Ano ${vehicleInfo.year} · Porta ${vehicleInfo.doorStatus}${complexityFee > 0 ? ` · Confecção de ${[450, 700].includes(complexityFee) ? "alta" : "média"} complexidade` : ""}${/^land\s*rover(?:\s|$)/i.test(vehicleInfo.make.trim()) && Number(vehicleInfo.year) >= 2020 ? ` · Alarme: ${vehicleInfo.alarmLocked ? "trancado" : "não trancado"}` : ""}`.trim(),
-          labor_cost: adjustedLabor,
-          locomotion_cost: kmFee,
-          distance_km: initialDistanceKm,
-          extra_cost: onlineFee + fixedVehicleFees,
-          discount_applied: useDiscount,
-          discount_amount: disc.amount,
-        });
-      } else {
-        // Preço dinâmico já inclui ajustes de oferta/demanda, região, bairro e taxa de distância
-        const basePrice = Math.max(0, (price?.total || 0) - openingConditionFee);
-        const kmFee = calculateLongDistanceFee(initialDistanceKm);
-        const disc = useDiscount ? applyLoyaltyDiscount(basePrice) : { amount: 0, final: basePrice };
-        const motoModel = service.isMotoKey ? getMotoModel(motoInfo.brandId, motoInfo.modelId) : null;
-        req = await createAppServiceRequest({
-          ...base,
-          price: disc.final + openingConditionFee,
-          distance_km: initialDistanceKm,
-          locomotion_cost: kmFee,
-          extra_cost: openingConditionFee,
-          ...(service.isMotoKey
-            ? {
-                key_type: motoInfo.keyType,
-                vehicle_info: `${MOTO_BRANDS.find((b) => b.id === motoInfo.brandId)?.label || ""} ${
-                  motoModel?.label || ""
-                } ${motoInfo.year}${motoInfo.keyType === "presenca" ? (motoInfo.hasPassword ? " · com senha" : " · sem senha") : ""}`.trim(),
-              }
-            : {}),
-          discount_applied: useDiscount,
-          discount_amount: disc.amount,
-        });
-      }
+          vehicle_info: `${vehicleInfo.make} ${vehicleInfo.model} · Ano ${vehicleInfo.year} · Porta ${vehicleInfo.doorStatus}${complexity ? ` · ${complexity.label}` : ''}${/^land\s*rover(?:\s|$)/i.test(vehicleInfo.make.trim()) && Number(vehicleInfo.year) >= 2020 ? ` · Alarme: ${vehicleInfo.alarmLocked ? 'trancado' : 'não trancado'}` : ''}`.trim(),
+        } : service.isMotoKey ? {
+          key_type: motoInfo.keyType,
+          vehicle_info: `${MOTO_BRANDS.find(b => b.id === motoInfo.brandId)?.label || ''} ${motoModel?.label || ''} ${motoInfo.year}${motoInfo.keyType === 'presenca' ? (motoInfo.hasPassword ? ' · com senha' : ' · sem senha') : ''}`.trim(),
+        } : {}),
+      });
 
       // Notificação automática no chat para chamados urgentes (SLA de 35 min)
       if (urgency === "urgent") {
@@ -721,7 +662,7 @@ export default function Home() {
         }
       }
 
-      if (useDiscount) {
+      if (req.discount_applied) {
         setLoyalty((prev) => (prev ? { ...prev, available: prev.available - 1 } : prev));
       }
       setSelectedLocksmith(nearest.l);
@@ -1143,7 +1084,7 @@ export default function Home() {
       {step === 2 && service && <HomeConfigurationStep config={{
         service, pricingService, vehicleInfo, setVehicleInfo, address, setAddress, handleAddressSelect, locationContext, setLocationContext,
         description, setDescription, originalKeyValue, searching, searchError, handleSearchKey,
-        carKeyType, setCarKeyType, fipeValue, hasCodedKey, programming, price, keyOrigin,
+        carKeyType, setCarKeyType, fipeValue, hasCodedKey, programming, keyOrigin,
         setKeyOrigin, keyCatalog, canPreviewKeyPrice, motoInfo, setMotoInfo, motoRule,
         selectedOptions, toggleOption, customAddons, setCustomAddon, locks, setLocks,
         brokenKeyInLock, setBrokenKeyInLock, openingReason, setOpeningReason,

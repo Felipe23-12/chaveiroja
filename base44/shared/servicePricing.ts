@@ -4,6 +4,7 @@ import { loadServicePricing } from './servicePricingSettings.ts';
 import { pricingCalendar, pricingFactors, adjustedCharge } from './servicePricingConditions.ts';
 import { pricingWeather } from './serviceWeather.ts';
 import { regionalPriceForLocation } from './regionalServicePricing.ts';
+import { currentVehicleCatalog, catalogKeyPrice } from './catalogServicePricing.ts';
 
 const RULES = {
   'Abertura Residencial': { range: [80, 250], id: 'abertura_residencial' },
@@ -67,27 +68,7 @@ function serverProgrammingFee(make, model, year, settings) {
   return 0;
 }
 
-function catalogMatches(catalog, vehicle) {
-  const make = normalizeVehicleText(vehicle.make);
-  const model = normalizeVehicleText(vehicle.model);
-  const catalogMake = normalizeVehicleText(catalog.make);
-  const catalogModels = String(catalog.model || '').split(/[,/]/).map(normalizeVehicleText);
-  const year = Number(vehicle.year);
-  return catalog.vehicle_type === 'carro' && catalog.active === true && catalogMake === make &&
-    catalogModels.some((item) => item === model || item.includes(model) || model.includes(item)) &&
-    (!catalog.year_start || year >= catalog.year_start) && (!catalog.year_end || year <= catalog.year_end);
-}
 
-function catalogKeyValue(catalog, quoteKeyValue, keyType, keyOrigin, settings) {
-  const original = Number(catalog?.original_price) > 0 ? Number(catalog.original_price) : quoteKeyValue;
-  if (keyOrigin !== 'paralela') return original;
-  const manualField = keyType === 'simples' ? 'parallel_simple_price' : keyType === 'presenca' ? 'parallel_proximity_price' : 'parallel_flip_price';
-  const manual = Number(catalog?.[manualField]) || 0;
-  if (manual > 0) return manual;
-  const generated = Math.max(Number(catalog?.vvdi_price) || 0, Number(catalog?.kd_price) || 0, Number(catalog?.km100_price) || 0);
-  if (generated > 0) return generated;
-  return catalog?.factory_alarm_status === 'ausente' ? 0 : round(original * (1 - settings.parallel_discount / 100));
-}
 
 async function carKeyPrice(base44, userId, data, inputs, factors, distanceFee, settings) {
   const vehicle = inputs.vehicle || {};
@@ -96,24 +77,25 @@ async function carKeyPrice(base44, userId, data, inputs, factors, distanceFee, s
   const model = String(vehicle.model || '').trim();
   if (!make || !model || year < 1900) throw new Error('Dados do veículo inválidos para precificação');
   const quote = await verifyVehiclePricingQuote(inputs.vehicle_pricing_quote, userId, vehicle);
-  const catalog = inputs.vehicle_catalog_id ? await base44.asServiceRole.entities.VehicleKeyCatalog.get(String(inputs.vehicle_catalog_id)).catch(() => null) : null;
-  if (catalog && !catalogMatches(catalog, vehicle)) throw new Error('Catálogo do veículo não confere com a solicitação');
+  const catalog = await currentVehicleCatalog(base44, vehicle, 'carro');
   const fipe = quote.fipeValue;
   const keyType = ['simples', 'canivete', 'telecomando', 'presenca'].includes(data.key_type) ? data.key_type : 'simples';
   const keyOrigin = inputs.key_origin === 'paralela' ? 'paralela' : 'original';
   if (keyOrigin === 'paralela' && !catalog) throw new Error('Catálogo da chave paralela é obrigatório');
-  const keyValue = catalogKeyValue(catalog, quote.keyValue, keyType, keyOrigin, settings);
+  const keyValue = await catalogKeyPrice(base44, catalog, quote.keyValue, keyType, keyOrigin, settings, year);
+  const coded = catalog?.transponder_status === 'presente' || (catalog?.transponder_status !== 'ausente' && quote.hasCodedKey);
   if (keyOrigin === 'paralela' && keyValue <= 0) throw new Error('Preço da chave paralela não confirmado no catálogo');
   const brand = normalizeVehicleText(make);
   const jetta = /\b(vw|volkswagen)\b/.test(brand) && /\bjetta\b/.test(normalizeVehicleText(model));
   const rateKey = jetta && year >= 2015 && year <= 2019 ? 'fipe_jetta_2015'
     : jetta && year >= 2020 && year <= 2022 ? 'fipe_jetta_2020'
     : /\b(gm|chevrolet)\b/.test(brand) && year >= 2020 ? 'fipe_chevrolet_2020'
-    : year >= 2020 ? 'fipe_2020' : year >= 2010 ? 'fipe_2010' : year >= 2000 ? 'fipe_2000' : quote.hasCodedKey ? 'fipe_old_coded' : 'fipe_old_plain';
+    : year >= 2020 ? 'fipe_2020' : year >= 2010 ? 'fipe_2010' : year >= 2000 ? 'fipe_2000' : coded ? 'fipe_old_coded' : 'fipe_old_plain';
   const rate = settings[rateKey] / 100;
   const labor = round(fipe * rate + (keyType === 'simples' ? settings.simple_fixed : 0));
   const adjusted = adjustedCharge(labor, factors, `Mão de obra: ${settings[rateKey]}% da FIPE${keyType === 'simples' ? ` + R$ ${settings.simple_fixed.toFixed(2)} (chave simples)` : ''}`);
-  const chargedKey = keyType === 'simples' && !(keyOrigin === 'paralela' && Number(catalog?.parallel_simple_price) > 0) ? 0 : keyValue;
+  const manualSimple = keyOrigin === 'paralela' ? Number(catalog?.parallel_simple_price) > 0 : !!catalog?.manual_price_updated_at && Number(catalog?.original_price) > 0;
+  const chargedKey = keyType === 'simples' && !manualSimple ? 0 : keyValue;
   const onlineFee = serverProgrammingFee(make, model, year, settings);
   const complexityFee = vehicleComplexity(make, model, year, settings);
   const alarmFee = /^land\s*rover(?:\s|$)/i.test(make) && year >= 2020 && vehicle.alarm_locked === true ? settings.alarm_fee : 0;
@@ -194,15 +176,18 @@ export async function calculateServerServicePrice(base44, userId, data) {
     const automotiveFee = rule.id === 'abertura_automotiva' ? ({ media: settings.opening_medium, alta: settings.opening_high }[vehicle.complexity] || 0) : 0;
     const locks = rule.id === 'abertura_residencial' || rule.id === 'abertura_tetra' || rule.id === 'abertura_eletronica' ? lockExtras(inputs.locks, settings) : 0;
     const brokenFee = rule.id.startsWith('abertura_') && inputs.broken_key_in_lock === true ? settings.condition_fee : 0;
-    const raw = round(adjusted.total + locks + distanceFee);
+    const motoCatalog = rule.id === 'confeccao_chave_moto' ? await currentVehicleCatalog(base44, vehicle, 'moto') : null;
+    const motoKey = rule.id === 'confeccao_chave_moto' ? await catalogKeyPrice(base44, motoCatalog, 0, data.key_type || 'simples', inputs.key_origin, settings, vehicle.year) : 0;
+    const raw = round(adjusted.total + locks + distanceFee + motoKey);
     const floorAdjustment = round(Math.max(0, settings.minimum - raw));
     const total = round(raw + floorAdjustment + automotiveFee + brokenFee);
     calculation = {
       total,
       protectedFees: brokenFee,
-      fields: { labor_cost: adjusted.total, extra_cost: locks + automotiveFee + brokenFee, locomotion_cost: distanceFee },
+      fields: { labor_cost: adjusted.total, extra_cost: locks + automotiveFee + brokenFee, locomotion_cost: distanceFee, ...(rule.id === 'confeccao_chave_moto' ? { key_value: motoKey } : {}) },
       lines: [
         ...adjusted.lines,
+        ...(motoKey ? [{ label: 'Valor da chave (catálogo administrativo)', value: motoKey }] : []),
         ...(floorAdjustment ? [{ label: 'Ajuste ao piso mínimo', value: floorAdjustment }] : []),
         ...(locks ? [{ label: 'Fechaduras e miolos adicionais', value: locks }] : []),
         ...(distanceFee ? [{ label: 'Locomoção', value: distanceFee }] : []),

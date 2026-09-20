@@ -14,7 +14,7 @@ export default function PricingSettingsPanel() {
       <p>Domingo e feriado iniciam em +30%, editáveis abaixo. Feriado substitui o adicional de fim de semana; chuva e calendário são aplicados após o limite de oferta/demanda e urgência.</p>
       <p>Calendário: feriados nacionais, Carnaval, Sexta-feira Santa, Corpus Christi, aniversário de São Paulo e 9 de julho. Clima no endereço: Open-Meteo, com previsão horária de MET Norway quando necessário; se ambas as consultas falharem, não há adicional climático.</p>
       <p>Nas aberturas, a faixa regional ativa substitui o início e fim da faixa geral abaixo; os demais percentuais continuam valendo. Sem referência regional ativa ou localização, usa-se a faixa geral.</p>
-      <p>Os preços individuais das chaves continuam no Catálogo de chaves. Esta tabela não altera comissões, mensalidades ou cancelamentos.</p>
+      <p>Os preços individuais das chaves de carro e moto vêm do Catálogo de chaves. Valores manuais têm prioridade; salve e mantenha a ficha disponível ao cliente. As cotações abertas são atualizadas periodicamente e o valor é conferido novamente ao solicitar. Esta tabela não altera comissões, mensalidades ou cancelamentos.</p>
     </div>
     <RegionalPricingPanel />
     <label className="block text-sm font-medium">Serviço a configurar<select value={service} onChange={e => { if (!dirty || window.confirm('Trocar de serviço e descartar alterações não salvas?')) { setDirty(false); setService(e.target.value); } }} className="mt-2 block w-full min-h-[44px] rounded-md border border-input bg-background px-3 text-foreground">{services.map(s => <option key={s} value={s}>{s}</option>)}</select></label>

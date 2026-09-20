@@ -3,8 +3,7 @@ import { base44 } from "@/api/base44Client";
 import { Zap, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/use-toast";
-import { URGENCY_MULTIPLIER } from "@/lib/dynamicPricing";
-import { LAND_ROVER_ALARM_LABEL } from "@/lib/pricing";
+
 import {
   AlertDialog,
   AlertDialogContent,
@@ -23,6 +22,8 @@ import {
 export default function UpgradeToUrgentButton({ request, onUpdated }) {
   const [open, setOpen] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [quoting, setQuoting] = useState(false);
+  const [quote, setQuote] = useState(null);
   const { toast } = useToast();
 
   if (!request || request.urgency === "urgent") return null;
@@ -44,13 +45,18 @@ export default function UpgradeToUrgentButton({ request, onUpdated }) {
   }
 
   const current = request.price || 0;
-  const fixedVehicleFees = request.service_type === "Confecção de Chave de Carro"
-    ? (request.pricing_calculation?.lines || [])
-        .filter((line) => line.label === LAND_ROVER_ALARM_LABEL || /complexidade|adicional ford/i.test(line.label))
-        .reduce((sum, line) => sum + Number(line.value || 0), 0)
-    : 0;
-  const newPrice = Math.round(((current - fixedVehicleFees) * URGENCY_MULTIPLIER + fixedVehicleFees) * 100) / 100;
-  const diff = Math.round((newPrice - current) * 100) / 100;
+  const newPrice = quote?.price ?? current;
+  const diff = quote?.difference ?? 0;
+  const prepareQuote = async () => {
+    setQuoting(true);
+    try {
+      const response = await base44.functions.invoke('serviceTrust', { action: 'urgency_upgrade_quote', request_id: request.id });
+      setQuote(response.data.pricing);
+      setOpen(true);
+    } catch (e) {
+      toast({ title: 'Não foi possível calcular a urgência', description: e?.response?.data?.error || e.message, variant: 'destructive' });
+    } finally { setQuoting(false); }
+  };
 
   const handleConfirm = async () => {
     setSaving(true);
@@ -86,9 +92,10 @@ export default function UpgradeToUrgentButton({ request, onUpdated }) {
       });
       setOpen(false);
     } catch (e) {
+      if (e?.response?.data?.pricing) setQuote(e.response.data.pricing);
       toast({
         title: "Falha ao alterar",
-        description: e.message || "Tente novamente",
+        description: e?.response?.data?.error || e.message || "Tente novamente",
         variant: "destructive",
       });
     } finally {
@@ -100,10 +107,11 @@ export default function UpgradeToUrgentButton({ request, onUpdated }) {
     <>
       <Button
         variant="outline"
-        onClick={() => setOpen(true)}
+        onClick={prepareQuote}
+        disabled={quoting || saving}
         className="w-full text-destructive border-destructive/40 hover:bg-destructive/10"
       >
-        <Zap className="w-4 h-4 mr-2" /> Alterar para atendimento urgente
+        {quoting ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Zap className="w-4 h-4 mr-2" />} {quoting ? 'Consultando valor...' : 'Alterar para atendimento urgente'}
       </Button>
 
       <AlertDialog open={open} onOpenChange={setOpen}>

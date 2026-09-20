@@ -7,6 +7,14 @@ export default function useServicePriceQuote(data, enabled, revision = 0) {
   const [retry, setRetry] = useState(0);
   useEffect(() => {
     if (!enabled) return;
+    const refresh = () => { if (document.visibilityState !== 'hidden') setRetry(value => value + 1); };
+    const timer = setInterval(refresh, 30000);
+    window.addEventListener('focus', refresh);
+    document.addEventListener('visibilitychange', refresh);
+    return () => { clearInterval(timer); window.removeEventListener('focus', refresh); document.removeEventListener('visibilitychange', refresh); };
+  }, [enabled]);
+  useEffect(() => {
+    if (!enabled) return;
     let cancelled = false;
     setState(null);
     const timer = setTimeout(async () => {
