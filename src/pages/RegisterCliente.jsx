@@ -122,9 +122,16 @@ export default function RegisterCliente() {
     window.location.assign(returnTo !== "/" ? returnTo : "/");
   };
 
-  const handleGoogle = () => {
-    markAuthProvider("google");
-    base44.auth.loginWithProvider("google", "/google-complete?tipo=cliente");
+  const handleGoogle = async () => {
+    if (loading) return;
+    setLoading(true); setError('');
+    try {
+      markAuthProvider('google');
+      localStorage.setItem('remember_login', 'true');
+      sessionStorage.setItem('active_login_session', 'true');
+      await base44.auth.loginWithProvider('google', returnTo);
+    } catch (err) { setError(err.message || 'Não foi possível entrar com Google.'); }
+    finally { setLoading(false); }
   };
 
   if (showOtp) return (
@@ -154,10 +161,12 @@ export default function RegisterCliente() {
         variant="outline"
         className="w-full h-12 text-sm font-medium mb-6"
         onClick={handleGoogle}
+        disabled={loading}
       >
         <GoogleIcon className="w-5 h-5 mr-2" />
-        Continuar com Google
+        Entrar diretamente com Google
       </Button>
+      <p className="mb-4 text-xs text-muted-foreground">Você pode explorar o aplicativo agora e completar CPF, telefone, confirmação de email e senha antes do primeiro chamado.</p>
 
       <div className="relative mb-6">
         <div className="absolute inset-0 flex items-center">
