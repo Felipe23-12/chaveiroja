@@ -5,6 +5,7 @@ import { pricingCalendar, pricingFactors, adjustedCharge } from './servicePricin
 import { pricingWeather } from './serviceWeather.ts';
 import { regionalPriceForLocation } from './regionalServicePricing.ts';
 import { currentVehicleCatalog, catalogKeyPrice } from './catalogServicePricing.ts';
+import { vehicleFipeRate } from './vehicleFipeRates.ts';
 
 const RULES = {
   'Abertura Residencial': { range: [80, 250], id: 'abertura_residencial' },
@@ -70,7 +71,7 @@ function serverProgrammingFee(make, model, year, settings) {
 
 
 
-async function carKeyPrice(base44, userId, data, inputs, factors, distanceFee, settings) {
+async function carKeyPrice(base44, userId, data, inputs, factors, distanceFee, settings, vehicleFipeRates) {
   const vehicle = inputs.vehicle || {};
   const year = bounded(vehicle.year, 1900, 2200);
   const make = String(vehicle.make || '').trim();
@@ -85,15 +86,9 @@ async function carKeyPrice(base44, userId, data, inputs, factors, distanceFee, s
   const keyValue = await catalogKeyPrice(base44, catalog, quote.keyValue, keyType, keyOrigin, settings, year);
   const coded = catalog?.transponder_status === 'presente' || (catalog?.transponder_status !== 'ausente' && quote.hasCodedKey);
   if (keyOrigin === 'paralela' && keyValue <= 0) throw new Error('Preço da chave paralela não confirmado no catálogo');
-  const brand = normalizeVehicleText(make);
-  const jetta = /\b(vw|volkswagen)\b/.test(brand) && /\bjetta\b/.test(normalizeVehicleText(model));
-  const rateKey = jetta && year >= 2015 && year <= 2019 ? 'fipe_jetta_2015'
-    : jetta && year >= 2020 && year <= 2022 ? 'fipe_jetta_2020'
-    : /\b(gm|chevrolet)\b/.test(brand) && year >= 2020 ? 'fipe_chevrolet_2020'
-    : year >= 2020 ? 'fipe_2020' : year >= 2010 ? 'fipe_2010' : year >= 2000 ? 'fipe_2000' : coded ? 'fipe_old_coded' : 'fipe_old_plain';
-  const rate = settings[rateKey] / 100;
-  const labor = round(fipe * rate + (keyType === 'simples' ? settings.simple_fixed : 0));
-  const adjusted = adjustedCharge(labor, factors, `Mão de obra: ${settings[rateKey]}% da FIPE${keyType === 'simples' ? ` + R$ ${settings.simple_fixed.toFixed(2)} (chave simples)` : ''}`);
+  const fipeRate = vehicleFipeRate(make, model, year, coded, settings, vehicleFipeRates);
+  const labor = round(fipe * fipeRate.percent / 100 + (keyType === 'simples' ? settings.simple_fixed : 0));
+  const adjusted = adjustedCharge(labor, factors, `Mão de obra: ${fipeRate.percent}% da FIPE${fipeRate.label ? ` (${fipeRate.label})` : ''}${keyType === 'simples' ? ` + R$ ${settings.simple_fixed.toFixed(2)} (chave simples)` : ''}`);
   const manualSimple = keyOrigin === 'paralela' ? Number(catalog?.parallel_simple_price) > 0 : !!catalog?.manual_price_updated_at && Number(catalog?.original_price) > 0;
   const chargedKey = keyType === 'simples' && !manualSimple ? 0 : keyValue;
   const onlineFee = serverProgrammingFee(make, model, year, settings);
@@ -166,7 +161,7 @@ export async function calculateServerServicePrice(base44, userId, data) {
   if (rule.fixed) {
     calculation = { total: settings.fixed, protectedFees: 0, fields: { extra_cost: 0, locomotion_cost: 0 }, lines: [{ label: `${data.service_type} (preço fixo)`, value: settings.fixed }] };
   } else if (rule.carKey) {
-    calculation = await carKeyPrice(base44, userId, data, inputs, factors, distanceFee, settings);
+    calculation = await carKeyPrice(base44, userId, data, inputs, factors, distanceFee, settings, config.vehicle_fipe_rates);
   } else {
     const [baseMin, baseMax] = regional?.range || [settings.base_min, settings.base_max];
     const base = Math.round(baseMin + (baseMax - baseMin) * tierFactor);

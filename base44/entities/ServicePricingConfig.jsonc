@@ -20,6 +20,43 @@
         "type": "number"
       }
     },
+    "vehicle_fipe_rates": {
+      "type": "array",
+      "default": [],
+      "maxItems": 1000,
+      "description": "Percentuais da FIPE por montadora, modelo e ano exatos; substituem apenas o percentual geral da m\u00e3o de obra na confec\u00e7\u00e3o de chave de carro.",
+      "items": {
+        "type": "object",
+        "properties": {
+          "make": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100
+          },
+          "model": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 150
+          },
+          "year": {
+            "type": "integer",
+            "minimum": 1900,
+            "maximum": 2200
+          },
+          "percent": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 10
+          }
+        },
+        "required": [
+          "make",
+          "model",
+          "year",
+          "percent"
+        ]
+      }
+    },
     "edited_by": {
       "type": "string"
     }

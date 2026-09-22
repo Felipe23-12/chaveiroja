@@ -1,3 +1,5 @@
+import { validateVehicleFipeRates } from './vehicleFipeRates.ts';
+
 export const serviceTypes = ['Abertura Residencial', 'Abertura Automotiva', 'Abertura Fechadura Tetra', 'Abertura Fechadura Eletrônica', 'Confecção de Chave de Carro', 'Confecção de Chave de Moto', 'Cópia de Chave'];
 const ranges = [[80, 250], [120, 350], [100, 300], [350, 450], [0, 0], [200, 500], [4, 4]];
 const field = (key, label, value, unit = '%', min = 0, max = 500) => ({ key, label, default: value, unit, min, max });
@@ -42,5 +44,5 @@ export async function loadServicePricing(base44, service) {
   const defaults = defaultPricing(service);
   const rows = await base44.asServiceRole.entities.ServicePricingConfig.filter({ service_type: service }, '-created_date', 1);
   const record = rows[0];
-  return { values: record ? validatePricing(service, { ...defaults, ...record.values }) : defaults, version: record?.id || null, saved_at: record?.created_date || null };
+  return { values: record ? validatePricing(service, { ...defaults, ...record.values }) : defaults, vehicle_fipe_rates: service === 'Confecção de Chave de Carro' ? validateVehicleFipeRates(record?.vehicle_fipe_rates || []) : [], version: record?.id || null, saved_at: record?.created_date || null };
 }
