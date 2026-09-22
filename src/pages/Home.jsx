@@ -80,10 +80,6 @@ export default function Home() {
   // Sincroniza o step com a URL (?step=N) para que o botão de voltar do
   // Android/navegador retroceda uma etapa em vez de sair da página.
   const goToStep = (n, preservePaymentReturn = false) => {
-    if (n === 2 && !clientRegistrationComplete(user)) {
-      navigate(clientCompletionUrl(serviceId));
-      return;
-    }
     setStepState(n);
     if (preservePaymentReturn) {
       const next = new URLSearchParams(searchParams);
@@ -1115,6 +1111,7 @@ export default function Home() {
         searchRadius, setSearchRadius, inRadiusCount, urgency, setUrgency,
         goToStep, handleConfirmConfig, submitting, keyBlock, selectedKeyValue,
         nearestDistance, assumedNearby, pricingData, quoteRevision,
+        requiresRegistration: !clientRegistrationComplete(user),
       }} />}
 
       {/* Step 3: Procurando / tocando no chaveiro */}
