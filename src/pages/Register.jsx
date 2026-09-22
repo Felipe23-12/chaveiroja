@@ -54,6 +54,7 @@ export default function Register() {
           <ArrowRight className="w-5 h-5 text-muted-foreground" />
         </Link>
 
+        <p className="text-xs text-center text-muted-foreground pt-3">O mesmo CPF não pode ser usado em contas de cliente e chaveiro ao mesmo tempo. Para mudar de tipo, entre na conta atual e exclua-a antes de criar a nova.</p>
         <p className="text-xs text-center text-muted-foreground pt-3">
           Ao continuar, você declara estar ciente da{" "}
           <Link to="/politica-reembolso" className="text-primary hover:underline font-medium">

@@ -25,11 +25,11 @@ export default function DeleteAccountModal({ open, onOpenChange }) {
     try {
       const user = await base44.auth.me();
       if (!user) throw new Error("Usuário não encontrado");
-      await base44.entities.User.delete(user.id);
+      await base44.functions.invoke('deleteOwnAccount', { action: 'confirm_delete' });
       await base44.auth.logout();
       window.location.href = "/login";
     } catch (e) {
-      setError(e.message || "Não foi possível excluir a conta. Tente novamente.");
+      setError(e?.response?.data?.error || e.message || "Não foi possível excluir a conta. Tente novamente.");
     } finally {
       setDeleting(false);
     }
