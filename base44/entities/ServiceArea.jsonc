@@ -1,0 +1,77 @@
+{
+  "name": "ServiceArea",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "maxLength": 220
+    },
+    "scope": {
+      "type": "string",
+      "enum": [
+        "street",
+        "neighborhood",
+        "city",
+        "state",
+        "country"
+      ]
+    },
+    "polygons": {
+      "type": "array",
+      "items": {
+        "type": "array",
+        "items": {
+          "type": "array",
+          "items": {
+            "type": "number"
+          }
+        }
+      }
+    },
+    "lines": {
+      "type": "array",
+      "items": {
+        "type": "array",
+        "items": {
+          "type": "array",
+          "items": {
+            "type": "number"
+          }
+        }
+      }
+    },
+    "street_radius_m": {
+      "type": "number",
+      "default": 120
+    },
+    "active": {
+      "type": "boolean",
+      "default": true
+    }
+  },
+  "required": [
+    "name",
+    "scope",
+    "polygons",
+    "lines",
+    "active"
+  ],
+  "rls": {
+    "read": {},
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}
