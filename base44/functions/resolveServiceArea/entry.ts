@@ -27,7 +27,8 @@ export default async function(req: Request): Promise<Response> {
       const shape = item.geojson || {};
       const polygons = shape.type === 'Polygon' ? [shape.coordinates?.[0]] : shape.type === 'MultiPolygon' ? shape.coordinates?.map(part => part[0]) : [];
       const lines = shape.type === 'LineString' ? [shape.coordinates] : shape.type === 'MultiLineString' ? shape.coordinates : [];
-      const cleaned = { name: item.display_name, scope, polygons: (polygons || []).filter(ring => Array.isArray(ring) && ring.length >= 4), lines: (lines || []).filter(line => Array.isArray(line) && line.length >= 2), street_radius_m: 120, active: true };
+      const polygon_holes = shape.type === 'Polygon' ? [shape.coordinates.slice(1)] : shape.type === 'MultiPolygon' ? shape.coordinates.map(part => part.slice(1)) : [];
+      const cleaned = { name: String(item.display_name).slice(0, 220), scope, polygons: (polygons || []).filter(ring => Array.isArray(ring) && ring.length >= 4), polygon_holes, lines: scope === 'street' ? (lines || []).filter(line => Array.isArray(line) && line.length >= 2) : [], street_radius_m: 120, active: true };
       if (!cleaned.polygons.length && !cleaned.lines.length) return null;
       if (JSON.stringify(cleaned).length > 65000) return null;
       return cleaned;

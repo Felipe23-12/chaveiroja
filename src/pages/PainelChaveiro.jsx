@@ -62,6 +62,8 @@ import { filterRingableWhileBusy, getLocksmithQueueState, startNextQueuedRequest
 import ClientReviewForm from "@/components/locksmith/ClientReviewForm";
 import ClientRatingSummary from "@/components/history/ClientRatingSummary";
 import AcceptRequestError from "@/components/locksmith/AcceptRequestError";
+import CoverageNotice from '@/components/location/CoverageNotice';
+import { useServiceAreas, isAreaAvailable } from '@/lib/serviceAreas';
 
 // Raio de cobertura para considerar um pedido "na região" do chaveiro (km)
 const REGION_RADIUS_KM = 15;
@@ -123,9 +125,14 @@ export default function PainelChaveiro() {
   const [completedClientReview, setCompletedClientReview] = useState(null);
   const [acceptError, setAcceptError] = useState(null);
   const acceptingRequest = useRef(false);
+  const coverage = useServiceAreas();
   const emailedStatus = useRef(new Set());
 
   const selected = locksmiths.find((l) => l.id === selectedId) || me;
+  useEffect(() => {
+    if (!me?.online || coverage.loading || coverage.error || isAreaAvailable(coverage.areas, me.lat, me.lng)) return;
+    base44.functions.invoke('serviceTrust', { action: 'locksmith_location', locksmith_id: me.id, lat: me.lat, lng: me.lng }).then(({ data }) => setMe(prev => preserveFinancials(prev, data.locksmith)));
+  }, [me?.id, me?.online, me?.lat, me?.lng, coverage.areas, coverage.loading, coverage.error]);
 
   // Monitora status da conexão (online/offline)
   useEffect(() => {
@@ -548,12 +555,13 @@ export default function PainelChaveiro() {
       setGpsLoading(true);
       try {
         const loc = await getPreciseLocation();
-        const updated = await base44.entities.Locksmith.update(me.id, { online: true, lat: loc.lat, lng: loc.lng });
+        const { data } = await base44.functions.invoke('serviceTrust', { action: 'locksmith_location', locksmith_id: me.id, lat: loc.lat, lng: loc.lng, go_online: true });
+        const updated = data.locksmith;
         setMe((prev) => preserveFinancials(prev, updated));
         await base44.functions.invoke("serviceTrust", { action: "sync_online_requests", locksmith_id: me.id });
         toast({ title: "Você está online", description: `Localização atualizada via GPS${loc.accuracy ? ` (precisão de ${Math.round(loc.accuracy)} m)` : ""}.` });
       } catch (error) {
-        toast({ title: "Localização necessária", description: locationErrorMessage(error), variant: "destructive" });
+        toast({ title: error?.response?.data?.code === 'AREA_UNAVAILABLE' ? 'Fora da área de atendimento' : 'Não foi possível ficar online', description: error?.response?.data?.error || locationErrorMessage(error), variant: "destructive" });
         return;
       } finally {
         setGpsLoading(false);
@@ -566,15 +574,16 @@ export default function PainelChaveiro() {
   // Rastreia a localização real do chaveiro enquanto online (GPS contínuo)
   useEffect(() => {
     if (!me || !me.online || !navigator.geolocation) return;
+    let last = { lat: me.lat, lng: me.lng }, saving = false;
     const watchId = navigator.geolocation.watchPosition(
-      (pos) => {
-        const newLat = pos.coords.latitude;
-        const newLng = pos.coords.longitude;
-        const dist = haversineKm({ lat: me.lat, lng: me.lng }, { lat: newLat, lng: newLng });
-        // Só atualiza no banco se moveu mais de 50 metros
-        if (dist > 0.05) {
-          base44.entities.Locksmith.update(me.id, { lat: newLat, lng: newLng });
-        }
+      async (pos) => {
+        const lat = pos.coords.latitude, lng = pos.coords.longitude;
+        if (saving || haversineKm(last, { lat, lng }) <= 0.05) return;
+        saving = true;
+        try {
+          const { data } = await base44.functions.invoke('serviceTrust', { action: 'locksmith_location', locksmith_id: me.id, lat, lng });
+          last = { lat, lng }; setMe(prev => preserveFinancials(prev, data.locksmith));
+        } finally { saving = false; }
       },
       () => { /* silencioso */ },
       { enableHighAccuracy: true, timeout: 10000, maximumAge: 30000 }
@@ -943,6 +952,7 @@ export default function PainelChaveiro() {
         );
       })()}
 
+      {me && <div className="mb-4"><CoverageNotice location={{ lat: me.lat, lng: me.lng }} locksmith /></div>}
       {me && isAppMode && <LocksmithScoreCard score={trustScore} />}
 
       {trustBlocked && (

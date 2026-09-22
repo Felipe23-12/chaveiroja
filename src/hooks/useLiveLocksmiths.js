@@ -2,9 +2,11 @@ import { useEffect, useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { loadScoreMap, withScores } from "@/lib/locksmithScore";
 import { safeUnsubscribe } from "@/lib/safeUnsubscribe";
+import { useServiceAreas, isAreaAvailable } from '@/lib/serviceAreas';
 
 export default function useLiveLocksmiths() {
   const [locksmiths, setLocksmiths] = useState([]);
+  const coverage = useServiceAreas();
 
   useEffect(() => {
     let active = true;
@@ -43,5 +45,5 @@ export default function useLiveLocksmiths() {
     };
   }, []);
 
-  return locksmiths;
+  return coverage.loading || coverage.error ? [] : locksmiths.filter(l => isAreaAvailable(coverage.areas, l.lat, l.lng));
 }

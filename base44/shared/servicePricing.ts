@@ -6,6 +6,7 @@ import { pricingWeather } from './serviceWeather.ts';
 import { regionalPriceForLocation } from './regionalServicePricing.ts';
 import { currentVehicleCatalog, catalogKeyPrice } from './catalogServicePricing.ts';
 import { vehicleFipeRate } from './vehicleFipeRates.ts';
+import { loadServiceAreas, isAreaAvailable } from './serviceAreas.ts';
 
 const RULES = {
   'Abertura Residencial': { range: [80, 250], id: 'abertura_residencial' },
@@ -136,7 +137,7 @@ export async function calculateServerServicePrice(base44, userId, data) {
     const unavailable = carKeyUnavailableReason(vehicle.make, vehicle.model, vehicle.year);
     if (unavailable) throw new Error(unavailable);
   }
-  const [online, searching, ringing, config, weather, regional] = await Promise.all([
+  const [profiles, searching, ringing, config, weather, regional, areas] = await Promise.all([
     base44.asServiceRole.entities.Locksmith.filter({ online: true }, '-updated_date', 500),
     base44.asServiceRole.entities.ServiceRequest.filter({ status: 'searching' }, '-created_date', 500),
     base44.asServiceRole.entities.ServiceRequest.filter({ status: 'ringing' }, '-created_date', 500),
@@ -144,7 +145,9 @@ export async function calculateServerServicePrice(base44, userId, data) {
 
     rule.fixed ? Promise.resolve({ key: null, label: 'Preço fixo: sem ajuste climático' }) : pricingWeather(data.customer_lat == null ? NaN : Number(data.customer_lat), data.customer_lng == null ? NaN : Number(data.customer_lng)),
     regionalPriceForLocation(base44, data.service_type, data.customer_lat, data.customer_lng),
+    loadServiceAreas(base44),
   ]);
+  const online = profiles.filter(l => isAreaAvailable(areas, l.lat, l.lng));
   const settings = config.values;
   const urgency = data.urgency === 'urgent' ? 'urgent' : 'normal';
   const calendar = pricingCalendar(settings);

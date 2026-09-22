@@ -8,6 +8,8 @@ import MapLocationSearch from "@/components/map/MapLocationSearch";
 import { safeUnsubscribe } from "@/lib/safeUnsubscribe";
 import { estimateEtaMinutes, formatEta } from "@/lib/etaEstimate";
 import useBlockedUsers from "@/hooks/useBlockedUsers";
+import { useServiceAreas, isAreaAvailable } from '@/lib/serviceAreas';
+import CoverageNotice from '@/components/location/CoverageNotice';
 
 /**
  * Tela principal do cliente: mostra TODOS os chaveiros disponíveis
@@ -17,6 +19,7 @@ import useBlockedUsers from "@/hooks/useBlockedUsers";
  */
 export default function LiveLocksmithsMap({ customerLoc, livreOnly = false }) {
   const navigate = useNavigate();
+  const coverage = useServiceAreas();
   const [locksmiths, setLocksmiths] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
@@ -61,13 +64,14 @@ export default function LiveLocksmithsMap({ customerLoc, livreOnly = false }) {
   const withDist = useMemo(
     () =>
       locksmiths
+        .filter(l => !coverage.loading && !coverage.error && isAreaAvailable(coverage.areas, l.lat, l.lng))
         .filter((l) => blocksLoading || !blockedIds.has(l.created_by_id))
         .map((l) => {
           const distance = haversineKm(refLoc, { lat: l.lat, lng: l.lng });
           return { ...l, distance, eta: estimateEtaMinutes(distance) };
         })
         .sort((a, b) => a.distance - b.distance),
-    [locksmiths, blockedIds, blocksLoading, refLoc.lat, refLoc.lng]
+    [locksmiths, blockedIds, blocksLoading, refLoc.lat, refLoc.lng, coverage.areas, coverage.loading, coverage.error]
   );
 
   const center = refLoc;
@@ -110,6 +114,7 @@ export default function LiveLocksmithsMap({ customerLoc, livreOnly = false }) {
 
   return (
     <div className="space-y-3">
+      <CoverageNotice location={searchLoc || customerLoc} />
       <div className="flex items-center justify-between">
         <div>
           <h3 className="font-heading font-semibold text-foreground flex items-center gap-2">

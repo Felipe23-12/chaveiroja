@@ -28,6 +28,21 @@
         }
       }
     },
+    "polygon_holes": {
+      "type": "array",
+      "items": {
+        "type": "array",
+        "items": {
+          "type": "array",
+          "items": {
+            "type": "array",
+            "items": {
+              "type": "number"
+            }
+          }
+        }
+      }
+    },
     "lines": {
       "type": "array",
       "items": {

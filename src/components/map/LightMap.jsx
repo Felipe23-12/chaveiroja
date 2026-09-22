@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { Navigation, Plus, Minus, Locate, Wrench } from "lucide-react";
+import ServiceAreaOverlay from '@/components/map/ServiceAreaOverlay';
 
 /**
  * Mapa leve otimizado para WebView do Android.
@@ -212,6 +213,7 @@ export default function LightMap({ center, markers = [], route = null, routePath
         ))}
       </div>
 
+      <ServiceAreaOverlay project={proj} width={fw} height={fh} />
       {/* Sobreposição da rota (SVG esticado junto com o fundo) */}
       <svg
         className="absolute inset-0 w-full h-full pointer-events-none"

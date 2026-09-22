@@ -8,6 +8,8 @@ import { urgencyServicePrice } from '../../shared/urgencyServicePricing.ts';
 import { clientDebt, confirmedServicePayment } from '../../shared/paymentVerification.ts';
 import { submitTrustedClientReview, submitTrustedReview } from '../../shared/trustedReviews.ts';
 import { clientRegistrationComplete } from '../../shared/registrationEligibility.ts';
+import { loadServiceAreas, isAreaAvailable } from '../../shared/serviceAreas.ts';
+import { updateLocksmithLocation } from '../../shared/locksmithCoverage.ts';
 
 const waitMinutes = (minutes) => new Date(Date.now() + minutes * 60000).toISOString();
 
@@ -64,6 +66,12 @@ export default async function(req) {
       return Response.json(await getClientCancelBlock(base44, user.id));
     }
 
+    if (action === 'locksmith_location') return await updateLocksmithLocation(base44, user, body);
+    if (action === 'area_status') {
+      const areas = await loadServiceAreas(base44);
+      return Response.json({ allowed: isAreaAvailable(areas, body.lat, body.lng) });
+    }
+
     if (action === 'sync_online_requests') {
       const profiles = await base44.asServiceRole.entities.Locksmith.filter({ created_by_id: user.id });
       const locksmith = profiles.find((item) => item.id === body.locksmith_id) || profiles[0];
@@ -71,6 +79,8 @@ export default async function(req) {
       if (!locksmith || locksmith.online !== true || !receivesAppCalls || !locksmith.lat || !locksmith.lng) {
         return Response.json({ added: 0 });
       }
+      const areas = await loadServiceAreas(base44);
+      if (!isAreaAvailable(areas, locksmith.lat, locksmith.lng)) return Response.json({ added: 0 });
       const scoreRows = await base44.asServiceRole.entities.LocksmithScore.filter({ locksmith_id: locksmith.id });
       const score = scoreRows[0];
       if (score?.banned || (score?.suspended_until && Date.parse(score.suspended_until) > Date.now())) {
@@ -79,6 +89,7 @@ export default async function(req) {
       const requests = await base44.asServiceRole.entities.ServiceRequest.filter({ status: 'ringing' }, '-created_date', 100);
       let added = 0;
       for (const item of requests) {
+        if (!isAreaAvailable(areas, item.customer_lat, item.customer_lng)) continue;
         if ((item.ringing_locksmith_ids || []).includes(locksmith.id) || !item.customer_lat || !item.customer_lng || !canReceiveRequest(locksmith, item)) continue;
         const distance = distanceKm({ lat: locksmith.lat, lng: locksmith.lng }, { lat: item.customer_lat, lng: item.customer_lng });
         if (distance > Math.min(Number(locksmith.service_radius_km || 15), 100)) continue;
@@ -274,6 +285,8 @@ export default async function(req) {
       if (await clientDebt(base44, user.id)) return Response.json({ error: 'Quite seu débito pendente antes de solicitar outro atendimento.' }, { status: 409 });
       const data = body.data || {};
       if (!data.service_type || !String(data.address || '').trim()) return Response.json({ error: 'Informe o serviço e o endereço' }, { status: 400 });
+      const areas = await loadServiceAreas(base44);
+      if (!isAreaAvailable(areas, data.customer_lat, data.customer_lng)) return Response.json({ code: 'AREA_UNAVAILABLE', error: 'Esta área ainda não está disponível para atendimento. Selecione um endereço dentro da área liberada.' }, { status: 403 });
       const pricing = await calculateServerServicePrice(base44, user.id, data);
       if (data.expected_price !== undefined && (!Number.isFinite(Number(data.expected_price)) || Math.round(Number(data.expected_price) * 100) !== Math.round(pricing.price * 100))) {
         return Response.json({ code: 'PRICE_CHANGED', error: 'O valor foi atualizado. Confira o novo total e toque em Solicitar chaveiro novamente.' }, { status: 409 });
@@ -303,7 +316,7 @@ export default async function(req) {
         ? await base44.asServiceRole.entities.Locksmith.filter({ online: true }, '-updated_date', 500)
         : [];
       const candidates = online
-        .filter((locksmith) => locksmith.created_by_id && locksmith.lat && locksmith.lng && canReceiveRequest(locksmith, data))
+        .filter((locksmith) => locksmith.created_by_id && isAreaAvailable(areas, locksmith.lat, locksmith.lng) && canReceiveRequest(locksmith, data))
         .map((locksmith) => ({ locksmith, distance: distanceKm({ lat: Number(locksmith.lat), lng: Number(locksmith.lng) }, { lat: customerLat, lng: customerLng }) }))
         .filter((item) => Number.isFinite(item.distance) && item.distance <= Math.min(Number(item.locksmith.service_radius_km || 15), 100))
         .sort((a, b) => a.distance - b.distance)
@@ -429,6 +442,8 @@ export default async function(req) {
       const profiles = await base44.asServiceRole.entities.Locksmith.filter({ created_by_id: user.id });
       const locksmith = profiles?.[0];
       if (!locksmith) return Response.json({ error: 'Perfil de chaveiro não encontrado' }, { status: 404 });
+      const areas = await loadServiceAreas(base44);
+      if (!isAreaAvailable(areas, locksmith.lat, locksmith.lng) || !isAreaAvailable(areas, request.customer_lat, request.customer_lng)) return Response.json({ code: 'AREA_UNAVAILABLE', error: 'Este atendimento está fora das áreas liberadas.' }, { status: 403 });
       const accountsByUser = await base44.asServiceRole.entities.MercadoPagoAccount.filter({ locksmith_user_id: user.id });
       const legacyAccounts = accountsByUser.length ? [] : await base44.asServiceRole.entities.MercadoPagoAccount.filter({ locksmith_id: locksmith.id });
       const account = accountsByUser?.[0] || legacyAccounts?.[0];
