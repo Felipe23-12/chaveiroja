@@ -66,6 +66,7 @@ import HomeServiceSelectionStep from "@/components/client/HomeServiceSelectionSt
 import HomeCompletionPaymentStep from "@/components/client/HomeCompletionPaymentStep";
 import { useAuth } from '@/lib/AuthContext';
 import { clientRegistrationComplete, clientCompletionUrl } from '@/lib/clientRegistration';
+import { claimCpf } from '@/lib/cpfRegistration';
 
 export default function Home() {
   const { user } = useAuth();
@@ -547,6 +548,8 @@ export default function Home() {
     setSubmitting(true);
     setSearchError("");
     try {
+      // Confirma CPFs anteriores à migração pela mesma checagem do cadastro.
+      if (user?.role !== 'admin') await claimCpf(user.cpf);
       // O limite diário vale para todos os serviços do modo aplicativo.
       {
         const user = await base44.auth.me().catch(() => null);

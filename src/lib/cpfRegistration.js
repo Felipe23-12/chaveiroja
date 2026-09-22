@@ -2,7 +2,8 @@ import { base44 } from "@/api/base44Client";
 
 export async function claimCpf(cpf) {
   try {
-    await base44.functions.invoke("claimCpf", { cpf });
+    const response = await base44.functions.invoke("claimCpf", { cpf });
+    if (!response.data?.linked) throw new Error("Não foi possível concluir o vínculo do CPF. Confira seus dados ou procure o suporte.");
     // Recebimento não significa vínculo: não avance o cadastro sem persistência.
     const user = await base44.auth.me();
     const digits = (value) => String(value || "").replace(/\D/g, "");

@@ -13,7 +13,7 @@ export default function ResetLocksmithsDialog({ onReset }) {
   const run = async (action) => {
     setLoading(true); setError("");
     try {
-      const payload = action === "request_confirmation" ? { action, password } : { action, code, ...challenge };
+      const payload = action === "request_confirmation" ? { action, password } : { action, code, challengeId: challenge?.challengeId };
       const response = await base44.functions.invoke("resetLocksmiths", payload);
       if (action === "request_confirmation") { setChallenge(response.data); setStep("code"); }
       else { await onReset?.(); setOpen(false); setStep("password"); setPassword(""); setCode(""); }

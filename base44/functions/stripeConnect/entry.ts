@@ -1,5 +1,6 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.44';
 import { secrets } from 'base44:runtime';
+import { verifiedCpf } from '../../shared/verifiedCpf.ts';
 
 const STRIPE_API_V1 = 'https://api.stripe.com/v1';
 const STRIPE_API_V2 = 'https://api.stripe.com/v2';
