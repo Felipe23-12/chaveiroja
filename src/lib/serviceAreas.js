@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { safeUnsubscribe } from '@/lib/safeUnsubscribe';
 import { base44 } from '@/api/base44Client';
+const EMPTY_AREAS = [];
 
 export function pointInArea(lat, lng, area) {
   if (typeof lat !== 'number' || typeof lng !== 'number' || !Number.isFinite(lat) || !Number.isFinite(lng) || Math.abs(lat) > 90 || Math.abs(lng) > 180) return false;
@@ -37,5 +38,5 @@ export function useServiceAreas() {
     }
   } });
   useEffect(() => safeUnsubscribe(base44.entities.ServiceArea.subscribe(() => client.invalidateQueries({ queryKey: ['serviceAreas'] }))), [client]);
-  return { areas: query.data || [], loading: query.isPending, error: query.error };
+  return { areas: query.data || EMPTY_AREAS, loading: query.isPending, error: query.error };
 }

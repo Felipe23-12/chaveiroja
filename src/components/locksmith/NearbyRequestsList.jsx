@@ -8,6 +8,7 @@ import { resyncRingingForRadius } from "@/lib/radiusResync";
 
 import { DEFAULT_SERVICE_RADIUS_KM } from "@/components/locksmith/ServiceRadiusConfig";
 import useBlockedUsers from "@/hooks/useBlockedUsers";
+import { useServiceAreas, isAreaAvailable } from '@/lib/serviceAreas';
 
 const RADIUS_OPTIONS = [1, 3, 5, 10, 15, 20, 30, 40, 50].map((km) => ({
   value: String(km),
@@ -23,6 +24,7 @@ export default function NearbyRequestsList({ locksmith }) {
   const [allRequests, setAllRequests] = useState([]);
   const [loading, setLoading] = useState(true);
   const { blockedIds } = useBlockedUsers();
+  const coverage = useServiceAreas();
   // O estado do filtro fica guardado no aparelho — ao fechar e reabrir o app
   // o chaveiro encontra a mesma configuração ativa.
   const [filterEnabled, setFilterEnabled] = useState(
@@ -74,7 +76,7 @@ export default function NearbyRequestsList({ locksmith }) {
     };
   }, [blockedIds]);
 
-  if (!locksmith || !locksmith.online) return null;
+  if (!locksmith?.online || coverage.loading || coverage.error || !isAreaAvailable(coverage.areas, locksmith.lat, locksmith.lng)) return null;
 
   // Filtra por especialidade do chaveiro
   const matchesSpecialty = (req) => {
@@ -91,6 +93,7 @@ export default function NearbyRequestsList({ locksmith }) {
 
   // Calcula distância e filtra
   const withDistance = allRequests
+    .filter(r => isAreaAvailable(coverage.areas, r.customer_lat, r.customer_lng))
     .filter(matchesSpecialty)
     .filter((r) => r.customer_lat && r.customer_lng)
     .map((r) => ({

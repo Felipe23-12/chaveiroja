@@ -5,6 +5,7 @@ import { haversineKm } from "@/lib/geo";
 import { SERVICE_CATALOG } from "@/lib/pricing";
 import { playNotificationSound } from "@/lib/notificationSound";
 import { safeUnsubscribe } from "@/lib/safeUnsubscribe";
+import { useServiceAreas, isAreaAvailable } from '@/lib/serviceAreas';
 
 const RADIUS_KM = 15;
 
@@ -24,16 +25,17 @@ function matchesSpecialty(locksmith, req) {
 export default function UrgentNearbyAlert({ locksmith }) {
   const [urgent, setUrgent] = useState([]);
   const alertedIds = useRef(new Set());
+  const coverage = useServiceAreas();
 
   useEffect(() => {
-    if (!locksmith?.online) return;
+    if (!locksmith?.online || coverage.loading || coverage.error || !isAreaAvailable(coverage.areas, locksmith.lat, locksmith.lng)) { setUrgent([]); return; }
     const load = () =>
       base44.entities.ServiceRequest
         .filter({ status: "searching", urgency: "urgent" }, "-created_date")
         .then((list) => {
           const near = list.filter(
             (r) =>
-              r.customer_lat &&
+              isAreaAvailable(coverage.areas, r.customer_lat, r.customer_lng) &&
               matchesSpecialty(locksmith, r) &&
               haversineKm(
                 { lat: locksmith.lat, lng: locksmith.lng },
@@ -52,7 +54,7 @@ export default function UrgentNearbyAlert({ locksmith }) {
     load();
     const unsub = base44.entities.ServiceRequest.subscribe(() => load());
     return safeUnsubscribe(unsub);
-  }, [locksmith?.id, locksmith?.online, locksmith?.lat, locksmith?.lng]);
+  }, [locksmith?.id, locksmith?.online, locksmith?.lat, locksmith?.lng, coverage.areas, coverage.loading, coverage.error]);
 
   if (!locksmith?.online || urgent.length === 0) return null;
 

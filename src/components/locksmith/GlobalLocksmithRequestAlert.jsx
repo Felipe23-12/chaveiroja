@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
+import { useServiceAreas, isAreaAvailable } from '@/lib/serviceAreas';
 import { useNavigate } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
 import { useAuth } from "@/lib/AuthContext";
@@ -52,7 +53,9 @@ export default function GlobalLocksmithRequestAlert() {
   const navigate = useNavigate();
   const [locksmith, setLocksmith] = useState(null);
   const locksmithId = locksmith?.id || null;
-  const [requests, setRequests] = useState([]);
+  const [allRequests, setRequests] = useState([]);
+  const coverage = useServiceAreas();
+  const requests = useMemo(() => coverage.loading || coverage.error || !locksmith?.online || !isAreaAvailable(coverage.areas, locksmith.lat, locksmith.lng) ? [] : allRequests.filter(r => isAreaAvailable(coverage.areas, r.customer_lat, r.customer_lng)), [allRequests, locksmith, coverage.areas, coverage.loading, coverage.error]);
   const [open, setOpen] = useState(false);
   const [accepting, setAccepting] = useState(null);
   const [acceptError, setAcceptError] = useState(null);
@@ -80,6 +83,13 @@ export default function GlobalLocksmithRequestAlert() {
         const profile = cached?.locksmith_id ? getLocksmithProfile(cached.locksmith_id) : null;
         if (profile) setLocksmith(profile);
       });
+  }, [isChaveiro, user?.id]);
+
+  useEffect(() => {
+    if (!isChaveiro || !user?.id) return;
+    return safeUnsubscribe(base44.entities.Locksmith.subscribe(event => {
+      if (event.data?.created_by_id === user.id) setLocksmith(prev => event.type === 'delete' ? null : { ...prev, ...event.data });
+    }));
   }, [isChaveiro, user?.id]);
 
   // Reenvia automaticamente as ações feitas offline quando a conexão volta
