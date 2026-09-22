@@ -8,6 +8,7 @@ import { urgencyServicePrice } from '../../shared/urgencyServicePricing.ts';
 import { clientDebt, confirmedServicePayment } from '../../shared/paymentVerification.ts';
 import { submitTrustedClientReview, submitTrustedReview } from '../../shared/trustedReviews.ts';
 import { clientRegistrationComplete } from '../../shared/registrationEligibility.ts';
+import { verifiedCpf } from '../../shared/verifiedCpf.ts';
 import { loadServiceAreas, isAreaAvailable } from '../../shared/serviceAreas.ts';
 import { updateLocksmithLocation } from '../../shared/locksmithCoverage.ts';
 
@@ -281,7 +282,7 @@ export default async function(req) {
     }
 
     if (action === 'create_request') {
-      if (!clientRegistrationComplete(user)) return Response.json({ code: 'REGISTRATION_REQUIRED', error: 'Complete seu cadastro: CPF, telefone, nome completo, email confirmado, senha e aceite dos termos são obrigatórios antes de solicitar um chamado.' }, { status: 403 });
+      if (!clientRegistrationComplete(user, await verifiedCpf(base44, user.id))) return Response.json({ code: 'REGISTRATION_REQUIRED', error: 'Complete seu cadastro: CPF, telefone, nome completo, email confirmado, senha e aceite dos termos são obrigatórios antes de solicitar um chamado.' }, { status: 403 });
       if (await clientDebt(base44, user.id)) return Response.json({ error: 'Quite seu débito pendente antes de solicitar outro atendimento.' }, { status: 409 });
       const data = body.data || {};
       if (!data.service_type || !String(data.address || '').trim()) return Response.json({ error: 'Informe o serviço e o endereço' }, { status: 400 });
@@ -450,8 +451,8 @@ export default async function(req) {
       if (account?.status !== 'active') return Response.json({ code: 'MERCADO_PAGO_REQUIRED', error: 'Conecte sua conta Mercado Pago para aceitar chamados. Acesse Cadastro de recebimentos no seu perfil.' }, { status: 403 });
       const queued = body.queued === true;
       const now = new Date().toISOString();
-      const extra = Number(body.extra || 0);
-      const newPrice = Math.round((Number(request.price || 0) + extra) * 100) / 100;
+      // O aceite não autoriza o chaveiro a alterar unilateralmente o preço do cliente.
+      if (body.extra !== undefined && (typeof body.extra !== 'number' || !Number.isFinite(body.extra) || body.extra !== 0)) return Response.json({ error: 'Custos adicionais não podem ser cobrados no aceite do chamado.' }, { status: 400 });
       const updated = await base44.asServiceRole.entities.ServiceRequest.update(request.id, {
         status: queued ? 'queued' : 'accepted',
         accepted_at: now,
@@ -464,8 +465,6 @@ export default async function(req) {
         locksmith_lng: locksmith.lng,
         ringing_locksmith_ids: [locksmith.id],
         ringing_locksmith_user_ids: [locksmith.created_by_id],
-        price: newPrice,
-        extra_cost: Number(request.extra_cost || 0) + extra,
       });
       return Response.json({ success: true, request: updated, queued });
     }

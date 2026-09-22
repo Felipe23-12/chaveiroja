@@ -17,7 +17,7 @@ export default function PendingRequestsList({ requests, onAccept, onReject }) {
       {/* Alerta principal (com som e vibração) */}
       <IncomingRequestAlert
         request={primary}
-        onAccept={(extra) => onAccept(primary.id, extra)}
+        onAccept={() => onAccept(primary.id)}
         onReject={() => onReject(primary.id)}
       />
 
@@ -44,15 +44,10 @@ export default function PendingRequestsList({ requests, onAccept, onReject }) {
 }
 
 function CompactRequestCard({ request, onAccept, onReject }) {
-  const [extraCost, setExtraCost] = React.useState("");
   const [expanded, setExpanded] = React.useState(false);
   const hasCarKey = request.key_value != null;
 
-  const handleAccept = () => {
-    const extra = Number(extraCost) || 0;
-    onAccept(request.id, extra);
-    setExtraCost("");
-  };
+  const handleAccept = () => onAccept(request.id);
 
   return (
     <div className="p-3 rounded-xl border-2 border-warning/40 bg-warning/10">
@@ -94,20 +89,6 @@ function CompactRequestCard({ request, onAccept, onReject }) {
             <span className="text-muted-foreground">Locomoção ({request.distance_km?.toFixed(1)} km)</span>
             <span>R$ {request.locomotion_cost?.toFixed(2)}</span>
           </div>
-        </div>
-      )}
-
-      {expanded && (
-        <div className="mt-2">
-          <input
-            type="number"
-            min="0"
-            step="0.01"
-            value={extraCost}
-            onChange={(e) => setExtraCost(e.target.value)}
-            placeholder="Custos adicionais (R$)"
-            className="w-full px-2.5 py-1.5 rounded-lg border border-border bg-white text-xs"
-          />
         </div>
       )}
 

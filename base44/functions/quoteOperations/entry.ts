@@ -1,6 +1,7 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.49';
 import { loadServiceAreas, isAreaAvailable } from '../../shared/serviceAreas.ts';
 import { clientRegistrationComplete } from '../../shared/registrationEligibility.ts';
+import { verifiedCpf } from '../../shared/verifiedCpf.ts';
 import { clientDebt } from '../../shared/paymentVerification.ts';
 import { getClientCancelBlock } from '../../shared/cancellationRules.ts';
 
@@ -67,7 +68,7 @@ export default async function(req) {
       return Response.json({ items, remaining: Math.max(0, 3 - daily.length) });
     }
     if (action === 'create') {
-      if (locksmith || user.role === 'admin' || !clientRegistrationComplete(user)) return Response.json({ error: 'Complete seu cadastro de cliente para solicitar orçamentos.' }, { status: 403 });
+      if (locksmith || user.role === 'admin' || !clientRegistrationComplete(user, await verifiedCpf(base44, user.id))) return Response.json({ error: 'Complete seu cadastro de cliente para solicitar orçamentos.' }, { status: 403 });
       if (await clientDebt(base44, user.id)) return Response.json({ error: 'Quite o débito pendente antes de pedir um orçamento.' }, { status: 409 });
       const block = await getClientCancelBlock(base44, user.id);
       if (block.blocked) return Response.json({ error: block.message }, { status: 403 });

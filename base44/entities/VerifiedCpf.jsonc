@@ -1,0 +1,38 @@
+{
+  "name": "VerifiedCpf",
+  "type": "object",
+  "properties": {
+    "user_id": {
+      "type": "string"
+    },
+    "cpf": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "user_id",
+    "cpf"
+  ],
+  "rls": {
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

@@ -208,7 +208,7 @@ export default async function(req) {
         const phone = String(targetUser.phone || '').replace(/\D/g, '');
         if (phone.length === 10 || phone.length === 11) fields['individual[phone]'] = `+55${phone}`;
         else if (phone.startsWith('55') && (phone.length === 12 || phone.length === 13)) fields['individual[phone]'] = `+${phone}`;
-        const cpf = String(targetUser.cpf || '').replace(/\D/g, '');
+        const cpf = await verifiedCpf(base44, targetUser.id) || '';
         if (cpf.length === 11) fields['individual[id_number]'] = cpf;
         fields['metadata[app_user_id]'] = targetUser.id;
       }

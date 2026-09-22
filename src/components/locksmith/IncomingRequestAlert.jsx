@@ -11,14 +11,12 @@ function formatElapsed(seconds) {
 
 export default function IncomingRequestAlert({ request, onAccept, onReject }) {
   const [elapsed, setElapsed] = useState(0);
-  const [extraCost, setExtraCost] = useState("");
 
   // O alarme persistente é controlado globalmente; este timer acompanha
   // somente o tempo aguardando resposta no cartão atual.
   useEffect(() => {
     if (!request) return;
     setElapsed(0);
-    setExtraCost("");
     const start = Date.now();
     const timer = setInterval(() => {
       setElapsed((Date.now() - start) / 1000);
@@ -31,11 +29,7 @@ export default function IncomingRequestAlert({ request, onAccept, onReject }) {
   const isUrgent = elapsed > 30;
   const hasCarKey = request.key_value != null;
 
-  const handleAccept = () => {
-    const extra = Number(extraCost) || 0;
-    onAccept(extra);
-    setExtraCost("");
-  };
+  const handleAccept = () => onAccept();
 
   return (
     <div
@@ -124,20 +118,6 @@ export default function IncomingRequestAlert({ request, onAccept, onReject }) {
             <span>A solicitação pode expirar — aceite ou recuse o mais rápido possível!</span>
           </div>
         )}
-
-        {/* Custos adicionais */}
-        <div>
-          <label className="text-xs text-muted-foreground">Custos adicionais (opcional)</label>
-          <input
-            type="number"
-            min="0"
-            step="0.01"
-            value={extraCost}
-            onChange={(e) => setExtraCost(e.target.value)}
-            placeholder="R$ 0,00"
-            className="w-full mt-1 px-3 py-2 rounded-lg border border-border bg-white text-sm"
-          />
-        </div>
 
         {/* Ações */}
         <div className="flex gap-2">

@@ -1,0 +1,53 @@
+{
+  "name": "LocksmithResetChallenge",
+  "type": "object",
+  "properties": {
+    "admin_id": {
+      "type": "string"
+    },
+    "code_hash": {
+      "type": "string"
+    },
+    "expires_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "attempts": {
+      "type": "integer",
+      "default": 0
+    },
+    "used": {
+      "type": "boolean",
+      "default": false
+    }
+  },
+  "required": [
+    "admin_id",
+    "code_hash",
+    "expires_at",
+    "attempts",
+    "used"
+  ],
+  "rls": {
+    "read": {
+      "user_condition": {
+        "role": "server"
+      }
+    },
+    "create": {
+      "user_condition": {
+        "role": "server"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "server"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "server"
+      }
+    }
+  }
+}

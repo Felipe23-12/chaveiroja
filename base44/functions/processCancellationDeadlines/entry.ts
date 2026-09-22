@@ -1,5 +1,6 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.46';
 import { verifyInternalCall } from '../../shared/internalCall.ts';
+import { verifiedCpf } from '../../shared/verifiedCpf.ts';
 import { penalizeLocksmithCancellation, recordClientCancellation, clientCancellationQuote } from '../../shared/cancellationRules.ts';
 
 export default async function(req) {
@@ -51,7 +52,7 @@ export default async function(req) {
             await base44.asServiceRole.entities.Locksmith.update(item.locksmith_id, { online: false, available: count < 3 });
             if (count >= 3) {
               const users = await base44.asServiceRole.entities.User.filter({ id: item.locksmith_user_id });
-              const cpf = users[0]?.cpf;
+              const cpf = users[0] ? await verifiedCpf(base44, users[0].id) : null;
               if (cpf) await base44.asServiceRole.entities.BlockedCpf.create({ cpf: String(cpf).replace(/\D/g, ''), reason: 'Três abandonos de atendimento confirmados', locksmith_user_id: item.locksmith_user_id });
               await base44.asServiceRole.entities.User.delete(item.locksmith_user_id).catch(() => null);
             }

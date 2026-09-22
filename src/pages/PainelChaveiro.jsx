@@ -201,7 +201,6 @@ export default function PainelChaveiro() {
       // O perfil é atualizado antes de criar/usar os dados profissionais.
       base44.auth.updateMe({
         phone: data.phone,
-        cpf: data.cpf,
         full_name: data.fullName,
         account_type: "chaveiro",
       }).catch((err) => {
@@ -572,12 +571,12 @@ export default function PainelChaveiro() {
 
 
 
-  const handleAccept = async (reqId, extra = 0) => {
+  const handleAccept = async (reqId) => {
     if (!me || acceptingRequest.current) return;
     acceptingRequest.current = true;
     setAcceptError(null);
     try {
-      const result = await acceptRing(reqId, me, extra);
+      const result = await acceptRing(reqId, me);
       if (!result.ok) { setAcceptError(result); return; }
       setPendingRequests((prev) => prev.filter((r) => r.id !== reqId));
       if (result.request) {

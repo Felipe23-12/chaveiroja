@@ -35,7 +35,7 @@ export async function rejectRing(request, locksmithId) {
 }
 
 /** Aceita o primeiro chamado ou reserva um segundo chamado normal e próximo. */
-export async function acceptRing(requestId, locksmith, extra = 0) {
+export async function acceptRing(requestId, locksmith) {
   const [fresh, state] = await Promise.all([
     base44.entities.ServiceRequest.get(requestId),
     getLocksmithQueueState(locksmith.id),
@@ -60,7 +60,6 @@ export async function acceptRing(requestId, locksmith, extra = 0) {
     result = await base44.functions.invoke("serviceTrust", {
       action: "accept_request",
       request_id: requestId,
-      extra,
       queued,
       queued_after_request_id: queued ? state.active.id : undefined,
     });
