@@ -38,7 +38,7 @@ export default function Register() {
         </Link>
 
         <Link
-          to={'/login?tipo=chaveiro&returnTo=' + encodeURIComponent(returnTo)}
+          to={'/cadastro/chaveiro' + qs}
           className="flex items-center gap-4 p-4 rounded-xl border-2 border-border bg-card hover:border-primary/40 transition-all group"
         >
           <div className="w-12 h-12 rounded-xl bg-amber-50 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">

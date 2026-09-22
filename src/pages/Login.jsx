@@ -99,19 +99,13 @@ export default function Login() {
       icon={LogIn}
       title={professional ? 'Entrada de chaveiro' : 'Bem-vindo de volta'}
       subtitle={professional ? 'Entre com email e senha para acessar a área profissional' : 'Acesse sua conta de cliente'}
-      footer={
-        <>
-          Não tem uma conta?{" "}
-          <Link
-            to={(professional ? '/cadastro/chaveiro' : '/register') + (returnTo !== '/' ? '?returnTo=' + encodeURIComponent(returnTo) : '')}
-            className="text-primary font-medium hover:underline"
-          >
-            Criar conta
-          </Link>
-        </>
-      }
+      footer={!professional && <>
+        Não tem uma conta?{" "}
+        <Link to={'/register' + (returnTo !== '/' ? '?returnTo=' + encodeURIComponent(returnTo) : '')} className="text-primary font-medium hover:underline">Criar conta</Link>
+      </>}
     >
       <div className="mb-5 grid grid-cols-2 gap-2"><Link to={'/login?tipo=cliente&returnTo=' + encodeURIComponent(professional ? '/' : returnTo)} className={`rounded-lg border p-3 text-center text-sm ${!professional ? 'border-primary bg-primary/10' : 'border-border'}`}>Sou cliente</Link><Link to={'/login?tipo=chaveiro&returnTo=' + encodeURIComponent(professional ? returnTo : '/')} className={`rounded-lg border p-3 text-center text-sm ${professional ? 'border-primary bg-primary/10' : 'border-border'}`}>Sou chaveiro</Link></div>
+      {professional && <p className="mb-5 text-center text-sm text-muted-foreground">Ainda não tem cadastro de chaveiro? <Link to={'/cadastro/chaveiro' + (returnTo !== '/' ? '?returnTo=' + encodeURIComponent(returnTo) : '')} className="text-primary font-semibold underline underline-offset-2">Cadastre-se como chaveiro</Link></p>}
       {!professional && <><Button
         variant="outline"
         className="w-full h-12 text-sm font-medium mb-6"
