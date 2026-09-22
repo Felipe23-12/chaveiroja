@@ -49,6 +49,9 @@ module.exports = {
   					DEFAULT: 'hsl(var(--warning))',
   					foreground: 'hsl(var(--warning-foreground))'
   				},
+  			coverage: {
+  				allowed: 'hsl(var(--coverage-allowed))'
+  			},
   			border: 'hsl(var(--border))',
   			input: 'hsl(var(--input))',
   			ring: 'hsl(var(--ring))',

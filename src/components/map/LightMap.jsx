@@ -49,7 +49,7 @@ function fitZoom(b, w, h, pad = 0.82) {
 
 const wrap = (n, m) => ((n % m) + m) % m;
 
-export default function LightMap({ center, markers = [], route = null, routePath = null, eta = null, height = 320, renderPopup = null }) {
+export default function LightMap({ center, markers = [], route = null, routePath = null, eta = null, height = 320, renderPopup = null, fitPoints = [], coverageMode = 'standard' }) {
   const containerRef = useRef(null);
   const [size, setSize] = useState({ w: 360, h: height });
   const [selected, setSelected] = useState(null);
@@ -78,6 +78,9 @@ export default function LightMap({ center, markers = [], route = null, routePath
     markers.forEach((m) => {
       if (m.lat && m.lng) pts.push({ lat: m.lat, lng: m.lng });
     });
+    fitPoints.forEach((p) => {
+      if (Number.isFinite(p.lat) && Number.isFinite(p.lng)) pts.push(p);
+    });
     if (routePath && routePath.length > 1) {
       routePath.forEach((p) => {
         if (p.lat && p.lng) pts.push(p);
@@ -88,7 +91,7 @@ export default function LightMap({ center, markers = [], route = null, routePath
     }
     return pts;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [JSON.stringify(markers), JSON.stringify(route), JSON.stringify(routePath)]);
+  }, [JSON.stringify(markers), JSON.stringify(route), JSON.stringify(routePath), JSON.stringify(fitPoints)]);
 
   // Centraliza e calcula zoom com base na área da rota (estável)
   const view = useMemo(() => {
@@ -213,7 +216,7 @@ export default function LightMap({ center, markers = [], route = null, routePath
         ))}
       </div>
 
-      <ServiceAreaOverlay project={proj} width={fw} height={fh} />
+      <ServiceAreaOverlay project={proj} width={fw} height={fh} mode={coverageMode} />
       {/* Sobreposição da rota (SVG esticado junto com o fundo) */}
       <svg
         className="absolute inset-0 w-full h-full pointer-events-none"

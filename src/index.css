@@ -25,6 +25,7 @@
     --success-foreground: 0 0% 100%;
     --warning: 38 92% 50%;
     --warning-foreground: 0 0% 100%;
+    --coverage-allowed: 0 0% 100%;
     --border: 0 0% 89.8%;
     --input: 0 0% 89.8%;
     --ring: 48 100% 50%;
@@ -69,6 +70,7 @@
     --success-foreground: 0 0% 98%;
     --warning: 38 92% 60%;
     --warning-foreground: 0 0% 98%;
+    --coverage-allowed: 0 0% 100%;
     --border: 0 0% 14.9%;
     --input: 0 0% 14.9%;
     --ring: 48 100% 50%;
