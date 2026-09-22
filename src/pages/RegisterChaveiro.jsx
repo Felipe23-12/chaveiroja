@@ -181,6 +181,7 @@ export default function RegisterChaveiro() {
       }
     >
       <StepProgress step={1} total={3} labels={{ 1: "Dados", 2: "Verificação", 3: "Recebimentos" }} />
+      <p className="mb-4 text-sm text-muted-foreground">Você pode se cadastrar mesmo que sua região ainda não esteja liberada. Sua conta ficará ativa; para receber chamados, será necessário estar em uma área de atendimento liberada.</p>
       <ExistingAccountNotice query={'?tipo=chaveiro&returnTo=' + encodeURIComponent(returnTo)} />
       {error && (
         <div className="mb-4 p-3 rounded-lg bg-destructive/10 text-destructive text-sm">{error}</div>
