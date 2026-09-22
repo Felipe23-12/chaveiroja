@@ -63,7 +63,8 @@ import ClientReviewForm from "@/components/locksmith/ClientReviewForm";
 import ClientRatingSummary from "@/components/history/ClientRatingSummary";
 import AcceptRequestError from "@/components/locksmith/AcceptRequestError";
 import CoverageNotice from '@/components/location/CoverageNotice';
-import { useServiceAreas, isAreaAvailable } from '@/lib/serviceAreas';
+import useLocksmithCoverage from '@/hooks/useLocksmithCoverage';
+import { isAreaAvailable } from '@/lib/serviceAreas';
 
 // Raio de cobertura para considerar um pedido "na região" do chaveiro (km)
 const REGION_RADIUS_KM = 15;
@@ -125,14 +126,11 @@ export default function PainelChaveiro() {
   const [completedClientReview, setCompletedClientReview] = useState(null);
   const [acceptError, setAcceptError] = useState(null);
   const acceptingRequest = useRef(false);
-  const coverage = useServiceAreas();
+  const coverage = useLocksmithCoverage(me, setMe);
   const emailedStatus = useRef(new Set());
 
   const selected = locksmiths.find((l) => l.id === selectedId) || me;
-  useEffect(() => {
-    if (!me?.online || coverage.loading || coverage.error || isAreaAvailable(coverage.areas, me.lat, me.lng)) return;
-    base44.functions.invoke('serviceTrust', { action: 'locksmith_location', locksmith_id: me.id, lat: me.lat, lng: me.lng }).then(({ data }) => setMe(prev => preserveFinancials(prev, data.locksmith)));
-  }, [me?.id, me?.online, me?.lat, me?.lng, coverage.areas, coverage.loading, coverage.error]);
+
 
   // Monitora status da conexão (online/offline)
   useEffect(() => {
@@ -273,7 +271,7 @@ export default function PainelChaveiro() {
 
   // Escuta "toques" (status ringing) direcionados a este chaveiro (modo app)
   useEffect(() => {
-    if (!selectedId) return;
+    if (!selectedId || !coverage.allowed || !me?.online) { setPendingRequests([]); return; }
     // O mesmo chamado toca para vários chaveiros próximos ao mesmo tempo;
     // quem recusou volta a receber depois de 2 minutos (regra de rering).
     const load = () =>
@@ -282,7 +280,7 @@ export default function PainelChaveiro() {
         getLocksmithQueueState(selectedId),
       ])
         .then(([list, queueState]) => {
-          const visible = list.filter((r) => !blocksLoading && !blockedIds.has(r.created_by_id) && isRingingFor(r, selectedId));
+          const visible = list.filter((r) => isAreaAvailable(coverage.areas, r.customer_lat, r.customer_lng) && !blocksLoading && !blockedIds.has(r.created_by_id) && isRingingFor(r, selectedId));
           const ringing = filterRingableWhileBusy(visible, queueState);
           setPendingRequests(ringing);
           savePendingRequests(ringing);
@@ -299,16 +297,16 @@ export default function PainelChaveiro() {
       clearInterval(timer);
       unsub();
     };
-  }, [selectedId, blockedIds, blocksLoading]);
+  }, [selectedId, blockedIds, blocksLoading, coverage.allowed, coverage.areas, me?.online]);
 
   // Notificação imediata de novos pedidos: prioritária para solicitações
   // recebidas no modo aplicativo (direcionadas ao chaveiro) e de proximidade
   // para pedidos na região não direcionados a ele.
   useEffect(() => {
-    if (!selectedId || !me) return;
+    if (!selectedId || !me?.online || !coverage.allowed) return;
     const unsub = base44.entities.ServiceRequest.subscribe((event) => {
       const r = event.data;
-      if (!r || blockedIds.has(r.created_by_id) || notifiedIds.current.has(r.id)) return;
+      if (!r || !isAreaAvailable(coverage.areas, r.customer_lat, r.customer_lng) || blockedIds.has(r.created_by_id) || notifiedIds.current.has(r.id)) return;
 
       if ((r.ringing_locksmith_ids || []).includes(selectedId)) {
         // Chamado tocando para este chaveiro (junto com outros próximos)
@@ -353,7 +351,7 @@ export default function PainelChaveiro() {
       });
     });
     return safeUnsubscribe(unsub);
-  }, [selectedId, me, blockedIds]);
+  }, [selectedId, me, blockedIds, coverage.allowed, coverage.areas]);
 
   // Busca a rota de carro entre o chaveiro e o cliente (OSRM) — com cache offline
   useEffect(() => {
@@ -571,25 +569,7 @@ export default function PainelChaveiro() {
     }
   };
 
-  // Rastreia a localização real do chaveiro enquanto online (GPS contínuo)
-  useEffect(() => {
-    if (!me || !me.online || !navigator.geolocation) return;
-    let last = { lat: me.lat, lng: me.lng }, saving = false;
-    const watchId = navigator.geolocation.watchPosition(
-      async (pos) => {
-        const lat = pos.coords.latitude, lng = pos.coords.longitude;
-        if (saving || haversineKm(last, { lat, lng }) <= 0.05) return;
-        saving = true;
-        try {
-          const { data } = await base44.functions.invoke('serviceTrust', { action: 'locksmith_location', locksmith_id: me.id, lat, lng });
-          last = { lat, lng }; setMe(prev => preserveFinancials(prev, data.locksmith));
-        } finally { saving = false; }
-      },
-      () => { /* silencioso */ },
-      { enableHighAccuracy: true, timeout: 10000, maximumAge: 30000 }
-    );
-    return () => navigator.geolocation.clearWatch(watchId);
-  }, [me?.id, me?.online]);
+
 
   const handleAccept = async (reqId, extra = 0) => {
     if (!me || acceptingRequest.current) return;

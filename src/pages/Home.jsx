@@ -55,6 +55,7 @@ import useBlockedUsers from "@/hooks/useBlockedUsers";
 import useLiveLocksmiths from "@/hooks/useLiveLocksmiths";
 import usePreciseLocation from "@/hooks/usePreciseLocation";
 import LocationStatusNotice from "@/components/location/LocationStatusNotice";
+import CoverageNotice from '@/components/location/CoverageNotice';
 import ModerationActions from "@/components/moderation/ModerationActions";
 import { OPENING_CONDITION_FEE, getOpeningConditionFee, hasLocksmithConditionCorrection, locksmithAddedConditionFee } from "@/lib/openingCondition";
 import { findVehicleKeyCatalog, manualParallelKeyPrice, parallelKeyPrice, parallelOptions, requiresParallelKey, technicalKeyDescription } from "@/lib/vehicleKeyCatalog";
@@ -1070,6 +1071,7 @@ export default function Home() {
         </div>
       )}
 
+      {step === 1 && !activeRequest && <div className="mb-4"><CoverageNotice location={gps.location} known={gps.hasFix} /></div>}
       {step === 1 && !activeRequest && (
         <ModuleSelector module={module} setModule={setModule} />
       )}
@@ -1092,10 +1094,10 @@ export default function Home() {
               <h2 className="font-heading font-semibold text-lg text-foreground">Modo Livre</h2>
             </div>
             <p className="text-sm text-muted-foreground">
-              Navegue pelo mapa nacional, encontre chaveiros do Modo Livre online em todo o Brasil e converse diretamente com o profissional para combinar o serviço.
+              Encontre chaveiros do Modo Livre online nas áreas liberadas e converse diretamente com o profissional para combinar o serviço.
             </p>
           </div>
-          <LiveLocksmithsMap customerLoc={customerLoc} livreOnly />
+          <LiveLocksmithsMap customerLoc={customerLoc} livreOnly locationKnown={gps.hasFix || locationContext.coordinates_confirmed} />
         </div>
       )}
 

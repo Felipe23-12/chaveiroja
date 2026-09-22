@@ -17,7 +17,7 @@ import CoverageNotice from '@/components/location/CoverageNotice';
  * localização atual do cliente. Usa o LightMap (imagem estática + sobreposição),
  * leve para WebView do Android — sem travamentos.
  */
-export default function LiveLocksmithsMap({ customerLoc, livreOnly = false }) {
+export default function LiveLocksmithsMap({ customerLoc, livreOnly = false, locationKnown = true }) {
   const navigate = useNavigate();
   const coverage = useServiceAreas();
   const [locksmiths, setLocksmiths] = useState([]);
@@ -114,14 +114,14 @@ export default function LiveLocksmithsMap({ customerLoc, livreOnly = false }) {
 
   return (
     <div className="space-y-3">
-      <CoverageNotice location={searchLoc || customerLoc} />
+      <CoverageNotice location={searchLoc || customerLoc} known={!!searchLoc || locationKnown} />
       <div className="flex items-center justify-between">
         <div>
           <h3 className="font-heading font-semibold text-foreground flex items-center gap-2">
-            <MapPin className="w-4 h-4 text-primary" /> {livreOnly ? "Chaveiros online em todo o Brasil" : "Chaveiros disponíveis perto de você"}
+            <MapPin className="w-4 h-4 text-primary" /> {livreOnly ? "Chaveiros nas áreas liberadas" : "Chaveiros disponíveis perto de você"}
           </h3>
           <p className="text-xs text-muted-foreground">
-            {livreOnly ? "Mapa nacional do Modo Livre · converse diretamente com o profissional" : "Posição atualizada em tempo real · com tempo estimado de chegada até seu endereço"}
+            {livreOnly ? "Modo Livre · atendimento nas áreas liberadas" : "Posição atualizada em tempo real · com tempo estimado de chegada até seu endereço"}
           </p>
         </div>
         <div className="flex items-center gap-3 text-xs">

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { base44 } from "@/api/base44Client";
 import { loadScoreMap, withScores } from "@/lib/locksmithScore";
 import { safeUnsubscribe } from "@/lib/safeUnsubscribe";
@@ -45,5 +45,5 @@ export default function useLiveLocksmiths() {
     };
   }, []);
 
-  return coverage.loading || coverage.error ? [] : locksmiths.filter(l => isAreaAvailable(coverage.areas, l.lat, l.lng));
+  return useMemo(() => coverage.loading || coverage.error ? [] : locksmiths.filter(l => isAreaAvailable(coverage.areas, l.lat, l.lng)), [locksmiths, coverage.areas, coverage.loading, coverage.error]);
 }

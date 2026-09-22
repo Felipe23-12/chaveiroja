@@ -16,7 +16,7 @@ export default function Mapa() {
             <MapPin className="w-6 h-6 text-primary" /> Chaveiros no mapa
           </h1>
           <p className="text-sm text-muted-foreground">
-            Profissionais do <strong>Modo Livre</strong> online em todo o Brasil · negocie direto no chat
+            Profissionais do <strong>Modo Livre</strong> nas áreas liberadas · negocie direto no chat
           </p>
         </div>
       </div>
@@ -24,7 +24,7 @@ export default function Mapa() {
       <div className="mb-4">
         <LocationStatusNotice status={gps.status} error={gps.error} accuracy={gps.accuracy} onRetry={gps.retry} />
       </div>
-      <LiveLocksmithsMap customerLoc={customerLoc} livreOnly />
+      <LiveLocksmithsMap customerLoc={customerLoc} livreOnly locationKnown={gps.hasFix} />
     </div>
   );
 }

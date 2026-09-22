@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { base44 } from "@/api/base44Client";
 import LightMap from "@/components/map/LightMap";
+import { useServiceAreas, isAreaAvailable } from '@/lib/serviceAreas';
 
 /**
  * Mapa (leve) dos chaveiros do Modo Livre online em tempo real.
@@ -10,6 +11,7 @@ import LightMap from "@/components/map/LightMap";
 export default function RealLocksmithsMap({ me }) {
   const [locksmiths, setLocksmiths] = useState([]);
   const [loading, setLoading] = useState(true);
+  const coverage = useServiceAreas();
 
   useEffect(() => {
     let active = true;
@@ -25,7 +27,7 @@ export default function RealLocksmithsMap({ me }) {
     };
   }, []);
 
-  const others = locksmiths.filter((l) => l.id !== me?.id && l.lat && l.lng);
+  const others = locksmiths.filter((l) => !coverage.loading && !coverage.error && isAreaAvailable(coverage.areas, l.lat, l.lng) && l.id !== me?.id);
   const center = me ? { lat: me.lat, lng: me.lng } : { lat: -23.55, lng: -46.63 };
 
   const markers = useMemo(() => {
@@ -36,7 +38,7 @@ export default function RealLocksmithsMap({ me }) {
     );
     return arr;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [me?.id, me?.lat, me?.lng, locksmiths]);
+  }, [me?.id, me?.lat, me?.lng, locksmiths, coverage.areas, coverage.loading, coverage.error]);
 
   return (
     <div className="space-y-3">
