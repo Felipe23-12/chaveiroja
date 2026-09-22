@@ -63,7 +63,6 @@ import { findVehicleKeyCatalog, manualParallelKeyPrice, parallelKeyPrice, parall
 import HomeConfigurationStep from "@/components/client/HomeConfigurationStep";
 import HomeTrackingStep from "@/components/client/HomeTrackingStep";
 import HomeServiceSelectionStep from "@/components/client/HomeServiceSelectionStep";
-import ClientRegistrationRequired from "@/components/client/ClientRegistrationRequired";
 import HomeCompletionPaymentStep from "@/components/client/HomeCompletionPaymentStep";
 import { useAuth } from '@/lib/AuthContext';
 import { clientRegistrationComplete, clientCompletionUrl } from '@/lib/clientRegistration';
@@ -81,10 +80,6 @@ export default function Home() {
   // Sincroniza o step com a URL (?step=N) para que o botão de voltar do
   // Android/navegador retroceda uma etapa em vez de sair da página.
   const goToStep = (n, preservePaymentReturn = false) => {
-    if (n === 2 && !clientRegistrationComplete(user)) {
-      navigate(clientCompletionUrl(serviceId));
-      return;
-    }
     setStepState(n);
     if (preservePaymentReturn) {
       const next = new URLSearchParams(searchParams);
@@ -1081,16 +1076,12 @@ export default function Home() {
         <ModuleSelector module={module} setModule={setModule} />
       )}
 
-      {showAppFlow && !cancelFeeData && registrationComplete && (
+      {showAppFlow && !cancelFeeData && (
         <StepProgress step={step} total={7} />
       )}
 
-      {showAppFlow && step <= 2 && !activeRequest && !cancelFeeData && !registrationComplete && (
-        <ClientRegistrationRequired onComplete={() => navigate(clientCompletionUrl(serviceId))} />
-      )}
-
       {/* Step 1: Serviço */}
-      {step === 1 && showAppFlow && !cancelFeeData && registrationComplete && (
+      {step === 1 && showAppFlow && !cancelFeeData && (
         <HomeServiceSelectionStep config={{ keyBlock, loyalty, serviceId, setServiceId, setOpeningReason, setBrokenKeyInLock, goToStep }} />
       )}
 
@@ -1111,7 +1102,7 @@ export default function Home() {
       )}
 
       {/* Step 2: Configuração + preço */}
-      {step === 2 && service && registrationComplete && <HomeConfigurationStep config={{
+      {step === 2 && service && <HomeConfigurationStep config={{
         service, pricingService, vehicleInfo, setVehicleInfo, address, setAddress, handleAddressSelect, locationContext, setLocationContext,
         description, setDescription, originalKeyValue, searching, searchError, handleSearchKey,
         carKeyType, setCarKeyType, fipeValue, hasCodedKey, programming, keyOrigin,
@@ -1121,6 +1112,7 @@ export default function Home() {
         searchRadius, setSearchRadius, inRadiusCount, urgency, setUrgency,
         goToStep, handleConfirmConfig, submitting, keyBlock, selectedKeyValue,
         nearestDistance, assumedNearby, pricingData, quoteRevision,
+        requiresRegistration: !registrationComplete,
       }} />}
 
       {/* Step 3: Procurando / tocando no chaveiro */}

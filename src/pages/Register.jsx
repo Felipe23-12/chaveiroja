@@ -24,7 +24,7 @@ export default function Register() {
     >
       <div className="space-y-3">
         <Link
-          to={"/cadastro/cliente" + qs}
+          to={"/login?tipo=cliente&returnTo=" + encodeURIComponent(returnTo)}
           className="flex items-center gap-4 p-4 rounded-xl border-2 border-border bg-card hover:border-primary/40 transition-all group"
         >
           <div className="w-12 h-12 rounded-xl bg-blue-50 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
@@ -38,7 +38,7 @@ export default function Register() {
         </Link>
 
         <Link
-          to={'/cadastro/chaveiro' + qs}
+          to={'/login?tipo=chaveiro&returnTo=' + encodeURIComponent('/painel-chaveiro')}
           className="flex items-center gap-4 p-4 rounded-xl border-2 border-border bg-card hover:border-primary/40 transition-all group"
         >
           <div className="w-12 h-12 rounded-xl bg-amber-50 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
