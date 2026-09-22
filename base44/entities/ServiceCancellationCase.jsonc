@@ -19,7 +19,8 @@
       "enum": [
         "address_incorrect",
         "threat",
-        "client_cancelled"
+        "client_cancelled",
+        "service_failed"
       ]
     },
     "report": {
@@ -27,6 +28,14 @@
     },
     "evidence_photo": {
       "type": "string"
+    },
+    "evidence_photos": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "maxItems": 5,
+      "default": []
     },
     "status": {
       "type": "string",

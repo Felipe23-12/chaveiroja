@@ -41,6 +41,7 @@ import ErrorBanner from "@/components/ui/ErrorBanner";
 import LoadingCard from "@/components/ui/LoadingCard";
 import { useToast } from "@/components/ui/use-toast";
 import CancelFeeConfirmDialog from "@/components/client/CancelFeeConfirmDialog";
+import FailedServiceCancellation from "@/components/client/FailedServiceCancellation";
 import RingingStep from "@/components/client/RingingStep";
 import DebtBlockNotice from "@/components/client/DebtBlockNotice";
 import CancellationCaseNotice from "@/components/client/CancellationCaseNotice";
@@ -145,6 +146,7 @@ export default function Home() {
   const [routeEta, setRouteEta] = useState(null);
   const [cancelFeeData, setCancelFeeData] = useState(null);
   const [cancelConfirmOpen, setCancelConfirmOpen] = useState(false);
+  const [failedServiceOpen, setFailedServiceOpen] = useState(false);
   const keyBlock = useAppCancellationBlock(activeRequest?.status);
   const [customerName, setCustomerName] = useState("");
   const [canPreviewKeyPrice, setCanPreviewKeyPrice] = useState(false);
@@ -950,8 +952,12 @@ export default function Home() {
     setActiveRequest(response.data.request);
   };
 
-  const handleCancel = async () => {
+  const handleCancel = async (regular = false) => {
     if (!activeRequest) return;
+    if (regular !== true && activeRequest.client_arrived_confirmed && activeRequest.locksmith_arrived && ['accepted', 'on_the_way'].includes(activeRequest.status) && !activeRequest.client_confirmed && ['pending', undefined, null].includes(activeRequest.payment_status)) {
+      setFailedServiceOpen(true);
+      return;
+    }
     try {
       const { data: quote } = await base44.functions.invoke("serviceTrust", { action: "cancel_quote", request_id: activeRequest.id });
       if (!quote.free) { setCancelFeeData(quote); setCancelConfirmOpen(true); return; }
@@ -1027,6 +1033,7 @@ export default function Home() {
     setSearchError("");
     setPaying(false);
     setCancelFeeData(null);
+    setFailedServiceOpen(false);
     setRoutePath(null);
     setRouteEta(null);
     notifiedAccepted.current = false;
@@ -1205,6 +1212,7 @@ export default function Home() {
         </div>
       )}
 
+      <FailedServiceCancellation request={activeRequest} open={failedServiceOpen} onClose={() => setFailedServiceOpen(false)} onRegularCancel={() => handleCancel(true)} onSuccess={() => { toast({ title: 'Serviço cancelado sem taxa', description: 'As fotos foram registradas para análise.' }); handleNewRequest(); }} />
       <CancelFeeConfirmDialog
         open={cancelConfirmOpen}
         onOpenChange={setCancelConfirmOpen}

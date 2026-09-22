@@ -16,6 +16,7 @@ import VehicleKeyCatalogPanel from "@/components/admin/VehicleKeyCatalogPanel";
 import AdminPanelTabs from "@/components/admin/AdminPanelTabs";
 import PricingSettingsPanel from "@/components/admin/PricingSettingsPanel";
 import FeedbackPanel from "@/components/admin/FeedbackPanel";
+import FailedServiceReports from '@/components/admin/FailedServiceReports';
 import LocksmithQualityTable from "@/components/admin/LocksmithQualityTable";
 import { completeWithdrawal } from "@/lib/payments";
 import { useToast } from "@/components/ui/use-toast";
@@ -324,6 +325,7 @@ export default function PainelAdmin() {
         </section>
 
       <section className={activeTab === "requests" ? "" : "hidden"}>
+        <div className="mb-6"><FailedServiceReports /></div>
         <h2 className="font-heading font-semibold text-lg text-foreground mb-3">Solicitações</h2>
         <div className="mb-3">
           <ServiceSearchBar

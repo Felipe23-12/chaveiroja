@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react';
 import { base44 } from '@/api/base44Client';
 
 export function pointInArea(lat, lng, area) {
@@ -25,10 +26,9 @@ export const isAreaAvailable = (areas, lat, lng) => !areas.length || areas.some(
 export const AREA_UNAVAILABLE = 'Esta área ainda não está disponível para atendimento.';
 
 export function useServiceAreas() {
-  const React = requireReact();
-  const [areas, setAreas] = React.useState([]);
-  const [loading, setLoading] = React.useState(true);
-  React.useEffect(() => {
+  const [areas, setAreas] = useState([]);
+  const [loading, setLoading] = useState(true);
+  useEffect(() => {
     let mounted = true;
     const load = () => base44.entities.ServiceArea.filter({ active: true }, '-created_date', 100).then(rows => { if (mounted) { setAreas(rows); setLoading(false); } }).catch(() => { if (mounted) setLoading(false); });
     load();

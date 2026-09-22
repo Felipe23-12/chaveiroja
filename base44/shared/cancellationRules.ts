@@ -35,7 +35,7 @@ export async function penalizeLocksmithCancellation(base44, request) {
 }
 
 export async function recordClientCancellation(base44, request, cancelledAt = new Date().toISOString()) {
-  if (request.cancelled_by !== 'cliente') return;
+  if (request.cancelled_by !== 'cliente' || request.cancellation_reason === 'Serviço não deu certo') return;
   const entity = base44.asServiceRole.entities.ClientCancellationEvent;
   const existing = await entity.filter({ request_id: request.id });
   let event = existing[0];

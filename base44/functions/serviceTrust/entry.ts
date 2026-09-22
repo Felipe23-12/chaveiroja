@@ -1,4 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.46';
+import { secrets } from 'base44:runtime';
 import { scoreFor, penalizeLocksmithCancellation, recordClientCancellation, getClientCancelBlock, clientCancellationQuote } from '../../shared/cancellationRules.ts';
 import { validatedLocation } from '../../shared/cancellationSafety.ts';
 import { calculateServerServicePrice } from '../../shared/servicePricing.ts';
@@ -359,6 +360,32 @@ export default async function(req) {
       if (!request || request.created_by_id !== user.id) return Response.json({ error: 'Chamado não encontrado' }, { status: 403 });
       if (user.role === 'admin') return Response.json({ free: true, fee: 0, fixed: false, locksmithAmount: 0, appFee: 0, cancelCount: 0, freeRemaining: 3 });
       return Response.json(await clientCancellationQuote(base44, request));
+    }
+
+    if (action === 'cancel_failed_service') {
+      const request = await base44.asServiceRole.entities.ServiceRequest.get(body.request_id);
+      if (!request || request.created_by_id !== user.id) return Response.json({ error: 'Chamado não encontrado' }, { status: 403 });
+      if (request.status === 'cancelled' && request.cancellation_reason === 'Serviço não deu certo') return Response.json({ success: true, request, duplicate: true });
+      if (!['accepted', 'on_the_way'].includes(request.status) || request.locksmith_arrived !== true || request.client_arrived_confirmed !== true || request.client_confirmed === true || !['pending', undefined, null].includes(request.payment_status)) {
+        return Response.json({ error: 'Esta opção só está disponível após confirmar a chegada do chaveiro, antes de confirmar ou pagar o serviço.' }, { status: 409 });
+      }
+      const photos = body.photos;
+      const appId = secrets.get('BASE44_APP_ID');
+      const ownUpload = (url) => typeof url === 'string' && url.length <= 2000 && url.startsWith(`https://base44.app/api/apps/${appId}/files/mp/public/${appId}/`);
+      if (!Array.isArray(photos) || photos.length < 1 || photos.length > 5 || photos.some(url => !ownUpload(url))) {
+        return Response.json({ error: 'Envie de 1 a 5 fotos do serviço que não deu certo.' }, { status: 400 });
+      }
+      const cases = await base44.asServiceRole.entities.ServiceCancellationCase.filter({ request_id: request.id, reason: 'service_failed' }, '-created_date', 1);
+      if (!cases.length) await base44.asServiceRole.entities.ServiceCancellationCase.create({
+        request_id: request.id, client_id: user.id, locksmith_id: request.locksmith_id, locksmith_user_id: request.locksmith_user_id,
+        reason: 'service_failed', status: 'resolved', resolved_at: new Date().toISOString(),
+        evidence_photo: photos[0], evidence_photos: photos, report: 'Cliente informou que o serviço não deu certo; fotos anexadas para análise.',
+      });
+      const updated = await base44.asServiceRole.entities.ServiceRequest.update(request.id, {
+        status: 'cancelled', cancelled_by: 'cliente', cancellation_reason: 'Serviço não deu certo',
+        cancellation_fee: 0, cancellation_locksmith_amount: 0, cancellation_app_fee: 0,
+      });
+      return Response.json({ success: true, request: updated });
     }
 
     if (action === 'cancel_request') {

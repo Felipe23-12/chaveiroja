@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
 import { XCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import FailedServiceCancellation from '@/components/client/FailedServiceCancellation';
 
 import { useToast } from "@/components/ui/use-toast";
 import {
@@ -27,11 +28,14 @@ export default function CancelServiceButton({ request }) {
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [quote, setQuote] = useState(null);
+  const [failedServiceOpen, setFailedServiceOpen] = useState(false);
 
   if (!request || request.status === "completed" || request.status === "cancelled") return null;
 
   const free = quote?.free === true;
   const feeData = quote;
+  const canReportFailure = request.client_arrived_confirmed === true && request.locksmith_arrived === true && ['accepted', 'on_the_way'].includes(request.status) && !request.client_confirmed && ['pending', undefined, null].includes(request.payment_status);
+  const startCancellation = () => canReportFailure ? setFailedServiceOpen(true) : openConfirmation();
   const openConfirmation = async () => {
     setLoading(true);
     try {
@@ -70,13 +74,14 @@ export default function CancelServiceButton({ request }) {
     <>
       <Button
         variant="outline"
-        onClick={openConfirmation}
+        onClick={startCancellation}
         disabled={loading}
         className="w-full text-destructive border-destructive/30 hover:bg-destructive/10"
       >
         <XCircle className="w-4 h-4 mr-2" /> Cancelar serviço
       </Button>
 
+      <FailedServiceCancellation request={request} open={failedServiceOpen} onClose={() => setFailedServiceOpen(false)} onRegularCancel={openConfirmation} onSuccess={() => { toast({ title: 'Serviço cancelado sem taxa', description: 'As fotos foram registradas para análise.' }); navigate('/'); }} />
       <AlertDialog open={open} onOpenChange={setOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
