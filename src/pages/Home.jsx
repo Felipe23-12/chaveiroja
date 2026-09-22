@@ -681,6 +681,7 @@ export default function Home() {
       reqRef.current = req.id;
       goToStep(3);
     } catch (error) {
+      if (error?.response?.data?.code === 'REGISTRATION_REQUIRED') { navigate(clientCompletionUrl(serviceId)); return; }
       if (error?.response?.data?.code === "PRICE_CHANGED") setQuoteRevision((value) => value + 1);
       setSearchError(error?.response?.data?.error || error.message || "Não foi possível solicitar o serviço.");
     } finally {

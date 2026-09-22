@@ -11,5 +11,5 @@ export function isValidCpf(value) {
   return check(9) && check(10);
 }
 export function clientRegistrationComplete(user) {
-  return user?.role === 'admin' || Boolean(user && isValidCpf(user.cpf) && /^\d{10,11}$/.test(onlyDigits(user.phone)) && String(user.legal_name || user.full_name || '').trim().split(/\s+/).filter(Boolean).length >= 2 && user.is_verified === true && user.password_created === true && user.terms_accepted_at);
+  return user?.role === 'admin' || Boolean(user && isValidCpf(user.cpf) && /^\d{10,11}$/.test(onlyDigits(user.phone)) && String(user.legal_name || user.full_name || '').trim().split(/\s+/).filter(part => part.length >= 2).length >= 2 && user.is_verified === true && user.password_created === true && user.terms_accepted_at);
 }
