@@ -434,6 +434,10 @@ export default async function(req) {
     }
 
     if (action === 'accept_request') {
+      // O aceite não autoriza o chaveiro a alterar unilateralmente o preço do cliente.
+      if (body.extra !== undefined && (typeof body.extra !== 'number' || !Number.isFinite(body.extra) || body.extra !== 0)) return Response.json({ error: 'Custos adicionais não podem ser cobrados no aceite do chamado.' }, { status: 400 });
+      const linkedCpf = await verifiedCpf(base44, user.id);
+      if (user.role !== 'admin' && (!linkedCpf || linkedCpf !== String(user.cpf || '').replace(/\D/g, ''))) return Response.json({ error: 'Confirme seu CPF antes de aceitar chamados.' }, { status: 403 });
       const request = await base44.asServiceRole.entities.ServiceRequest.get(body.request_id);
       if (!request) return Response.json({ error: 'Chamado não encontrado' }, { status: 404 });
       if (request.status !== 'ringing') return Response.json({ error: 'Outro chaveiro assumiu este atendimento primeiro.' }, { status: 409 });
@@ -451,8 +455,6 @@ export default async function(req) {
       if (account?.status !== 'active') return Response.json({ code: 'MERCADO_PAGO_REQUIRED', error: 'Conecte sua conta Mercado Pago para aceitar chamados. Acesse Cadastro de recebimentos no seu perfil.' }, { status: 403 });
       const queued = body.queued === true;
       const now = new Date().toISOString();
-      // O aceite não autoriza o chaveiro a alterar unilateralmente o preço do cliente.
-      if (body.extra !== undefined && (typeof body.extra !== 'number' || !Number.isFinite(body.extra) || body.extra !== 0)) return Response.json({ error: 'Custos adicionais não podem ser cobrados no aceite do chamado.' }, { status: 400 });
       const updated = await base44.asServiceRole.entities.ServiceRequest.update(request.id, {
         status: queued ? 'queued' : 'accepted',
         accepted_at: now,

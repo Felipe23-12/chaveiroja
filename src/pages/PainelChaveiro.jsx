@@ -66,6 +66,7 @@ import CoverageNotice from '@/components/location/CoverageNotice';
 import useLocksmithCoverage from '@/hooks/useLocksmithCoverage';
 import { isAreaAvailable } from '@/lib/serviceAreas';
 import { QUOTE_MODE_ENABLED } from '@/lib/quoteMode';
+import { claimCpf } from '@/lib/cpfRegistration';
 
 // Raio de cobertura para considerar um pedido "na região" do chaveiro (km)
 const REGION_RADIUS_KM = 15;
@@ -576,6 +577,7 @@ export default function PainelChaveiro() {
     acceptingRequest.current = true;
     setAcceptError(null);
     try {
+      if (user?.role !== 'admin') await claimCpf(user.cpf);
       const result = await acceptRing(reqId, me);
       if (!result.ok) { setAcceptError(result); return; }
       setPendingRequests((prev) => prev.filter((r) => r.id !== reqId));

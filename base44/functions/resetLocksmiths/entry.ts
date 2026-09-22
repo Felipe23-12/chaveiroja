@@ -48,7 +48,7 @@ export default async function(req) {
         { id: challenge.id, admin_id: user.id, used: false, attempts: { $lt: 5 }, expires_at: { $gt: new Date().toISOString() } },
         valid ? { $inc: { attempts: 1 }, $set: { used: true } } : { $inc: { attempts: 1 } }
       );
-      if (!claimed?.updated_count && !claimed?.modified_count && !claimed?.modifiedCount) return Response.json({ error: 'Código expirado ou limite de tentativas atingido' }, { status: 429 });
+      if (claimed?.updated !== 1) return Response.json({ error: 'Código expirado ou limite de tentativas atingido' }, { status: 429 });
       if (!valid) return Response.json({ error: 'Código de confirmação incorreto' }, { status: 403 });
       const result = await base44.asServiceRole.entities.Locksmith.deleteMany({});
       return Response.json({ success: true, deletedCount: result?.deleted_count || 0 });
