@@ -108,6 +108,7 @@ export default function RegisterCliente() {
   };
 
   const finishClientRegistration = async () => {
+    markAuthProvider('password');
     await claimCpf(cpf);
     await base44.auth.updateMe({
       legal_name: fullName.trim(),

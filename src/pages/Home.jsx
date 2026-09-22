@@ -62,8 +62,11 @@ import HomeConfigurationStep from "@/components/client/HomeConfigurationStep";
 import HomeTrackingStep from "@/components/client/HomeTrackingStep";
 import HomeServiceSelectionStep from "@/components/client/HomeServiceSelectionStep";
 import HomeCompletionPaymentStep from "@/components/client/HomeCompletionPaymentStep";
+import { useAuth } from '@/lib/AuthContext';
+import { clientRegistrationComplete, clientCompletionUrl } from '@/lib/clientRegistration';
 
 export default function Home() {
+  const { user } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
   const { blockedIds, loading: blocksLoading } = useBlockedUsers();
@@ -74,6 +77,10 @@ export default function Home() {
   // Sincroniza o step com a URL (?step=N) para que o botão de voltar do
   // Android/navegador retroceda uma etapa em vez de sair da página.
   const goToStep = (n, preservePaymentReturn = false) => {
+    if (n === 2 && !clientRegistrationComplete(user)) {
+      navigate(clientCompletionUrl(serviceId));
+      return;
+    }
     setStepState(n);
     if (preservePaymentReturn) {
       const next = new URLSearchParams(searchParams);
@@ -91,7 +98,10 @@ export default function Home() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams]);
-  const [serviceId, setServiceId] = useState("");
+  const [serviceId, setServiceId] = useState(() => {
+    const selected = new URLSearchParams(window.location.search).get('service');
+    return SERVICE_CATALOG.some(item => item.id === selected) ? selected : '';
+  });
   const [address, setAddressValue] = useState("");
   const [locationContext, setLocationContext] = useState({ place_type: "", building: "", unit: "", vehicle_plate: "", coordinates_confirmed: false });
   const setAddress = (value) => {
@@ -508,6 +518,7 @@ export default function Home() {
 
   // A prévia e o envio usam o mesmo cálculo; alterações exigem nova confirmação.
   const handleConfirmConfig = async (confirmedPricing) => {
+    if (!clientRegistrationComplete(user)) { navigate(clientCompletionUrl(serviceId)); return; }
     if (!address || submitting || !confirmedPricing) return;
     const expectedPrice = confirmedPricing.price;
     if (debt) {

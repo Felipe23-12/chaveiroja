@@ -6,6 +6,7 @@ import { loadServicePricing } from '../../shared/servicePricingSettings.ts';
 import { urgencyServicePrice } from '../../shared/urgencyServicePricing.ts';
 import { clientDebt, confirmedServicePayment } from '../../shared/paymentVerification.ts';
 import { submitTrustedClientReview, submitTrustedReview } from '../../shared/trustedReviews.ts';
+import { clientRegistrationComplete } from '../../shared/registrationEligibility.ts';
 
 const waitMinutes = (minutes) => new Date(Date.now() + minutes * 60000).toISOString();
 
@@ -268,6 +269,7 @@ export default async function(req) {
     }
 
     if (action === 'create_request') {
+      if (!clientRegistrationComplete(user)) return Response.json({ code: 'REGISTRATION_REQUIRED', error: 'Complete seu cadastro: CPF, telefone, nome completo, email confirmado, senha e aceite dos termos são obrigatórios antes de solicitar um chamado.' }, { status: 403 });
       if (await clientDebt(base44, user.id)) return Response.json({ error: 'Quite seu débito pendente antes de solicitar outro atendimento.' }, { status: 409 });
       const data = body.data || {};
       if (!data.service_type || !String(data.address || '').trim()) return Response.json({ error: 'Informe o serviço e o endereço' }, { status: 400 });

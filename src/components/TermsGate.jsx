@@ -7,7 +7,7 @@ import { needsTermsAcceptance } from "@/lib/termsVersion";
 export default function TermsGate() {
   const { user } = useAuth();
   const location = useLocation();
-  if (!needsTermsAcceptance(user)) return <Outlet />;
+  if (user?.account_type !== 'chaveiro' || !needsTermsAcceptance(user)) return <Outlet />;
   const returnTo = encodeURIComponent(location.pathname + location.search);
   return <Navigate to={`/aceite-termos?returnTo=${returnTo}`} replace />;
 }

@@ -7,6 +7,7 @@ import PasswordInput from "@/components/ui/PasswordInput";
 import { Label } from "@/components/ui/label";
 import { Lock, Loader2, AlertTriangle } from "lucide-react";
 import AuthLayout from "@/components/AuthLayout";
+import { safeReturnTo } from '@/lib/authReturnTo';
 
 export default function ResetPassword() {
   const [searchParams] = useSearchParams();
@@ -31,7 +32,10 @@ export default function ResetPassword() {
     setLoading(true);
     try {
       await base44.auth.resetPassword({ resetToken, newPassword });
-      window.location.href = "/login";
+      const pending = sessionStorage.getItem('registration_password_pending');
+      const login = pending ? `/login?returnTo=${encodeURIComponent(safeReturnTo(pending))}` : '/login';
+      sessionStorage.removeItem('registration_password_pending');
+      await base44.auth.logout(login);
     } catch (err) {
       setError(err.message || "Não foi possível criar a senha");
     } finally {

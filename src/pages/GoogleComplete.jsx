@@ -13,11 +13,17 @@ import CpfInput from "@/components/auth/CpfInput";
 import TermsAcceptance from "@/components/auth/TermsAcceptance";
 import { termsPayload } from "@/lib/termsVersion";
 import { isFullName } from "@/lib/fullName";
+import { safeReturnTo } from '@/lib/authReturnTo';
+import CompletionSecurity from '@/components/auth/CompletionSecurity';
 
 export default function GoogleComplete() {
   const [searchParams] = useSearchParams();
   const [tipo, setTipo] = useState(searchParams.get("tipo") === "chaveiro" ? "chaveiro" : "cliente");
-  const dest = tipo === "chaveiro" ? "/painel-chaveiro" : "/";
+  const returnTo = safeReturnTo();
+  const dest = tipo === 'chaveiro' ? '/painel-chaveiro' : returnTo;
+  const [account, setAccount] = useState(null);
+  const [securityStep, setSecurityStep] = useState(false);
+  const completionUrl = `/google-complete?tipo=${tipo}&returnTo=${encodeURIComponent(returnTo)}`;
 
   const [fullName, setFullName] = useState("");
   const [username, setUsername] = useState("");
@@ -38,7 +44,7 @@ export default function GoogleComplete() {
     const returnTo = `/google-complete?tipo=${tipo}`;
     const loginUrl = useGoogle
       ? `/login?provider=google&returnTo=${encodeURIComponent(returnTo)}`
-      : "/login";
+      : tipo === 'chaveiro' ? '/login?tipo=chaveiro' : '/login';
     base44.auth.logout(loginUrl);
   };
 
@@ -46,20 +52,22 @@ export default function GoogleComplete() {
     const load = async () => {
       try {
         const me = await base44.auth.me();
-        if (me.account_type === "cliente" || me.account_type === "chaveiro") {
-          setTipo(me.account_type);
-          if (isValidCpf(me.cpf) && onlyDigits(me.phone || "").length >= 10 && isFullName(me.legal_name || me.full_name)) {
-            window.location.assign(me.role === "admin" ? "/painel-admin" : me.account_type === "chaveiro" ? "/painel-chaveiro" : "/");
-            return;
-          }
+        setAccount(me);
+        setTipo(me.account_type === 'chaveiro' ? 'chaveiro' : 'cliente');
+        setAcceptedTerms(Boolean(me.terms_accepted_at));
+        const profileReady = isValidCpf(me.cpf) && /^\d{10,11}$/.test(onlyDigits(me.phone)) && isFullName(me.legal_name || me.full_name) && me.terms_accepted_at;
+        if (profileReady && me.password_created === true && me.is_verified === true) {
+          window.location.assign(me.role === 'admin' ? '/painel-admin' : me.account_type === 'chaveiro' ? '/painel-chaveiro' : returnTo);
+          return;
         }
+        if (profileReady) setSecurityStep(true);
         if (me?.legal_name || me?.full_name) setFullName(me.legal_name || me.full_name);
         if (me?.username) setUsername(me.username);
         if (me?.phone) setPhone(me.phone);
         if (me?.cpf) setCpf(me.cpf);
         if (me?.email) setEmail(me.email);
       } catch (e) {
-        /* ignora — segue com o formulário em branco */
+        window.location.assign(`/login?returnTo=${encodeURIComponent(completionUrl)}`);
       } finally {
         setLoading(false);
       }
@@ -74,11 +82,11 @@ export default function GoogleComplete() {
       setError("Informe seu nome completo, com nome e sobrenome");
       return;
     }
-    if (!username.trim()) {
+    if (tipo === 'chaveiro' && !username.trim()) {
       setError("Crie um nome de usuário");
       return;
     }
-    if (onlyDigits(phone).length < 10) {
+    if (!/^\d{10,11}$/.test(onlyDigits(phone))) {
       setError("Informe um telefone válido com DDD");
       return;
     }
@@ -102,7 +110,12 @@ export default function GoogleComplete() {
         account_type: tipo,
         ...termsPayload(),
       });
-      window.location.assign(tipo === "chaveiro" ? "/cadastro/recebimentos" : dest);
+      const fresh = await base44.auth.me();
+      setAccount(fresh);
+      if (fresh.password_created !== true || fresh.is_verified !== true) {
+        setSecurityStep(true); setSaving(false); return;
+      }
+      window.location.assign(tipo === 'chaveiro' ? '/cadastro/recebimentos' : dest);
     } catch (err) {
       setError(String(err?.message || "Não foi possível salvar. Tente novamente."));
       setSaving(false);
@@ -128,7 +141,7 @@ export default function GoogleComplete() {
         <div className="mb-4 p-3 rounded-lg bg-destructive/10 text-destructive text-sm">{error}</div>
       )}
 
-      <form onSubmit={handleSubmit} className="space-y-4">
+      {securityStep && account ? <CompletionSecurity user={account} returnTo={completionUrl} onVerified={() => { window.location.href = completionUrl; }} /> : <form onSubmit={handleSubmit} className="space-y-4">
         <div className="space-y-2">
           <Label htmlFor="name">Nome completo</Label>
           <div className="relative">
@@ -148,7 +161,7 @@ export default function GoogleComplete() {
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="username">Nome de usuário</Label>
+          <Label htmlFor="username">Nome de usuário{tipo === 'cliente' ? ' (opcional)' : ''}</Label>
           <div className="relative">
             <AtSign className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" aria-hidden="true" />
             <Input
@@ -158,7 +171,7 @@ export default function GoogleComplete() {
               value={username}
               onChange={(e) => setUsername(e.target.value)}
               className="pl-10 h-12"
-              required
+              required={tipo === 'chaveiro'}
             />
           </div>
         </div>
@@ -180,6 +193,7 @@ export default function GoogleComplete() {
           </div>
         </div>
 
+        <div className="space-y-2"><Label htmlFor="account-email">Email da conta</Label><Input id="account-email" type="email" value={email} readOnly /><p className="text-xs text-muted-foreground">{account?.is_verified === true ? 'Email confirmado na autenticação.' : 'Você precisará confirmar este email na próxima etapa.'}</p></div>
         <CpfInput value={cpf} onChange={setCpf} email={email} />
 
         <TermsAcceptance accountType={tipo} checked={acceptedTerms} onChange={setAcceptedTerms} />
@@ -194,14 +208,14 @@ export default function GoogleComplete() {
             "Salvar e continuar"
           )}
         </Button>
-      </form>
+      </form>}
 
       <div className="mt-6 pt-5 border-t border-border space-y-3">
         <p className="text-center text-sm text-muted-foreground">Não consegue finalizar agora?</p>
-        <Button type="button" variant="outline" className="w-full h-12" disabled={saving || leaving} onClick={() => leaveRegistration(true)}>
+        {tipo === 'cliente' && <Button type="button" variant="outline" className="w-full h-12" disabled={saving || leaving} onClick={() => leaveRegistration(true)}>
           {leaving ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <GoogleIcon className="w-5 h-5 mr-2" />}
           Tentar com outra conta Google
-        </Button>
+        </Button>}
         <Button type="button" variant="ghost" className="w-full h-12" disabled={saving || leaving} onClick={() => leaveRegistration(false)}>
           <ArrowLeft className="w-4 h-4 mr-2" /> Voltar para email e senha
         </Button>

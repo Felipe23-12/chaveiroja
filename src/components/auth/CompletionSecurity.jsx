@@ -9,7 +9,7 @@ export default function CompletionSecurity({ user, returnTo, onVerified }) {
   const login = `/login?${user.account_type === 'chaveiro' ? 'tipo=chaveiro&' : ''}returnTo=${encodeURIComponent(returnTo)}`;
   const sendLink = async () => {
     setBusy(true);
-    sessionStorage.setItem('registration_password_pending', 'true');
+    sessionStorage.setItem('registration_password_pending', returnTo);
     try { await base44.auth.resetPasswordRequest(user.email); }
     catch { /* O resultado é sempre genérico, sem revelar informações da conta. */ }
     finally { setBusy(false); setSent(true); }

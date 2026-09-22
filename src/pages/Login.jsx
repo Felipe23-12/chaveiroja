@@ -25,10 +25,12 @@ export default function Login() {
   const [verificationEmail, setVerificationEmail] = useState("");
   const googleRetryStarted = useRef(false);
   const returnTo = safeReturnTo();
+  const professional = new URLSearchParams(window.location.search).get('tipo') === 'chaveiro' || ['/painel-chaveiro', '/cadastro/recebimentos', '/modo-trabalho', '/painel-financeiro'].includes(returnTo.split('?')[0]);
   useGoogleLoginReturn(returnTo);
 
   const completeLogin = async (passwordAuthenticated = false) => {
     let me = await base44.auth.me();
+    markAuthProvider('password');
     // Só uma entrada com senha bem-sucedida comprova que a senha existe.
     if (passwordAuthenticated && me.password_created !== true) {
       me = await base44.auth.updateMe({ password_created: true });
@@ -58,7 +60,7 @@ export default function Login() {
   };
 
   const handleGoogle = async () => {
-    if (loading) return;
+    if (loading || professional) return;
     setError("");
     setLoading(true);
     try {
@@ -95,13 +97,13 @@ export default function Login() {
   return (
     <AuthLayout
       icon={LogIn}
-      title="Bem-vindo de volta"
-      subtitle="Acesse sua conta"
+      title={professional ? 'Entrada de chaveiro' : 'Bem-vindo de volta'}
+      subtitle={professional ? 'Entre com email e senha para acessar a área profissional' : 'Acesse sua conta de cliente'}
       footer={
         <>
           Não tem uma conta?{" "}
           <Link
-            to={"/register" + (returnTo !== "/" ? "?returnTo=" + encodeURIComponent(returnTo) : "")}
+            to={(professional ? '/cadastro/chaveiro' : '/register') + (returnTo !== '/' ? '?returnTo=' + encodeURIComponent(returnTo) : '')}
             className="text-primary font-medium hover:underline"
           >
             Criar conta
@@ -109,7 +111,8 @@ export default function Login() {
         </>
       }
     >
-      <Button
+      <div className="mb-5 grid grid-cols-2 gap-2"><Link to={'/login?tipo=cliente&returnTo=' + encodeURIComponent(professional ? '/' : returnTo)} className={`rounded-lg border p-3 text-center text-sm ${!professional ? 'border-primary bg-primary/10' : 'border-border'}`}>Sou cliente</Link><Link to={'/login?tipo=chaveiro&returnTo=' + encodeURIComponent(professional ? returnTo : '/')} className={`rounded-lg border p-3 text-center text-sm ${professional ? 'border-primary bg-primary/10' : 'border-border'}`}>Sou chaveiro</Link></div>
+      {!professional && <><Button
         variant="outline"
         className="w-full h-12 text-sm font-medium mb-6"
         onClick={handleGoogle}
@@ -126,7 +129,7 @@ export default function Login() {
         <div className="relative flex justify-center text-xs uppercase">
           <span className="bg-card px-3 text-muted-foreground">ou</span>
         </div>
-      </div>
+      </div></>}
 
       {error && (
         <div className="mb-4">

@@ -22,6 +22,7 @@ import { termsPayload } from "@/lib/termsVersion";
 import { registerEmailAccount, registrationErrorMessage } from "@/lib/emailRegistration";
 import ExistingAccountNotice from "@/components/auth/ExistingAccountNotice";
 import { isFullName } from "@/lib/fullName";
+import { markAuthProvider } from '@/lib/authProvider';
 
 // Campos que recebem foco além do scroll.
 const FOCUS_FIELDS = new Set(["fullName", "password", "confirmPassword", "vehicle"]);
@@ -132,6 +133,7 @@ export default function RegisterChaveiro() {
 
 
   const finishLocksmithRegistration = async () => {
+    markAuthProvider('password');
     const raw = sessionStorage.getItem("chaveiro_onboarding");
     const data = raw ? JSON.parse(raw) : null;
     if (data) {

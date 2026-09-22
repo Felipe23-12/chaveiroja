@@ -1,22 +1,6 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.44';
 
-function onlyDigits(value) {
-  return String(value || '').replace(/\D/g, '');
-}
-
-function isValidCpf(value) {
-  const cpf = onlyDigits(value);
-  if (cpf.length !== 11 || /^(\d)\1{10}$/.test(cpf)) return false;
-  const check = (length) => {
-    let sum = 0;
-    for (let index = 0; index < length; index += 1) {
-      sum += Number(cpf[index]) * (length + 1 - index);
-    }
-    const remainder = (sum * 10) % 11;
-    return (remainder === 10 ? 0 : remainder) === Number(cpf[length]);
-  };
-  return check(9) && check(10);
-}
+import { onlyDigits, isValidCpf } from '../../shared/registrationEligibility.ts';
 
 function formatCpf(cpf) {
   return `${cpf.slice(0, 3)}.${cpf.slice(3, 6)}.${cpf.slice(6, 9)}-${cpf.slice(9)}`;
