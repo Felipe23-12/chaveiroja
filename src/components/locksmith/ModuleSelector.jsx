@@ -1,5 +1,7 @@
 import React from "react";
-import { Smartphone, MapPin } from "lucide-react";
+import { useNavigate } from 'react-router-dom';
+import { QUOTE_MODE_ENABLED } from '@/lib/quoteMode';
+import { Smartphone, MapPin, FileText } from "lucide-react";
 
 const OPTIONS = [
   {
@@ -14,9 +16,11 @@ const OPTIONS = [
     title: "Modo Livre",
     desc: "Encontre chaveiros online no mapa e converse direto com o profissional para combinar o serviço",
   },
+  ...(QUOTE_MODE_ENABLED ? [{ id: 'orcamento', icon: FileText, title: 'Modo Orçamento', desc: 'Solicite um valor para chave de carro ou reparo automotivo antes de iniciar a rota' }] : []),
 ];
 
 export default function ModuleSelector({ module, setModule }) {
+  const navigate = useNavigate();
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-6">
       {OPTIONS.map((o) => {
@@ -25,7 +29,7 @@ export default function ModuleSelector({ module, setModule }) {
         return (
           <button
             key={o.id}
-            onClick={() => setModule(o.id)}
+            onClick={() => o.id === 'orcamento' ? navigate('/orcamentos') : setModule(o.id)}
             className={`text-left p-4 rounded-2xl border-2 transition-all ${
               active ? "border-primary bg-primary/5" : "border-border hover:border-primary/40"
             }`}

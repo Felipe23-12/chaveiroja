@@ -49,6 +49,7 @@ const Contato = lazy(() => import('@/pages/Contato'));
 const About = lazy(() => import('@/pages/About'));
 const Contact = lazy(() => import('@/pages/Contact'));
 const CalculosChamados = lazy(() => import('@/pages/CalculosChamados'));
+const QuoteMode = lazy(() => import('@/pages/QuoteMode'));
 const Sugestoes = lazy(() => import('@/pages/Sugestoes'));
 // Add page imports here
 
@@ -113,6 +114,9 @@ const AuthenticatedApp = () => {
           <Route element={<Layout />}>
             <Route path="/calculos-chamados" element={<CalculosChamados />} />
             <Route path="/sugestoes" element={<Sugestoes />} />
+            <Route element={<RoleGuard allow={["cliente", "chaveiro"]} />}>
+              <Route path="/orcamentos" element={<QuoteMode />} />
+            </Route>
             <Route element={<RoleGuard allow={["cliente"]} />}>
               <Route path="/" element={<Home />} />
               <Route path="/mapa" element={<Mapa />} />

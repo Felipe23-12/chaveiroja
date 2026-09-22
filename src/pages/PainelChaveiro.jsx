@@ -65,6 +65,7 @@ import AcceptRequestError from "@/components/locksmith/AcceptRequestError";
 import CoverageNotice from '@/components/location/CoverageNotice';
 import useLocksmithCoverage from '@/hooks/useLocksmithCoverage';
 import { isAreaAvailable } from '@/lib/serviceAreas';
+import { QUOTE_MODE_ENABLED } from '@/lib/quoteMode';
 
 // Raio de cobertura para considerar um pedido "na região" do chaveiro (km)
 const REGION_RADIUS_KM = 15;
@@ -885,6 +886,8 @@ export default function PainelChaveiro() {
           <DarkModeToggle />
         </div>
       </div>
+
+      {QUOTE_MODE_ENABLED && <Button asChild variant="outline" className="mb-5"><Link to="/orcamentos">Orçamentos automotivos</Link></Button>}
 
       {profileChecked && !selectedId && (
         <div className="p-4 rounded-xl border border-warning/40 bg-warning/10 text-warning mb-5">
