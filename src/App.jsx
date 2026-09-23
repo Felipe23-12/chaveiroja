@@ -72,17 +72,14 @@ const AuthenticatedApp = () => {
     );
   }
 
-  // Handle authentication errors
-  if (authError) {
-    if (authError.type === 'user_not_registered') {
-      return <UserNotRegisteredError />;
-    } else if (authError.type === 'auth_required') {
-      // Uma sessão expirada não pode redirecionar a própria tela de entrada.
-      const authPaths = ['/login', '/register', '/forgot-password', '/reset-password', '/cadastro/cliente', '/cadastro/chaveiro', '/auth/google-return'];
-      if (!authPaths.includes(window.location.pathname)) {
-        navigateToLogin();
-        return null;
-      }
+  // As telas públicas de entrada e o retorno OAuth precisam ficar acessíveis
+  // mesmo quando uma sessão antiga falha na checagem inicial.
+  const authPaths = ['/login', '/register', '/forgot-password', '/reset-password', '/cadastro/cliente', '/cadastro/chaveiro', '/auth/google-return'];
+  if (authError && !authPaths.includes(window.location.pathname)) {
+    if (authError.type === 'user_not_registered') return <UserNotRegisteredError />;
+    if (authError.type === 'auth_required') {
+      navigateToLogin();
+      return null;
     }
   }
 

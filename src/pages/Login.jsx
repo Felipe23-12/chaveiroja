@@ -14,7 +14,6 @@ import { safeReturnTo } from "@/lib/authReturnTo";
 import { markAuthProvider } from "@/lib/authProvider";
 import { requiresEmailVerification } from "@/lib/emailRegistration";
 import InlineOtpInput from "@/components/auth/InlineOtpInput";
-import useGoogleLoginReturn from "@/components/auth/useGoogleLoginReturn";
 import AppleSignInButton from '@/components/auth/AppleSignInButton';
 
 export default function Login() {
@@ -27,7 +26,6 @@ export default function Login() {
   const googleRetryStarted = useRef(false);
   const returnTo = safeReturnTo();
   const professional = new URLSearchParams(window.location.search).get('tipo') === 'chaveiro' || ['/painel-chaveiro', '/cadastro/recebimentos', '/modo-trabalho', '/painel-financeiro'].includes(returnTo.split('?')[0]);
-  useGoogleLoginReturn(returnTo);
 
   const completeLogin = async (passwordAuthenticated = false) => {
     let me = await base44.auth.me();
