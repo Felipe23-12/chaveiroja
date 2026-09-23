@@ -468,6 +468,8 @@ export default function PainelChaveiro() {
     let lastLng = active.locksmith_lng;
     let lastTime = 0;
     let arrivedFlag = false;
+    let saving = false;
+    let mounted = true;
     const watchId = navigator.geolocation.watchPosition(
       async (pos) => {
         if (arrivedFlag) return;
@@ -476,16 +478,26 @@ export default function PainelChaveiro() {
         const moved = haversineKm({ lat: lastLat, lng: lastLng }, { lat: newLat, lng: newLng });
         const now = Date.now();
         const dist = haversineKm({ lat: newLat, lng: newLng }, dest);
-        const shouldUpdate = (moved > 0.05 && now - lastTime > 5000) || dist < ARRIVAL_RADIUS_KM;
-        if (!shouldUpdate) return;
-        lastLat = newLat;
-        lastLng = newLng;
-        lastTime = now;
-        await syncServiceUpdate(active.id, {
-          status: "on_the_way",
-          locksmith_lat: newLat,
-          locksmith_lng: newLng,
-        });
+        const firstFix = lastTime === 0;
+        const shouldUpdate = firstFix || (moved > 0.02 && now - lastTime > 5000) || (dist < ARRIVAL_RADIUS_KM && !arrivedFlag);
+        if (!shouldUpdate || saving) return;
+        saving = true;
+        try {
+          const updated = await syncServiceUpdate(active.id, {
+            ...(active.status === "accepted" ? { status: "on_the_way" } : {}),
+            locksmith_lat: newLat,
+            locksmith_lng: newLng,
+          });
+          lastLat = newLat;
+          lastLng = newLng;
+          lastTime = now;
+          if (mounted) setActive((current) => current?.id === active.id ? { ...current, ...updated } : current);
+        } catch (error) {
+          console.warn("Falha ao atualizar posição do chaveiro", error);
+          return;
+        } finally {
+          saving = false;
+        }
         const emailKey = `rota_${active.id}`;
         if (!emailedStatus.current.has(emailKey)) {
           emailedStatus.current.add(emailKey);
@@ -500,7 +512,7 @@ export default function PainelChaveiro() {
       () => {},
       { enableHighAccuracy: true, timeout: 10000, maximumAge: 5000 }
     );
-    return () => navigator.geolocation.clearWatch(watchId);
+    return () => { mounted = false; navigator.geolocation.clearWatch(watchId); };
   }, [active?.id, active?.status]);
 
   const toggleOnline = async () => {
