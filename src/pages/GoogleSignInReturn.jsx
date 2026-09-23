@@ -4,6 +4,7 @@ import { base44 } from '@/api/base44Client';
 import { safeReturnTo } from '@/lib/authReturnTo';
 import restoreGoogleSession from '@/lib/restoreGoogleSession';
 import { loginWithGoogle } from '@/lib/googleSignIn';
+import finishAuthWindow from '@/lib/finishAuthWindow';
 import LoadingCard from '@/components/ui/LoadingCard';
 import { Button } from '@/components/ui/button';
 
@@ -20,7 +21,7 @@ export default function GoogleSignInReturn() {
             const user = await base44.auth.me();
             if (cancelled) return;
             const fallback = user.role === 'admin' ? '/painel-admin' : user.account_type === 'chaveiro' ? '/painel-chaveiro' : '/';
-            window.location.replace(returnTo === '/' ? fallback : returnTo);
+            finishAuthWindow(returnTo === '/' ? fallback : returnTo);
             return;
           }
         } catch { /* O retorno da autenticação pode ainda estar em andamento. */ }
