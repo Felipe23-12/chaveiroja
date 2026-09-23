@@ -29,6 +29,7 @@ export default function Acompanhamento() {
   const [customerId, setCustomerId] = useState("");
   const [routePath, setRoutePath] = useState(null);
   const [routeEta, setRouteEta] = useState(null);
+  const [routeDistanceKm, setRouteDistanceKm] = useState(null);
   const [loading, setLoading] = useState(true);
   const [chatOpen, setChatOpen] = useState(false);
   const [arrivalUpdating, setArrivalUpdating] = useState(false);
@@ -107,14 +108,17 @@ export default function Acompanhamento() {
     if (request?.status === "queued" || !request?.locksmith_lat || !request?.customer_lat) return;
     const from = { lat: request.locksmith_lat, lng: request.locksmith_lng };
     const to = { lat: request.customer_lat, lng: request.customer_lng };
+    let cancelled = false;
     setRoutePath(null);
     setRouteEta(null);
+    setRouteDistanceKm(null);
     fetchDrivingRoute(from, to).then((r) => {
-      if (r) {
-        setRoutePath(r.coordinates);
-        setRouteEta(etaMinutes(r.duration));
-      }
+      if (cancelled || !r) return;
+      setRoutePath(r.coordinates);
+      setRouteEta(etaMinutes(r.duration));
+      setRouteDistanceKm(r.distance / 1000);
     });
+    return () => { cancelled = true; };
   }, [request?.locksmith_lat, request?.locksmith_lng, request?.customer_lat, request?.customer_lng]);
 
   const distanceKm = useMemo(() => {
@@ -341,7 +345,7 @@ export default function Acompanhamento() {
             <div className="flex items-center gap-3 text-xs font-medium">
               {distanceKm != null && (
                 <span className="flex items-center gap-1 text-foreground">
-                  <Navigation className="w-3.5 h-3.5" /> {distanceKm.toFixed(1)} km
+                  <Navigation className="w-3.5 h-3.5" /> {routeDistanceKm != null ? routeDistanceKm.toFixed(1) : distanceKm.toFixed(1)} km {routeDistanceKm == null ? "(linha reta)" : "(pela rota)"}
                 </span>
               )}
               {routeEta && (
