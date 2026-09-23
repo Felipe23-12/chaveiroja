@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
-import { ArrowLeft, Send, MessageCircle, Star } from "lucide-react";
+import { ArrowLeft, Send, MessageCircle, Star, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -14,7 +14,7 @@ import useBlockedUsers from "@/hooks/useBlockedUsers";
 import ModerationActions from "@/components/moderation/ModerationActions";
 import ChatPhotoButton from "@/components/chat/ChatPhotoButton";
 import ChatMessageBubble from "@/components/chat/ChatMessageBubble";
-import { hideChatMessage, loadHiddenMessageIds } from "@/lib/chatVisibility";
+import { hideChatMessage, hideChatConversation, loadHiddenMessageIds } from "@/lib/chatVisibility";
 import { containsLink } from "@/lib/chatMessageValidation";
 import { markChatConversationRead } from "@/lib/chatReadState";
 import { useToast } from "@/components/ui/use-toast";
@@ -156,6 +156,18 @@ export default function Chat() {
     setMessages((list) => list.filter((message) => message.id !== messageId));
   };
 
+  const handleHideConversation = async () => {
+    if (!user?.id || !window.confirm("Excluir esta conversa da sua visualização? As mensagens serão preservadas para auditoria.")) return;
+    try {
+      const all = await base44.entities.ChatMessage.filter({ locksmith_id: locksmithId, client_id: user.id });
+      await hideChatConversation(all, user.id);
+      setMessages([]);
+      navigate("/mapa");
+    } catch (error) {
+      toast({ title: "Não foi possível excluir a conversa", description: error.message, variant: "destructive" });
+    }
+  };
+
   if (blocksLoading) return <div className="p-10 text-center text-muted-foreground">Carregando...</div>;
   const blocked = blockedIds.has(locksmith?.created_by_id);
   if (locksmith && blocked) return (
@@ -182,6 +194,7 @@ export default function Chat() {
             <span className="w-1.5 h-1.5 rounded-full bg-success" /> online · {locksmith?.specialty}
           </p>
         </div>
+        <Button variant="ghost" size="sm" onClick={handleHideConversation} aria-label="Excluir conversa da minha visualização"><Trash2 className="w-4 h-4" /></Button>
         <ModerationActions targetUserId={locksmith?.created_by_id} targetType="chaveiro" targetName={locksmith?.name} contextType="chat" locksmithId={locksmithId} />
         <Button variant="outline" size="sm" onClick={() => setReviewOpen(true)}>
           <Star className="w-4 h-4 mr-1.5" /> Avaliar
