@@ -101,7 +101,6 @@ export default function LocksmithChatConversations({ me }) {
     if (sending || !activeTab || blockedIds.has(activeTab)) return;
     setSending(true);
     try {
-      const activeConv = conversations.find((c) => c.id === activeTab);
       const { data: { message: created } } = await base44.functions.invoke("sendChatMessage", {
         locksmith_id: me.id, client_id: activeTab, message: "Foto", photo_url: photoUrl,
       });
@@ -124,7 +123,6 @@ export default function LocksmithChatConversations({ me }) {
     setSending(true);
     setText("");
     try {
-      const activeConv = conversations.find((c) => c.id === activeTab);
       const { data: { message: created } } = await base44.functions.invoke("sendChatMessage", {
         locksmith_id: me.id, client_id: activeTab, message: msg,
       });
