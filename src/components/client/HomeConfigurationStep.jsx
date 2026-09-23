@@ -44,6 +44,6 @@ export default function HomeConfigurationStep({ config }) {
     <UrgencySelector urgency={urgency} setUrgency={setUrgency} />
     {quote.loading && <p role="status" className="flex items-center gap-2 text-sm text-muted-foreground"><Loader2 className="h-4 w-4 animate-spin" />Calculando valor do chamado...</p>}
     <ErrorBanner message={quote.error || searchError} onRetry={quote.error ? quote.retry : undefined} />
-    <div className="flex gap-3"><Button variant="outline" onClick={() => goToStep(1)} className="flex-1"><ArrowLeft className="w-4 h-4 mr-2" /> Voltar</Button><Button onClick={() => handleConfirmConfig(quote.pricing)} disabled={disabled || submitting || !quote.pricing} className="flex-1">{submitting ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Bell className="w-4 h-4 mr-2" />}{programming?.dealerOnly ? "Confecção indisponível" : requiresRegistration ? "Concluir cadastro para solicitar" : "Solicitar chaveiro"}</Button></div>
+    <div className="flex gap-3"><Button variant="outline" onClick={() => goToStep(1)} className="flex-1"><ArrowLeft className="w-4 h-4 mr-2" /> Voltar</Button><Button onClick={() => handleConfirmConfig(quote.pricing)} disabled={submitting || (!requiresRegistration && (disabled || !quote.pricing))} className="flex-1">{submitting ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Bell className="w-4 h-4 mr-2" />}{programming?.dealerOnly ? "Confecção indisponível" : requiresRegistration ? "Concluir cadastro para solicitar" : "Solicitar chaveiro"}</Button></div>
   </div>;
 }
