@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { useSearchParams } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -212,6 +212,7 @@ export default function GoogleComplete() {
 
       <div className="mt-6 pt-5 border-t border-border space-y-3">
         <p className="text-center text-sm text-muted-foreground">Não consegue finalizar agora?</p>
+        {tipo === 'cliente' && !securityStep && <Button asChild variant="outline" className="w-full h-12"><Link to="/">Voltar ao app sem concluir cadastro</Link></Button>}
         {tipo === 'cliente' && <Button type="button" variant="outline" className="w-full h-12" disabled={saving || leaving} onClick={() => leaveRegistration(true)}>
           {leaving ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <GoogleIcon className="w-5 h-5 mr-2" />}
           Tentar com outra conta Google

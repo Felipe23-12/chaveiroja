@@ -66,6 +66,7 @@ import HomeServiceSelectionStep from "@/components/client/HomeServiceSelectionSt
 import HomeCompletionPaymentStep from "@/components/client/HomeCompletionPaymentStep";
 import { useAuth } from '@/lib/AuthContext';
 import { clientRegistrationComplete, clientCompletionUrl } from '@/lib/clientRegistration';
+import IncompleteClientNotice from '@/components/client/IncompleteClientNotice';
 import { claimCpf } from '@/lib/cpfRegistration';
 
 export default function Home() {
@@ -1072,21 +1073,22 @@ export default function Home() {
       )}
 
       {step === 1 && !activeRequest && <div className="mb-4"><CoverageNotice location={gps.location} known={gps.hasFix} /></div>}
-      {step === 1 && !activeRequest && (
+      {!registrationComplete && !activeRequest && <IncompleteClientNotice />}
+      {step === 1 && !activeRequest && registrationComplete && (
         <ModuleSelector module={module} setModule={setModule} />
       )}
 
-      {showAppFlow && !cancelFeeData && (
+      {showAppFlow && !cancelFeeData && (registrationComplete || activeRequest) && (
         <StepProgress step={step} total={7} />
       )}
 
       {/* Step 1: Serviço */}
-      {step === 1 && showAppFlow && !cancelFeeData && (
+      {step === 1 && showAppFlow && !cancelFeeData && registrationComplete && (
         <HomeServiceSelectionStep config={{ keyBlock, loyalty, serviceId, setServiceId, setOpeningReason, setBrokenKeyInLock, goToStep }} />
       )}
 
       {/* Modo Livre: mapa interativo com chaveiros online */}
-      {!showAppFlow && (
+      {!showAppFlow && registrationComplete && (
         <div className="space-y-4 fade-in-up">
           <div className="p-4 rounded-2xl border border-emerald-200 bg-emerald-50">
             <div className="flex items-center gap-2 mb-1">
@@ -1102,7 +1104,7 @@ export default function Home() {
       )}
 
       {/* Step 2: Configuração + preço */}
-      {step === 2 && service && <HomeConfigurationStep config={{
+      {step === 2 && service && registrationComplete && <HomeConfigurationStep config={{
         service, pricingService, vehicleInfo, setVehicleInfo, address, setAddress, handleAddressSelect, locationContext, setLocationContext,
         description, setDescription, originalKeyValue, searching, searchError, handleSearchKey,
         carKeyType, setCarKeyType, fipeValue, hasCodedKey, programming, keyOrigin,

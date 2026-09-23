@@ -24,6 +24,6 @@ export default function CompletionSecurity({ user, returnTo, onVerified }) {
       <Button type="button" className="w-full" disabled={busy} onClick={sendLink}>{busy ? 'Solicitando link...' : sent ? 'Reenviar link para criar senha' : 'Enviar link para criar senha'}</Button>
       <Button type="button" variant="outline" className="w-full" onClick={() => base44.auth.logout(login)}>Já criei minha senha — entrar</Button>
     </>}
-    <Link className="block text-center text-sm text-primary underline" to="/">Voltar sem solicitar chamado</Link>
+    <Link className="block text-center text-sm text-primary underline" to="/">{user.account_type === 'chaveiro' ? 'Voltar sem solicitar chamado' : 'Voltar ao app sem concluir cadastro'}</Link>
   </div>;
 }

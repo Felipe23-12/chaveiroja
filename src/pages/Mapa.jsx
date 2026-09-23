@@ -3,10 +3,16 @@ import { MapPin } from "lucide-react";
 import LiveLocksmithsMap from "@/components/locksmith/LiveLocksmithsMap";
 import LocationStatusNotice from "@/components/location/LocationStatusNotice";
 import usePreciseLocation from "@/hooks/usePreciseLocation";
+import { useAuth } from '@/lib/AuthContext';
+import { clientRegistrationComplete } from '@/lib/clientRegistration';
+import IncompleteClientNotice from '@/components/client/IncompleteClientNotice';
 
 export default function Mapa() {
+  const { user } = useAuth();
   const gps = usePreciseLocation();
   const customerLoc = gps.location;
+
+  if (!clientRegistrationComplete(user)) return <div className="px-4 py-6 max-w-4xl mx-auto"><IncompleteClientNotice /></div>;
 
   return (
     <div className="px-4 py-6 md:py-10 max-w-4xl mx-auto">
