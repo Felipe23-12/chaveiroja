@@ -9,7 +9,8 @@ import { UserPlus, Mail, Loader2, User, Phone, CreditCard } from "lucide-react";
 import AuthLayout from "@/components/AuthLayout";
 import GoogleIcon from "@/components/GoogleIcon";
 import { safeReturnTo } from "@/lib/authReturnTo";
-import { markAuthProvider } from "@/lib/authProvider";
+import { markAuthProvider, isGoogleAuthSession } from "@/lib/authProvider";
+import useGoogleLoginReturn from '@/components/auth/useGoogleLoginReturn';
 import InlineOtpInput from "@/components/auth/InlineOtpInput";
 import { cpfError } from "@/lib/cpf";
 import { claimCpf } from "@/lib/cpfRegistration";
@@ -61,6 +62,7 @@ export default function RegisterCliente() {
 
   const returnTo = safeReturnTo();
   const qs = returnTo !== "/" ? "?returnTo=" + encodeURIComponent(returnTo) : "";
+  useGoogleLoginReturn(returnTo, !showOtp && isGoogleAuthSession());
 
   const handleSubmit = async (e) => {
     e.preventDefault();
