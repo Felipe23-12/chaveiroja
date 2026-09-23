@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { UserPlus, User, Wrench, ArrowRight } from "lucide-react";
 import AuthLayout from "@/components/AuthLayout";
 import AppleSignInButton from '@/components/auth/AppleSignInButton';
+import GoogleSignInButton from '@/components/auth/GoogleSignInButton';
 import { safeReturnTo } from "@/lib/authReturnTo";
 
 export default function Register() {
@@ -24,6 +25,7 @@ export default function Register() {
       }
     >
       <div className="space-y-3">
+        <GoogleSignInButton returnTo={returnTo} />
         <AppleSignInButton returnTo={returnTo} />
         <Link
           to={"/login?tipo=cliente&returnTo=" + encodeURIComponent(returnTo)}

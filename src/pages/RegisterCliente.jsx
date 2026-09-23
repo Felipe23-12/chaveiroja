@@ -169,7 +169,7 @@ export default function RegisterCliente() {
         disabled={loading}
       >
         <GoogleIcon className="w-5 h-5 mr-2" />
-        Entrar diretamente com Google
+        Continuar com Google
       </Button>
       <AppleSignInButton returnTo={returnTo} disabled={loading} />
       <p className="mb-4 text-xs text-muted-foreground">Você pode explorar o aplicativo agora e completar CPF, telefone, confirmação de email e senha antes do primeiro chamado.</p>
