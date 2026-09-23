@@ -2,6 +2,7 @@ import React from "react";
 import { Link } from "react-router-dom";
 import { UserPlus, User, Wrench, ArrowRight } from "lucide-react";
 import AuthLayout from "@/components/AuthLayout";
+import AppleSignInButton from '@/components/auth/AppleSignInButton';
 import { safeReturnTo } from "@/lib/authReturnTo";
 
 export default function Register() {
@@ -23,6 +24,7 @@ export default function Register() {
       }
     >
       <div className="space-y-3">
+        <AppleSignInButton returnTo={returnTo} />
         <Link
           to={"/login?tipo=cliente&returnTo=" + encodeURIComponent(returnTo)}
           className="flex items-center gap-4 p-4 rounded-xl border-2 border-border bg-card hover:border-primary/40 transition-all group"

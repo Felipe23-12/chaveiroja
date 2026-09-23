@@ -15,6 +15,7 @@ import { markAuthProvider } from "@/lib/authProvider";
 import { requiresEmailVerification } from "@/lib/emailRegistration";
 import InlineOtpInput from "@/components/auth/InlineOtpInput";
 import useGoogleLoginReturn from "@/components/auth/useGoogleLoginReturn";
+import AppleSignInButton from '@/components/auth/AppleSignInButton';
 
 export default function Login() {
   const [email, setEmail] = useState("");
@@ -115,9 +116,10 @@ export default function Login() {
       >
         <GoogleIcon className="w-5 h-5 mr-2" />
         Continuar com Google
-      </Button>
+        </Button>
+        <AppleSignInButton returnTo={returnTo} rememberMe={rememberMe} disabled={loading} />
 
-      <div className="relative mb-6">
+        <div className="relative mb-6">
         <div className="absolute inset-0 flex items-center">
           <div className="w-full border-t border-border" />
         </div>

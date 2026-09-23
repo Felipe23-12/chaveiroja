@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { UserPlus, Mail, Loader2, User, Phone, CreditCard } from "lucide-react";
 import AuthLayout from "@/components/AuthLayout";
 import GoogleIcon from "@/components/GoogleIcon";
+import AppleSignInButton from '@/components/auth/AppleSignInButton';
 import { safeReturnTo } from "@/lib/authReturnTo";
 import { markAuthProvider, isGoogleAuthSession } from "@/lib/authProvider";
 import useGoogleLoginReturn from '@/components/auth/useGoogleLoginReturn';
@@ -170,6 +171,7 @@ export default function RegisterCliente() {
         <GoogleIcon className="w-5 h-5 mr-2" />
         Entrar diretamente com Google
       </Button>
+      <AppleSignInButton returnTo={returnTo} disabled={loading} />
       <p className="mb-4 text-xs text-muted-foreground">Você pode explorar o aplicativo agora e completar CPF, telefone, confirmação de email e senha antes do primeiro chamado.</p>
 
       <div className="relative mb-6">
