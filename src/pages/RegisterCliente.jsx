@@ -11,6 +11,7 @@ import GoogleIcon from "@/components/GoogleIcon";
 import AppleSignInButton from '@/components/auth/AppleSignInButton';
 import { safeReturnTo } from "@/lib/authReturnTo";
 import { markAuthProvider } from "@/lib/authProvider";
+import { loginWithGoogle } from "@/lib/googleSignIn";
 import InlineOtpInput from "@/components/auth/InlineOtpInput";
 import { cpfError } from "@/lib/cpf";
 import { claimCpf } from "@/lib/cpfRegistration";
@@ -132,7 +133,7 @@ export default function RegisterCliente() {
       localStorage.setItem('remember_login', 'true');
       sessionStorage.setItem('active_login_session', 'true');
       // O retorno precisa chegar à tela que recupera a sessão antes da rota protegida.
-      await base44.auth.loginWithProvider('google', `/auth/google-return?returnTo=${encodeURIComponent(returnTo)}`);
+      await loginWithGoogle(`/auth/google-return?returnTo=${encodeURIComponent(returnTo)}`);
     } catch (err) { setError(err.message || 'Não foi possível entrar com Google.'); }
     finally { setLoading(false); }
   };

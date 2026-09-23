@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
 import { safeReturnTo } from '@/lib/authReturnTo';
 import restoreGoogleSession from '@/lib/restoreGoogleSession';
+import { loginWithGoogle } from '@/lib/googleSignIn';
 import LoadingCard from '@/components/ui/LoadingCard';
 import { Button } from '@/components/ui/button';
 
@@ -36,7 +37,7 @@ export default function GoogleSignInReturn() {
     <div className="w-full max-w-md rounded-xl border border-border bg-card p-6 text-center">
       <h1 className="font-heading text-xl font-bold">Não foi possível concluir a entrada</h1>
       <p className="mt-2 mb-5 text-sm text-muted-foreground">O Google não retornou uma sessão válida para este aplicativo. Tente novamente.</p>
-      <Button className="w-full" onClick={() => base44.auth.loginWithProvider('google', window.location.pathname + window.location.search)}>Tentar novamente com Google</Button>
+      <Button className="w-full" onClick={() => loginWithGoogle(window.location.pathname + window.location.search)}>Tentar novamente com Google</Button>
       <Link className="mt-4 block text-sm text-primary underline" to="/login">Entrar com email e senha</Link>
     </div>
   </main>;
