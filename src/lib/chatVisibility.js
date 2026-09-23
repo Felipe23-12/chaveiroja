@@ -6,6 +6,14 @@ export async function loadHiddenMessageIds(userId) {
   return new Set(rows.map((row) => row.message_id));
 }
 
+export async function hideChatConversation(messages, userId) {
+  if (!userId) throw new Error("Usuário não identificado");
+  const hidden = await loadHiddenMessageIds(userId);
+  for (const message of messages) {
+    if (message.id && !hidden.has(message.id)) await hideChatMessage(message.id, userId);
+  }
+}
+
 export async function hideChatMessage(messageId, userId) {
   if (!messageId || !userId) return;
   await base44.entities.ChatMessageVisibility.create({
