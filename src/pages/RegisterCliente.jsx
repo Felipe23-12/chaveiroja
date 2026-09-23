@@ -132,7 +132,8 @@ export default function RegisterCliente() {
       markAuthProvider('google');
       localStorage.setItem('remember_login', 'true');
       sessionStorage.setItem('active_login_session', 'true');
-      await base44.auth.loginWithProvider('google', returnTo);
+      // O retorno precisa chegar à tela que recupera a sessão antes da rota protegida.
+      await base44.auth.loginWithProvider('google', `/login?returnTo=${encodeURIComponent(returnTo)}`);
     } catch (err) { setError(err.message || 'Não foi possível entrar com Google.'); }
     finally { setLoading(false); }
   };
