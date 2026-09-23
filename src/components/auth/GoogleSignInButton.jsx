@@ -16,7 +16,7 @@ export default function GoogleSignInButton({ returnTo = '/' }) {
       markAuthProvider('google');
       localStorage.setItem('remember_login', 'true');
       sessionStorage.setItem('active_login_session', 'true');
-      await base44.auth.loginWithProvider('google', `/login?returnTo=${encodeURIComponent(returnTo)}`);
+      await base44.auth.loginWithProvider('google', `/auth/google-return?returnTo=${encodeURIComponent(returnTo)}`);
     } catch (err) {
       clearAuthProvider();
       setError(err?.message || 'Não foi possível entrar com Google. Tente novamente.');

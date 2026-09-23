@@ -36,6 +36,7 @@ const RegisterChaveiro = lazy(() => import('@/pages/RegisterChaveiro'));
 const PainelAdmin = lazy(() => import('@/pages/PainelAdmin'));
 const PainelFinanceiroAdmin = lazy(() => import('@/pages/PainelFinanceiroAdmin'));
 const GoogleComplete = lazy(() => import('@/pages/GoogleComplete'));
+const GoogleSignInReturn = lazy(() => import('@/pages/GoogleSignInReturn'));
 const PoliticaReembolso = lazy(() => import('@/pages/PoliticaReembolso'));
 const TermosPrivacidade = lazy(() => import('@/pages/TermosPrivacidade'));
 const Acompanhamento = lazy(() => import('@/pages/Acompanhamento'));
@@ -77,7 +78,7 @@ const AuthenticatedApp = () => {
       return <UserNotRegisteredError />;
     } else if (authError.type === 'auth_required') {
       // Uma sessão expirada não pode redirecionar a própria tela de entrada.
-      const authPaths = ['/login', '/register', '/forgot-password', '/reset-password', '/cadastro/cliente', '/cadastro/chaveiro'];
+      const authPaths = ['/login', '/register', '/forgot-password', '/reset-password', '/cadastro/cliente', '/cadastro/chaveiro', '/auth/google-return'];
       if (!authPaths.includes(window.location.pathname)) {
         navigateToLogin();
         return null;
@@ -96,6 +97,7 @@ const AuthenticatedApp = () => {
         <Route path="/cadastro/cliente" element={<RegisterCliente />} />
         <Route path="/cadastro/chaveiro" element={<RegisterChaveiro />} />
         <Route path="/google-complete" element={<GoogleComplete />} />
+        <Route path="/auth/google-return" element={<GoogleSignInReturn />} />
         <Route path="/politica-reembolso" element={<PoliticaReembolso />} />
         <Route path="/termos-privacidade" element={<TermosPrivacidade />} />
         <Route path="/exclusao-de-conta" element={<ExclusaoConta />} />

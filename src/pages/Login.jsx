@@ -70,7 +70,7 @@ export default function Login() {
       sessionStorage.setItem("active_login_session", "true");
       // Retorne primeiro à entrada: no Android a tela inicial protegida pode
       // redirecionar antes de a sessão OAuth ser reconhecida pelo aplicativo.
-      await base44.auth.loginWithProvider("google", `/login?returnTo=${encodeURIComponent(returnTo)}`);
+      await base44.auth.loginWithProvider("google", `/auth/google-return?returnTo=${encodeURIComponent(returnTo)}`);
     } catch (err) {
       setError(err.message || "Não foi possível entrar com Google. Tente novamente.");
     } finally {
