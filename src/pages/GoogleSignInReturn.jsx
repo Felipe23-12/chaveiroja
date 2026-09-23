@@ -7,9 +7,11 @@ import { loginWithGoogle } from '@/lib/googleSignIn';
 import finishAuthWindow from '@/lib/finishAuthWindow';
 import LoadingCard from '@/components/ui/LoadingCard';
 import { Button } from '@/components/ui/button';
+import GoogleAppHandoff from '@/components/auth/GoogleAppHandoff';
 
 export default function GoogleSignInReturn() {
   const [error, setError] = useState(false);
+  const [handoff, setHandoff] = useState(null);
   const requested = safeReturnTo();
   const returnTo = ['/login', '/register', '/auth/google-return'].includes(requested.split('?')[0]) ? '/' : requested;
   useEffect(() => {
@@ -21,7 +23,17 @@ export default function GoogleSignInReturn() {
             const user = await base44.auth.me();
             if (cancelled) return;
             const fallback = user.role === 'admin' ? '/painel-admin' : user.account_type === 'chaveiro' ? '/painel-chaveiro' : '/';
-            finishAuthWindow(returnTo === '/' ? fallback : returnTo);
+            const destination = returnTo === '/' ? fallback : returnTo;
+            const params = new URLSearchParams(window.location.search);
+            const isAndroidBrowser = /Android/i.test(navigator.userAgent) && !/; wv\b/i.test(navigator.userAgent);
+            if (isAndroidBrowser && !params.has('native_return') && !window.opener) {
+              const token = localStorage.getItem('base44_access_token');
+              if (token) {
+                setHandoff({ destination, token });
+                return;
+              }
+            }
+            finishAuthWindow(destination);
             return;
           }
         } catch { /* O retorno da autenticação pode ainda estar em andamento. */ }
@@ -33,6 +45,7 @@ export default function GoogleSignInReturn() {
     return () => { cancelled = true; };
   }, [returnTo]);
 
+  if (handoff) return <GoogleAppHandoff destination={handoff.destination} token={handoff.token} />;
   if (!error) return <div className="max-w-md mx-auto px-4 pt-safe py-10"><LoadingCard label="Concluindo entrada com Google..." /></div>;
   return <main className="min-h-[100dvh] flex items-center justify-center bg-background px-4 pt-safe">
     <div className="w-full max-w-md rounded-xl border border-border bg-card p-6 text-center">
