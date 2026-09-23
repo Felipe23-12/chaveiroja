@@ -55,6 +55,22 @@ export async function acceptRing(requestId, locksmith) {
   // no backend (serviceTrust / accept_request) — o cliente não pode mais
   // pular essa checagem chamando o update direto.
   const queued = Boolean(state.active);
+  // Tenta atualizar a posição antes do aceite para a primeira rota usar o GPS atual.
+  // Se o GPS estiver indisponível, mantém o fluxo de aceite e o rastreamento
+  // atualizará o mapa assim que o aparelho entregar uma posição válida.
+  if (!queued && navigator.geolocation) {
+    try {
+      const position = await new Promise((resolve, reject) => navigator.geolocation.getCurrentPosition(
+        resolve, reject, { enableHighAccuracy: true, maximumAge: 0, timeout: 6000 }
+      ));
+      await base44.functions.invoke("serviceTrust", {
+        action: "locksmith_location", locksmith_id: locksmith.id,
+        lat: position.coords.latitude, lng: position.coords.longitude,
+      });
+    } catch (error) {
+      console.warn("GPS indisponível no aceite; aguardando primeira posição de rastreamento", error);
+    }
+  }
   let result;
   try {
     result = await base44.functions.invoke("serviceTrust", {
