@@ -55,10 +55,12 @@ export default async function(req) {
     const user = internalCall ? null : await base44.auth.me().catch(() => null);
     if (!internalCall && !user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
     if (!internalCall && user.role !== 'admin') return Response.json({ error: 'Forbidden' }, { status: 403 });
-    if (!body.service_request_id) return Response.json({ error: 'service_request_id é obrigatório' }, { status: 400 });
+    if (!body.service_request_id && !(body.dry_run === true && body.sample_request)) return Response.json({ error: 'service_request_id é obrigatório' }, { status: 400 });
 
     const dryRun = body.dry_run === true;
-    const sr = await base44.asServiceRole.entities.ServiceRequest.get(body.service_request_id).catch(() => null);
+    // Simulação (somente dry_run): usa dados de exemplo sem gravar nada no banco.
+    const sample = dryRun && body.sample_request ? body.sample_request : null;
+    const sr = sample || await base44.asServiceRole.entities.ServiceRequest.get(body.service_request_id).catch(() => null);
     if (!sr) return Response.json({ error: 'Chamado não encontrado' }, { status: 404 });
     if (sr.status !== 'searching' && sr.status !== 'ringing') {
       return Response.json({ skipped: true, reason: `status ${sr.status} não requer aviso` });
@@ -72,15 +74,15 @@ export default async function(req) {
       .filter((id: string) => !cooldown.has(id));
     if (ids.length === 0) return Response.json({ skipped: true, reason: 'Nenhum chaveiro atribuído' });
 
-    const client = sr.created_by_id ? await base44.asServiceRole.entities.User.get(sr.created_by_id).catch(() => null) : null;
+    const client = sample ? body.sample_client : sr.created_by_id ? await base44.asServiceRole.entities.User.get(sr.created_by_id).catch(() => null) : null;
     const { text, vars } = buildMessage(sr, client);
     const cfg = getTwilioConfig();
     const results: any[] = [];
 
     for (const locksmithId of ids) {
-      const locksmith = await base44.asServiceRole.entities.Locksmith.get(locksmithId).catch(() => null);
+      const locksmith = sample ? body.sample_locksmiths?.[locksmithId] : await base44.asServiceRole.entities.Locksmith.get(locksmithId).catch(() => null);
       if (!locksmith) { results.push({ locksmith_id: locksmithId, status: 'not_found' }); continue; }
-      const owner = locksmith.created_by_id ? await base44.asServiceRole.entities.User.get(locksmith.created_by_id).catch(() => null) : null;
+      const owner = sample ? null : locksmith.created_by_id ? await base44.asServiceRole.entities.User.get(locksmith.created_by_id).catch(() => null) : null;
       const phone = toE164(locksmith.phone) || toE164(owner?.phone);
       const base = {
         service_request_id: sr.id, locksmith_id: locksmithId, locksmith_user_id: locksmith.created_by_id || '',
@@ -123,7 +125,7 @@ export default async function(req) {
       }
     }
 
-    return Response.json({ success: true, dry_run: dryRun, configured: cfg.configured, missing_secrets: cfg.missing, results });
+    return Response.json({ success: true, dry_run: dryRun, ...(dryRun ? { message_preview: text, whatsapp_variables: vars } : {}), configured: cfg.configured, missing_secrets: cfg.missing, results });
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });
   }
