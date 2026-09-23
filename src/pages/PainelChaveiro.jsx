@@ -3,6 +3,7 @@ import { useNavigate, useLocation, Link } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
 import { useAuth } from "@/lib/AuthContext";
 import { fetchMyLocksmith, fetchLocksmithFinancials, mergeLocksmithFinancials, preserveFinancials } from "@/lib/myLocksmith";
+import prepareLocksmithProfile from '@/lib/locksmithOnboarding';
 import { Wrench, Bell, Check, X, Navigation, Power, Loader2, MapPin, WifiOff, CheckCircle2, Wallet, ArrowLeft, MessageCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { usePullToRefresh, PullToRefreshIndicator } from "@/components/ui/PullToRefresh";
@@ -181,50 +182,27 @@ export default function PainelChaveiro() {
     }
   }, [location.state]);
 
-  // Carrega chaveiros e assina atualizações do selecionado
+  // Recupera o perfil profissional antes de carregar o painel, sem duplicar o cadastro.
   useEffect(() => {
     if (!user?.id) return;
-    fetchMyLocksmith(user.id).then((mine) => {
-      setLocksmiths(mine ? [mine] : []);
-      setSelectedId(mine ? mine.id : "");
-      setProfileChecked(true);
-    });
+    let disposed = false;
+    const load = async () => {
+      try {
+        const existing = await fetchMyLocksmith(user.id);
+        const mine = existing || (user.account_type === 'chaveiro' ? await prepareLocksmithProfile() : null);
+        if (!disposed) {
+          setLocksmiths(mine ? [mine] : []);
+          setSelectedId(mine?.id || '');
+        }
+      } catch (error) {
+        if (!disposed) toast({ title: 'Não foi possível carregar seu perfil', description: error?.response?.data?.error || error.message, variant: 'destructive' });
+      } finally {
+        if (!disposed) setProfileChecked(true);
+      }
+    };
+    load();
+    return () => { disposed = true; };
   }, [user?.id]);
-
-  // Onboarding: cria o perfil do chaveiro após cadastro (sem confirmação por email)
-  useEffect(() => {
-    const raw = sessionStorage.getItem("chaveiro_onboarding");
-    if (!raw) return;
-    try {
-      const data = JSON.parse(raw);
-      sessionStorage.removeItem("chaveiro_onboarding");
-      // Garante que o usuário permaneça identificado como CHAVEIRO.
-      // O perfil é atualizado antes de criar/usar os dados profissionais.
-      base44.auth.updateMe({
-        phone: data.phone,
-        full_name: data.fullName,
-        account_type: "chaveiro",
-      }).catch((err) => {
-        console.error("Falha ao atualizar tipo da conta do chaveiro", err);
-      });
-      base44.entities.Locksmith.create({
-        name: data.fullName,
-        specialty: data.specialty,
-        vehicle: data.vehicle,
-        bio: data.bio,
-        phone: data.phone,
-        work_mode: "app",
-        available: true,
-        online: false,
-      }).then((created) => {
-        setLocksmiths([created]);
-        setSelectedId(created.id);
-        setProfileChecked(true);
-      }).catch(() => {});
-    } catch (e) {
-      /* dados inválidos — ignora */
-    }
-  }, []);
 
   useEffect(() => {
     if (!selectedId) return;

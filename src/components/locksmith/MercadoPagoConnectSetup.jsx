@@ -3,6 +3,7 @@ import { CheckCircle2, ExternalLink, Loader2, Wallet, AlertTriangle } from "luci
 import { Button } from "@/components/ui/button";
 import { base44 } from "@/api/base44Client";
 import useOnAppResume from "@/hooks/useOnAppResume";
+import prepareLocksmithProfile from '@/lib/locksmithOnboarding';
 
 export default function MercadoPagoConnectSetup({ onStatusChange }) {
   const [status, setStatus] = useState(null);
@@ -27,6 +28,7 @@ export default function MercadoPagoConnectSetup({ onStatusChange }) {
     setWorking(true);
     setError("");
     try {
+      await prepareLocksmithProfile();
       const { data } = await base44.functions.invoke("mercadoPagoConnect", { action: "connect" });
       if (!data?.url) throw new Error("Link de conexão indisponível.");
 

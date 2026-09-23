@@ -23,6 +23,7 @@ import { registerEmailAccount, registrationErrorMessage } from "@/lib/emailRegis
 import ExistingAccountNotice from "@/components/auth/ExistingAccountNotice";
 import { isFullName } from "@/lib/fullName";
 import { markAuthProvider } from '@/lib/authProvider';
+import prepareLocksmithProfile from '@/lib/locksmithOnboarding';
 
 // Campos que recebem foco além do scroll.
 const FOCUS_FIELDS = new Set(["fullName", "password", "confirmPassword", "vehicle"]);
@@ -120,7 +121,7 @@ export default function RegisterChaveiro() {
       await registerEmailAccount(normalizedEmail, password);
       setEmail(normalizedEmail);
       sessionStorage.setItem("chaveiro_onboarding", JSON.stringify({
-        fullName, phone, cpf, specialty: specialties[0] || "Residencial", specialties, vehicle, bio,
+        email: normalizedEmail, fullName, phone, cpf, specialty: specialties[0] || "Residencial", specialties, vehicle, bio,
       }));
       setShowOtp(true);
     } catch (err) {
@@ -152,6 +153,7 @@ export default function RegisterChaveiro() {
         ...termsPayload(),
       });
     }
+    await prepareLocksmithProfile();
     localStorage.setItem("remember_login", "true");
     sessionStorage.setItem("active_login_session", "true");
     window.location.assign("/cadastro/recebimentos");
