@@ -2,8 +2,6 @@ import React from "react";
 import { Link } from "react-router-dom";
 import { UserPlus, User, Wrench, ArrowRight } from "lucide-react";
 import AuthLayout from "@/components/AuthLayout";
-import AppleSignInButton from '@/components/auth/AppleSignInButton';
-import GoogleSignInButton from '@/components/auth/GoogleSignInButton';
 import { safeReturnTo } from "@/lib/authReturnTo";
 
 export default function Register() {
@@ -38,11 +36,7 @@ export default function Register() {
           </div>
           <ArrowRight className="w-5 h-5 text-muted-foreground" />
         </Link>
-        <div className="rounded-xl border border-border bg-muted/30 p-3 space-y-2">
-          <p className="text-xs text-muted-foreground">Acesso rápido para clientes. Chaveiros devem usar cadastro com email e senha.</p>
-          <GoogleSignInButton returnTo={returnTo} />
-          <AppleSignInButton returnTo={returnTo} />
-        </div>
+
 
         <Link
           to={'/cadastro/chaveiro' + qs}

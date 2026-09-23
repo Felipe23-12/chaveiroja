@@ -16,6 +16,7 @@ import { loginWithGoogle } from "@/lib/googleSignIn";
 import { requiresEmailVerification } from "@/lib/emailRegistration";
 import InlineOtpInput from "@/components/auth/InlineOtpInput";
 import AppleSignInButton from '@/components/auth/AppleSignInButton';
+import AccountChoice from '@/components/auth/AccountChoice';
 
 export default function Login() {
   const [email, setEmail] = useState("");
@@ -26,7 +27,8 @@ export default function Login() {
   const [verificationEmail, setVerificationEmail] = useState("");
   const googleRetryStarted = useRef(false);
   const returnTo = safeReturnTo();
-  const professional = new URLSearchParams(window.location.search).get('tipo') === 'chaveiro' || ['/painel-chaveiro', '/cadastro/recebimentos', '/modo-trabalho', '/painel-financeiro'].includes(returnTo.split('?')[0]);
+  const selectedType = new URLSearchParams(window.location.search).get('tipo');
+  const professional = selectedType === 'chaveiro' || (!selectedType && ['/painel-chaveiro', '/cadastro/recebimentos', '/modo-trabalho', '/painel-financeiro'].includes(returnTo.split('?')[0]));
 
   const completeLogin = async (passwordAuthenticated = false) => {
     let me = await base44.auth.me();
@@ -88,6 +90,8 @@ export default function Login() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  if (!selectedType && !professional) return <AccountChoice returnTo={returnTo} />;
+
   if (verificationEmail) return (
     <AuthLayout icon={Mail} title="Verificação pendente" subtitle="Esta conta ainda precisa confirmar o email">
       <p className="mb-4 text-sm text-muted-foreground">Não é necessário cadastrar novamente. Se não tiver um código, toque em Reenviar código.</p>
@@ -103,7 +107,7 @@ export default function Login() {
       subtitle={professional ? 'Entre com email e senha para acessar a área profissional' : 'Acesse sua conta de cliente'}
       footer={!professional && <>
         Não tem uma conta?{" "}
-        <Link to={'/cadastro/cliente' + (returnTo !== '/' ? '?returnTo=' + encodeURIComponent(returnTo) : '')} className="text-primary font-medium hover:underline">Criar conta</Link>
+        <Link to={'/cadastro/cliente' + (returnTo !== '/' ? '?returnTo=' + encodeURIComponent(returnTo) : '')} className="text-primary font-medium hover:underline">Cadastre-se</Link>
       </>}
     >
       <div className="mb-5 grid grid-cols-2 gap-2"><Link to={'/login?tipo=cliente&returnTo=' + encodeURIComponent(professional ? '/' : returnTo)} className={`rounded-lg border p-3 text-center text-sm ${!professional ? 'border-primary bg-primary/10' : 'border-border'}`}>Sou cliente</Link><Link to={'/login?tipo=chaveiro&returnTo=' + encodeURIComponent(professional ? returnTo : '/')} className={`rounded-lg border p-3 text-center text-sm ${professional ? 'border-primary bg-primary/10' : 'border-border'}`}>Sou chaveiro</Link></div>

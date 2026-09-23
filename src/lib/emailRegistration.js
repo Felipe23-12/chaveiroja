@@ -6,8 +6,9 @@ export function requiresEmailVerification(error) {
 }
 
 export function registrationErrorMessage(error) {
-  const message = String(error?.message || '');
-  if (/already (?:exists|registered)|already.*(?:in use|taken)|j[aá].*(?:cadastrad|registrad|existe|uso)/i.test(message)) {
+  const detail = error?.response?.data;
+  const message = String(detail?.message || detail?.detail || detail?.error || error?.message || '');
+  if (/already (?:exists|registered)|already.*(?:in use|taken)|j[aá].*(?:cadastrad|registrad|existe|uso)/i.test(message) || error?.response?.status === 409) {
     return 'Não foi possível criar uma nova conta. Se você já se cadastrou, use Entrar ou Esqueci minha senha; não é necessário cadastrar novamente.';
   }
   return message || 'Não foi possível cadastrar. Tente novamente.';

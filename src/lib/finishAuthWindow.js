@@ -3,16 +3,18 @@
 // Aqui devolvemos o destino para a janela original e fechamos a auxiliar;
 // quando não existe janela original, seguimos normalmente na atual.
 export default function finishAuthWindow(destination) {
-  const url = new URL(destination, window.location.origin).toString();
+  const url = new URL(destination, window.location.origin);
   try {
     const parent = window.opener && !window.opener.closed ? window.opener : null;
-    if (parent && parent !== window.self) {
-      parent.location.replace(url);
+    if (parent && parent !== window.self && parent.location.origin === window.location.origin) {
+      // Janelas WebView podem ter armazenamentos separados. Entregue à janela
+      // principal a sessão validada antes de fechar a janela de autenticação.
+      const token = localStorage.getItem('base44_access_token');
+      if (token) url.searchParams.set('access_token', token);
+      parent.location.replace(url.toString());
       window.close();
-      // Se o navegador não permitir fechar, mostramos o app nesta janela.
-      setTimeout(() => window.location.replace(url), 800);
       return;
     }
-  } catch { /* janela de outra origem: continua nesta. */ }
-  window.location.replace(url);
+  } catch { /* Sem acesso à janela principal: permaneça nesta. */ }
+  window.location.replace(destination);
 }
