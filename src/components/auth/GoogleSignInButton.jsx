@@ -3,6 +3,7 @@ import { base44 } from '@/api/base44Client';
 import { Button } from '@/components/ui/button';
 import GoogleIcon from '@/components/GoogleIcon';
 import { markAuthProvider, clearAuthProvider } from '@/lib/authProvider';
+import { loginWithGoogle } from '@/lib/googleSignIn';
 
 export default function GoogleSignInButton({ returnTo = '/' }) {
   const [loading, setLoading] = useState(false);
@@ -16,7 +17,7 @@ export default function GoogleSignInButton({ returnTo = '/' }) {
       markAuthProvider('google');
       localStorage.setItem('remember_login', 'true');
       sessionStorage.setItem('active_login_session', 'true');
-      await base44.auth.loginWithProvider('google', `/auth/google-return?returnTo=${encodeURIComponent(returnTo)}`);
+      await loginWithGoogle(`/auth/google-return?returnTo=${encodeURIComponent(returnTo)}`);
     } catch (err) {
       clearAuthProvider();
       setError(err?.message || 'Não foi possível entrar com Google. Tente novamente.');

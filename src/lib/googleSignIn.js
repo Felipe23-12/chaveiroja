@@ -1,24 +1,24 @@
-import { base44 } from '@/api/base44Client';
 import { appParams } from '@/lib/app-params';
 
+// O SDK abre um popup quando o aplicativo está dentro de um iframe, e vários
+// navegadores mobile bloqueiam popups — o botão fica sem reação. Aqui sempre
+// fazemos uma navegação de página inteira, iniciada pelo toque do usuário.
 export function loginWithGoogle(returnTo = '/') {
-  // The Base44 SDK opens a popup when the app is embedded in an iframe. Some
-  // mobile WebViews block window.open and the SDK then returns without
-  // navigating, leaving the sign-in button looking unresponsive. Use a
-  // user-initiated top-level navigation in that case instead.
-  if (window.self !== window.top) {
-    const redirectUrl = new URL(returnTo, window.location.origin).toString();
-    const loginUrl = new URL('/api/apps/auth/login', appParams.appBaseUrl || window.location.origin);
-    loginUrl.searchParams.set('app_id', appParams.appId);
-    loginUrl.searchParams.set('from_url', redirectUrl);
+  const redirectUrl = new URL(returnTo, window.location.origin).toString();
+  const base = appParams.appBaseUrl || window.location.origin;
+  const loginUrl = new URL('/api/apps/auth/login', base);
+  loginUrl.searchParams.set('app_id', appParams.appId);
+  loginUrl.searchParams.set('from_url', redirectUrl);
+  const target = loginUrl.toString();
 
-    try {
-      window.top.location.assign(loginUrl.toString());
-    } catch {
-      window.location.assign(loginUrl.toString());
+  try {
+    // Sai do iframe quando houver um, para o Google não bloquear o consentimento.
+    if (window.top && window.top !== window.self) {
+      window.top.location.href = target;
+      return;
     }
-    return;
+  } catch {
+    /* iframe de outra origem: segue com a navegação local abaixo. */
   }
-
-  return base44.auth.loginWithProvider('google', returnTo);
+  window.location.href = target;
 }
