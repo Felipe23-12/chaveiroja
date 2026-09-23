@@ -1,5 +1,5 @@
 import React from "react";
-import { LayoutDashboard, Flag, KeyRound, Users, Wallet, ClipboardList, MessageSquare, Send } from "lucide-react";
+import { LayoutDashboard, Flag, KeyRound, Users, Wallet, ClipboardList, MessageSquare } from "lucide-react";
 
 const tabs = [
   ["overview", "Visão geral", LayoutDashboard],
@@ -10,7 +10,6 @@ const tabs = [
   ["people", "Usuários", Users],
   ["finance", "Financeiro", Wallet],
   ["requests", "Chamados", ClipboardList],
-  ["messages", "Avisos WhatsApp/SMS", Send],
   ["feedback", "Sugestões e problemas", MessageSquare],
 ];
 

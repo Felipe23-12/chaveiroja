@@ -17,7 +17,6 @@ import AdminPanelTabs from "@/components/admin/AdminPanelTabs";
 import PricingSettingsPanel from "@/components/admin/PricingSettingsPanel";
 import ServiceAreasPanel from '@/components/admin/ServiceAreasPanel';
 import FeedbackPanel from "@/components/admin/FeedbackPanel";
-import MessageDeliveriesPanel from "@/components/admin/MessageDeliveriesPanel";
 import FailedServiceReports from '@/components/admin/FailedServiceReports';
 import LocksmithQualityTable from "@/components/admin/LocksmithQualityTable";
 import { completeWithdrawal } from "@/lib/payments";
@@ -195,7 +194,6 @@ export default function PainelAdmin() {
       {activeTab === "catalog" && <VehicleKeyCatalogPanel />}
       {activeTab === "pricing" && <PricingSettingsPanel />}
       {activeTab === "areas" && <ServiceAreasPanel />}
-      {activeTab === "messages" && <MessageDeliveriesPanel />}
 
       {activeTab === "overview" && <AdminCharts requests={requests} />}
 
