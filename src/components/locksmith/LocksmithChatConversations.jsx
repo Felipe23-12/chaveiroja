@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { base44 } from "@/api/base44Client";
-import { Send, MessageCircle, ArrowLeft } from "lucide-react";
+import { Send, MessageCircle, ArrowLeft, Trash2 } from "lucide-react";
 import ChatConversationList from "@/components/locksmith/ChatConversationList";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,7 +12,7 @@ import ModerationActions from "@/components/moderation/ModerationActions";
 import ChatPhotoButton from "@/components/chat/ChatPhotoButton";
 import ChatMessageBubble from "@/components/chat/ChatMessageBubble";
 import QuickMessages from "@/components/chat/QuickMessages";
-import { hideChatMessage, loadHiddenMessageIds } from "@/lib/chatVisibility";
+import { hideChatMessage, hideChatConversation, loadHiddenMessageIds } from "@/lib/chatVisibility";
 import { markChatConversationRead } from "@/lib/chatReadState";
 import { containsLink } from "@/lib/chatMessageValidation";
 
@@ -102,16 +102,8 @@ export default function LocksmithChatConversations({ me }) {
     setSending(true);
     try {
       const activeConv = conversations.find((c) => c.id === activeTab);
-      const created = await base44.entities.ChatMessage.create({
-        locksmith_id: me.id,
-        locksmith_name: me.name,
-        locksmith_user_id: me.created_by_id,
-        client_id: activeTab,
-        client_name: activeConv?.name,
-        sender_type: "locksmith",
-        sender_name: me.name,
-        message: "Foto",
-        photo_url: photoUrl,
+      const { data: { message: created } } = await base44.functions.invoke("sendChatMessage", {
+        locksmith_id: me.id, client_id: activeTab, message: "Foto", photo_url: photoUrl,
       });
       setMessages((prev) => prev.some((item) => item.id === created.id) ? prev : [...prev, created]);
     } catch (e) {
@@ -133,15 +125,8 @@ export default function LocksmithChatConversations({ me }) {
     setText("");
     try {
       const activeConv = conversations.find((c) => c.id === activeTab);
-      const created = await base44.entities.ChatMessage.create({
-        locksmith_id: me.id,
-        locksmith_name: me.name,
-        locksmith_user_id: me.created_by_id,
-        client_id: activeTab,
-        client_name: activeConv?.name,
-        sender_type: "locksmith",
-        sender_name: me.name,
-        message: msg,
+      const { data: { message: created } } = await base44.functions.invoke("sendChatMessage", {
+        locksmith_id: me.id, client_id: activeTab, message: msg,
       });
       setMessages((prev) => prev.some((item) => item.id === created.id) ? prev : [...prev, created]);
     } catch (e) {
@@ -157,6 +142,19 @@ export default function LocksmithChatConversations({ me }) {
     setMessages((list) => list.filter((message) => message.id !== messageId));
   };
 
+  const handleHideConversation = async () => {
+    if (!activeTab || !window.confirm("Excluir esta conversa da sua visualização? As mensagens serão preservadas para auditoria.")) return;
+    try {
+      const all = await base44.entities.ChatMessage.filter({ locksmith_id: me.id, client_id: activeTab });
+      await hideChatConversation(all, me.created_by_id);
+      setMessages([]);
+      setConversations((list) => list.filter((c) => c.id !== activeTab));
+      setActiveTab(null);
+    } catch (error) {
+      toast({ title: "Não foi possível excluir a conversa", description: error.message, variant: "destructive" });
+    }
+  };
+
   return (
     <div id="chat-conversas">
       <div className="flex items-center gap-2 mb-3">
@@ -170,6 +168,7 @@ export default function LocksmithChatConversations({ me }) {
         <h3 className="font-heading font-semibold text-foreground">
           {activeTab ? conversations.find((c) => c.id === activeTab)?.name || "Conversa" : "Conversas com clientes"}
         </h3>
+        {activeTab && <Button variant="ghost" size="sm" onClick={handleHideConversation} aria-label="Excluir conversa da minha visualização"><Trash2 className="w-4 h-4 mr-1" /> Excluir conversa</Button>}
         {!activeTab && conversations.length > 0 && (
           <span className="px-2 py-0.5 rounded-full bg-primary/10 text-primary text-xs font-medium">
             {conversations.length}
