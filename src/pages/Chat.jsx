@@ -82,7 +82,7 @@ export default function Chat() {
       { id: tempId, message: msg, sender_type: "customer", _pending: true },
     ]);
     try {
-      await base44.entities.ChatMessage.create({
+      await base44.functions.invoke("sendChatMessage", {
         locksmith_id: locksmithId,
         locksmith_name: locksmith?.name,
         locksmith_user_id: locksmith?.created_by_id,
@@ -106,7 +106,7 @@ export default function Chat() {
     if (sending || debt || blockedIds.has(locksmith?.created_by_id)) return;
     setSending(true);
     try {
-      await base44.entities.ChatMessage.create({
+      await base44.functions.invoke("sendChatMessage", {
         locksmith_id: locksmithId,
         locksmith_name: locksmith?.name,
         locksmith_user_id: locksmith?.created_by_id,
@@ -131,7 +131,7 @@ export default function Chat() {
       { id: tempId, message: msg, sender_type: "customer", _pending: true },
     ]);
     try {
-      await base44.entities.ChatMessage.create({
+      await base44.functions.invoke("sendChatMessage", {
         locksmith_id: locksmithId,
         locksmith_name: locksmith?.name,
         locksmith_user_id: locksmith?.created_by_id,
