@@ -90,7 +90,7 @@ export default function RequestTracking({ request, locksmith, onAdvance, onCall 
         <div className="p-4 rounded-2xl bg-muted space-y-1.5">
           <div className="flex justify-between text-sm"><span className="text-muted-foreground">Valor da chave</span><span className="font-medium text-foreground">R$ {request.key_value?.toFixed(2)}</span></div>
           <div className="flex justify-between text-sm"><span className="text-muted-foreground">Mão de obra</span><span className="font-medium text-foreground">R$ {request.labor_cost?.toFixed(2)}</span></div>
-          <div className="flex justify-between text-sm"><span className="text-muted-foreground">Locomoção ({request.distance_km?.toFixed(1)} km)</span><span className="font-medium text-foreground">R$ {request.locomotion_cost?.toFixed(2)}</span></div>
+          <div className="flex justify-between text-sm"><span className="text-muted-foreground">Locomoção contratada ({request.distance_km?.toFixed(1)} km no pedido)</span><span className="font-medium text-foreground">R$ {request.locomotion_cost?.toFixed(2)}</span></div>
           {request.extra_cost > 0 && (
             <div className="flex justify-between text-sm"><span className="text-muted-foreground">Custos adicionais</span><span className="font-medium text-foreground">R$ {request.extra_cost?.toFixed(2)}</span></div>
           )}
