@@ -13,6 +13,8 @@ export default async function(req: Request): Promise<Response> {
     await base44.asServiceRole.entities.VerifiedCpf.deleteMany({ user_id: user.id });
     return Response.json({ deleted: true });
   } catch (error) {
+    const status = (error as any)?.status ?? (error as any)?.response?.status;
+    if (status === 401) return Response.json({ error: 'Sua sessão expirou. Entre novamente para excluir a conta.' }, { status: 401 });
     return Response.json({ error: 'Não foi possível excluir a conta. Tente novamente.' }, { status: 500 });
   }
 }

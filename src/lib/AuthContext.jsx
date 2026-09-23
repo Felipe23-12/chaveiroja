@@ -53,7 +53,10 @@ export const AuthProvider = ({ children }) => {
         if (appError.status === 403 && appError.data?.extra_data?.reason) {
           const reason = appError.data.extra_data.reason;
           if (reason === 'auth_required') {
-            setAuthError({
+            // Public settings may reject an OAuth callback before the SDK session
+            // is ready; verify the actual user before sending them back to login.
+            const currentUser = await checkUserAuth();
+            if (!currentUser) setAuthError({
               type: 'auth_required',
               message: 'Authentication required'
             });
@@ -98,10 +101,12 @@ export const AuthProvider = ({ children }) => {
       setIsAuthenticated(true);
       setIsLoadingAuth(false);
       setAuthChecked(true);
+      return currentUser;
     } catch (error) {
       console.error('User auth check failed:', error);
       setIsLoadingAuth(false);
       setIsAuthenticated(false);
+      setUser(null);
       setAuthChecked(true);
       
       // If user auth fails, it might be an expired token

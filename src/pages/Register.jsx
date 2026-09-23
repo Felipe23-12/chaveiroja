@@ -25,10 +25,8 @@ export default function Register() {
       }
     >
       <div className="space-y-3">
-        <GoogleSignInButton returnTo={returnTo} />
-        <AppleSignInButton returnTo={returnTo} />
         <Link
-          to={"/login?tipo=cliente&returnTo=" + encodeURIComponent(returnTo)}
+          to={"/cadastro/cliente" + qs}
           className="flex items-center gap-4 p-4 rounded-xl border-2 border-border bg-card hover:border-primary/40 transition-all group"
         >
           <div className="w-12 h-12 rounded-xl bg-blue-50 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
@@ -40,9 +38,14 @@ export default function Register() {
           </div>
           <ArrowRight className="w-5 h-5 text-muted-foreground" />
         </Link>
+        <div className="rounded-xl border border-border bg-muted/30 p-3 space-y-2">
+          <p className="text-xs text-muted-foreground">Acesso rápido para clientes. Chaveiros devem usar cadastro com email e senha.</p>
+          <GoogleSignInButton returnTo={returnTo} />
+          <AppleSignInButton returnTo={returnTo} />
+        </div>
 
         <Link
-          to={'/login?tipo=chaveiro&returnTo=' + encodeURIComponent('/painel-chaveiro')}
+          to={'/cadastro/chaveiro' + qs}
           className="flex items-center gap-4 p-4 rounded-xl border-2 border-border bg-card hover:border-primary/40 transition-all group"
         >
           <div className="w-12 h-12 rounded-xl bg-amber-50 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">

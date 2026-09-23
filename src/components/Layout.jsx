@@ -46,7 +46,7 @@ function SidebarContent({ onNavigate }) {
 
   const roleLabel = effectiveRole === "chaveiro" ? "Chaveiro" : effectiveRole === "admin" ? "Admin" : "Cliente";
   const chatUnread = useChatUnread();
-  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [deleteOpen, setDeleteOpen] = useState(() => new URLSearchParams(window.location.search).get('abrir-exclusao') === '1');
   const [photoOpen, setPhotoOpen] = useState(false);
   const [avatar, setAvatar] = useState(user?.avatar_url || "");
 

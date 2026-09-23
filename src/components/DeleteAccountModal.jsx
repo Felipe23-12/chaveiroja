@@ -23,13 +23,14 @@ export default function DeleteAccountModal({ open, onOpenChange }) {
     setDeleting(true);
     setError("");
     try {
-      const user = await base44.auth.me();
-      if (!user) throw new Error("Usuário não encontrado");
       await base44.functions.invoke('deleteOwnAccount', { action: 'confirm_delete' });
-      await base44.auth.logout();
-      window.location.href = "/login";
+      // Logout already redirects. Do not make another request with the deleted identity.
+      base44.auth.logout('/cadastro/chaveiro');
     } catch (e) {
-      setError(e?.response?.data?.error || e.message || "Não foi possível excluir a conta. Tente novamente.");
+      const status = e?.status || e?.response?.status;
+      setError(status === 401 || /token.*expir|expir.*token|unauthorized/i.test(e?.message || '')
+        ? 'Sua sessão expirou. Entre novamente na conta de cliente antes de confirmar a exclusão.'
+        : e?.response?.data?.error || e.message || 'Não foi possível excluir a conta. Tente novamente.');
     } finally {
       setDeleting(false);
     }
@@ -51,10 +52,13 @@ export default function DeleteAccountModal({ open, onOpenChange }) {
           <ul className="text-sm text-muted-foreground space-y-1.5 pl-1">
             <li className="flex gap-2"><span className="text-destructive">•</span> Seus dados de cadastro serão permanentemente apagados.</li>
             <li className="flex gap-2"><span className="text-destructive">•</span> Histórico de serviços e avaliações não poderão ser recuperados.</li>
-            <li className="flex gap-2"><span className="text-destructive">•</span> Você será desconectado e redirecionado para o login.</li>
+            <li className="flex gap-2"><span className="text-destructive">•</span> Você será desconectado e poderá iniciar o cadastro de chaveiro.</li>
           </ul>
           {error && (
-            <p className="text-sm text-destructive bg-destructive/10 rounded-lg px-3 py-2">{error}</p>
+            <div className="text-sm text-destructive bg-destructive/10 rounded-lg px-3 py-2">
+              <p>{error}</p>
+              {error.includes('sessão expirou') && <button type="button" className="mt-2 font-semibold underline" onClick={() => base44.auth.logout('/login?tipo=cliente&returnTo=' + encodeURIComponent('/?abrir-exclusao=1'))}>Entrar novamente para excluir</button>}
+            </div>
           )}
         </div>
         <DialogFooter>
