@@ -73,8 +73,20 @@ export default function Acompanhamento() {
         }
       })
     );
+    // Recupera atualizações perdidas quando o aparelho retorna do segundo plano.
+    const refreshPosition = () => {
+      if (document.visibilityState !== "visible") return;
+      base44.entities.ServiceRequest.get(requestId).then((latest) => {
+        if (latest?.status === "cancelled") { navigate("/", { replace: true }); return; }
+        if (latest) setRequest(latest);
+      }).catch(() => {});
+    };
+    const timer = setInterval(refreshPosition, 10000);
+    document.addEventListener("visibilitychange", refreshPosition);
     return () => {
       unsub();
+      clearInterval(timer);
+      document.removeEventListener("visibilitychange", refreshPosition);
       if (typeof promise?.then === "function") promise.then((u) => typeof u === "function" && u()).catch(() => {});
     };
   }, [requestId]);
