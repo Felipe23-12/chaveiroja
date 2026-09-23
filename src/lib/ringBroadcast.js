@@ -55,21 +55,33 @@ export async function acceptRing(requestId, locksmith) {
   // no backend (serviceTrust / accept_request) — o cliente não pode mais
   // pular essa checagem chamando o update direto.
   const queued = Boolean(state.active);
-  // Tenta atualizar a posição antes do aceite para a primeira rota usar o GPS atual.
-  // Se o GPS estiver indisponível, mantém o fluxo de aceite e o rastreamento
-  // atualizará o mapa assim que o aparelho entregar uma posição válida.
-  if (!queued && navigator.geolocation) {
-    try {
-      const position = await new Promise((resolve, reject) => navigator.geolocation.getCurrentPosition(
-        resolve, reject, { enableHighAccuracy: true, maximumAge: 0, timeout: 6000 }
-      ));
-      await base44.functions.invoke("serviceTrust", {
-        action: "locksmith_location", locksmith_id: locksmith.id,
-        lat: position.coords.latitude, lng: position.coords.longitude,
-      });
-    } catch (error) {
-      console.warn("GPS indisponível no aceite; aguardando primeira posição de rastreamento", error);
-    }
+  // O navegador solicita a permissão de localização ao chaveiro. Uma posição
+  // antiga do perfil não pode ser usada como origem da primeira rota.
+  if (!navigator.geolocation) return {
+    ok: false, code: "GPS_REQUIRED",
+    reason: "Ative a localização (GPS) do celular para aceitar o chamado e mostrar sua posição atual ao cliente. Depois toque em Aceitar novamente.",
+  };
+  let position;
+  try {
+    position = await new Promise((resolve, reject) => navigator.geolocation.getCurrentPosition(
+      resolve, reject, { enableHighAccuracy: true, maximumAge: 0, timeout: 12000 }
+    ));
+  } catch (error) {
+    return {
+      ok: false, code: "GPS_REQUIRED",
+      reason: error?.code === 1
+        ? "Permita o acesso à localização para o Chaveiro Já nas configurações do celular e toque em Aceitar novamente."
+        : "Ative a localização (GPS) do celular e toque em Aceitar novamente. Precisamos da sua posição atual para mostrar a rota ao cliente.",
+    };
+  }
+  try {
+    const { data } = await base44.functions.invoke("serviceTrust", {
+      action: "locksmith_location", locksmith_id: locksmith.id,
+      lat: position.coords.latitude, lng: position.coords.longitude,
+    });
+    if (data?.allowed === false) return { ok: false, code: "AREA_UNAVAILABLE", reason: "Sua localização atual está fora da área disponível para atendimento." };
+  } catch (error) {
+    return { ok: false, code: "GPS_SYNC_FAILED", reason: error?.response?.data?.error || "Não foi possível confirmar sua posição. Verifique a conexão e tente novamente." };
   }
   let result;
   try {
