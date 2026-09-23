@@ -1,0 +1,41 @@
+{
+  "name": "Aviso WhatsApp/SMS Novo Chamado",
+  "description": "Ao criar um chamado, avisa o chaveiro por WhatsApp; se o n\u00famero n\u00e3o tiver WhatsApp, o aviso segue por SMS. N\u00e3o duplica avisos em reprocessamentos.",
+  "trigger": {
+    "config": {
+      "trigger_type": "entity",
+      "entity_name": "ServiceRequest",
+      "events": [
+        "create"
+      ]
+    },
+    "condition": "${ (((.trigger.data.ringing_locksmith_ids // []) | length) > 0 or (.trigger.data.locksmith_id // \"\") != \"\") and (.trigger.data.status == \"searching\" or .trigger.data.status == \"ringing\") }"
+  },
+  "definition": {
+    "document": {
+      "dsl": "1.0.0",
+      "name": "aviso_whatsapp_sms_novo_chamado",
+      "version": "1.0",
+      "namespace": "base44"
+    },
+    "do": [
+      {
+        "send_message": {
+          "call": "invoke_backend_function",
+          "with": {
+            "function_name": "notifyLocksmithNewRequestMessage",
+            "args": {
+              "_internal_token": "${ .secrets.INTERNAL_CALL_TOKEN }",
+              "service_request_id": "${ .trigger.entity_id }"
+            }
+          },
+          "then": "end",
+          "x-base44": {
+            "title": "Avisar chaveiro por WhatsApp/SMS",
+            "description": "SMS autom\u00e1tico se n\u00e3o houver WhatsApp"
+          }
+        }
+      }
+    ]
+  }
+}
