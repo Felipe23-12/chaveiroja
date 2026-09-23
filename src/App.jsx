@@ -74,7 +74,7 @@ const AuthenticatedApp = () => {
 
   // As telas públicas de entrada e o retorno OAuth precisam ficar acessíveis
   // mesmo quando uma sessão antiga falha na checagem inicial.
-  const authPaths = ['/login', '/register', '/forgot-password', '/reset-password', '/cadastro/cliente', '/cadastro/chaveiro', '/auth/google-return'];
+  const authPaths = ['/login', '/login/cliente', '/login/chaveiro', '/register', '/forgot-password', '/reset-password', '/cadastro/cliente', '/cadastro/chaveiro', '/auth/google-return'];
   if (authError && !authPaths.includes(window.location.pathname)) {
     if (authError.type === 'user_not_registered') return <UserNotRegisteredError />;
     if (authError.type === 'auth_required') {
@@ -88,6 +88,8 @@ const AuthenticatedApp = () => {
     <Suspense fallback={<PageFallback />}>
       <Routes>
         <Route path="/login" element={<Login />} />
+        <Route path="/login/cliente" element={<Login />} />
+        <Route path="/login/chaveiro" element={<Login />} />
         <Route path="/register" element={<Register />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/reset-password" element={<ResetPassword />} />

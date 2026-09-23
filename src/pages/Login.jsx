@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -26,8 +26,9 @@ export default function Login() {
   const [rememberMe, setRememberMe] = useState(true);
   const [verificationEmail, setVerificationEmail] = useState("");
   const googleRetryStarted = useRef(false);
+  const location = useLocation();
   const returnTo = safeReturnTo();
-  const selectedType = new URLSearchParams(window.location.search).get('tipo');
+  const selectedType = location.pathname === '/login/cliente' ? 'cliente' : location.pathname === '/login/chaveiro' ? 'chaveiro' : new URLSearchParams(location.search).get('tipo');
   const professional = selectedType === 'chaveiro' || (!selectedType && ['/painel-chaveiro', '/cadastro/recebimentos', '/modo-trabalho', '/painel-financeiro'].includes(returnTo.split('?')[0]));
 
   const completeLogin = async (passwordAuthenticated = false) => {
@@ -110,7 +111,7 @@ export default function Login() {
         <Link to={'/cadastro/cliente' + (returnTo !== '/' ? '?returnTo=' + encodeURIComponent(returnTo) : '')} className="text-primary font-medium hover:underline">Cadastre-se</Link>
       </>}
     >
-      <div className="mb-5 grid grid-cols-2 gap-2"><Link to={'/login?tipo=cliente&returnTo=' + encodeURIComponent(professional ? '/' : returnTo)} className={`rounded-lg border p-3 text-center text-sm ${!professional ? 'border-primary bg-primary/10' : 'border-border'}`}>Sou cliente</Link><Link to={'/login?tipo=chaveiro&returnTo=' + encodeURIComponent(professional ? returnTo : '/')} className={`rounded-lg border p-3 text-center text-sm ${professional ? 'border-primary bg-primary/10' : 'border-border'}`}>Sou chaveiro</Link></div>
+      <div className="mb-5 grid grid-cols-2 gap-2"><Link to={'/login/cliente?returnTo=' + encodeURIComponent(professional ? '/' : returnTo)} className={`rounded-lg border p-3 text-center text-sm ${!professional ? 'border-primary bg-primary/10' : 'border-border'}`}>Sou cliente</Link><Link to={'/login/chaveiro?returnTo=' + encodeURIComponent(professional ? returnTo : '/')} className={`rounded-lg border p-3 text-center text-sm ${professional ? 'border-primary bg-primary/10' : 'border-border'}`}>Sou chaveiro</Link></div>
       {!professional && <><Button
         variant="outline"
         className="w-full h-12 text-sm font-medium mb-6"
