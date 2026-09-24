@@ -441,8 +441,13 @@ export default async function(req) {
       const queued = await base44.asServiceRole.entities.ServiceRequest.filter({ locksmith_id: locksmith.id, status: 'queued' }, 'accepted_at', 1);
       if (!queued.length) return Response.json({ request: null });
       if (queued[0].locksmith_user_id !== user.id) return Response.json({ error: 'Atendimento não autorizado.' }, { status: 403 });
+      const lat = Number(body.lat);
+      const lng = Number(body.lng);
+      const hasCurrentLocation = Number.isFinite(lat) && Number.isFinite(lng) && Math.abs(lat) <= 90 && Math.abs(lng) <= 180;
       const updated = await base44.asServiceRole.entities.ServiceRequest.update(queued[0].id, {
-        status: 'on_the_way', locksmith_lat: locksmith.lat, locksmith_lng: locksmith.lng,
+        status: 'on_the_way',
+        locksmith_lat: hasCurrentLocation ? lat : locksmith.lat,
+        locksmith_lng: hasCurrentLocation ? lng : locksmith.lng,
       });
       return Response.json({ request: updated });
     }
