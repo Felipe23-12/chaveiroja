@@ -5,7 +5,7 @@ import { pricingCalendar, pricingFactors, adjustedCharge } from './servicePricin
 import { pricingWeather } from './serviceWeather.ts';
 import { regionalPriceForLocation } from './regionalServicePricing.ts';
 import { currentVehicleCatalog, catalogKeyPrice } from './catalogServicePricing.ts';
-import { vehicleFipeRate } from './vehicleFipeRates.ts';
+import { vehicleFipeRate, matchingVehicleRule, vehicleManualKeyPrice } from './vehicleFipeRates.ts';
 import { isAreaAvailable } from './serviceAreas.ts';
 import { requireServiceCoverage } from './serviceCoverage.ts';
 
@@ -85,13 +85,14 @@ async function carKeyPrice(base44, userId, data, inputs, factors, distanceFee, s
   const keyType = ['simples', 'canivete', 'telecomando', 'presenca'].includes(data.key_type) ? data.key_type : 'simples';
   const keyOrigin = inputs.key_origin === 'paralela' ? 'paralela' : 'original';
   if (keyOrigin === 'paralela' && !catalog) throw new Error('Catálogo da chave paralela é obrigatório');
-  const keyValue = await catalogKeyPrice(base44, catalog, quote.keyValue, keyType, keyOrigin, settings, year);
+  const manualKey = vehicleManualKeyPrice(matchingVehicleRule(make, model, year, vehicleFipeRates), keyType, keyOrigin);
+  const keyValue = manualKey ?? await catalogKeyPrice(base44, catalog, quote.keyValue, keyType, keyOrigin, settings, year);
   const coded = catalog?.transponder_status === 'presente' || (catalog?.transponder_status !== 'ausente' && quote.hasCodedKey);
-  if (keyOrigin === 'paralela' && keyValue <= 0) throw new Error('Preço da chave paralela não confirmado no catálogo');
+  if (keyOrigin === 'paralela' && keyValue <= 0 && manualKey === null) throw new Error('Preço da chave paralela não confirmado no catálogo');
   const fipeRate = vehicleFipeRate(make, model, year, coded, settings, vehicleFipeRates);
   const labor = round(fipe * fipeRate.percent / 100 + (keyType === 'simples' ? settings.simple_fixed : 0));
   const adjusted = adjustedCharge(labor, factors, `Mão de obra: ${fipeRate.percent}% da FIPE${fipeRate.label ? ` (${fipeRate.label})` : ''}${keyType === 'simples' ? ` + R$ ${settings.simple_fixed.toFixed(2)} (chave simples)` : ''}`);
-  const manualSimple = keyOrigin === 'paralela' ? Number(catalog?.parallel_simple_price) > 0 : !!catalog?.manual_price_updated_at && Number(catalog?.original_price) > 0;
+  const manualSimple = manualKey !== null || (keyOrigin === 'paralela' ? Number(catalog?.parallel_simple_price) > 0 : !!catalog?.manual_price_updated_at && Number(catalog?.original_price) > 0);
   const chargedKey = keyType === 'simples' && !manualSimple ? 0 : keyValue;
   const onlineFee = serverProgrammingFee(make, model, year, settings);
   const complexityFee = vehicleComplexity(make, model, year, settings);
