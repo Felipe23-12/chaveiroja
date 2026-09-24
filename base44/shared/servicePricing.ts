@@ -84,10 +84,10 @@ async function carKeyPrice(base44, userId, data, inputs, factors, distanceFee, s
   const fipe = quote.fipeValue;
   const keyType = ['simples', 'canivete', 'telecomando', 'presenca'].includes(data.key_type) ? data.key_type : 'simples';
   const keyOrigin = inputs.key_origin === 'paralela' ? 'paralela' : 'original';
-  if (keyOrigin === 'paralela' && !catalog) throw new Error('Catálogo da chave paralela é obrigatório');
   const vehicleRule = matchingVehicleRule(make, model, year, vehicleFipeRates);
   if (vehicleKeyUnavailable(vehicleRule, keyType, keyOrigin)) throw new Error('Esta opção de chave está indisponível para o veículo e ano selecionados. Escolha outra opção.');
   const manualKey = vehicleManualKeyPrice(vehicleRule, keyType, keyOrigin);
+  if (keyOrigin === 'paralela' && !catalog && manualKey === null) throw new Error('Catálogo da chave paralela é obrigatório quando não há preço manual para este veículo.');
   const keyValue = manualKey ?? await catalogKeyPrice(base44, catalog, quote.keyValue, keyType, keyOrigin, settings, year);
   const coded = catalog?.transponder_status === 'presente' || (catalog?.transponder_status !== 'ausente' && quote.hasCodedKey);
   if (keyOrigin === 'paralela' && keyValue <= 0 && manualKey === null) throw new Error('Preço da chave paralela não confirmado no catálogo');
