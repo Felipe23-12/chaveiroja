@@ -52,6 +52,7 @@ const Contact = lazy(() => import('@/pages/Contact'));
 const CalculosChamados = lazy(() => import('@/pages/CalculosChamados'));
 const QuoteMode = lazy(() => import('@/pages/QuoteMode'));
 const Sugestoes = lazy(() => import('@/pages/Sugestoes'));
+const MeusDados = lazy(() => import('@/pages/MeusDados'));
 // Add page imports here
 
 const PageFallback = () => (
@@ -108,6 +109,7 @@ const AuthenticatedApp = () => {
           <Route element={<ModerationBlockGate />}>
           <Route path="/criar-senha" element={<CreatePassword />} />
           <Route element={<PasswordCreationGuard />}>
+          <Route path="/meus-dados" element={<MeusDados />} />
           <Route element={<ProfileCompletionGuard />}>
           <Route path="/aceite-termos" element={<AceiteTermos />} />
           <Route element={<TermsGate />}>

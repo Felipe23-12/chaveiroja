@@ -13,6 +13,5 @@ export default function ProfileCompletionGuard() {
 
   if (cpfOk && phoneOk) return <Outlet />;
 
-  const tipo = user.account_type === "chaveiro" ? "chaveiro" : "cliente";
-  return <Navigate to={`/google-complete?tipo=${tipo}`} replace />;
+  return <Navigate to="/meus-dados#cpf" replace />;
 }

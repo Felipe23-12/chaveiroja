@@ -68,6 +68,7 @@ import useLocksmithCoverage from '@/hooks/useLocksmithCoverage';
 import { isAreaAvailable } from '@/lib/serviceAreas';
 import { QUOTE_MODE_ENABLED } from '@/lib/quoteMode';
 import { claimCpf } from '@/lib/cpfRegistration';
+import { isValidCpf } from '@/lib/cpf';
 
 // Raio de cobertura para considerar um pedido "na região" do chaveiro (km)
 const REGION_RADIUS_KM = 15;
@@ -567,7 +568,14 @@ export default function PainelChaveiro() {
     acceptingRequest.current = true;
     setAcceptError(null);
     try {
-      if (user?.role !== 'admin') await claimCpf(user.cpf);
+      if (user?.role !== 'admin') {
+        const fresh = await base44.auth.me();
+        if (!isValidCpf(fresh.cpf)) {
+          setAcceptError({ reason: 'CPF pendente. Preencha em Meus dados antes de aceitar chamados.' });
+          return;
+        }
+        await claimCpf(fresh.cpf);
+      }
       const result = await acceptRing(reqId, me);
       if (!result.ok) { setAcceptError(result); return; }
       setPendingRequests((prev) => prev.filter((r) => r.id !== reqId));
@@ -926,6 +934,10 @@ export default function PainelChaveiro() {
         );
       })()}
 
+      {user?.role !== 'admin' && !isValidCpf(user?.cpf) && <div className="mb-4 rounded-xl border border-warning/40 bg-warning/10 p-4 space-y-2">
+        <p className="text-sm font-medium">CPF pendente: conclua seu cadastro para aceitar chamados.</p>
+        <Button asChild variant="outline"><Link to="/meus-dados#cpf">Preencher CPF</Link></Button>
+      </div>}
       {me && <div className="mb-4"><CoverageNotice location={{ lat: me.lat, lng: me.lng }} locksmith /></div>}
       {me && isAppMode && <LocksmithScoreCard score={trustScore} />}
 

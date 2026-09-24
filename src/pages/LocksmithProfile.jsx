@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from "react";
+import { Link } from "react-router-dom";
+import { isValidCpf } from "@/lib/cpf";
 import { base44 } from "@/api/base44Client";
 import { fetchMyLocksmith, preserveFinancials } from "@/lib/myLocksmith";
 import { Briefcase, Check, Loader2, Wallet, Percent, Power } from "lucide-react";
@@ -115,6 +117,12 @@ export default function LocksmithProfile() {
           <h1 className="font-heading font-bold text-2xl text-foreground">Modo de Trabalho</h1>
           <p className="text-sm text-muted-foreground">Defina como você atende pelo app</p>
         </div>
+      </div>
+
+      <div className="mb-5 rounded-xl border border-border bg-card p-4 space-y-2">
+        <h2 className="font-heading font-semibold">Conclusão de cadastro · CPF</h2>
+        <p className="text-sm text-muted-foreground">{isValidCpf(me?.cpf) ? 'CPF já cadastrado e disponível para aceitar chamados.' : 'Falta validar seu CPF para aceitar chamados.'}</p>
+        <Button asChild variant="outline"><Link to="/meus-dados#cpf">{isValidCpf(me?.cpf) ? 'Ver meus dados' : 'Preencher CPF'}</Link></Button>
       </div>
 
       {/* Sem perfil de chaveiro vinculado — criação do perfil */}

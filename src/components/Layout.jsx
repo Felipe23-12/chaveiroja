@@ -27,6 +27,7 @@ const ALL_NAV = [
   { label: "Painel Chaveiro", path: "/painel-chaveiro", icon: RadioTower, roles: ["chaveiro"] },
   { label: "Financeiro", path: "/painel-financeiro", icon: Wallet, roles: ["chaveiro"] },
   { label: "Modo de Trabalho", path: "/modo-trabalho", icon: Briefcase, roles: ["chaveiro"] },
+  { label: "Meus dados", path: "/meus-dados", icon: User, roles: ["cliente", "chaveiro"] },
   { label: "Painel Admin", path: "/painel-admin", icon: ShieldCheck, roles: ["admin"] },
   { label: "Financeiro (Admin)", path: "/painel-financeiro-admin", icon: Landmark, roles: ["admin"] },
   { label: "Sugestões e problemas", path: "/sugestoes", icon: MessageSquare, roles: ["cliente", "chaveiro", "admin"] },
@@ -110,7 +111,7 @@ function SidebarContent({ onNavigate }) {
               )}
             </button>
             <div className="min-w-0 flex-1">
-              <p className="text-xs font-medium text-foreground truncate">{user.full_name || user.email}</p>
+              <p className="text-xs font-medium text-foreground truncate">{user.legal_name || user.full_name || user.email}</p>
               <p className="text-[10px] text-muted-foreground">{roleLabel}</p>
             </div>
             <DarkModeToggle />
