@@ -433,6 +433,20 @@ export default async function(req) {
       return Response.json({ success: true, request: updated });
     }
 
+    if (action === 'start_next_queued') {
+      const locksmith = await base44.asServiceRole.entities.Locksmith.get(body.locksmith_id).catch(() => null);
+      if (!locksmith || locksmith.created_by_id !== user.id) return Response.json({ error: 'Perfil de chaveiro não autorizado.' }, { status: 403 });
+      const active = await base44.asServiceRole.entities.ServiceRequest.filter({ locksmith_id: locksmith.id, status: { $in: ['accepted', 'on_the_way'] } }, 'accepted_at', 1);
+      if (active.length) return Response.json({ request: null });
+      const queued = await base44.asServiceRole.entities.ServiceRequest.filter({ locksmith_id: locksmith.id, status: 'queued' }, 'accepted_at', 1);
+      if (!queued.length) return Response.json({ request: null });
+      if (queued[0].locksmith_user_id !== user.id) return Response.json({ error: 'Atendimento não autorizado.' }, { status: 403 });
+      const updated = await base44.asServiceRole.entities.ServiceRequest.update(queued[0].id, {
+        status: 'on_the_way', locksmith_lat: locksmith.lat, locksmith_lng: locksmith.lng,
+      });
+      return Response.json({ request: updated });
+    }
+
     if (action === 'accept_request') {
       // O aceite não autoriza o chaveiro a alterar unilateralmente o preço do cliente.
       if (body.extra !== undefined && (typeof body.extra !== 'number' || !Number.isFinite(body.extra) || body.extra !== 0)) return Response.json({ error: 'Custos adicionais não podem ser cobrados no aceite do chamado.' }, { status: 400 });
