@@ -14,6 +14,10 @@ export default async function(req) {
     if (!user) return Response.json({ error: 'Não autenticado' }, { status: 401 });
 
     const body = await req.json().catch(() => ({}));
+    if (body.action === 'status') {
+      const linked = await verifiedCpf(base44, user.id);
+      return Response.json({ linked: Boolean(linked && linked === onlyDigits(user.cpf)) });
+    }
     const cpf = onlyDigits(body.cpf);
     if (!isValidCpf(cpf)) {
       return Response.json({ error: 'CPF inválido — confira os números digitados' }, { status: 400 });
