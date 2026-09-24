@@ -23,7 +23,7 @@ export default function PricingSettingsEditor({ service, onServices, onDirty }) 
       const numeric = Object.fromEntries(Object.entries(values).map(([k, v]) => [k, v === '' ? null : Number(v)]));
       const rates = vehicleRates.map(rule => {
         const numericValue = value => value === '' || value == null ? null : Number(value);
-        return { ...rule, year_start: numericValue(rule.year_start ?? rule.year), year_end: numericValue(rule.year_end ?? rule.year), percent: numericValue(rule.percent), ...Object.fromEntries(['original_price', 'parallel_simple_price', 'parallel_flip_price', 'parallel_proximity_price'].map(key => [key, numericValue(rule[key])])) };
+        return { ...rule, year_start: numericValue(rule.year_start ?? rule.year), year_end: numericValue(rule.year_end ?? rule.year), percent: numericValue(rule.percent), ...Object.fromEntries(['simple_price', 'original_flip_price', 'parallel_flip_price', 'original_proximity_price', 'parallel_proximity_price'].map(key => [key, numericValue(rule[key])])) };
       });
       const res = await base44.functions.invoke('manageServicePricing', { action: 'save', service_type: service, values: numeric, vehicle_fipe_rates: rates, version: data.version });
       setData(res.data); setValues(res.data.values); setVehicleRates(res.data.vehicle_fipe_rates || []); onDirty(false); setMessage('Tabela salva. Os próximos cálculos deste serviço já usarão os novos valores.');
