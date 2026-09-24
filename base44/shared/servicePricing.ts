@@ -5,7 +5,7 @@ import { pricingCalendar, pricingFactors, adjustedCharge } from './servicePricin
 import { pricingWeather } from './serviceWeather.ts';
 import { regionalPriceForLocation } from './regionalServicePricing.ts';
 import { currentVehicleCatalog, catalogKeyPrice } from './catalogServicePricing.ts';
-import { vehicleFipeRate, matchingVehicleRule, vehicleManualKeyPrice } from './vehicleFipeRates.ts';
+import { vehicleFipeRate, matchingVehicleRule, vehicleManualKeyPrice, vehicleKeyUnavailable } from './vehicleFipeRates.ts';
 import { isAreaAvailable } from './serviceAreas.ts';
 import { requireServiceCoverage } from './serviceCoverage.ts';
 
@@ -85,7 +85,9 @@ async function carKeyPrice(base44, userId, data, inputs, factors, distanceFee, s
   const keyType = ['simples', 'canivete', 'telecomando', 'presenca'].includes(data.key_type) ? data.key_type : 'simples';
   const keyOrigin = inputs.key_origin === 'paralela' ? 'paralela' : 'original';
   if (keyOrigin === 'paralela' && !catalog) throw new Error('Catálogo da chave paralela é obrigatório');
-  const manualKey = vehicleManualKeyPrice(matchingVehicleRule(make, model, year, vehicleFipeRates), keyType, keyOrigin);
+  const vehicleRule = matchingVehicleRule(make, model, year, vehicleFipeRates);
+  if (vehicleKeyUnavailable(vehicleRule, keyType, keyOrigin)) throw new Error('Esta opção de chave está indisponível para o veículo e ano selecionados. Escolha outra opção.');
+  const manualKey = vehicleManualKeyPrice(vehicleRule, keyType, keyOrigin);
   const keyValue = manualKey ?? await catalogKeyPrice(base44, catalog, quote.keyValue, keyType, keyOrigin, settings, year);
   const coded = catalog?.transponder_status === 'presente' || (catalog?.transponder_status !== 'ausente' && quote.hasCodedKey);
   if (keyOrigin === 'paralela' && keyValue <= 0 && manualKey === null) throw new Error('Preço da chave paralela não confirmado no catálogo');
