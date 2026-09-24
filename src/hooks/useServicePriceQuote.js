@@ -1,7 +1,10 @@
 import { useEffect, useState } from "react";
 import { base44 } from "@/api/base44Client";
+import useServiceCoverage from '@/hooks/useServiceCoverage';
 
-export default function useServicePriceQuote(data, enabled, revision = 0) {
+export default function useServicePriceQuote(data, requested, revision = 0) {
+  const coverage = useServiceCoverage({ lat: data.customer_lat, lng: data.customer_lng }, data.coordinates_confirmed);
+  const enabled = requested && coverage.allowed;
   const key = JSON.stringify(data);
   const [state, setState] = useState(null);
   const [retry, setRetry] = useState(0);

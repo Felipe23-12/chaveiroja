@@ -7,6 +7,7 @@ import PriceSummary from "./PriceSummary";
 import AddressAutocomplete from "./AddressAutocomplete";
 import { MOTO_BRANDS, MOTO_MODELS, MOTO_KEY_TYPES, getMotoModel } from "@/lib/motoKey";
 import KeyOriginSelector from "./KeyOriginSelector";
+import { useServiceQuoteScope } from '@/components/location/ServiceQuoteScope';
 
 function Chip({ active, onClick, children }) {
   return (
@@ -41,6 +42,7 @@ export default function MotoKeyConfig({
   nearestDistance,
   assumedNearby = false,
 }) {
+  const { allowed } = useServiceQuoteScope();
   const update = (field, value) => setMotoInfo((v) => ({ ...v, [field]: value }));
   const models = MOTO_MODELS[motoInfo.brandId] || [];
   const model = getMotoModel(motoInfo.brandId, motoInfo.modelId);
@@ -151,7 +153,7 @@ export default function MotoKeyConfig({
         />
       </div>
 
-      {showPriceBeforeAcceptance ? <PriceSummary price={price} service={calculationService || service} showCalculationDetails nearestDistance={nearestDistance} assumedNearby={assumedNearby} /> : <KeyServicePrice pending />}
+      {!allowed ? null : showPriceBeforeAcceptance ? <PriceSummary price={price} service={calculationService || service} showCalculationDetails nearestDistance={nearestDistance} assumedNearby={assumedNearby} /> : <KeyServicePrice pending />}
     </div>
   );
 }

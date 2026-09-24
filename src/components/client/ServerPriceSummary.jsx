@@ -1,8 +1,10 @@
 import React from "react";
+import { useServiceQuoteScope } from '@/components/location/ServiceQuoteScope';
 const money = (value) => Number(value || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
 export default function ServerPriceSummary({ pricing, showDetails = false }) {
-  if (!pricing) return null;
+  const { allowed } = useServiceQuoteScope();
+  if (!allowed || !pricing) return null;
   return <div className="rounded-2xl bg-muted p-4 space-y-3">
     <div className="flex justify-between items-center gap-3">
       <span className="font-heading font-semibold">Valor do serviço</span>

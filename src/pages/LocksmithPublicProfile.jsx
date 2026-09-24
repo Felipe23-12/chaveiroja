@@ -3,7 +3,10 @@ import { useParams, useNavigate } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
 import { ArrowLeft, Star, MessageCircle, MapPin, Wrench } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { haversineKm, DEFAULT_CENTER, getCustomerLocation } from "@/lib/geo";
+import { haversineKm } from "@/lib/geo";
+import { useServiceQuoteScope } from '@/components/location/ServiceQuoteScope';
+import useServiceCoverage from '@/hooks/useServiceCoverage';
+import CoverageNotice from '@/components/location/CoverageNotice';
 import LocksmithCredentialsTabs from "@/components/locksmith/LocksmithCredentialsTabs";
 import ReviewsList from "@/components/locksmith/ReviewsList";
 import RatingSummary from "@/components/locksmith/RatingSummary";
@@ -16,7 +19,8 @@ export default function LocksmithPublicProfile() {
   const { id } = useParams();
   const navigate = useNavigate();
   const [locksmith, setLocksmith] = useState(null);
-  const [center, setCenter] = useState(DEFAULT_CENTER);
+  const { location: center, allowed } = useServiceQuoteScope();
+  const providerCoverage = useServiceCoverage(locksmith, Boolean(locksmith));
   const [offline, setOffline] = useState(false);
   const { blockedIds, loading: blocksLoading } = useBlockedUsers();
 
@@ -34,7 +38,6 @@ export default function LocksmithPublicProfile() {
           setOffline(true);
         }
       });
-    getCustomerLocation().then(setCenter);
   }, [id]);
 
   if (!locksmith || blocksLoading) {
@@ -50,6 +53,7 @@ export default function LocksmithPublicProfile() {
     </div>
   );
 
+  if (!allowed || !providerCoverage.allowed || offline) return <div className="p-4"><CoverageNotice location={allowed ? locksmith : center} known={!offline && allowed} /></div>;
   const dist = haversineKm(center, { lat: locksmith.lat, lng: locksmith.lng });
   const isLivre = locksmith.work_mode === "livre";
 
@@ -103,7 +107,7 @@ export default function LocksmithPublicProfile() {
       </div>
 
       {isLivre ? (
-        <Button onClick={() => navigate(`/chat/${locksmith.id}`)} className="w-full mb-6">
+        <Button onClick={() => navigate(`/chat/${locksmith.id}`, { state: { serviceLocation: center } })} className="w-full mb-6">
           <MessageCircle className="w-4 h-4 mr-2" /> Conversar no chat
         </Button>
       ) : (

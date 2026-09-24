@@ -3,9 +3,11 @@ import { Info } from "lucide-react";
 import AdminPricePreview from "@/components/admin/AdminPricePreview";
 import DynamicPriceFactors from "@/components/locksmith/DynamicPriceFactors";
 import ServerPriceSummary from "@/components/client/ServerPriceSummary";
+import { useServiceQuoteScope } from '@/components/location/ServiceQuoteScope';
 
 export default function PriceSummary({ price, showCalculationDetails = false, service = null, nearestDistance, assumedNearby = false }) {
-  if (!price) return null;
+  const { allowed } = useServiceQuoteScope();
+  if (!allowed || !price) return null;
   if (price.serverPricing) return <ServerPriceSummary pricing={price.serverPricing} showDetails={showCalculationDetails} />;
   return (
     <div className="space-y-3">

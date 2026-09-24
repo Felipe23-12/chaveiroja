@@ -7,12 +7,12 @@ import AddressAutocomplete from "@/components/locksmith/AddressAutocomplete";
  * bairro ou rua, recentralizando o mapa no local pesquisado.
  * Sem busca ativa, o mapa segue usando a localização automática (proximidade).
  */
-export default function MapLocationSearch({ label, location, onSelect, onClear }) {
+export default function MapLocationSearch({ label, location, onSelect, onClear, onEdit }) {
   return (
     <div className="space-y-1.5">
       <AddressAutocomplete
         value={label}
-        onChange={(v) => { if (!v) onClear(); }}
+        onChange={(v) => { if (onEdit) onEdit(v); else if (!v) onClear(); }}
         onSelect={({ address, label: placeLabel, lat, lng }) => onSelect({ address: placeLabel || address, lat, lng })}
                  placeholder="Buscar rua, bairro ou estabelecimento…"
                  includePlaces

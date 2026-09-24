@@ -1,4 +1,5 @@
 import React from "react";
+import { useServiceQuoteScope } from '@/components/location/ServiceQuoteScope';
 import { MapPin } from "lucide-react";
 
 const brl = (v) => `R$ ${Number(v || 0).toFixed(2)}`;
@@ -8,7 +9,8 @@ const brl = (v) => `R$ ${Number(v || 0).toFixed(2)}`;
  * a faixa de valores observada, com o aviso obrigatório de que é referência.
  */
 export default function RegionalPriceNotice({ regional }) {
-  if (!regional?.reference) return null;
+  const { allowed } = useServiceQuoteScope();
+  if (!allowed || !regional?.reference) return null;
   const r = regional.reference;
 
   return (

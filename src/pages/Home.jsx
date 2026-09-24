@@ -68,6 +68,8 @@ import { useAuth } from '@/lib/AuthContext';
 import { clientRegistrationComplete, clientCompletionUrl } from '@/lib/clientRegistration';
 import IncompleteClientNotice from '@/components/client/IncompleteClientNotice';
 import { claimCpf } from '@/lib/cpfRegistration';
+import useServiceCoverage from '@/hooks/useServiceCoverage';
+import { AREA_UNAVAILABLE } from '@/lib/serviceAreas';
 
 export default function Home() {
   const { user } = useAuth();
@@ -133,6 +135,7 @@ export default function Home() {
 
   const [customerLoc, setCustomerLoc] = useState(DEFAULT_CENTER);
   const gps = usePreciseLocation();
+  const serviceCoverage = useServiceCoverage(customerLoc, locationContext.coordinates_confirmed);
   const appLocksmiths = useLiveLocksmiths();
   const [activeRequestsCount, setActiveRequestsCount] = useState(0);
   const [activeRequest, setActiveRequest] = useState(null);
@@ -217,7 +220,7 @@ export default function Home() {
 
   // Faixa de referência do estado/capital mais próximo (ajustada pela distância
   // até a capital: perto = médias maiores, longe = médias menores)
-  const regional = useRegionalPriceRange(serviceId, customerLoc.lat, customerLoc.lng);
+  const regional = useRegionalPriceRange(serviceId, customerLoc.lat, customerLoc.lng, locationContext.coordinates_confirmed);
 
   // Serviço usado no cálculo: para moto, a faixa vem da tabela de regras;
   // para os serviços de abertura, a faixa vem da referência regional.
@@ -463,6 +466,7 @@ export default function Home() {
   };
 
   const handleSearchKey = async () => {
+    if (!serviceCoverage.allowed) { setSearchError(AREA_UNAVAILABLE); return; }
     if (programming?.dealerOnly) {
       setSearchError(programming.reason);
       return;
@@ -475,7 +479,7 @@ export default function Home() {
     setSearchError("");
     try {
       const [res, catalog] = await Promise.all([
-        searchFipeAndKeyValue(vehicleInfo.make, vehicleInfo.model, vehicleInfo.year),
+        searchFipeAndKeyValue(vehicleInfo.make, vehicleInfo.model, vehicleInfo.year, customerLoc),
         findVehicleKeyCatalog(vehicleInfo.make, vehicleInfo.model, vehicleInfo.year, "carro"),
       ]);
       setKeyCatalog(catalog);
@@ -502,6 +506,7 @@ export default function Home() {
   const pricingData = {
     service_type: service?.label, address, urgency,
     customer_lat: customerLoc.lat, customer_lng: customerLoc.lng,
+    coordinates_confirmed: locationContext.coordinates_confirmed === true,
     key_type: service?.isMotoKey ? motoInfo.keyType : carKeyType,
     discount_applied: loyalty?.available > 0,
     pricing_inputs: {
@@ -519,6 +524,7 @@ export default function Home() {
 
   // A prévia e o envio usam o mesmo cálculo; alterações exigem nova confirmação.
   const handleConfirmConfig = async (confirmedPricing) => {
+    if (!serviceCoverage.allowed) { setSearchError(AREA_UNAVAILABLE); return; }
     if (!clientRegistrationComplete(user)) { navigate(clientCompletionUrl(serviceId)); return; }
     if (!address || submitting || !confirmedPricing) return;
     const expectedPrice = confirmedPricing.price;

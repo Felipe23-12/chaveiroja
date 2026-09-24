@@ -19,6 +19,7 @@ export default function usePreciseLocation() {
       return;
     }
     setStatus("locating");
+    setHasFix(false);
     setError("");
     const watchId = navigator.geolocation.watchPosition(
       (position) => {
@@ -29,6 +30,7 @@ export default function usePreciseLocation() {
         setHasFix(true);
       },
       (reason) => {
+        setHasFix(false);
         setStatus("fallback");
         setError(locationErrorMessage(reason));
       },

@@ -11,6 +11,7 @@ import { CAR_KEY_TYPES, getCarKeyComplexityFee, getCarKeyComplexityLabel, isLand
 import CarKeyProgrammingNotice from "./CarKeyProgrammingNotice";
 import VehicleMakeModelFields from "./VehicleMakeModelFields";
 import KeyOriginSelector from "./KeyOriginSelector";
+import { useServiceQuoteScope } from '@/components/location/ServiceQuoteScope';
 
 export default function CarKeyConfig({
   service,
@@ -36,6 +37,7 @@ export default function CarKeyConfig({
   hasCodedKey,
   showPriceBeforeAcceptance = false,
 }) {
+  const { allowed } = useServiceQuoteScope();
   const updateVehicle = (field, value) =>
     setVehicleInfo((v) => ({ ...v, [field]: value }));
 
@@ -98,7 +100,7 @@ export default function CarKeyConfig({
           </div>
         </div>
 
-        <Button type="button" variant="outline" onClick={onSearch} disabled={searching || programming?.dealerOnly} className="w-full">
+        <Button type="button" variant="outline" onClick={onSearch} disabled={!allowed || searching || programming?.dealerOnly} className="w-full">
           {searching ? (
             <>
               <Loader2 className="w-4 h-4 mr-2 animate-spin" /> Consultando disponibilidade...
@@ -113,7 +115,7 @@ export default function CarKeyConfig({
       </div>
 
       {/* O sistema calcula o serviço sem expor o valor antes do aceite. */}
-      {fipeValue != null && !programming?.dealerOnly && (
+      {allowed && fipeValue != null && !programming?.dealerOnly && (
         <div className="p-4 rounded-xl border border-border bg-muted/40 text-center">
           <p className="text-sm font-medium text-foreground">Veículo e chave consultados</p>
           <p className="text-xs text-muted-foreground mt-1">Disponibilidade confirmada para continuar o chamado.</p>
@@ -125,12 +127,12 @@ export default function CarKeyConfig({
       )}
       <CarKeyProgrammingNotice programming={programming} hidePriceDetails />
 
-      {fipeValue != null && !programming?.dealerOnly && (
+      {allowed && fipeValue != null && !programming?.dealerOnly && (
         <KeyOriginSelector value={keyOrigin} onChange={setKeyOrigin} catalog={keyCatalog} keyType={carKeyType} hidePriceDetails />
       )}
 
       {/* Tipo de chave escolhido pelo cliente */}
-      {fipeValue != null && !programming?.dealerOnly && (
+      {allowed && fipeValue != null && !programming?.dealerOnly && (
         <div>
           <label className="text-sm font-medium text-foreground mb-1.5 block">Tipo de chave</label>
           <div className="grid grid-cols-1 gap-2">
@@ -173,7 +175,7 @@ export default function CarKeyConfig({
         />
       </div>
 
-      {programming?.dealerOnly ? null : showPriceBeforeAcceptance && price?.serverPricing ? <ServerPriceSummary pricing={price.serverPricing} showDetails /> : showPriceBeforeAcceptance ? (
+      {!allowed || programming?.dealerOnly ? null : showPriceBeforeAcceptance && price?.serverPricing ? <ServerPriceSummary pricing={price.serverPricing} showDetails /> : showPriceBeforeAcceptance ? (
         <CarKeyCalculationDetails
           price={price}
           fipeValue={fipeValue}

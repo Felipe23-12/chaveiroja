@@ -18,6 +18,9 @@ import { hideChatMessage, hideChatConversation, loadHiddenMessageIds } from "@/l
 import { containsLink } from "@/lib/chatMessageValidation";
 import { markChatConversationRead } from "@/lib/chatReadState";
 import { useToast } from "@/components/ui/use-toast";
+import { useServiceQuoteScope } from '@/components/location/ServiceQuoteScope';
+import useServiceCoverage from '@/hooks/useServiceCoverage';
+import CoverageNotice from '@/components/location/CoverageNotice';
 
 export default function Chat() {
   const { locksmithId } = useParams();
@@ -27,6 +30,9 @@ export default function Chat() {
   const { debt } = useClientDebt();
   const { blockedIds, loading: blocksLoading } = useBlockedUsers();
   const [locksmith, setLocksmith] = useState(null);
+  const { allowed, location: serviceLocation } = useServiceQuoteScope();
+  const providerCoverage = useServiceCoverage(locksmith, Boolean(locksmith));
+  const contactAllowed = allowed && providerCoverage.allowed;
   const [messages, setMessages] = useState([]);
   const [text, setText] = useState("");
   const [sending, setSending] = useState(false);
@@ -68,7 +74,7 @@ export default function Chat() {
   const handleSend = async (e) => {
     e.preventDefault();
     const msg = text.trim();
-    if (!msg || sending || debt || blockedIds.has(locksmith?.created_by_id)) return;
+    if (!contactAllowed || !msg || sending || debt || blockedIds.has(locksmith?.created_by_id)) return;
     if (containsLink(msg)) {
       toast({ title: "Links não são permitidos", description: "Remova o link para enviar a mensagem.", variant: "destructive" });
       return;
@@ -83,6 +89,8 @@ export default function Chat() {
     ]);
     try {
       await base44.functions.invoke("sendChatMessage", {
+        customer_lat: serviceLocation?.lat,
+        customer_lng: serviceLocation?.lng,
         locksmith_id: locksmithId,
         locksmith_name: locksmith?.name,
         locksmith_user_id: locksmith?.created_by_id,
@@ -103,10 +111,12 @@ export default function Chat() {
   };
 
   const handlePhotoSend = async (photoUrl) => {
-    if (sending || debt || blockedIds.has(locksmith?.created_by_id)) return;
+    if (!contactAllowed || sending || debt || blockedIds.has(locksmith?.created_by_id)) return;
     setSending(true);
     try {
       await base44.functions.invoke("sendChatMessage", {
+        customer_lat: serviceLocation?.lat,
+        customer_lng: serviceLocation?.lng,
         locksmith_id: locksmithId,
         locksmith_name: locksmith?.name,
         locksmith_user_id: locksmith?.created_by_id,
@@ -123,7 +133,7 @@ export default function Chat() {
   };
 
   const handleQuickSend = async (msg) => {
-    if (sending || debt || blockedIds.has(locksmith?.created_by_id)) return;
+    if (!contactAllowed || sending || debt || blockedIds.has(locksmith?.created_by_id)) return;
     setSending(true);
     const tempId = `temp-${Date.now()}`;
     setPendingMessages((prev) => [
@@ -132,6 +142,8 @@ export default function Chat() {
     ]);
     try {
       await base44.functions.invoke("sendChatMessage", {
+        customer_lat: serviceLocation?.lat,
+        customer_lng: serviceLocation?.lng,
         locksmith_id: locksmithId,
         locksmith_name: locksmith?.name,
         locksmith_user_id: locksmith?.created_by_id,
@@ -168,6 +180,7 @@ export default function Chat() {
     }
   };
 
+  if (!contactAllowed) return <div className="p-4"><CoverageNotice location={allowed ? locksmith : serviceLocation} known={allowed && Boolean(locksmith)} /></div>;
   if (blocksLoading) return <div className="p-10 text-center text-muted-foreground">Carregando...</div>;
   const blocked = blockedIds.has(locksmith?.created_by_id);
   if (locksmith && blocked) return (

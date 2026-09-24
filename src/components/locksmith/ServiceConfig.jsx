@@ -7,6 +7,7 @@ import LocksConfig from "./LocksConfig";
 import VehicleMakeModelFields from "./VehicleMakeModelFields";
 import OpeningConditionQuestions from "@/components/client/OpeningConditionQuestions";
 import { isOpeningService } from "@/lib/pricing";
+import { useServiceQuoteScope } from '@/components/location/ServiceQuoteScope';
 
 export default function ServiceConfig({
   service,
@@ -33,6 +34,7 @@ export default function ServiceConfig({
   nearestDistance,
   assumedNearby = false,
 }) {
+  const { allowed } = useServiceQuoteScope();
   const vehicleReady = Boolean(
     (vehicleInfo?.make || "").trim() &&
       (vehicleInfo?.model || "").trim() &&
@@ -75,7 +77,7 @@ export default function ServiceConfig({
                     <span className="text-sm font-medium text-foreground flex-1">{opt.label}</span>
                     <span className="text-xs text-muted-foreground">Adicional após confirmação</span>
                   </label>
-                  {opt.price === "custom" && checked && (
+                  {allowed && opt.price === "custom" && checked && (
                     <div className="mt-2 pl-6">
                       <Input
                         type="number"

@@ -2,8 +2,11 @@ import React from "react";
 import { MapPin, Clock, Check, BadgeCheck } from "lucide-react";
 import { Image } from "@/components/ui/image";
 import RatingSummary from "@/components/locksmith/RatingSummary";
+import { useServiceQuoteScope } from '@/components/location/ServiceQuoteScope';
 
 export default function LocksmithCard({ locksmith, selected, onSelect, offeredPrice }) {
+  const { allowed } = useServiceQuoteScope();
+  if (!allowed) return null;
   const isFree = locksmith.work_mode === "livre";
   return (
     <button

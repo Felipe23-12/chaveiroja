@@ -6,7 +6,8 @@ import { pricingWeather } from './serviceWeather.ts';
 import { regionalPriceForLocation } from './regionalServicePricing.ts';
 import { currentVehicleCatalog, catalogKeyPrice } from './catalogServicePricing.ts';
 import { vehicleFipeRate } from './vehicleFipeRates.ts';
-import { loadServiceAreas, isAreaAvailable } from './serviceAreas.ts';
+import { isAreaAvailable } from './serviceAreas.ts';
+import { requireServiceCoverage } from './serviceCoverage.ts';
 
 const RULES = {
   'Abertura Residencial': { range: [80, 250], id: 'abertura_residencial' },
@@ -129,6 +130,7 @@ async function loyaltyAvailable(base44, userId) {
 }
 
 export async function calculateServerServicePrice(base44, userId, data) {
+  const permittedAreas = await requireServiceCoverage(base44, data.customer_lat, data.customer_lng);
   const rule = RULES[data.service_type];
   if (!rule) throw new Error('Serviço inválido');
   const inputs = data.pricing_inputs && typeof data.pricing_inputs === 'object' ? data.pricing_inputs : {};
@@ -145,7 +147,7 @@ export async function calculateServerServicePrice(base44, userId, data) {
 
     rule.fixed ? Promise.resolve({ key: null, label: 'Preço fixo: sem ajuste climático' }) : pricingWeather(data.customer_lat == null ? NaN : Number(data.customer_lat), data.customer_lng == null ? NaN : Number(data.customer_lng)),
     regionalPriceForLocation(base44, data.service_type, data.customer_lat, data.customer_lng),
-    loadServiceAreas(base44),
+    Promise.resolve(permittedAreas),
   ]);
   const online = profiles.filter(l => isAreaAvailable(areas, l.lat, l.lng));
   const settings = config.values;

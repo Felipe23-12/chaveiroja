@@ -1,11 +1,13 @@
 import React from "react";
 import { TrendingUp, TrendingDown, MapPin, Home, Zap, AlertTriangle, Gauge, CalendarClock, CloudRain } from "lucide-react";
 import WeatherSurgeNotice from "@/components/locksmith/WeatherSurgeNotice";
+import { useServiceQuoteScope } from '@/components/location/ServiceQuoteScope';
 
 // Exibe os fatores dinâmicos de precificação (oferta/demanda, região, bairro,
 // urgência) como badges informativas, além do aviso de taxa de distância.
 export default function DynamicPriceFactors({ price, nearestDistance, assumedNearby = false }) {
-  if (!price?.factors || price.factors.fixed) return null;
+  const { allowed } = useServiceQuoteScope();
+  if (!allowed || !price?.factors || price.factors.fixed) return null;
 
   const { factors } = price;
   const overThreshold = factors.distanceOverThreshold;

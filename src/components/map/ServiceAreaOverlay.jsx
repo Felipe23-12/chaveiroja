@@ -1,8 +1,8 @@
 import React, { useId } from 'react';
-import { useServiceAreas } from '@/lib/serviceAreas';
+import { useServiceAreas, validAreaGeometry } from '@/lib/serviceAreas';
 export default function ServiceAreaOverlay({ project, width, height, mode = 'standard' }) {
   const { areas, loading, error } = useServiceAreas(); const id = useId().replace(/:/g, '');
-  if (loading || error) return <div className="absolute bottom-7 left-2 z-10 rounded bg-card/95 px-2 py-1 text-xs text-muted-foreground">{loading ? 'Carregando cobertura…' : 'Cobertura indisponível'}</div>;
+  if (loading || error || areas.some(area => area?.active === true && !validAreaGeometry(area))) return <div className="pointer-events-none absolute inset-0 bg-destructive/40"><p role="status" className="absolute bottom-7 left-2 rounded bg-card p-2 text-xs text-foreground">{loading ? 'Verificando cobertura — seleção indisponível' : 'Esta região ainda não está atendida. Cobertura não confirmada.'}</p></div>;
   const points = ring => ring.map(([lng,lat]) => { const p = project(lat,lng); return `${p.x},${p.y}`; }).join(' ');
   const shapes = areas.filter(a => a.active).flatMap(area => [
     ...(area.polygons || []).map((ring, i) => ({ path: [ring, ...(area.polygon_holes?.[i] || [])].map(r => `M${points(r).split(' ').join(' L')} Z`).join(' ') })),

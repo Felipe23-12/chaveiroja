@@ -11,6 +11,7 @@ import { clientRegistrationComplete } from '../../shared/registrationEligibility
 import { verifiedCpf } from '../../shared/verifiedCpf.ts';
 import { loadServiceAreas, isAreaAvailable } from '../../shared/serviceAreas.ts';
 import { updateLocksmithLocation } from '../../shared/locksmithCoverage.ts';
+import { requireServiceCoverage } from '../../shared/serviceCoverage.ts';
 
 const waitMinutes = (minutes) => new Date(Date.now() + minutes * 60000).toISOString();
 
@@ -286,8 +287,7 @@ export default async function(req) {
       if (await clientDebt(base44, user.id)) return Response.json({ error: 'Quite seu débito pendente antes de solicitar outro atendimento.' }, { status: 409 });
       const data = body.data || {};
       if (!data.service_type || !String(data.address || '').trim()) return Response.json({ error: 'Informe o serviço e o endereço' }, { status: 400 });
-      const areas = await loadServiceAreas(base44);
-      if (!isAreaAvailable(areas, data.customer_lat, data.customer_lng)) return Response.json({ code: 'AREA_UNAVAILABLE', error: 'Esta área ainda não está disponível para atendimento. Selecione um endereço dentro da área liberada.' }, { status: 403 });
+      const areas = await requireServiceCoverage(base44, data.customer_lat, data.customer_lng);
       const pricing = await calculateServerServicePrice(base44, user.id, data);
       if (data.expected_price !== undefined && (!Number.isFinite(Number(data.expected_price)) || Math.round(Number(data.expected_price) * 100) !== Math.round(pricing.price * 100))) {
         return Response.json({ code: 'PRICE_CHANGED', error: 'O valor foi atualizado. Confira o novo total e toque em Solicitar chaveiro novamente.' }, { status: 409 });
@@ -554,6 +554,7 @@ export default async function(req) {
 
     return Response.json({ error: 'Ação inválida' }, { status: 400 });
   } catch (error) {
+    if (error.code === 'AREA_UNAVAILABLE') return Response.json({ code: error.code, error: error.message }, { status: 403 });
     const status = /Preço|Desconto|Serviço inválido|Dados do veículo|Catálogo|veículo|concessionária|Consulta de preço/.test(error.message || '') ? 400 : 500;
     return Response.json({ error: error.message || 'Erro interno' }, { status });
   }

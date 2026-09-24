@@ -1,6 +1,7 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.46';
 import { createVehiclePricingQuote } from '../../shared/vehiclePricingQuote.ts';
 import { carKeyUnavailableReason } from '../../shared/carKeyAvailability.ts';
+import { requireServiceCoverage } from '../../shared/serviceCoverage.ts';
 
 export default async function(req: Request): Promise<Response> {
   try {
@@ -25,6 +26,7 @@ export default async function(req: Request): Promise<Response> {
     };
 
     const body = await req.json().catch(() => ({}));
+    await requireServiceCoverage(base44, body.customer_lat, body.customer_lng);
     const make = String(body.make || '').trim().slice(0, 80);
     const model = String(body.model || '').trim().slice(0, 100);
     const year = String(body.year || '').trim();
@@ -159,6 +161,7 @@ Retorne cada oferta aceita com fonte, categoria, preço em BRL, URL e original_c
       notes: result.notes || '',
     });
   } catch (error) {
+    if (error.code === 'AREA_UNAVAILABLE') return Response.json({ code: error.code, error: error.message }, { status: 403 });
     return Response.json({ error: error.message }, { status: 500 });
   }
 }

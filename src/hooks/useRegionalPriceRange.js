@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
+import useServiceCoverage from '@/hooks/useServiceCoverage';
 import {
   nearestCapital,
   buildRegionalRange,
@@ -11,13 +12,14 @@ import {
  * mais próximo do cliente, já ajustada pela distância até a capital.
  * Retorna null quando o serviço não tem tabela de referência (chaves, etc.).
  */
-export function useRegionalPriceRange(serviceId, lat, lng) {
+export function useRegionalPriceRange(serviceId, lat, lng, confirmed = false) {
+  const coverage = useServiceCoverage({ lat, lng }, confirmed);
   const [regional, setRegional] = useState(null);
 
   useEffect(() => {
     const code = SERVICE_REFERENCE_CODE[serviceId];
     const near = nearestCapital(lat, lng);
-    if (!code || !near) {
+    if (!coverage.allowed || !code || !near) {
       setRegional(null);
       return;
     }
@@ -30,7 +32,7 @@ export function useRegionalPriceRange(serviceId, lat, lng) {
       })
       .catch(() => active && setRegional(null));
     return () => { active = false; };
-  }, [serviceId, lat, lng]);
+  }, [serviceId, lat, lng, coverage.allowed]);
 
-  return regional;
+  return coverage.allowed ? regional : null;
 }

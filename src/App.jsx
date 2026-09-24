@@ -16,6 +16,7 @@ import LoadingCard from '@/components/ui/LoadingCard';
 import Layout from '@/components/Layout';
 import MercadoPagoOnboardingGuard from '@/components/MercadoPagoOnboardingGuard';
 import ModerationBlockGate from '@/components/ModerationBlockGate';
+import CustomerCoverageGate from '@/components/location/CustomerCoverageGate';
 
 // Páginas carregadas sob demanda — reduz o tempo de inicialização em
 // conexões móveis lentas (WebView), pois só o código da rota atual é baixado.
@@ -125,8 +126,10 @@ const AuthenticatedApp = () => {
               <Route path="/mapa" element={<Mapa />} />
               <Route path="/historico" element={<History />} />
               <Route path="/pagamentos" element={<Pagamentos />} />
-              <Route path="/chat/:locksmithId" element={<Chat />} />
-              <Route path="/chaveiro/:id" element={<LocksmithPublicProfile />} />
+              <Route element={<CustomerCoverageGate />}>
+                <Route path="/chat/:locksmithId" element={<Chat />} />
+                <Route path="/chaveiro/:id" element={<LocksmithPublicProfile />} />
+              </Route>
               <Route path="/acompanhamento/:requestId" element={<Acompanhamento />} />
             </Route>
             <Route element={<RoleGuard allow={["chaveiro"]} />}>

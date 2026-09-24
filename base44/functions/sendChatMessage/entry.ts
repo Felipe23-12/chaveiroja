@@ -1,17 +1,23 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.46';
+import { requireServiceCoverage, coverageError } from '../../shared/serviceCoverage.ts';
+import { isAreaAvailable } from '../../shared/serviceAreas.ts';
 
 export default async function(req) {
   try {
     const base44 = createClientFromRequest(req);
     const user = await base44.auth.me().catch(() => null);
     if (!user?.id) return Response.json({ error: 'Faça login para enviar mensagens.' }, { status: 401 });
-    const { locksmith_id, client_id, message, photo_url } = await req.json();
+    const { locksmith_id, client_id, message, photo_url, customer_lat, customer_lng } = await req.json();
     const text = String(message || '').trim();
     if (!locksmith_id || !text || text.length > 1000) return Response.json({ error: 'Mensagem inválida.' }, { status: 400 });
     if (/https?:\/\/|www\./i.test(text)) return Response.json({ error: 'Links não são permitidos.' }, { status: 400 });
     const locksmith = await base44.asServiceRole.entities.Locksmith.get(locksmith_id).catch(() => null);
     if (!locksmith) return Response.json({ error: 'Chaveiro não encontrado.' }, { status: 404 });
     const isLocksmith = locksmith.created_by_id === user.id;
+    if (!isLocksmith) {
+      const areas = await requireServiceCoverage(base44, customer_lat, customer_lng);
+      if (!isAreaAvailable(areas, locksmith.lat, locksmith.lng)) throw coverageError();
+    }
     if (isLocksmith && !client_id) return Response.json({ error: 'Cliente não informado.' }, { status: 400 });
     const customerId = isLocksmith ? client_id : user.id;
     if (isLocksmith) {
@@ -29,6 +35,7 @@ export default async function(req) {
     });
     return Response.json({ message: created });
   } catch (error) {
+    if (error.code === 'AREA_UNAVAILABLE') return Response.json({ code: error.code, error: error.message }, { status: 403 });
     return Response.json({ error: error.message || 'Erro ao enviar mensagem.' }, { status: 500 });
   }
 }

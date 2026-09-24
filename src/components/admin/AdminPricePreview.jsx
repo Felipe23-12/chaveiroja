@@ -1,11 +1,13 @@
 import React from "react";
 import { Calculator, Clock3 } from "lucide-react";
+import { useServiceQuoteScope } from '@/components/location/ServiceQuoteScope';
 
 const money = (value) => Number(value || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 const mult = (value) => `×${Number(value || 1).toFixed(2)}`;
 
 export default function AdminPricePreview({ price, service }) {
-  if (!price) return null;
+  const { allowed } = useServiceQuoteScope();
+  if (!allowed || !price) return null;
   const factors = price.factors || {};
   const rows = [
     ["Horário", factors.timeTier?.label || price.timeTier?.label, factors.timeTier?.multiplier || price.timeTier?.multiplier],

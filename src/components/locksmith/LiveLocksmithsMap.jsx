@@ -10,6 +10,7 @@ import { estimateEtaMinutes, formatEta } from "@/lib/etaEstimate";
 import useBlockedUsers from "@/hooks/useBlockedUsers";
 import { useServiceAreas, isAreaAvailable } from '@/lib/serviceAreas';
 import CoverageNotice from '@/components/location/CoverageNotice';
+import useServiceCoverage from '@/hooks/useServiceCoverage';
 
 /**
  * Tela principal do cliente: mostra TODOS os chaveiros disponíveis
@@ -17,7 +18,7 @@ import CoverageNotice from '@/components/location/CoverageNotice';
  * localização atual do cliente. Usa o LightMap (imagem estática + sobreposição),
  * leve para WebView do Android — sem travamentos.
  */
-export default function LiveLocksmithsMap({ customerLoc, livreOnly = false, locationKnown = true }) {
+export default function LiveLocksmithsMap({ customerLoc, livreOnly = false, locationKnown = false }) {
   const navigate = useNavigate();
   const coverage = useServiceAreas();
   const [locksmiths, setLocksmiths] = useState([]);
@@ -59,19 +60,24 @@ export default function LiveLocksmithsMap({ customerLoc, livreOnly = false, loca
     };
   }, [livreOnly]);
 
-  const refLoc = searchLoc || (customerLoc?.lat ? customerLoc : { lat: -23.55, lng: -46.63 });
+  const requestedLocation = searchLoc || customerLoc;
+  const customerCoverage = useServiceCoverage(requestedLocation, searchLoc ? Number.isFinite(searchLoc.lat) && Number.isFinite(searchLoc.lng) : locationKnown);
+  const refLoc = Number.isFinite(requestedLocation?.lat) && Number.isFinite(requestedLocation?.lng) ? requestedLocation : { lat: -23.55, lng: -46.63 };
+  const selectProvider = path => {
+    if (customerCoverage.allowed) navigate(path, { state: { serviceLocation: requestedLocation } });
+  };
 
   const withDist = useMemo(
     () =>
       locksmiths
-        .filter(l => !coverage.loading && !coverage.error && isAreaAvailable(coverage.areas, l.lat, l.lng))
+        .filter(l => customerCoverage.allowed && !coverage.loading && !coverage.error && isAreaAvailable(coverage.areas, l.lat, l.lng))
         .filter((l) => blocksLoading || !blockedIds.has(l.created_by_id))
         .map((l) => {
           const distance = haversineKm(refLoc, { lat: l.lat, lng: l.lng });
           return { ...l, distance, eta: estimateEtaMinutes(distance) };
         })
         .sort((a, b) => a.distance - b.distance),
-    [locksmiths, blockedIds, blocksLoading, refLoc.lat, refLoc.lng, coverage.areas, coverage.loading, coverage.error]
+    [locksmiths, blockedIds, blocksLoading, refLoc.lat, refLoc.lng, coverage.areas, coverage.loading, coverage.error, customerCoverage.allowed]
   );
 
   const center = refLoc;
@@ -114,7 +120,7 @@ export default function LiveLocksmithsMap({ customerLoc, livreOnly = false, loca
 
   return (
     <div className="space-y-3">
-      <CoverageNotice location={searchLoc || customerLoc} known={!!searchLoc || locationKnown} />
+      <CoverageNotice location={requestedLocation} known={searchLoc ? Number.isFinite(searchLoc.lat) && Number.isFinite(searchLoc.lng) : locationKnown} />
       <div className="flex items-center justify-between">
         <div>
           <h3 className="font-heading font-semibold text-foreground flex items-center gap-2">
@@ -140,6 +146,7 @@ export default function LiveLocksmithsMap({ customerLoc, livreOnly = false, loca
       <MapLocationSearch
         label={searchLabel}
         location={customerLoc}
+        onEdit={value => { setSearchLabel(value); setSearchLoc({ lat: null, lng: null }); }}
         onSelect={({ address, lat, lng }) => {
           setSearchLabel(address);
           setSearchLoc({ lat, lng });
@@ -279,14 +286,14 @@ export default function LiveLocksmithsMap({ customerLoc, livreOnly = false, loca
               </div>
               <div className="flex gap-2">
                 <button
-                  onClick={() => navigate(`/chaveiro/${l.id}`)}
+                  onClick={() => selectProvider(`/chaveiro/${l.id}`)}
                   className="flex-1 flex items-center justify-center gap-1.5 h-9 rounded-lg bg-muted text-foreground text-xs font-semibold hover:bg-accent"
                 >
                   <Star className="w-3.5 h-3.5" /> Avaliações
                 </button>
                 {l.work_mode === "livre" && (
                   <button
-                    onClick={() => navigate(`/chat/${l.id}`)}
+                    onClick={() => selectProvider(`/chat/${l.id}`)}
                     className="flex-1 flex items-center justify-center gap-1.5 h-9 rounded-lg bg-primary text-primary-foreground text-xs font-semibold hover:bg-primary/90"
                   >
                     <MessageCircle className="w-3.5 h-3.5" /> Mensagem
@@ -298,7 +305,7 @@ export default function LiveLocksmithsMap({ customerLoc, livreOnly = false, loca
         }}
       />
 
-      {loading ? (
+      {!customerCoverage.allowed ? null : loading ? (
         <div className="flex items-center gap-2 text-sm text-muted-foreground py-2">
           <Loader2 className="w-4 h-4 animate-spin" /> Localizando profissionais…
         </div>
@@ -348,7 +355,7 @@ export default function LiveLocksmithsMap({ customerLoc, livreOnly = false, loca
                 </p>
               </div>
               <button
-                onClick={() => navigate(`/chaveiro/${l.id}`)}
+                onClick={() => selectProvider(`/chaveiro/${l.id}`)}
                 className="p-2 rounded-lg text-muted-foreground hover:bg-accent"
                 title="Ver perfil"
               >
@@ -356,7 +363,7 @@ export default function LiveLocksmithsMap({ customerLoc, livreOnly = false, loca
               </button>
               {l.work_mode === "livre" && (
                 <button
-                  onClick={() => navigate(`/chat/${l.id}`)}
+                  onClick={() => selectProvider(`/chat/${l.id}`)}
                   className="p-2 rounded-lg text-primary hover:bg-accent"
                   title="Conversar"
                 >

@@ -27,6 +27,7 @@ export default function AddressAutocomplete({ value, onChange, onSelect, placeho
   const [touched, setTouched] = useState(false);
   const [fetchingDetails, setFetchingDetails] = useState(false);
   const debounceRef = useRef(null);
+  const selectionVersion = useRef(0);
   const containerRef = useRef(null);
   const inputRef = useRef(null);
   const listRef = useRef(null);
@@ -84,6 +85,7 @@ export default function AddressAutocomplete({ value, onChange, onSelect, placeho
   }, [activeIndex]);
 
   const handleSelect = async (p) => {
+    const version = ++selectionVersion.current;
     setQuery(p.description);
     onChange(p.description);
     setShowDropdown(false);
@@ -96,7 +98,8 @@ export default function AddressAutocomplete({ value, onChange, onSelect, placeho
         place_id: p.place_id
       });
       const details = res.data;
-      if (onSelect && details?.lat != null) {
+      if (version !== selectionVersion.current) return;
+      if (onSelect && Number.isFinite(details?.lat) && Number.isFinite(details?.lng)) {
         onSelect({ address: details.address || p.description, label: p.description, name: details.name, lat: details.lat, lng: details.lng });
       }
     } catch (e) {
@@ -128,12 +131,14 @@ export default function AddressAutocomplete({ value, onChange, onSelect, placeho
   };
 
   const handleChange = (e) => {
+    selectionVersion.current += 1;
     setQuery(e.target.value);
     onChange(e.target.value);
     setTouched(true);
   };
 
   const handleClear = () => {
+    selectionVersion.current += 1;
     setQuery("");
     onChange("");
     setPredictions([]);
