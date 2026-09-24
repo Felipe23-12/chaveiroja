@@ -58,6 +58,36 @@
             "minimum": 1900,
             "maximum": 2200
           },
+          "simple_price": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 20000
+          },
+          "original_flip_price": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 20000
+          },
+          "original_proximity_price": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 20000
+          },
+          "simple_price_unavailable": {
+            "type": "boolean"
+          },
+          "original_flip_price_unavailable": {
+            "type": "boolean"
+          },
+          "parallel_flip_price_unavailable": {
+            "type": "boolean"
+          },
+          "original_proximity_price_unavailable": {
+            "type": "boolean"
+          },
+          "parallel_proximity_price_unavailable": {
+            "type": "boolean"
+          },
           "original_price": {
             "type": "number",
             "minimum": 0,
