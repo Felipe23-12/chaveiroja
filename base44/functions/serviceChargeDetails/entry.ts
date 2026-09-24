@@ -13,7 +13,7 @@ export default async function(req) {
     const serviceTypes = ['Abertura Residencial', 'Abertura Automotiva', 'Abertura Fechadura Tetra', 'Abertura Fechadura Eletrônica', 'Confecção de Chave de Carro', 'Confecção de Chave de Moto'];
     if (body.service_type && !serviceTypes.includes(body.service_type)) return Response.json({ error: 'Serviço inválido' }, { status: 400 });
     const query = { service_type: body.service_type || { $in: serviceTypes } };
-    const fields = ['id', 'created_date', 'service_type', 'status', 'price', 'key_value', 'fipe_value', 'labor_cost', 'locomotion_cost', 'distance_km', 'extra_cost', 'discount_amount', 'cancellation_fee', 'cancellation_app_fee', 'cancellation_locksmith_amount', 'pricing_calculation'];
+    const fields = ['id', 'created_date', 'service_type', 'status', 'price', 'key_value', 'vehicle_info', 'fipe_value', 'labor_cost', 'locomotion_cost', 'distance_km', 'extra_cost', 'discount_amount', 'cancellation_fee', 'cancellation_app_fee', 'cancellation_locksmith_amount', 'pricing_calculation'];
     const records = await base44.asServiceRole.entities.ServiceRequest.filter(query, '-created_date', 21, page * 20, fields);
     const items = records.slice(0, 20).map((record) => Object.fromEntries(fields.filter((field) => record[field] !== undefined).map((field) => [field, record[field]])));
     return Response.json({ items, has_more: records.length > 20 });
