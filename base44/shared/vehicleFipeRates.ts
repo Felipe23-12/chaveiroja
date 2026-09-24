@@ -3,14 +3,24 @@ const makeKey = value => ({ gm: 'chevrolet', gmchevrolet: 'chevrolet', chevrolet
 const sameModel = (a, b) => makeKey(a.make) === makeKey(b.make) && normalize(a.model) === normalize(b.model);
 const startYear = rule => rule.year_start ?? rule.year;
 const endYear = rule => rule.year_end ?? rule.year;
-export const vehicleKeyPriceFields = ['original_price', 'parallel_simple_price', 'parallel_flip_price', 'parallel_proximity_price'];
+export const vehicleKeyPriceFields = ["simple_price","original_flip_price","parallel_flip_price","original_proximity_price","parallel_proximity_price"];
+
+export function vehicleKeyField(keyType, origin) {
+  if (keyType === 'simples') return 'simple_price';
+  if (keyType === 'presenca') return origin === 'paralela' ? 'parallel_proximity_price' : 'original_proximity_price';
+  return origin === 'paralela' ? 'parallel_flip_price' : 'original_flip_price';
+}
+
+export function vehicleKeyUnavailable(rule, keyType, origin) {
+  return rule?.[vehicleKeyField(keyType, origin) + '_unavailable'] === true;
+}
 
 export function matchingVehicleRule(make, model, year, rules = []) {
   return rules.find(rule => sameModel(rule, { make, model }) && Number(year) >= startYear(rule) && Number(year) <= endYear(rule));
 }
 
 export function vehicleManualKeyPrice(rule, keyType, origin) {
-  const field = origin === 'original' ? 'original_price' : keyType === 'simples' ? 'parallel_simple_price' : keyType === 'presenca' ? 'parallel_proximity_price' : 'parallel_flip_price';
+  const field = vehicleKeyField(keyType, origin);
   const value = rule?.[field];
   return typeof value === 'number' && Number.isFinite(value) && value >= 0 ? value : null;
 }
@@ -25,8 +35,15 @@ export function validateVehicleFipeRates(rules) {
     if (typeof rule.percent !== 'number' || !Number.isFinite(rule.percent) || rule.percent < 0 || rule.percent > 10) throw new Error(`Regra ${index + 1}: informe um percentual de 0 a 10% da FIPE.`);
     if (seen.some(item => sameModel(item, rule) && first <= item.year_end && last >= item.year_start)) throw new Error(`Existem faixas de anos sobrepostas para ${rule.make} ${rule.model}.`);
     const result = { make: rule.make.trim(), model: rule.model.trim(), year_start: first, year_end: last, percent: Math.round(rule.percent * 100) / 100 };
+    const migrated = { ...rule };
+    if (!Object.hasOwn(rule, 'simple_price')) migrated.simple_price = rule.parallel_simple_price ?? rule.original_price;
+    if (!Object.hasOwn(rule, 'original_flip_price')) migrated.original_flip_price = rule.original_price;
+    if (!Object.hasOwn(rule, 'original_proximity_price')) migrated.original_proximity_price = rule.original_price;
     for (const field of vehicleKeyPriceFields) {
-      const value = rule[field];
+      const flag = rule[field + '_unavailable'];
+      if (flag != null && typeof flag !== 'boolean') throw new Error('Disponibilidade da chave inválida.');
+      if (flag != null) result[field + '_unavailable'] = flag;
+      const value = migrated[field];
       if (value == null || value === '') continue;
       if (typeof value !== 'number' || !Number.isFinite(value) || value < 0 || value > 20000) throw new Error(`Regra ${index + 1}: preço da chave deve estar entre R$ 0 e R$ 20.000.`);
       result[field] = Math.round(value * 100) / 100;
