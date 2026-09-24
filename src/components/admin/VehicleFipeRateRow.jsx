@@ -8,10 +8,11 @@ import VehicleMakeModelFields from '@/components/locksmith/VehicleMakeModelField
 const money = value => Number(value).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 const cache = new Map();
 const keyFields = [
-  ['original_price', 'Chave original'],
-  ['parallel_simple_price', 'Paralela simples'],
-  ['parallel_flip_price', 'Paralela canivete / telecomando'],
-  ['parallel_proximity_price', 'Paralela presença'],
+  ['simple_price', 'Chave simples'],
+  ['original_flip_price', 'Chave canivete original'],
+  ['parallel_flip_price', 'Chave canivete paralela'],
+  ['original_proximity_price', 'Chave de presença original'],
+  ['parallel_proximity_price', 'Chave de presença paralela'],
 ];
 
 export default function VehicleFipeRateRow({ rule, index, onChange, onRemove }) {
@@ -73,8 +74,17 @@ export default function VehicleFipeRateRow({ rule, index, onChange, onRemove }) 
     </div>
     <div className="space-y-2">
       <h5 className="font-semibold text-sm">Valor da chave para esta faixa de anos</h5>
-      <p className="text-xs text-muted-foreground">Preencha os preços que deseja usar. Em branco mantém o catálogo. R$ 0,00 significa chave sem cobrança. A chave original segue o preço único do catálogo; paralelas variam conforme o tipo.</p>
-      <div className="grid gap-3 sm:grid-cols-2">{keyFields.map(([field, label]) => <label key={field} className="text-xs text-muted-foreground">{label} (R$)<Input className="mt-1" type="number" min="0" max="20000" step="0.01" placeholder="Usar catálogo" value={rule[field] ?? ''} onChange={e => onChange({ [field]: e.target.value })} />{labor != null && rule[field] !== '' && rule[field] != null && Number.isFinite(Number(rule[field])) && <span className="block mt-1">Chave + mão de obra base: {money(labor + Number(rule[field]))}</span>}</label>)}</div>
+      <p className="text-xs text-muted-foreground">Preencha o valor de cada tipo de chave. Em branco mantém o catálogo. R$ 0,00 significa chave sem cobrança. Marque Indisponível para impedir pedidos dessa opção neste veículo e faixa de anos. O preço fica guardado para quando você reativar.</p>
+      <div className="grid gap-3 sm:grid-cols-2">{keyFields.map(([field, label]) => {
+        const unavailable = rule[field + '_unavailable'] === true;
+        return <div key={field} className="rounded-lg border border-border p-3 space-y-2">
+          <label className="block text-xs text-muted-foreground">{label} (R$)
+            <Input className="mt-1" type="number" min="0" max="20000" step="0.01" inputMode="decimal" placeholder="Usar catálogo" disabled={unavailable} value={rule[field] ?? ''} onChange={e => onChange({ [field]: e.target.value })} />
+          </label>
+          <label className="flex items-center gap-2 text-sm"><input type="checkbox" aria-label={label + ': indisponível'} checked={unavailable} onChange={e => onChange({ [field + '_unavailable']: e.target.checked })} />Indisponível</label>
+          {unavailable ? <p className="text-xs text-destructive">Opção indisponível para este veículo e faixa de anos.</p> : labor != null && rule[field] !== '' && rule[field] != null && Number.isFinite(Number(rule[field])) && <p className="text-xs text-muted-foreground">Chave + mão de obra base: {money(labor + Number(rule[field]))}</p>}
+        </div>;
+      })}</div>
     </div>
   </div>;
 }
