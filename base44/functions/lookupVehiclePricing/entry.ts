@@ -26,7 +26,9 @@ export default async function(req: Request): Promise<Response> {
     };
 
     const body = await req.json().catch(() => ({}));
-    await requireServiceCoverage(base44, body.customer_lat, body.customer_lng);
+    const adminPreview = body.mode === 'admin_preview';
+    if (adminPreview && user.role !== 'admin') return Response.json({ error: 'Somente administradores podem consultar esta prévia.' }, { status: 403 });
+    if (!adminPreview) await requireServiceCoverage(base44, body.customer_lat, body.customer_lng);
     const make = String(body.make || '').trim().slice(0, 80);
     const model = String(body.model || '').trim().slice(0, 100);
     const year = String(body.year || '').trim();
@@ -36,7 +38,7 @@ export default async function(req: Request): Promise<Response> {
     }
 
     const unavailable = carKeyUnavailableReason(make, model, year);
-    if (unavailable) return Response.json({ code: 'DEALER_ONLY', error: unavailable }, { status: 400 });
+    if (unavailable && !adminPreview) return Response.json({ code: 'DEALER_ONLY', error: unavailable }, { status: 400 });
 
     const localOffers = [];
     let manualCatalogOffer = null;
