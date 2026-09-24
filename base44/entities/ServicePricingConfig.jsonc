@@ -24,7 +24,7 @@
       "type": "array",
       "default": [],
       "maxItems": 1000,
-      "description": "Percentuais da FIPE por montadora, modelo e ano exatos; substituem apenas o percentual geral da m\u00e3o de obra na confec\u00e7\u00e3o de chave de carro.",
+      "description": "Percentual FIPE e pre\u00e7os manuais das chaves por modelo e faixa de anos.",
       "items": {
         "type": "object",
         "properties": {
@@ -47,12 +47,41 @@
             "type": "number",
             "minimum": 0,
             "maximum": 10
+          },
+          "year_start": {
+            "type": "integer",
+            "minimum": 1900,
+            "maximum": 2200
+          },
+          "year_end": {
+            "type": "integer",
+            "minimum": 1900,
+            "maximum": 2200
+          },
+          "original_price": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 20000
+          },
+          "parallel_simple_price": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 20000
+          },
+          "parallel_flip_price": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 20000
+          },
+          "parallel_proximity_price": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 20000
           }
         },
         "required": [
           "make",
           "model",
-          "year",
           "percent"
         ]
       }
