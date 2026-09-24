@@ -8,6 +8,8 @@ export default function ChargeCalculationCard({ request }) {
   return <details className="rounded-xl border border-border bg-card p-4">
     <summary className="cursor-pointer space-y-1"><span className="font-heading font-semibold">{request.service_type} · {money(request.price)}</span><p className="text-xs text-muted-foreground">{new Date(request.created_date).toLocaleString("pt-BR")} · {statuses[request.status] || request.status}</p><p className="text-xs text-muted-foreground break-all">Chamado {request.id}</p></summary>
     <div className="mt-4 space-y-2 text-sm">
+      {request.vehicle_info && <p className="font-medium">{request.vehicle_info}</p>}
+      {(request.fipe_value > 0 || request.service_type === "Confecção de Chave de Carro") && <div className="rounded-lg border border-primary/30 bg-primary/5 p-3"><div className="flex justify-between gap-3 font-semibold"><span>Valor do veículo · Tabela FIPE</span><span>{request.fipe_value > 0 ? money(request.fipe_value) : "Não registrado"}</span></div><p className="text-xs text-muted-foreground mt-1">Referência usada no cálculo deste chamado. Não é somada ao preço do serviço.</p></div>}
       {snapshot ? <>
         <p className="font-semibold">Cálculo na solicitação</p>
         {snapshot.lines.map((line, i) => <div key={i} className="flex justify-between gap-4"><span>{line.label}</span><span className="shrink-0">{money(line.value)}</span></div>)}
@@ -19,7 +21,6 @@ export default function ChargeCalculationCard({ request }) {
         <p className="text-xs text-muted-foreground">Chamado anterior ao registro detalhado: fatores de horário, clima e demanda não foram salvos. Abaixo estão apenas os valores registrados; não recalculamos o passado com as tarifas atuais.</p>
         {[["Chave", "key_value"], ["Mão de obra", "labor_cost"], ["Locomoção", "locomotion_cost"], ["Adicionais", "extra_cost"], ["Desconto", "discount_amount"]].filter(([, field]) => request[field] != null).map(([label, field]) => <div key={field} className="flex justify-between"><span>{label}</span><span>{money(request[field])}</span></div>)}
       </>}
-      {request.fipe_value > 0 && <p className="text-xs text-muted-foreground">Referência FIPE: {money(request.fipe_value)} (não somada como cobrança).</p>}
       {request.distance_km != null && <p className="text-xs text-muted-foreground">Distância registrada: {Number(request.distance_km).toFixed(1)} km.</p>}
       <div className="flex justify-between border-t border-border pt-2 font-bold"><span>Valor atual do serviço</span><span>{money(request.price)}</span></div>
       {request.status === "cancelled" ? <>
