@@ -28,9 +28,12 @@ export function filterRingableWhileBusy(requests, state) {
 
 export async function startNextQueuedRequest(locksmithId, location) {
   if (!locksmithId) return null;
+  const lat = Number(location?.lat);
+  const lng = Number(location?.lng);
   const { data } = await base44.functions.invoke("serviceTrust", {
     action: "start_next_queued",
     locksmith_id: locksmithId,
+    ...(Number.isFinite(lat) && Number.isFinite(lng) ? { lat, lng } : {}),
   });
   return data?.request || null;
 }
