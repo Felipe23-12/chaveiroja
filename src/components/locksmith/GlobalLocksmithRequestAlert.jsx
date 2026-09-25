@@ -55,7 +55,10 @@ export default function GlobalLocksmithRequestAlert() {
   const locksmithId = locksmith?.id || null;
   const [allRequests, setRequests] = useState([]);
   const coverage = useServiceAreas();
-  const requests = useMemo(() => coverage.loading || coverage.error || !locksmith?.online || !isAreaAvailable(coverage.areas, locksmith.lat, locksmith.lng) ? [] : allRequests.filter(r => isAreaAvailable(coverage.areas, r.customer_lat, r.customer_lng)), [allRequests, locksmith, coverage.areas, coverage.loading, coverage.error]);
+  // O backend já valida cobertura e inclui somente chaveiros elegíveis em
+  // ringing_locksmith_ids. Não esconder um chamado já direcionado por causa do
+  // estado local de cobertura do Preview/Web (que pode carregar depois ou falhar).
+  const requests = useMemo(() => !locksmith?.online ? [] : allRequests, [allRequests, locksmith?.online]);
   const [open, setOpen] = useState(false);
   const [accepting, setAccepting] = useState(null);
   const [acceptError, setAcceptError] = useState(null);
@@ -123,7 +126,9 @@ export default function GlobalLocksmithRequestAlert() {
           if (cached.length > 0) setRequests((prev) => (prev.length > 0 ? prev : cached));
         });
     load();
-    const timer = setInterval(load, 15000);
+    // No Preview/Web o realtime pode atrasar; polling curto garante que o chamado
+    // direcionado pelo backend apareça mesmo quando o subscribe não disparar.
+    const timer = setInterval(load, 3000);
     const unsub = safeUnsubscribe(base44.entities.ServiceRequest.subscribe(() => load()));
     return () => {
       clearInterval(timer);
