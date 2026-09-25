@@ -35,7 +35,11 @@ function distanceKm(a, b) {
 
 function canReceiveRequest(locksmith, request) {
   const profile = serviceProfiles[request?.service_type];
-  if (!profile || locksmith.available === false || locksmith.inactive_deactivated === true) return false;
+  // available indica se o chaveiro está livre neste instante, não se ele pode receber chamados.
+  // Chaveiros online ocupados continuam elegíveis para receber um novo chamado e colocá-lo na fila.
+  // O frontend já aplica essa mesma regra; filtrar available=false aqui fazia o backend
+  // remover silenciosamente um chaveiro que o cliente havia encontrado como elegível.
+  if (!profile || locksmith.inactive_deactivated === true) return false;
   if (locksmith.work_mode === 'livre' && locksmith.receive_app_requests === false) return false;
   if (locksmith.blocked_until && Date.parse(locksmith.blocked_until) > Date.now()) return false;
   const services = Array.isArray(locksmith.services) ? locksmith.services : [];
