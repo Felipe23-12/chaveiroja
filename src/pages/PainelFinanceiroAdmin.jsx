@@ -223,6 +223,40 @@ export default function PainelFinanceiroAdmin() {
         </div>
       </div>
 
+      {/* Débitos gerados por pagamentos em dinheiro */}
+      <section>
+        <div className="flex flex-col gap-1 mb-3">
+          <h2 className="font-heading font-semibold text-lg text-foreground">Débitos dos chaveiros — pagamentos em dinheiro</h2>
+          <p className="text-sm text-muted-foreground">Comissão do Chaveiro Já ainda devida por serviços que o chaveiro recebeu diretamente em dinheiro.</p>
+        </div>
+        <div className="rounded-xl border border-border bg-white overflow-hidden">
+          <div className="flex items-center justify-between gap-4 px-4 py-3 bg-muted/30 border-b border-border">
+            <span className="text-sm font-medium text-foreground">Total a receber dos chaveiros</span>
+            <strong className={totalPendingCashCommission > 0 ? "text-destructive" : "text-success"}>{fmtMoney(totalPendingCashCommission)}</strong>
+          </div>
+          {perLocksmith.filter((l) => Number(l.pendingCashCommission || 0) > 0).length === 0 ? (
+            <p className="p-4 text-sm text-muted-foreground">Nenhum chaveiro possui débito de pagamentos em dinheiro.</p>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead className="bg-muted/50 text-muted-foreground text-left">
+                  <tr><th className="px-4 py-2 font-medium">Chaveiro</th><th className="px-4 py-2 font-medium">Modo</th><th className="px-4 py-2 font-medium text-right">Débito atual</th></tr>
+                </thead>
+                <tbody>
+                  {perLocksmith.filter((l) => Number(l.pendingCashCommission || 0) > 0).map((l) => (
+                    <tr key={`cash-debt-${l.id}`} className="border-t border-border">
+                      <td className="px-4 py-2 font-medium text-foreground">{l.name}</td>
+                      <td className="px-4 py-2 capitalize text-muted-foreground">{l.workMode}</td>
+                      <td className="px-4 py-2 text-right font-bold text-destructive">{fmtMoney(l.pendingCashCommission)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      </section>
+
       {/* Líquido acumulado por chaveiro */}
       <section>
         <h2 className="font-heading font-semibold text-lg text-foreground mb-3">
