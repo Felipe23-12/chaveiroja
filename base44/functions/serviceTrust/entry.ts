@@ -339,6 +339,15 @@ export default async function(req) {
       if (detail) values.description = [values.description, detail].filter(Boolean).join(' — ');
       const request = await base44.entities.ServiceRequest.create({ ...values, status: 'ringing', payment_status: 'pending', cash_received: false, client_confirmed: false, locksmith_confirmed: false, cancellation_fee: 0, review_claimed: false });
       await base44.asServiceRole.entities.ServiceRequestContext.create({ ...location, request_id: request.id, client_id: user.id });
+
+      // O backend é a autoridade da distribuição. Assim que o chamado é criado,
+      // avisa TODOS os chaveiros que foram gravados em ringing_locksmith_user_ids.
+      // Isso não depende do realtime/WebView do painel estar aberto e evita o
+      // cenário em que o cliente vê "chaveiros recebendo", mas o profissional
+      // não recebe nenhum alerta.
+      await Promise.all(values.ringing_locksmith_user_ids.map((locksmithUserId) =>
+        notify(base44, locksmithUserId, 'Novo chamado disponível', `${request.service_type} próximo de você. Abra o app para aceitar.`, request.id)
+      ));
       return Response.json({ request });
     }
 
