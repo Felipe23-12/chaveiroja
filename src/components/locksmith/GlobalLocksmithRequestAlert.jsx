@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useMemo } from "react";
-import { useServiceAreas, isAreaAvailable } from '@/lib/serviceAreas';
 import { useNavigate } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
 import { useAuth } from "@/lib/AuthContext";
@@ -54,7 +53,6 @@ export default function GlobalLocksmithRequestAlert() {
   const [locksmith, setLocksmith] = useState(null);
   const locksmithId = locksmith?.id || null;
   const [allRequests, setRequests] = useState([]);
-  const coverage = useServiceAreas();
   // O backend já valida cobertura e inclui somente chaveiros elegíveis em
   // ringing_locksmith_ids. Não esconder um chamado já direcionado por causa do
   // estado local de cobertura do Preview/Web (que pode carregar depois ou falhar).
