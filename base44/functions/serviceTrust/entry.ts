@@ -106,6 +106,11 @@ export default async function(req) {
           ringing_locksmith_user_ids: [...new Set([...(fresh.ringing_locksmith_user_ids || []), locksmith.created_by_id])],
           rejections: (fresh.rejections || []).filter((rejection) => rejection.locksmith_id !== locksmith.id),
         });
+        // O chaveiro acabou de entrar online durante um chamado ativo: além de
+        // incluí-lo em tempo real na lista que o cliente vê, dispara o push do
+        // chamado imediatamente para que ele tenha a mesma oportunidade dos
+        // profissionais que já estavam online quando a solicitação foi criada.
+        await notify(base44, locksmith.created_by_id, 'Novo chamado disponível', `${fresh.service_type} próximo de você. Abra o app para aceitar.`, fresh.id);
         added += 1;
       }
       return Response.json({ added });
