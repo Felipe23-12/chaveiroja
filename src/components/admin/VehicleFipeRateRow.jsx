@@ -5,6 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import VehicleMakeModelFields from '@/components/locksmith/VehicleMakeModelFields';
 import { getVehicleYearRange } from '../../../base44/shared/vehicleModelYears';
+import { vehicleFipeRate } from '../../../base44/shared/vehicleFipeRates';
 
 const money = value => Number(value).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 const cache = new Map();
@@ -18,7 +19,7 @@ const keyFields = [
   ['parallel_proximity_price', 'Chave de presença paralela'],
 ];
 
-export default function VehicleFipeRateRow({ rule, index, onChange, onRemove, onDuplicate, canDuplicate }) {
+export default function VehicleFipeRateRow({ rule, values, index, onChange, onRemove, onDuplicate, canDuplicate }) {
   const range = getVehicleYearRange(rule.make, rule.model);
   const currentMax = Math.min(range?.max || 2200, new Date().getFullYear() + 1);
   const first = rule.year_start ?? rule.year ?? '';
@@ -89,6 +90,7 @@ export default function VehicleFipeRateRow({ rule, index, onChange, onRemove, on
   const currentFipe = fipe?.queryKey === queryKey ? fipe : null;
   const currentCatalog = catalog?.queryKey === catalogQueryKey ? catalog.row : null;
   const percent = Number(rule.percent);
+  const fallback = valid && values ? vehicleFipeRate(rule.make, rule.model, year, false, values).percent : null;
   const labor = currentFipe && rule.percent !== '' && Number.isFinite(percent) && percent >= 0 && percent <= 10 ? Math.round(currentFipe.amount * percent) / 100 : null;
   return <div className="rounded-xl border border-border bg-background p-4 space-y-3">
     <div className="flex items-center justify-between gap-2"><h4 className="text-sm font-semibold">Veículo {index + 1}{rule.make && rule.model ? ` · ${rule.make} ${rule.model}` : ''}</h4><Button type="button" variant="ghost" size="icon" aria-label={`Remover regra ${index + 1}`} onClick={onRemove}><Trash2 className="h-4 w-4" /></Button></div>
@@ -112,9 +114,11 @@ export default function VehicleFipeRateRow({ rule, index, onChange, onRemove, on
       {invalidYears && <p className="text-xs">A prévia usa {year}; a regra de preços ainda precisa ser corrigida antes de salvar.</p>}
       {loading && <p>Consultando referência FIPE...</p>}
       {error && <p role="alert" className="text-destructive">{error}</p>}
+      {fallback != null && <p className="text-xs text-muted-foreground">Sem regra individual salva para este ano-modelo: {fallback}% da FIPE pela regra geral existente{year < 2000 ? ' (considerando chave sem codificação nesta prévia)' : ''}. Os demais carros continuam com sua regra geral até serem editados.</p>}
       {currentFipe && <><div className="flex justify-between gap-2"><span>Valor do veículo (FIPE)</span><strong>{money(currentFipe.amount)}</strong></div>
+        {fallback != null && <div className="flex justify-between gap-2 text-xs"><span>Mão de obra base pela regra geral ({fallback}%)</span><strong>{money(Math.round(currentFipe.amount * fallback) / 100)}</strong></div>
         <div className="flex justify-between gap-2"><span>Mão de obra base · {rule.percent || '0'}%</span><strong>{labor == null ? 'Informe o percentual' : money(labor)}</strong></div>
-        <p className="text-xs text-muted-foreground">Consulta: {currentFipe.consultedAt}{currentFipe.reference ? ` · Referência: ${currentFipe.reference}` : ''}. Confirme a versão do veículo antes de definir o preço. Cada ano da faixa usa sua própria FIPE.</p>
+        <p className="text-xs text-muted-foreground">Consulta automatizada: {currentFipe.consultedAt}{currentFipe.reference ? ` · Referência informada: ${currentFipe.reference}` : ''}. Confirme versão, ano-modelo, mês e código na consulta oficial antes de definir o preço. Anúncios de lojas e concessionárias não são valores da Tabela FIPE. Cada ano da faixa usa sua própria referência.</p>
         {/^https?:\/\//.test(currentFipe.sourceUrl || '') && <a className="text-xs underline" href={currentFipe.sourceUrl} target="_blank" rel="noopener noreferrer">Conferir fonte consultada</a>}</>}
       <p className="text-xs text-muted-foreground">Prévia de FIPE × percentual. Adicional de chave simples, programação, piso mínimo, deslocamento e ajustes de horário/clima são calculados separadamente no serviço.</p>
       <Button type="button" size="sm" variant="outline" disabled={!valid || loading} onClick={() => { cache.delete(queryKey); setRetry(value => value + 1); }}>Atualizar FIPE</Button>
