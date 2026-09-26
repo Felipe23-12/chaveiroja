@@ -21,6 +21,10 @@ export default async function(req) {
     let values, vehicleFipeRates, motoRules;
     try {
       values = validatePricing(service, body.values);
+      if (service === 'Confecção de Chave de Carro') {
+        const globalFipeFields = Object.keys(current.values).filter(key => key.startsWith('fipe_'));
+        if (globalFipeFields.some(key => values[key] !== current.values[key])) throw new Error('Percentuais gerais da FIPE são somente leitura. Adicione uma regra por montadora, modelo e ano-modelo.');
+      }
       vehicleFipeRates = service === 'Confecção de Chave de Carro' ? validateVehicleFipeRates(body.vehicle_fipe_rates ?? current.vehicle_fipe_rates) : [];
       motoRules = service === 'Confecção de Chave de Moto' ? validateMotoPricingRules(body.moto_rules ?? current.moto_rules) : [];
     } catch (error) { return Response.json({ error: error.message }, { status: 400 }); }
