@@ -21,9 +21,12 @@ export async function catalogKeyPrice(base44, catalog, fallback, keyType, origin
   const original = Number(catalog?.original_price) > 0 ? Number(catalog.original_price) : fallback;
   if (origin !== 'paralela') {
     if (catalog?.factory_alarm_status === 'ausente') throw new Error('Este veículo aceita somente chave paralela confirmada no catálogo');
+    if (keyType === 'simples') return Number(catalog?.original_simple_price) > 0 ? Number(catalog.original_simple_price) : catalog?.key_style === 'lamina_sem_pcf' && Number(catalog.original_price) > 0 ? Number(catalog.original_price) : 50;
+    if (keyType === 'presenca' && Number(catalog?.original_proximity_price) > 0) return Number(catalog.original_proximity_price);
     return original;
   }
   if (!catalog) throw new Error('Catálogo da chave paralela é obrigatório');
+  if (keyType === 'simples') return Number(catalog.parallel_simple_price) > 0 ? Number(catalog.parallel_simple_price) : 50;
   const field = keyType === 'simples' ? 'parallel_simple_price' : keyType === 'presenca' ? 'parallel_proximity_price' : 'parallel_flip_price';
   if (Number(catalog[field]) > 0) return Number(catalog[field]);
   const links = await base44.asServiceRole.entities.VehicleRemoteCompatibility.filter({ vehicle_catalog_id: catalog.id, active: true, verified: true }, '-updated_date', 500);
