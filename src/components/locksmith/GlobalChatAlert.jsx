@@ -3,7 +3,7 @@ import { useLocation } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
 import { useAuth } from "@/lib/AuthContext";
 import { useToast } from "@/components/ui/use-toast";
-import { setChatUnread, incrementChatUnread } from "@/lib/chatUnreadStore";
+import { setChatUnread } from "@/lib/chatUnreadStore";
 import { playNotificationSound } from "@/lib/notificationSound";
 import { ensureNotificationPermission, notifyClient } from "@/lib/clientNotifications";
 import { safeUnsubscribe } from "@/lib/safeUnsubscribe";
@@ -110,9 +110,13 @@ export default function GlobalChatAlert() {
                 title: "💬 Nova mensagem de cliente",
                 description: `${latest.sender_name || "Cliente"}: ${latest.message?.slice(0, 60) || "..."}`,
               });
-              setUnread((prev) => prev + unreadMsgs.length);
-              incrementChatUnread(unreadMsgs.length);
             }
+            const totalUnread = customerMsgs.filter((m) => {
+              const readAt = readStates.get(`${locksmith.id}:${m.client_id}`);
+              return new Date(m.created_date).getTime() > Math.max(lastSeen, readAt ? Date.parse(readAt) : 0);
+            }).length;
+            setUnread(totalUnread);
+            setChatUnread(totalUnread);
           }
       } catch (error) {
         // Recarrega na próxima alteração quando o servidor voltar a responder.
