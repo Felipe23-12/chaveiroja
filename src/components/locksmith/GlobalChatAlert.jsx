@@ -8,6 +8,7 @@ import { playNotificationSound } from "@/lib/notificationSound";
 import { ensureNotificationPermission, notifyClient } from "@/lib/clientNotifications";
 import { safeUnsubscribe } from "@/lib/safeUnsubscribe";
 import { loadChatReadStates } from "@/lib/chatReadState";
+import { loadHiddenMessageIds } from "@/lib/chatVisibility";
 import useBlockedUsers from "@/hooks/useBlockedUsers";
 
 const lastSeenKey = (id) => `chat_last_seen_${id}`;
@@ -28,6 +29,7 @@ export default function GlobalChatAlert() {
   const { blockedIds, loading: blocksLoading } = useBlockedUsers();
   const seenIds = useRef(new Set());
   const initialized = useRef(false);
+  const loading = useRef(false);
 
   const accountType = user?.account_type || (user?.role === "admin" ? "admin" : "cliente");
   const isChaveiro = accountType === "chaveiro";
@@ -60,12 +62,20 @@ export default function GlobalChatAlert() {
     let lastSeen = 0;
     try { lastSeen = parseInt(localStorage.getItem(key) || "0", 10) || 0; } catch (e) {}
 
-    const load = () =>
-      Promise.all([
-        base44.entities.ChatMessage.filter({ locksmith_id: locksmith.id }, "created_date"),
-        loadChatReadStates(user.id),
-      ]).then(([list, readStates]) => {
-          const customerMsgs = list.filter((m) => !blocksLoading && m.sender_type === "customer" && !blockedIds.has(m.client_id));
+    initialized.current = false;
+    seenIds.current.clear();
+    setUnread(0);
+    setChatUnread(0);
+    const load = async () => {
+      if (loading.current || blocksLoading) return;
+      loading.current = true;
+      try {
+        const [list, readStates, hidden] = await Promise.all([
+          base44.entities.ChatMessage.filter({ locksmith_id: locksmith.id }, "created_date"),
+          loadChatReadStates(user.id),
+          loadHiddenMessageIds(user.id),
+        ]);
+          const customerMsgs = list.filter((m) => m.sender_type === "customer" && !blockedIds.has(m.client_id) && !hidden.has(m.id));
           if (!initialized.current) {
             // Primeira carga: conta mensagens recebidas enquanto o chaveiro
             // estava fora (created_date > lastSeen) como não lidas, e marca
@@ -75,19 +85,21 @@ export default function GlobalChatAlert() {
               seenIds.current.add(m.id);
               const ts = new Date(m.created_date).getTime();
               const persistentReadAt = readStates.get(`${locksmith.id}:${m.client_id}`);
-              const readAt = Math.max(lastSeen, persistentReadAt ? Date.parse(persistentReadAt) : ts);
+              const readAt = Math.max(lastSeen, persistentReadAt ? Date.parse(persistentReadAt) : 0);
               if (ts > readAt) initialUnread++;
             });
             initialized.current = true;
-            if (initialUnread > 0) {
-              setUnread(initialUnread);
-              setChatUnread(initialUnread);
-            }
+            setUnread(initialUnread);
+            setChatUnread(initialUnread);
           } else {
             const newMsgs = customerMsgs.filter((m) => !seenIds.current.has(m.id));
-            if (newMsgs.length > 0) {
-              newMsgs.forEach((m) => seenIds.current.add(m.id));
-              const latest = newMsgs[newMsgs.length - 1];
+            newMsgs.forEach((m) => seenIds.current.add(m.id));
+            const unreadMsgs = newMsgs.filter((m) => {
+              const readAt = readStates.get(`${locksmith.id}:${m.client_id}`);
+              return new Date(m.created_date).getTime() > Math.max(lastSeen, readAt ? Date.parse(readAt) : 0);
+            });
+            if (unreadMsgs.length > 0) {
+              const latest = unreadMsgs[unreadMsgs.length - 1];
               playNotificationSound();
               if (navigator.vibrate) navigator.vibrate([200, 100, 200, 100, 200]);
               notifyClient(
@@ -98,15 +110,21 @@ export default function GlobalChatAlert() {
                 title: "💬 Nova mensagem de cliente",
                 description: `${latest.sender_name || "Cliente"}: ${latest.message?.slice(0, 60) || "..."}`,
               });
-              setUnread((prev) => prev + newMsgs.length);
-              incrementChatUnread(newMsgs.length);
+              setUnread((prev) => prev + unreadMsgs.length);
+              incrementChatUnread(unreadMsgs.length);
             }
           }
-        })
-        .catch(() => {});
+      } catch (error) {
+        // Recarrega na próxima alteração quando o servidor voltar a responder.
+      } finally {
+        loading.current = false;
+      }
+    };
     load();
     const unsub = base44.entities.ChatMessage.subscribe(() => load());
-    return safeUnsubscribe(unsub);
+    const visibilityUnsub = base44.entities.ChatMessageVisibility.subscribe(() => load());
+    const readUnsub = base44.entities.ChatReadState.subscribe(() => load());
+    return () => { safeUnsubscribe(unsub)(); safeUnsubscribe(visibilityUnsub)(); safeUnsubscribe(readUnsub)(); };
   }, [locksmith?.id, blockedIds, blocksLoading]);
 
   // Zera o contador e persiste lastSeen quando o chaveiro está no painel
@@ -115,7 +133,8 @@ export default function GlobalChatAlert() {
     if (location.pathname === "/painel-chaveiro") {
       setUnread(0);
       setChatUnread(0);
-      try { localStorage.setItem(lastSeenKey(locksmith.id), String(Date.now())); } catch (e) {}
+      const now = Date.now();
+      try { localStorage.setItem(lastSeenKey(locksmith.id), String(now)); } catch (e) {}
     }
   }, [location.pathname, locksmith?.id]);
 
