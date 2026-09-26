@@ -482,7 +482,7 @@ export default function Home() {
     setSearchError("");
     try {
       const [res, catalog] = await Promise.all([
-        searchFipeAndKeyValue(vehicleInfo.make, vehicleInfo.model, vehicleInfo.year, customerLoc),
+        searchFipeAndKeyValue(vehicleInfo.make, vehicleInfo.model, vehicleInfo.year, customerLoc, vehicleInfo.version),
         findVehicleKeyCatalog(vehicleInfo.make, vehicleInfo.model, vehicleInfo.year, "carro"),
       ]);
       setKeyCatalog(catalog);
@@ -663,7 +663,7 @@ export default function Home() {
         discount_applied: useDiscount,
         ...(service.isCarKey ? {
           key_type: carKeyType,
-          vehicle_info: `${vehicleInfo.make} ${vehicleInfo.model} · Ano ${vehicleInfo.year} · Porta ${vehicleInfo.doorStatus}${complexity ? ` · ${complexity.label}` : ''}${/^land\s*rover(?:\s|$)/i.test(vehicleInfo.make.trim()) && Number(vehicleInfo.year) >= 2020 ? ` · Alarme: ${vehicleInfo.alarmLocked ? 'trancado' : 'não trancado'}` : ''}`.trim(),
+          vehicle_info: `${vehicleInfo.make} ${vehicleInfo.model}${vehicleInfo.version?.trim() ? ` · Versão ${vehicleInfo.version.trim()}` : ""} · Ano-modelo ${vehicleInfo.year} · Porta ${vehicleInfo.doorStatus}${complexity ? ` · ${complexity.label}` : ''}${/^land\s*rover(?:\s|$)/i.test(vehicleInfo.make.trim()) && Number(vehicleInfo.year) >= 2020 ? ` · Alarme: ${vehicleInfo.alarmLocked ? 'trancado' : 'não trancado'}` : ''}`.trim(),
         } : service.isMotoKey ? {
           key_type: motoInfo.keyType,
           vehicle_info: `${MOTO_BRANDS.find(b => b.id === motoInfo.brandId)?.label || ''} ${motoModel?.label || ''} ${motoInfo.year}${motoInfo.keyType === 'presenca' ? (motoInfo.hasPassword ? ' · com senha' : ' · sem senha') : ''}`.trim(),
