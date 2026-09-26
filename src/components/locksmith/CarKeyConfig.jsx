@@ -80,7 +80,8 @@ export default function CarKeyConfig({
               <button type="button" onClick={() => updateVehicle("alarmLocked", true)} className={`min-h-[44px] rounded-xl border-2 text-sm font-medium ${vehicleInfo.alarmLocked === true ? "border-primary bg-primary/5 text-foreground" : "border-border text-muted-foreground"}`}>Sim</button>
               <button type="button" onClick={() => updateVehicle("alarmLocked", false)} className={`min-h-[44px] rounded-xl border-2 text-sm font-medium ${vehicleInfo.alarmLocked === false ? "border-primary bg-primary/5 text-foreground" : "border-border text-muted-foreground"}`}>Não</button>
             </div>
-            {showPriceBeforeAcceptance && vehicleInfo.alarmLocked === true && <p className="mt-2 text-xs text-muted-foreground">O adicional de alarme será incluído conforme a tabela de cobranças vigente.</p>}
+            {vehicleInfo.alarmLocked == null && <p className="mt-2 text-xs text-muted-foreground">Selecione uma opção para calcular o preço da Land Rover.</p>}
+            {showPriceBeforeAcceptance && vehicleInfo.alarmLocked === true && <p className="mt-2 text-xs text-muted-foreground">Land Rover trancada no alarme: o adicional da tabela vigente aparecerá no detalhamento abaixo.</p>
           </div>
         )}
 
