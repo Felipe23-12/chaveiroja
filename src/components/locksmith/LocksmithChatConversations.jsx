@@ -5,7 +5,6 @@ import ChatConversationList from "@/components/locksmith/ChatConversationList";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/components/ui/use-toast";
-import { playNotificationSound } from "@/lib/notificationSound";
 import { safeUnsubscribe } from "@/lib/safeUnsubscribe";
 import useBlockedUsers from "@/hooks/useBlockedUsers";
 import ModerationActions from "@/components/moderation/ModerationActions";
@@ -28,7 +27,6 @@ export default function LocksmithChatConversations({ me }) {
   const [text, setText] = useState("");
   const [sending, setSending] = useState(false);
   const scrollRef = useRef(null);
-  const lastCustomerCountRef = useRef(null);
   const { toast } = useToast();
   const { blockedIds } = useBlockedUsers();
 
@@ -41,10 +39,8 @@ export default function LocksmithChatConversations({ me }) {
     ]).then(([allMessages, hidden]) => {
           const list = allMessages.filter((message) => !hidden.has(message.id));
           const groups = {};
-          let customerTotal = 0;
           list.filter((m) => !blockedIds.has(m.client_id)).forEach((m) => {
             if (!m.client_id) return;
-            if (m.sender_type === "customer") customerTotal++;
             if (m.sender_type !== "customer" && m.sender_type !== "system") return;
             const key = m.client_id;
             if (!groups[key]) groups[key] = { id: key, name: m.client_name || m.sender_name || "Cliente", lastDate: m.created_date, count: 0 };
@@ -58,16 +54,6 @@ export default function LocksmithChatConversations({ me }) {
           );
           setConversations(sorted);
 
-          // Notificação em tempo real de novas mensagens de cliente
-          if (lastCustomerCountRef.current !== null && customerTotal > lastCustomerCountRef.current) {
-            playNotificationSound();
-            if (navigator.vibrate) navigator.vibrate([200, 100, 200, 100, 200]);
-            toast({
-              title: "💬 Nova mensagem de cliente",
-              description: "Você recebeu uma nova mensagem. Abra as conversas para responder.",
-            });
-          }
-          lastCustomerCountRef.current = customerTotal;
         })
         .catch(() => {});
     load();
