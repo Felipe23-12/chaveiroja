@@ -134,7 +134,7 @@ export default function VehicleFipeRateRow({ rule, index, onChange, onRemove, on
         const catalogValue = field === 'simple_price' ? null : Number(currentCatalog?.[catalogField]) > 0 ? Number(currentCatalog[catalogField]) : null;
         return <div key={field} className="rounded-lg border border-border p-3 space-y-2">
           <label className="block text-xs text-muted-foreground">{label} (R$)
-            <Input className="mt-1" type="number" min="0" max="20000" step="0.01" inputMode="decimal" placeholder="Usar catálogo" disabled={unavailable} value={rule[field] ?? ''} onChange={e => onChange({ [field]: e.target.value })} />
+            <Input className="mt-1" type="number" min="0" max="20000" step="0.01" inputMode="decimal" placeholder={catalogValue != null ? `Catálogo: ${catalogValue}` : 'Usar catálogo'} disabled={unavailable} value={rule[field] ?? ''} onChange={e => onChange({ [field]: e.target.value })} />
           </label>
           <p className="text-xs text-muted-foreground">{rule[field] !== '' && rule[field] != null ? `Valor manual desta regra: ${money(rule[field])}` : catalogValue != null ? `Referência do catálogo (${year}): ${money(catalogValue)}${catalogField === 'original_price' ? ' · chave original genérica, confira o tipo' : ''}` : 'Sem preço específico confirmado no catálogo para esta opção.'}</p>
           <label className="flex items-center gap-2 text-sm"><input type="checkbox" aria-label={label + ': indisponível'} checked={unavailable} onChange={e => onChange({ [field + '_unavailable']: e.target.checked })} />Indisponível</label>
