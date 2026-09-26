@@ -5,6 +5,7 @@ import PriceSummary from "./PriceSummary";
 import AddressAutocomplete from "./AddressAutocomplete";
 import LocksConfig from "./LocksConfig";
 import VehicleMakeModelFields from "./VehicleMakeModelFields";
+import { getVehicleYearRange, validateVehicleModelYear } from "../../../base44/shared/vehicleModelYears";
 import OpeningConditionQuestions from "@/components/client/OpeningConditionQuestions";
 import { isOpeningService } from "@/lib/pricing";
 import { useServiceQuoteScope } from '@/components/location/ServiceQuoteScope';
@@ -35,7 +36,9 @@ export default function ServiceConfig({
   assumedNearby = false,
 }) {
   const { allowed } = useServiceQuoteScope();
-  const vehicleReady = Boolean(
+  const yearRange = getVehicleYearRange(vehicleInfo?.make, vehicleInfo?.model);
+  const yearCheck = validateVehicleModelYear(vehicleInfo?.make, vehicleInfo?.model, vehicleInfo?.year);
+  const vehicleReady = yearCheck.valid && Boolean(
     (vehicleInfo?.make || "").trim() &&
       (vehicleInfo?.model || "").trim() &&
       (vehicleInfo?.year || "").toString().trim()
@@ -100,14 +103,17 @@ export default function ServiceConfig({
           <label className="text-sm font-medium text-foreground block">Dados do veículo</label>
           <VehicleMakeModelFields vehicleInfo={vehicleInfo} updateVehicle={updateVehicle} />
           <div>
-            <label className="text-xs text-muted-foreground mb-1 block">Ano</label>
+            <label className="text-xs text-muted-foreground mb-1 block">Ano-modelo {yearRange?.min ? `(${yearRange.min}–${Math.min(yearRange.max, new Date().getFullYear() + 1)})` : ""}</label>
             <Input
               type="number"
+              min={yearRange?.min}
+              max={yearRange?.max ? Math.min(yearRange.max, new Date().getFullYear() + 1) : undefined}
               placeholder="Ex: 2021"
               value={vehicleInfo.year || ""}
               onChange={(e) => updateVehicle("year", e.target.value)}
             />
           </div>
+          {vehicleInfo?.model && !yearCheck.valid && <p className="text-sm text-destructive">{yearCheck.error}</p>}
           <div>
             <p className="text-xs text-muted-foreground mb-1.5">Complexidade da abertura</p>
             <div className="grid grid-cols-1 gap-2">
