@@ -193,9 +193,12 @@ export default function Home() {
     keyValue: catalogOriginalValue || keyValue,
     fallbackUsed: keyValueFallback && catalogOriginalValue <= 0,
   });
+  const motoOriginalKeyValue = motoInfo.keyType === "simples"
+    ? Number(keyCatalog?.original_simple_price) || 50
+    : Number(keyCatalog?.original_proximity_price) || Number(keyCatalog?.original_price) || 0;
   const selectedKeyValue = keyOrigin === "paralela"
-    ? parallelKeyPrice(keyCatalog, originalKeyValue, service?.isMotoKey ? motoInfo.keyType : carKeyType)
-    : originalKeyValue;
+    ? parallelKeyPrice(keyCatalog, service?.isMotoKey ? motoOriginalKeyValue : originalKeyValue, service?.isMotoKey ? motoInfo.keyType : carKeyType)
+    : service?.isMotoKey ? motoOriginalKeyValue : originalKeyValue;
 
   useEffect(() => {
     if (!service?.isMotoKey || !motoInfo.brandId || !motoInfo.modelId || !motoInfo.year) return;
@@ -227,7 +230,7 @@ export default function Home() {
   // para os serviços de abertura, a faixa vem da referência regional.
   const pricingService = useMemo(() => {
     if (service?.isMotoKey && motoRule?.range) {
-      return { ...service, baseRange: motoRule.range.map((value) => value + selectedKeyValue) };
+      return { ...service, baseRange: motoRule.range };
     }
     if (service && regional?.range) return { ...service, baseRange: regional.range };
     return service;
