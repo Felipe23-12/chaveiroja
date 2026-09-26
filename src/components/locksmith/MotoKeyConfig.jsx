@@ -104,7 +104,10 @@ export default function MotoKeyConfig({
           <div>
             <label className="text-sm font-medium text-foreground mb-1.5 block">Tipo de chave</label>
             <div className="grid grid-cols-1 gap-2">
-              {MOTO_KEY_TYPES.filter((k) => k.id === "simples" || model?.premium).map((k) => (
+              {MOTO_KEY_TYPES.filter((k) => {
+                if (k.id === "presenca") return model?.premium && (model?.id !== "nmax" || Number(motoInfo.year) >= 2021);
+                return !model?.presenceOnly && (model?.id !== "nmax" || !motoInfo.year || Number(motoInfo.year) < 2021);
+              }).map((k) => (
                 <Chip key={k.id} active={motoInfo.keyType === k.id} onClick={() => update("keyType", k.id)}>
                   {k.label}
                 </Chip>
