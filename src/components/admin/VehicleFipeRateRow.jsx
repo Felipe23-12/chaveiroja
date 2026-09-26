@@ -77,7 +77,7 @@ export default function VehicleFipeRateRow({ rule, index, onChange, onRemove }) 
     <div className="rounded-lg bg-muted/40 border border-border p-3 space-y-2 text-sm" aria-live="polite">
       <p className="font-semibold">Prévia · {rule.make} {rule.model} {year || ''}</p>
       {!valid && <p>Escolha montadora, modelo e um ano-modelo confirmado para consultar.</p>
-      {invalidYears && <p className="text-xs">A prévia usa {year}; a regra de preços ainda precisa ser corrigida antes de salvar.</p>}}
+      {invalidYears && <p className="text-xs">A prévia usa {year}; a regra de preços ainda precisa ser corrigida antes de salvar.</p>}
       {loading && <p>Consultando referência FIPE...</p>}
       {error && <p role="alert" className="text-destructive">{error}</p>}
       {currentFipe && <><div className="flex justify-between gap-2"><span>Valor do veículo (FIPE)</span><strong>{money(currentFipe.amount)}</strong></div>
