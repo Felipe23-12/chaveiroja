@@ -130,7 +130,7 @@ export default function VehicleFipeRateRow({ rule, index, onChange, onRemove, on
       {Number(first) !== Number(last) && <p className="text-xs text-muted-foreground">A referência exibida é do ano-modelo {year}. Outros anos da faixa podem ter preços de chave diferentes; campos vazios consultam o catálogo de cada ano no chamado.</p>}
       <div className="grid gap-3 sm:grid-cols-2">{keyFields.map(([field, label]) => {
         const unavailable = rule[field + '_unavailable'] === true;
-        const catalogField = field === 'parallel_flip_price' || field === 'parallel_proximity_price' ? field : field === 'simple_price' ? 'original_price' : 'original_price';
+        const catalogField = field.startsWith('parallel_') ? field : 'original_price';
         const catalogValue = field === 'simple_price' ? null : Number(currentCatalog?.[catalogField]) > 0 ? Number(currentCatalog[catalogField]) : null;
         return <div key={field} className="rounded-lg border border-border p-3 space-y-2">
           <label className="block text-xs text-muted-foreground">{label} (R$)
@@ -138,7 +138,7 @@ export default function VehicleFipeRateRow({ rule, index, onChange, onRemove, on
           </label>
           <p className="text-xs text-muted-foreground">{rule[field] !== '' && rule[field] != null ? `Valor manual desta regra: ${money(rule[field])}` : catalogValue != null ? `Referência do catálogo (${year}): ${money(catalogValue)}${catalogField === 'original_price' ? ' · chave original genérica, confira o tipo' : ''}` : 'Sem preço específico confirmado no catálogo para esta opção.'}</p>
           <label className="flex items-center gap-2 text-sm"><input type="checkbox" aria-label={label + ': indisponível'} checked={unavailable} onChange={e => onChange({ [field + '_unavailable']: e.target.checked })} />Indisponível</label>
-          {unavailable ? <p className="text-xs text-destructive">Opção indisponível para este veículo e faixa de anos.</p> : labor != null && rule[field] !== '' && rule[field] != null && Number.isFinite(Number(rule[field])) && <p className="text-xs text-muted-foreground">Chave + mão de obra base: {money(labor + Number(rule[field]))}</p>}
+          {unavailable ? <p className="text-xs text-destructive">Opção indisponível para este veículo e faixa de anos.</p> : labor != null && (rule[field] !== '' && rule[field] != null && Number.isFinite(Number(rule[field])) || catalogValue != null) && <p className="text-xs text-muted-foreground">Chave + mão de obra base{rule[field] === '' || rule[field] == null ? ' (referência do catálogo)' : ''}: {money(labor + (rule[field] !== '' && rule[field] != null ? Number(rule[field]) : catalogValue))}</p>}
         </div>;
       })}</div>
     </div>
