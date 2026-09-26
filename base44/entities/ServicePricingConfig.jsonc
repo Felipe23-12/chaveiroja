@@ -116,6 +116,41 @@
         ]
       }
     },
+    "moto_rules": {
+      "type": "array",
+      "default": [],
+      "maxItems": 1000,
+      "description": "Ajuste percentual da faixa de pre\u00e7o da moto por marca, modelo e ano-modelo.",
+      "items": {
+        "type": "object",
+        "properties": {
+          "make": {
+            "type": "string"
+          },
+          "model": {
+            "type": "string"
+          },
+          "year_start": {
+            "type": "integer"
+          },
+          "year_end": {
+            "type": "integer"
+          },
+          "percent_adjustment": {
+            "type": "number",
+            "minimum": -90,
+            "maximum": 500
+          }
+        },
+        "required": [
+          "make",
+          "model",
+          "year_start",
+          "year_end",
+          "percent_adjustment"
+        ]
+      }
+    },
     "edited_by": {
       "type": "string"
     }
