@@ -2,6 +2,7 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.46';
 import { serviceTypes, pricingFields, loadServicePricing, validatePricing } from '../../shared/servicePricingSettings.ts';
 import { manageRegionalPricing } from '../../shared/regionalServicePricing.ts';
 import { validateVehicleFipeRates } from '../../shared/vehicleFipeRates.ts';
+import { validateMotoPricingRules } from '../../shared/motoPricingRules.ts';
 
 export default async function(req) {
   try {
@@ -17,12 +18,13 @@ export default async function(req) {
     if (body.action === 'get') return Response.json({ services: serviceTypes, groups: pricingFields(service), ...current });
     if (body.action !== 'save') return Response.json({ error: 'Ação inválida' }, { status: 400 });
     if ((body.version || null) !== current.version) return Response.json({ error: 'A tabela foi alterada por outro administrador. Recarregue antes de salvar.' }, { status: 409 });
-    let values, vehicleFipeRates;
+    let values, vehicleFipeRates, motoRules;
     try {
       values = validatePricing(service, body.values);
       vehicleFipeRates = service === 'Confecção de Chave de Carro' ? validateVehicleFipeRates(body.vehicle_fipe_rates ?? current.vehicle_fipe_rates) : [];
+      motoRules = service === 'Confecção de Chave de Moto' ? validateMotoPricingRules(body.moto_rules ?? current.moto_rules) : [];
     } catch (error) { return Response.json({ error: error.message }, { status: 400 }); }
-    const record = await base44.entities.ServicePricingConfig.create({ service_type: service, values, vehicle_fipe_rates: vehicleFipeRates, edited_by: user.id });
-    return Response.json({ services: serviceTypes, groups: pricingFields(service), values, vehicle_fipe_rates: vehicleFipeRates, version: record.id, saved_at: record.created_date });
+    const record = await base44.entities.ServicePricingConfig.create({ service_type: service, values, vehicle_fipe_rates: vehicleFipeRates, moto_rules: motoRules, edited_by: user.id });
+    return Response.json({ services: serviceTypes, groups: pricingFields(service), values, vehicle_fipe_rates: vehicleFipeRates, moto_rules: motoRules, version: record.id, saved_at: record.created_date });
   } catch (error) { return Response.json({ error: error.message || 'Não foi possível salvar a tabela' }, { status: 500 }); }
 }
