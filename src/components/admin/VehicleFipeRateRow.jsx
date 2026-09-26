@@ -89,6 +89,7 @@ export default function VehicleFipeRateRow({ rule, values, index, onChange, onRe
   }, [queryKey, retry]);
   const currentFipe = fipe?.queryKey === queryKey ? fipe : null;
   const currentCatalog = catalog?.queryKey === catalogQueryKey ? catalog.row : null;
+  const officialFipeSource = (() => { try { return ['www.fipe.org.br', 'fipe.org.br', 'veiculos.fipe.org.br'].includes(new URL(currentFipe?.sourceUrl || '').hostname.toLowerCase()); } catch { return false; } })();
   const percent = Number(rule.percent);
   const fallback = valid && values ? vehicleFipeRate(rule.make, rule.model, year, false, values).percent : null;
   const labor = currentFipe && rule.percent !== '' && Number.isFinite(percent) && percent >= 0 && percent <= 10 ? Math.round(currentFipe.amount * percent) / 100 : null;
@@ -115,9 +116,10 @@ export default function VehicleFipeRateRow({ rule, values, index, onChange, onRe
       {loading && <p>Consultando referência FIPE...</p>}
       {error && <p role="alert" className="text-destructive">{error}</p>}
       {fallback != null && <p className="text-xs text-muted-foreground">Sem regra individual salva para este ano-modelo: {fallback}% da FIPE pela regra geral existente{year < 2000 ? ' (considerando chave sem codificação nesta prévia)' : ''}. Os demais carros continuam com sua regra geral até serem editados.</p>}
-      {currentFipe && <><div className="flex justify-between gap-2"><span>Valor do veículo (FIPE)</span><strong>{money(currentFipe.amount)}</strong></div>
+      {currentFipe && <><div className="flex justify-between gap-2"><span>Referência de valor FIPE (consulta automatizada)</span><strong>{money(currentFipe.amount)}</strong></div>
         {fallback != null && <div className="flex justify-between gap-2 text-xs"><span>Mão de obra base pela regra geral ({fallback}%)</span><strong>{money(Math.round(currentFipe.amount * fallback) / 100)}</strong></div>}
         <div className="flex justify-between gap-2"><span>Mão de obra base · {rule.percent || '0'}%</span><strong>{labor == null ? 'Informe o percentual' : money(labor)}</strong></div>
+        {!officialFipeSource && <p role="alert" className="text-xs text-destructive">A fonte retornada não é o site oficial da FIPE. Verifique o valor diretamente em veiculos.fipe.org.br antes de usá-lo como referência.</p>}
         <p className="text-xs text-muted-foreground">Consulta automatizada: {currentFipe.consultedAt}{currentFipe.reference ? ` · Referência informada: ${currentFipe.reference}` : ''}. Confirme versão, ano-modelo, mês e código na consulta oficial antes de definir o preço. Anúncios de lojas e concessionárias não são valores da Tabela FIPE. Cada ano da faixa usa sua própria referência.</p>
         {/^https?:\/\//.test(currentFipe.sourceUrl || '') && <a className="text-xs underline" href={currentFipe.sourceUrl} target="_blank" rel="noopener noreferrer">Conferir fonte consultada</a>}</>}
       <p className="text-xs text-muted-foreground">Prévia de FIPE × percentual. Adicional de chave simples, programação, piso mínimo, deslocamento e ajustes de horário/clima são calculados separadamente no serviço.</p>
