@@ -37,7 +37,7 @@ export default function PricingSettingsEditor({ service, onServices, onDirty }) 
     {error && <p role="alert" className="rounded-xl bg-destructive/10 p-3 text-sm text-destructive">{error}</p>}
     {message && <p role="status" className="rounded-xl bg-success/10 p-3 text-sm text-success">{message}</p>}
     {data && <><p className="text-xs text-muted-foreground">{data.saved_at ? `Última versão: ${new Date(data.saved_at).toLocaleString('pt-BR')}` : 'Tabela inicial — ainda sem alterações manuais.'}</p>
-      {service === 'Confecção de Chave de Carro' && <VehicleFipeRatesEditor rules={vehicleRates} savedRules={data.vehicle_fipe_rates || []} values={values} disabled={busy} onChange={update => { setVehicleRates(update); onDirty(true); setMessage(''); }} />}
+      {service === 'Confecção de Chave de Carro' && <VehicleFipeRatesEditor rules={vehicleRates} savedRules={data.vehicle_fipe_rates || []} values={values} savedVersion={data.version} disabled={busy} onChange={update => { setVehicleRates(update); onDirty(true); setMessage(''); }} />}
       {service === 'Confecção de Chave de Moto' && <MotoPricingRulesEditor rules={motoRules} values={values} disabled={busy} onChange={update => { setMotoRules(update); onDirty(true); setMessage(''); }} />}
       {data.groups.map(g => <PricingFieldGroup key={g.title} group={g} values={values} disabled={busy} onChange={(k, v) => { setValues(prev => ({ ...prev, [k]: v })); onDirty(true); setMessage(''); }} />)}
       <Button type="submit" disabled={busy} className="min-h-[44px]">{busy ? 'Salvando...' : 'Salvar cobranças deste serviço'}</Button></>}
