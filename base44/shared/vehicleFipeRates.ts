@@ -1,3 +1,4 @@
+import { getVehicleYearRange } from './vehicleModelYears.ts';
 const normalize = value => String(value || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]/g, '');
 const makeKey = value => ({ gm: 'chevrolet', gmchevrolet: 'chevrolet', chevroletgm: 'chevrolet', vw: 'volkswagen' }[normalize(value)] || normalize(value));
 const sameModel = (a, b) => makeKey(a.make) === makeKey(b.make) && normalize(a.model) === normalize(b.model);
@@ -31,7 +32,9 @@ export function validateVehicleFipeRates(rules) {
   return rules.map((rule, index) => {
     if (!rule || typeof rule.make !== 'string' || !normalize(rule.make) || rule.make.length > 100 || typeof rule.model !== 'string' || !normalize(rule.model) || rule.model.length > 150) throw new Error(`Regra ${index + 1}: informe a montadora e o modelo.`);
     const first = startYear(rule), last = endYear(rule);
-    if (!Number.isInteger(first) || !Number.isInteger(last) || first < 1900 || last > 2200 || first > last) throw new Error(`Regra ${index + 1}: informe anos de 1900 a 2200, com ano final igual ou posterior ao inicial.`);
+    const range = getVehicleYearRange(rule.make, rule.model);
+    if (!range?.min || !range?.max) throw new Error(`Regra ${index + 1}: modelo sem ano-modelo confirmado.`);
+    if (!Number.isInteger(first) || !Number.isInteger(last) || first < range.min || last > Math.min(range.max, new Date().getFullYear() + 1) || first > last) throw new Error(`Regra ${index + 1}: use anos-modelo de ${range.min} a ${Math.min(range.max, new Date().getFullYear() + 1)}.`);
     if (typeof rule.percent !== 'number' || !Number.isFinite(rule.percent) || rule.percent < 0 || rule.percent > 10) throw new Error(`Regra ${index + 1}: informe um percentual de 0 a 10% da FIPE.`);
     if (seen.some(item => sameModel(item, rule) && first <= item.year_end && last >= item.year_start)) throw new Error(`Existem faixas de anos sobrepostas para ${rule.make} ${rule.model}.`);
     const result = { make: rule.make.trim(), model: rule.model.trim(), year_start: first, year_end: last, percent: Math.round(rule.percent * 100) / 100 };
