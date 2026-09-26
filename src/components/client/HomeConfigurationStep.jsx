@@ -8,7 +8,7 @@ import SearchRadiusSelector from "@/components/locksmith/SearchRadiusSelector";
 import UrgencySelector from "@/components/client/UrgencySelector";
 import ErrorBanner from "@/components/ui/ErrorBanner";
 import ServiceLocationDetails from "@/components/client/ServiceLocationDetails";
-import { isOpeningService } from "@/lib/pricing";
+import { isOpeningService, isLandRoverFrom2020 } from "@/lib/pricing";
 import { requiresParallelKey } from "@/lib/vehicleKeyCatalog";
 import { validateVehicleModelYear } from "../../../base44/shared/vehicleModelYears";
 import useServicePriceQuote from "@/hooks/useServicePriceQuote";
@@ -28,7 +28,7 @@ export default function HomeConfigurationStep({ config }) {
   const disabled = coverageBlocked || !locationContext.coordinates_confirmed || locationIncomplete || !address || !keyBlock || keyBlock.blocked || programming?.dealerOnly ||
     (isOpeningService(service) && (openingReason == null || (service.id !== "abertura_automotiva" && brokenKeyInLock == null))) ||
     (service.needsVehicleInfo && !service.isMotoKey && !validateVehicleModelYear(vehicleInfo.make, vehicleInfo.model, vehicleInfo.year).valid) ||
-    (service.isCarKey && (!validateVehicleModelYear(vehicleInfo.make, vehicleInfo.model, vehicleInfo.year).valid || !fipeValue || !vehicleInfo.doorStatus)) ||
+    (service.isCarKey && (!validateVehicleModelYear(vehicleInfo.make, vehicleInfo.model, vehicleInfo.year).valid || !fipeValue || !vehicleInfo.doorStatus || (isLandRoverFrom2020(vehicleInfo.make, vehicleInfo.year) && vehicleInfo.alarmLocked == null))) ||
     (service.isCarKey && requiresParallelKey(keyCatalog) && keyOrigin !== "paralela") ||
     ((service.isCarKey || service.isMotoKey) && keyOrigin === "paralela" && selectedKeyValue <= 0) ||
     (service.isMotoKey && !motoRule?.range);
