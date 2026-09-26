@@ -28,9 +28,12 @@ export const MOTO_MODELS = {
     { id: "bros160", label: "NXR 160 Bros", cc: 160, premium: false },
     { id: "cb300", label: "CB 300F Twister", cc: 300, premium: false },
     { id: "xre300", label: "XRE 300", cc: 300, premium: false },
-    { id: "pcx", label: "PCX 160", cc: 160, premium: true },
+    { id: "pcx150", label: "PCX 150 (chave simples)", cc: 150, premium: false },
+    { id: "pcx150smart", label: "PCX 150 DLX/SPORT (presença)", cc: 150, premium: true, presenceOnly: true },
+    { id: "pcx", label: "PCX 160", cc: 160, premium: true, presenceOnly: true },
     { id: "sh", label: "SH 150 / SH 300", cc: 300, premium: true },
-    { id: "adv", label: "ADV 350", cc: 350, premium: true },
+    { id: "adv150", label: "ADV 150", cc: 150, premium: true, presenceOnly: true },
+    { id: "adv160", label: "ADV 160", cc: 160, premium: true, presenceOnly: true },
     { id: "cb500", label: "CB 500 (acima de 300cc)", cc: 500, premium: false },
     { id: "xre1000", label: "XRE 190/750/1000 (acima de 300cc)", cc: 750, premium: false },
   ],
@@ -48,7 +51,7 @@ export const MOTO_MODELS = {
 };
 
 export const MOTO_KEY_TYPES = [
-  { id: "simples", label: "Chave simples", description: "Chave codificada tradicional" },
+  { id: "simples", label: "Chave simples", description: "Valor da chave: R$ 50, salvo preço editado no painel" },
   { id: "presenca", label: "Chave presença (Smart Key)", description: "Somente PCX, SH, ADV, NMAX e XMAX" },
 ];
 
@@ -80,6 +83,15 @@ export function getMotoKeyRange({ brandId, modelId, year, keyType, hasPassword =
     return { range: null, blocked: true, reason: "Este modelo não utiliza chave presença. Selecione chave simples." };
   }
 
+  if (model.presenceOnly && keyType === "simples") {
+    return { range: null, blocked: true, reason: "Esta versão utiliza chave de presença. Selecione chave presença." };
+  }
+  if (modelId === "nmax" && keyType === "presenca" && y < 2021) {
+    return { range: null, blocked: true, reason: "NMAX anterior a 2021: selecione chave simples." };
+  }
+  if (modelId === "nmax" && keyType === "simples" && y >= 2021) {
+    return { range: null, blocked: true, reason: "NMAX a partir de 2021 utiliza chave de presença." };
+  }
   if (model.premium) {
     if (keyType === "simples") {
       if (y <= 2022) return { range: [500, 700], blocked: false, reason: "" };
@@ -101,7 +113,7 @@ export function getMotoKeyRange({ brandId, modelId, year, keyType, hasPassword =
       range: null,
       blocked: true,
       reason:
-        "Motos acima de 300 cilindradas não são atendidas no modo aplicativo. Procure um chaveiro no Modo Livre pelo mapa.",
+        "Motos acima de 300 cilindradas requerem confirmação da chave codificada com um chaveiro no Modo Livre pelo mapa.",
     };
   }
 
