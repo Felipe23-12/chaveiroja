@@ -31,8 +31,9 @@ export default function MotoPricingRulesEditor({ rules, disabled, onChange, valu
       const yearRange = motoYearRanges[rule.make]?.[rule.model];
       const percent = Number(rule.percent_adjustment);
       const hasPercent = rule.percent_adjustment !== '' && rule.percent_adjustment != null && Number.isFinite(percent) && percent >= -90 && percent <= 500;
-      const previewKey = previewKeys[index] || 'simples';
       const selectedYear = Number(rule.year_start);
+      const premium = ['PCX 160', 'SH 150 / SH 300', 'NMAX 160', 'XMAX 250'].includes(rule.model);
+      const previewKey = !premium ? 'simples' : selectedYear > 2022 && previewKeys[index] !== 'presenca_com_senha' ? 'presenca_sem_senha' : previewKeys[index] || 'simples';
       const selectedRange = rule.model && yearRange && selectedYear >= yearRange[0] && selectedYear <= Math.min(yearRange[1], new Date().getFullYear() + 1)
         ? motoServiceBaseRange({ model: rule.model, year: selectedYear }, previewKey, previewKey === 'presenca_com_senha') : null;
       const previewRange = selectedRange && [Math.max(0, selectedRange[0] + Number(values.base_min) - 200), Math.max(0, selectedRange[1] + Number(values.base_max) - 500)];
@@ -47,7 +48,7 @@ export default function MotoPricingRulesEditor({ rules, disabled, onChange, valu
           <label className="text-xs text-muted-foreground">Ano-modelo final<Input className="mt-1" type="number" min={Math.max(Number(rule.year_start) || 1980, yearRange?.[0] || 1980)} max={Math.min(yearRange?.[1] || 2200, new Date().getFullYear() + 1)} value={rule.year_end ?? ''} onChange={e => patch(index, { year_end: e.target.value })} /></label>
           {yearRange && <p className="text-xs text-muted-foreground sm:col-span-2">Anos-modelo observados para este modelo: {yearRange[0]}–{Math.min(yearRange[1], new Date().getFullYear() + 1)}.</p>}
           <label className="text-xs text-muted-foreground">Ajuste da mão de obra (%)<Input className="mt-1" type="number" min="-90" max="500" step="0.01" placeholder="Ex.: 10 ou -5" value={rule.percent_adjustment ?? ''} onChange={e => patch(index, { percent_adjustment: e.target.value })} /></label>
-          {selectedRange && <label className="text-xs text-muted-foreground">Tipo de chave para a prévia<select className="mt-1 w-full min-h-[40px] rounded-md border border-input bg-background px-3" value={previewKey} onChange={e => setPreviewKeys(previous => ({ ...previous, [index]: e.target.value }))}><option value="simples">Simples</option><option value="presenca_com_senha">Presença com senha</option><option value="presenca_sem_senha">Presença sem senha</option></select></label>}
+          {selectedRange && <label className="text-xs text-muted-foreground">Tipo de chave para a prévia<select className="mt-1 w-full min-h-[40px] rounded-md border border-input bg-background px-3" value={previewKey} onChange={e => setPreviewKeys(previous => ({ ...previous, [index]: e.target.value }))}>{(!premium || selectedYear <= 2022) && <option value="simples">Simples</option>}{premium && <><option value="presenca_com_senha">Presença com senha</option><option value="presenca_sem_senha">Presença sem senha</option></>}</select></label>}
           {hasPercent && previewRange && <div className="text-xs text-muted-foreground sm:self-end">Faixa para {rule.make} {rule.model} {selectedYear}: {money(previewRange[0])}–{money(previewRange[1])} → após este ajuste {money(previewRange[0] * (1 + percent / 100))}–{money(previewRange[1] * (1 + percent / 100))}. Horário, demanda, urgência, chuva e catálogo de chaves são calculados separadamente.</div>}
         </div>
         <MotoCatalogReference make={rule.make} model={rule.model} year={rule.year_start} />
