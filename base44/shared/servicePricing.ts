@@ -96,7 +96,7 @@ async function carKeyPrice(base44, userId, data, inputs, factors, distanceFee, s
   const fipeRate = vehicleFipeRate(make, model, year, coded, settings, vehicleFipeRates);
   const labor = round(fipe * fipeRate.percent / 100);
   const adjusted = adjustedCharge(labor, factors, `Mão de obra: ${fipeRate.percent}% da FIPE${fipeRate.label ? ` (${fipeRate.label})` : ''}`);
-  const chargedKey = keyType === 'simples' && manualKey === null && keyOrigin === 'original' && !(Number(catalog?.original_simple_price) > 0 || catalog?.key_style === 'lamina_sem_pcf' && Number(catalog?.original_price) > 0) ? 0 : keyValue;
+  const chargedKey = keyValue;
   const onlineFee = serverProgrammingFee(make, model, year, settings);
   const complexityFee = vehicleComplexity(make, model, year, settings);
   const alarmFee = /^land\s*rover(?:\s|$)/i.test(make) && year >= 2020 && vehicle.alarm_locked === true ? settings.alarm_fee : 0;
