@@ -17,7 +17,7 @@ function MotoCatalogReference({ make, model, year }) {
   }, [make, model, year]);
   if (!make || !model || !year || result?.make !== make || result?.model !== model || result?.year !== year) return null;
   const row = result.row;
-  return <p className="text-xs text-muted-foreground">{row ? `Catálogo para ${make} ${model} ${year}: original ${Number(row.original_price) > 0 ? money(row.original_price) : 'sem preço'} · paralela simples ${Number(row.parallel_simple_price) > 0 ? money(row.parallel_simple_price) : 'sem preço'} · presença paralela ${Number(row.parallel_proximity_price) > 0 ? money(row.parallel_proximity_price) : 'sem preço'}.` : `Sem ficha ativa de chave para ${make} ${model} ${year}.`} Os valores das chaves são editados no Catálogo de chaves.</p>;
+  return <p className="text-xs text-muted-foreground">{row ? `Catálogo para ${make} ${model} ${year}: original simples ${Number(row.original_simple_price) > 0 ? money(row.original_simple_price) : money(50)} · original presença ${Number(row.original_proximity_price) > 0 ? money(row.original_proximity_price) : Number(row.original_price) > 0 ? money(row.original_price) : 'sem preço'} · paralela simples ${Number(row.parallel_simple_price) > 0 ? money(row.parallel_simple_price) : money(50)} · presença paralela ${Number(row.parallel_proximity_price) > 0 ? money(row.parallel_proximity_price) : 'sem preço'}.` : `Sem ficha ativa de chave para ${make} ${model} ${year}.`} Os valores das chaves são editados no Catálogo de chaves.</p>;
 }
 
 export default function MotoPricingRulesEditor({ rules, disabled, onChange, values }) {
