@@ -310,7 +310,7 @@ export const getCarKeyComplexityLabel = (make, model = "", year = null) => {
 export const LAND_ROVER_ALARM_FEE = 8000;
 export const LAND_ROVER_ALARM_LABEL = "Land Rover trancada no alarme";
 export const isLandRoverFrom2020 = (make, year) =>
-  /^land\s*rover(?:\s|$)/i.test(String(make || "").trim()) && Number(year) >= 2020;
+  /^land[\s-]*rover(?:\s|$)/i.test(String(make || "").trim()) && Number(year) >= 2020;
 export const getLandRoverAlarmFee = (make, year, alarmLocked) =>
   isLandRoverFrom2020(make, year) && alarmLocked === true ? LAND_ROVER_ALARM_FEE : 0;
 
