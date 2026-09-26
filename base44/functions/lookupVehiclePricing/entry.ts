@@ -43,7 +43,7 @@ export default async function(req: Request): Promise<Response> {
     if (!yearCheck.valid) return Response.json({ error: yearCheck.error }, { status: 400 });
     if (adminPreview) {
       const result = await base44.asServiceRole.integrations.Core.InvokeLLM({
-        prompt: `Consulte uma fonte atual da Tabela FIPE para ${make} ${model}, ano-modelo ${year}${version ? `, versão ${version}` : ''}, no Brasil. Informe somente o valor em reais quando confirmar que a marca, o modelo e o ano-modelo correspondem. Se houver versões diferentes no mesmo ano e não for possível identificar qual foi solicitada, retorne 0. Não estime o valor.`,
+        prompt: `Consulte a referência vigente da Tabela FIPE para ${make} ${model}, ano-modelo ${year}${version ? `, versão ${version}` : ''}, no Brasil. A FIPE (https://www.fipe.org.br/pt-br/indices/veiculos) usa ano-modelo, mês de referência e versões distintas no mesmo ano. Prefira a consulta oficial do modelo e informe no campo reference o mês/ano, o código FIPE e a versão encontrados. Informe somente o valor em reais quando a marca, o modelo, a versão e o ano-modelo corresponderem exatamente. Se houver versões diferentes no mesmo ano e não for possível identificar qual foi solicitada, retorne 0. Não confunda valor de anúncio com Tabela FIPE. Não estime o valor nem invente códigos ou fontes.`,
         add_context_from_internet: true,
         model: 'gemini_3_flash',
         response_json_schema: {
@@ -110,7 +110,7 @@ export default async function(req: Request): Promise<Response> {
     const vehicle = `${make} ${model}`.trim();
     const prompt = `Consulte fontes brasileiras atuais para o veículo ${vehicle}${version ? `, versão/geração informada pelo cliente: ${version}` : ''}, ano-modelo ${year}.
 Se a versão foi informada, não use preços de outra versão ou geração.
-${keyOnly ? 'Não pesquise FIPE.' : 'Informe o valor FIPE atual em BRL e se a chave usa chip, transponder ou imobilizador.'}
+${keyOnly ? 'Não pesquise FIPE.' : 'Consulte o preço FIPE no mês de referência vigente, exclusivamente para a versão correta e o ano-modelo escolhido. Se houver versões distintas sem versão fornecida, não estime e retorne fipe_value=0. Não use preço de anúncio, concessionária ou outro ano como FIPE. Informe também se a chave usa chip, transponder ou imobilizador.'}
 Localize preços de CHAVE ORIGINAL GENUÍNA/OEM completa em lojas especializadas em chaves automotivas, concessionárias e marketplaces verificados (Mercado Livre, Shopee ou AliExpress).
 Aceite somente ofertas cujo título ou descrição comprove que a peça é original, genuína ou OEM e compatível com modelo e ano. Rejeite chave paralela, universal, compatível, similar, capa, carcaça, lâmina avulsa, controle sem chip, preço de programação, moeda estrangeira ou anúncio sem preço.
 Retorne cada oferta aceita com fonte, categoria, preço em BRL, URL e original_confirmed=true. Não estime preços nem invente ofertas.`;
