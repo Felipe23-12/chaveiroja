@@ -122,7 +122,7 @@ export default function VehicleFipeRateRow({ rule, values, index, onChange, onRe
         {!officialFipeSource && <p role="alert" className="text-xs text-destructive">A fonte retornada não é o site oficial da FIPE. Verifique o valor diretamente em veiculos.fipe.org.br antes de usá-lo como referência.</p>}
         <p className="text-xs text-muted-foreground">Consulta automatizada: {currentFipe.consultedAt}{currentFipe.reference ? ` · Referência informada: ${currentFipe.reference}` : ''}. Confirme versão, ano-modelo, mês e código na consulta oficial antes de definir o preço. Anúncios de lojas e concessionárias não são valores da Tabela FIPE. Cada ano da faixa usa sua própria referência.</p>
         {/^https?:\/\//.test(currentFipe.sourceUrl || '') && <a className="text-xs underline" href={currentFipe.sourceUrl} target="_blank" rel="noopener noreferrer">Conferir fonte consultada</a>}</>}
-      <p className="text-xs text-muted-foreground">Prévia de FIPE × percentual. Adicional de chave simples, programação, piso mínimo, deslocamento e ajustes de horário/clima são calculados separadamente no serviço.</p>
+      <p className="text-xs text-muted-foreground">Prévia de FIPE × percentual. O valor da chave escolhida é somado separadamente à mão de obra; programação, piso mínimo, deslocamento e ajustes de horário/clima também são calculados no serviço.</p>
       <Button type="button" size="sm" variant="outline" disabled={!valid || loading} onClick={() => { cache.delete(queryKey); setRetry(value => value + 1); }}>Atualizar FIPE</Button>
     </div>
     <Button type="button" variant="outline" size="sm" disabled={!canDuplicate || !rule.make || !rule.model} onClick={onDuplicate}>Adicionar outro ano ou faixa deste veículo</Button>
