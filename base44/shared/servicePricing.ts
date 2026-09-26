@@ -6,6 +6,7 @@ import { pricingCalendar, pricingFactors, adjustedCharge } from './servicePricin
 import { pricingWeather } from './serviceWeather.ts';
 import { regionalPriceForLocation } from './regionalServicePricing.ts';
 import { currentVehicleCatalog, catalogKeyPrice } from './catalogServicePricing.ts';
+import { matchingMotoRule } from './motoPricingRules.ts';
 import { vehicleFipeRate, matchingVehicleRule, vehicleManualKeyPrice, vehicleKeyUnavailable } from './vehicleFipeRates.ts';
 import { isAreaAvailable } from './serviceAreas.ts';
 import { requireServiceCoverage } from './serviceCoverage.ts';
@@ -180,8 +181,10 @@ export async function calculateServerServicePrice(base44, userId, data) {
     const [baseMin, baseMax] = regional?.range || [settings.base_min, settings.base_max];
     const base = Math.round(baseMin + (baseMax - baseMin) * tierFactor);
     const vehicle = inputs.vehicle || {};
+    const motoSpecific = rule.id === 'confeccao_chave_moto' ? matchingMotoRule(vehicle.make, vehicle.model, vehicle.year, config.moto_rules) : null;
+    const motoBase = motoSpecific ? round(base * (1 + motoSpecific.percent_adjustment / 100)) : base;
     const openingFactors = rule.id === 'abertura_automotiva' && Number(vehicle.year) >= 2020 ? [...factors, { label: 'Veículo de 2020 em diante', percent: settings.opening_2020 }] : factors;
-    const adjusted = adjustedCharge(base, openingFactors, `${data.service_type} (base)`);
+    const adjusted = adjustedCharge(motoBase, openingFactors, `${data.service_type} (base)${motoSpecific ? ` · ${vehicle.make} ${vehicle.model} ${motoSpecific.year_start}–${motoSpecific.year_end}: ${motoSpecific.percent_adjustment > 0 ? '+' : ''}${motoSpecific.percent_adjustment}%` : ''}`);
     const automotiveFee = rule.id === 'abertura_automotiva' ? ({ media: settings.opening_medium, alta: settings.opening_high }[vehicle.complexity] || 0) : 0;
     const locks = rule.id === 'abertura_residencial' || rule.id === 'abertura_tetra' || rule.id === 'abertura_eletronica' ? lockExtras(inputs.locks, settings) : 0;
     const brokenFee = rule.id.startsWith('abertura_') && inputs.broken_key_in_lock === true ? settings.condition_fee : 0;
