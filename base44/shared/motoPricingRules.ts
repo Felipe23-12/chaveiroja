@@ -1,18 +1,19 @@
 const normalize = value => String(value || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]/g, '');
 const sameModel = (a, b) => normalize(a.make) === normalize(b.make) && normalize(a.model) === normalize(b.model);
 export const motoModels = {
-  Honda: ['Pop 110i', 'Biz 125', 'CG 160', 'NXR 160 Bros', 'CB 300F Twister', 'XRE 300', 'PCX 160', 'SH 150 / SH 300', 'ADV 350', 'CB 500 (acima de 300cc)', 'XRE 190/750/1000 (acima de 300cc)'],
+  Honda: ['Pop 110i', 'Biz 125', 'CG 160', 'NXR 160 Bros', 'CB 300F Twister', 'XRE 300', 'PCX 150 (chave simples)', 'PCX 150 DLX/SPORT (presença)', 'PCX 160', 'SH 150 / SH 300', 'ADV 150', 'ADV 160', 'CB 500 (acima de 300cc)', 'XRE 190/750/1000 (acima de 300cc)'],
   Yamaha: ['Neo 125', 'Factor 150', 'Crosser / XTZ 150', 'Fazer 250', 'Lander 250', 'NMAX 160', 'XMAX 250', 'MT-03 / R3 (acima de 300cc)', 'MT-07 (acima de 300cc)'],
 };
 // Intervalos observados no histórico público fipeX (ano-modelo). Modelos compostos sem correspondência ficam indisponíveis até revisão.
 export const motoYearRanges = {
-  Honda: { 'Pop 110i': [2016, 2027], 'Biz 125': [2006, 2027], 'CG 160': [2016, 2026], 'NXR 160 Bros': [2015, 2026], 'CB 300F Twister': [2023, 2027], 'XRE 300': [2010, 2023], 'PCX 160': [2023, 2027], 'SH 150 / SH 300': [2016, 2021], 'CB 500 (acima de 300cc)': [1997, 2027] },
+  Honda: { 'Pop 110i': [2016, 2027], 'Biz 125': [2006, 2027], 'CG 160': [2016, 2026], 'NXR 160 Bros': [2015, 2026], 'CB 300F Twister': [2023, 2027], 'XRE 300': [2010, 2023], 'PCX 150 (chave simples)': [2013, 2022], 'PCX 150 DLX/SPORT (presença)': [2019, 2022], 'PCX 160': [2023, 2027], 'SH 150 / SH 300': [2016, 2021], 'ADV 150': [2021, 2024], 'ADV 160': [2025, 2027], 'CB 500 (acima de 300cc)' : [1997, 2027] },
   Yamaha: { 'Neo 125': [2017, 2025], 'Factor 150': [2016, 2026], 'Crosser / XTZ 150': [2014, 2027], 'Fazer 250': [2006, 2026], 'Lander 250': [2007, 2026], 'NMAX 160': [2017, 2026], 'XMAX 250': [2020, 2025], 'MT-03 / R3 (acima de 300cc)': [2017, 2027], 'MT-07 (acima de 300cc)': [2015, 2026] },
 };
 const motoDetails = {
   'Pop 110i': { cc: 110 }, 'Biz 125': { cc: 125 }, 'CG 160': { cc: 160 }, 'NXR 160 Bros': { cc: 160 },
-  'CB 300F Twister': { cc: 300 }, 'XRE 300': { cc: 300 }, 'PCX 160': { cc: 160, premium: true },
-  'SH 150 / SH 300': { cc: 300, premium: true }, 'ADV 350': { cc: 350, premium: true },
+  'CB 300F Twister': { cc: 300 }, 'XRE 300': { cc: 300 }, 'PCX 150 (chave simples)': { cc: 150 },
+  'PCX 150 DLX/SPORT (presença)': { cc: 150, premium: true, presenceOnly: true }, 'PCX 160': { cc: 160, premium: true, presenceOnly: true },
+  'SH 150 / SH 300': { cc: 300, premium: true }, 'ADV 150': { cc: 150, premium: true, presenceOnly: true }, 'ADV 160': { cc: 160, premium: true, presenceOnly: true },
   'CB 500 (acima de 300cc)': { cc: 500 }, 'XRE 190/750/1000 (acima de 300cc)': { cc: 750 },
   'Neo 125': { cc: 125 }, 'Factor 150': { cc: 150 }, 'Crosser / XTZ 150': { cc: 150 },
   'Fazer 250': { cc: 250 }, 'Lander 250': { cc: 250 }, 'NMAX 160': { cc: 160, premium: true },
@@ -30,9 +31,10 @@ export function validateMotoServiceRequest(vehicle, keyType, hasPassword) {
   if (!['simples', 'presenca'].includes(keyType)) throw new Error('Selecione um tipo de chave de moto válido.');
   const detail = motoDetails[model];
   if (keyType === 'presenca') {
-    if (!detail?.premium) throw new Error('Este modelo não utiliza chave presença. Selecione chave simples.');
+    if (!detail?.premium) throw new Error('Esta versão não utiliza chave presença. Selecione chave simples.');
     if (typeof hasPassword !== 'boolean') throw new Error('Informe se possui a senha da chave presença.');
   }
+  if (detail?.presenceOnly && keyType === 'simples') throw new Error('Esta versão utiliza chave de presença. Selecione chave presença.');
   if (model === 'NMAX 160' && keyType === 'presenca' && year < 2021) throw new Error('NMAX 160 anterior a 2021: chave de presença não confirmada para este ano-modelo. Selecione chave simples.');
   if (model === 'NMAX 160' && keyType === 'simples' && year >= 2021) throw new Error('NMAX 160 a partir de 2021 utiliza chave de presença.');
   if (detail?.premium && model !== 'NMAX 160' && keyType === 'simples' && year > 2022) throw new Error('Modelos premium acima de 2022 utilizam chave presença.');
