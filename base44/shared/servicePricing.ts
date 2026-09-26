@@ -1,4 +1,5 @@
 import { verifyVehiclePricingQuote } from './vehiclePricingQuote.ts';
+import { validateVehicleModelYear } from './vehicleModelYears.ts';
 import { carKeyUnavailableReason } from './carKeyAvailability.ts';
 import { loadServicePricing } from './servicePricingSettings.ts';
 import { pricingCalendar, pricingFactors, adjustedCharge } from './servicePricingConditions.ts';
@@ -137,6 +138,11 @@ export async function calculateServerServicePrice(base44, userId, data) {
   const rule = RULES[data.service_type];
   if (!rule) throw new Error('Serviço inválido');
   const inputs = data.pricing_inputs && typeof data.pricing_inputs === 'object' ? data.pricing_inputs : {};
+  if (rule.carKey || rule.id === 'abertura_automotiva') {
+    const vehicle = inputs.vehicle || {};
+    const yearCheck = validateVehicleModelYear(vehicle.make, vehicle.model, vehicle.year);
+    if (!yearCheck.valid) throw new Error(yearCheck.error);
+  }
   if (rule.carKey) {
     const vehicle = inputs.vehicle || {};
     const unavailable = carKeyUnavailableReason(vehicle.make, vehicle.model, vehicle.year);
