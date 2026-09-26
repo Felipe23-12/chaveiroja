@@ -113,6 +113,7 @@ export default function ServiceConfig({
               onChange={(e) => updateVehicle("year", e.target.value)}
             />
           </div>
+          <div><label className="text-xs text-muted-foreground mb-1 block">Versão ou geração (se souber)</label><Input placeholder="Ex.: 1.0 LT, G5, EXL" value={vehicleInfo.version || ""} onChange={(e) => updateVehicle("version", e.target.value)} maxLength={80} /></div>
           {vehicleInfo?.model && !yearCheck.valid && <p className="text-sm text-destructive">{yearCheck.error}</p>}
           <div>
             <p className="text-xs text-muted-foreground mb-1.5">Complexidade da abertura</p>
