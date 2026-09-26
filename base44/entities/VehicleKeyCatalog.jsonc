@@ -130,6 +130,18 @@
       "minimum": 0,
       "default": 0
     },
+    "original_simple_price": {
+      "type": "number",
+      "minimum": 0,
+      "default": 0,
+      "description": "Pre\u00e7o manual da chave original simples; se ausente, usa R$ 50"
+    },
+    "original_proximity_price": {
+      "type": "number",
+      "minimum": 0,
+      "default": 0,
+      "description": "Pre\u00e7o manual da chave original de presen\u00e7a"
+    },
     "parallel_simple_price": {
       "type": "number",
       "minimum": 0,
