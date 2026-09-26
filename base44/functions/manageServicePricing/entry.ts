@@ -13,7 +13,7 @@ export default async function(req) {
     if (['regional_get', 'regional_save'].includes(body.action)) return await manageRegionalPricing(base44, body);
     const service = body.service_type || 'Confecção de Chave de Carro';
     if (!serviceTypes.includes(service)) return Response.json({ error: 'Serviço inválido' }, { status: 400 });
-    const current = await loadServicePricing(base44, service);
+    const current = await loadServicePricing(base44, service, { includeInvalidRates: true });
     if (body.action === 'get') return Response.json({ services: serviceTypes, groups: pricingFields(service), ...current });
     if (body.action !== 'save') return Response.json({ error: 'Ação inválida' }, { status: 400 });
     if ((body.version || null) !== current.version) return Response.json({ error: 'A tabela foi alterada por outro administrador. Recarregue antes de salvar.' }, { status: 409 });
