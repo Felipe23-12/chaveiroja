@@ -4,6 +4,7 @@ import { base44 } from '@/api/base44Client';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import VehicleMakeModelFields from '@/components/locksmith/VehicleMakeModelFields';
+import { getVehicleYearRange } from '../../../base44/shared/vehicleModelYears';
 
 const money = value => Number(value).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 const cache = new Map();
@@ -16,6 +17,8 @@ const keyFields = [
 ];
 
 export default function VehicleFipeRateRow({ rule, index, onChange, onRemove }) {
+  const range = getVehicleYearRange(rule.make, rule.model);
+  const currentMax = Math.min(range?.max || 2200, new Date().getFullYear() + 1);
   const first = rule.year_start ?? rule.year ?? '';
   const last = rule.year_end ?? rule.year ?? '';
   const [previewYear, setPreviewYear] = useState('');
@@ -24,7 +27,7 @@ export default function VehicleFipeRateRow({ rule, index, onChange, onRemove }) 
   const [error, setError] = useState('');
   const [retry, setRetry] = useState(0);
   const year = Number(previewYear || first);
-  const valid = Boolean(rule.make?.trim() && rule.model?.trim() && Number.isInteger(year) && Number(first) >= 1900 && Number(last) <= 2200 && year >= Number(first) && year <= Number(last));
+  const valid = Boolean(rule.make?.trim() && rule.model?.trim() && Number.isInteger(year) && range?.min && Number(first) >= range.min && Number(last) <= currentMax && year >= Number(first) && year <= Number(last));
   const queryKey = valid ? JSON.stringify([rule.make.trim(), rule.model.trim(), year]) : '';
   useEffect(() => {
     if (previewYear && (Number(previewYear) < Number(first) || Number(previewYear) > Number(last))) setPreviewYear('');
@@ -56,8 +59,9 @@ export default function VehicleFipeRateRow({ rule, index, onChange, onRemove }) 
     <div className="flex items-center justify-between gap-2"><h4 className="text-sm font-semibold">Veículo {index + 1}</h4><Button type="button" variant="ghost" size="icon" aria-label={`Remover regra ${index + 1}`} onClick={onRemove}><Trash2 className="h-4 w-4" /></Button></div>
     <div className="grid gap-3 sm:grid-cols-2">
       <VehicleMakeModelFields vehicleInfo={rule} updateVehicle={(key, value) => onChange({ [key]: value, ...(key === 'make' ? { model: '' } : {}) })} />
-      <label className="text-xs text-muted-foreground">Ano inicial<Input className="mt-1" type="number" min="1900" max="2200" step="1" required value={first} onChange={e => onChange({ year_start: e.target.value })} /></label>
-      <label className="text-xs text-muted-foreground">Ano final<Input className="mt-1" type="number" min={Number(first) || 1900} max="2200" step="1" required value={last} onChange={e => onChange({ year_end: e.target.value })} /></label>
+      <label className="text-xs text-muted-foreground">Ano-modelo inicial<Input className="mt-1" type="number" min={range?.min || 1900} max={currentMax} step="1" required value={first} onChange={e => onChange({ year_start: e.target.value })} /></label>
+      <label className="text-xs text-muted-foreground">Ano-modelo final<Input className="mt-1" type="number" min={Math.max(Number(first) || 1900, range?.min || 1900)} max={currentMax} step="1" required value={last} onChange={e => onChange({ year_end: e.target.value })} /></label>
+      {rule.model && <p className="text-xs text-muted-foreground sm:col-span-2">{range?.min ? `Anos-modelo disponíveis para ${rule.make} ${rule.model}: ${range.min}–${currentMax}.` : "Modelo sem faixa de ano-modelo confirmada."}</p>}
       <label className="text-xs text-muted-foreground">Mão de obra (% da FIPE)<Input className="mt-1" type="number" min="0" max="10" step="0.01" required placeholder="Ex.: 1,3" value={rule.percent} onChange={e => onChange({ percent: e.target.value })} /></label>
       <label className="text-xs text-muted-foreground">Ano para consultar a FIPE<Input className="mt-1" type="number" min={Number(first) || 1900} max={Number(last) || 2200} step="1" value={previewYear || first} onChange={e => setPreviewYear(e.target.value)} /></label>
     </div>
