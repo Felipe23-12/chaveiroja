@@ -34,8 +34,8 @@ export default function VehicleFipeRateRow({ rule, index, onChange, onRemove }) 
   const invalidYears = Boolean(rule.model && range?.min && (Number(first) < range.min || Number(last) > currentMax || Number(first) > Number(last)));
   const missingRange = Boolean(rule.model && !range?.min);
   useEffect(() => {
-    if (previewYear && (Number(previewYear) < Number(first) || Number(previewYear) > Number(last))) setPreviewYear('');
-  }, [first, last, previewYear]);
+    if (previewYear && (Number(previewYear) < (range?.min || 1900) || Number(previewYear) > currentMax)) setPreviewYear('');
+  }, [range?.min, currentMax, previewYear]);
   useEffect(() => {
     let active = true;
     setFipe(null); setError(''); setLoading(Boolean(queryKey));
