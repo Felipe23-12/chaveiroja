@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import KeyProgrammingFields from "@/components/admin/KeyProgrammingFields";
 import ManualKeyPriceFields from "@/components/admin/ManualKeyPriceFields";
 import VehicleMakeModelFields from "@/components/locksmith/VehicleMakeModelFields";
+import { getVehicleYearRange } from "../../../base44/shared/vehicleModelYears";
 
 const fields = [
   ["year_start", "Ano inicial"], ["year_end", "Ano final"],
@@ -14,6 +15,7 @@ const fields = [
 ];
 
 export default function VehicleKeyCatalogForm({ value, onChange, onSave, saving }) {
+  const yearRange = value.vehicle_type === "carro" ? getVehicleYearRange(value.make, value.model) : null;
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
       <select value={value.vehicle_type || "carro"} onChange={(e) => onChange({ ...value, vehicle_type: e.target.value })} className="h-10 rounded-md border border-input bg-background px-3 text-sm">
@@ -32,7 +34,8 @@ export default function VehicleKeyCatalogForm({ value, onChange, onSave, saving 
       ) : [["make", "Montadora"], ["model", "Modelo"]].map(([name, label]) => (
         <Input key={name} placeholder={label} value={value[name] || ""} onChange={e => onChange({ ...value, [name]: e.target.value })} />
       ))}
-      {fields.map(([name, label]) => <Input key={name} type={name.includes("price") || name.includes("year") ? "number" : "text"} placeholder={label} value={value[name] ?? ""} onChange={(e) => onChange({ ...value, [name]: e.target.value })} />)}
+      {fields.map(([name, label]) => <Input key={name} type={name.includes("price") || name.includes("year") ? "number" : "text"} min={name.includes("year") ? yearRange?.min : undefined} max={name.includes("year") ? Math.min(yearRange?.max || 2200, new Date().getFullYear() + 1) : undefined} placeholder={name.includes("year") ? `${label} (ano-modelo)` : label} value={value[name] ?? ""} onChange={(e) => onChange({ ...value, [name]: e.target.value })} />)}
+      {value.vehicle_type === "carro" && value.model && <p className="text-xs text-muted-foreground sm:col-span-2">{yearRange?.min ? `Ano-modelo disponível: ${yearRange.min}–${Math.min(yearRange.max, new Date().getFullYear() + 1)}. Diferencie gerações e versões em fichas separadas.` : "Modelo sem faixa de ano-modelo confirmada."}</p>}
       {["vvdi", "kd", "km100"].map((brand) => <label key={brand} className="flex items-center gap-2 text-sm"><input type="checkbox" checked={value[`${brand}_supported`] || false} onChange={(e) => onChange({ ...value, [`${brand}_supported`]: e.target.checked })} /> {brand.toUpperCase()} possui arquivo</label>)}
       <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={value.verified || false} onChange={(e) => onChange({ ...value, verified: e.target.checked })} /> Dados verificados</label>
       <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={value.active || false} onChange={(e) => onChange({ ...value, active: e.target.checked })} /> Disponível ao cliente</label>
