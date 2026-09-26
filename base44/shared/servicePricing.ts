@@ -6,7 +6,7 @@ import { pricingCalendar, pricingFactors, adjustedCharge } from './servicePricin
 import { pricingWeather } from './serviceWeather.ts';
 import { regionalPriceForLocation } from './regionalServicePricing.ts';
 import { currentVehicleCatalog, catalogKeyPrice } from './catalogServicePricing.ts';
-import { matchingMotoRule, validateMotoServiceRequest } from './motoPricingRules.ts';
+import { matchingMotoRule, motoServiceBaseRange, validateMotoServiceRequest } from './motoPricingRules.ts';
 import { vehicleFipeRate, matchingVehicleRule, vehicleManualKeyPrice, vehicleKeyUnavailable } from './vehicleFipeRates.ts';
 import { isAreaAvailable } from './serviceAreas.ts';
 import { requireServiceCoverage } from './serviceCoverage.ts';
@@ -182,7 +182,8 @@ export async function calculateServerServicePrice(base44, userId, data) {
   } else if (rule.carKey) {
     calculation = await carKeyPrice(base44, userId, data, inputs, factors, distanceFee, settings, config.vehicle_fipe_rates);
   } else {
-    const [baseMin, baseMax] = regional?.range || [settings.base_min, settings.base_max];
+    const serviceRange = rule.id === 'confeccao_chave_moto' ? motoServiceBaseRange(inputs.vehicle, data.key_type, inputs.moto_has_password) : [settings.base_min, settings.base_max];
+    const [baseMin, baseMax] = regional?.range || serviceRange;
     const base = Math.round(baseMin + (baseMax - baseMin) * tierFactor);
     const vehicle = inputs.vehicle || {};
     const motoSpecific = rule.id === 'confeccao_chave_moto' ? matchingMotoRule(vehicle.make, vehicle.model, vehicle.year, config.moto_rules) : null;
