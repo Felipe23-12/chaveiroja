@@ -10,6 +10,7 @@ export default function ServerPriceSummary({ pricing, showDetails = false }) {
       <span className="font-heading font-semibold">Valor do serviço</span>
       <span className="font-heading font-bold text-xl text-primary">{money(pricing.price)}</span>
     </div>
+    {showDetails && Number(pricing.fields?.fipe_value) > 0 && <div className="flex justify-between gap-3 text-sm font-medium text-foreground"><span>Valor da Tabela FIPE do carro</span><span>{money(pricing.fields.fipe_value)}</span></div>}
     {showDetails && <div className="space-y-1 text-xs text-muted-foreground">
       {(pricing.calculation?.lines || []).map((line, index) => <div key={index} className="flex justify-between gap-3"><span>{line.label}</span><span>{money(line.value)}</span></div>)}
       {(pricing.calculation?.notes || []).map((note, index) => <p key={`note-${index}`} className="pt-1">{note}</p>)}
