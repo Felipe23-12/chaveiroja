@@ -664,6 +664,8 @@ export default function Home() {
         ...(service.isCarKey ? {
           key_type: carKeyType,
           vehicle_info: `${vehicleInfo.make} ${vehicleInfo.model}${vehicleInfo.version?.trim() ? ` · Versão ${vehicleInfo.version.trim()}` : ""} · Ano-modelo ${vehicleInfo.year} · Porta ${vehicleInfo.doorStatus}${complexity ? ` · ${complexity.label}` : ''}${/^land\s*rover(?:\s|$)/i.test(vehicleInfo.make.trim()) && Number(vehicleInfo.year) >= 2020 ? ` · Alarme: ${vehicleInfo.alarmLocked ? 'trancado' : 'não trancado'}` : ''}`.trim(),
+        } : service.id === "abertura_automotiva" ? {
+          vehicle_info: `${vehicleInfo.make} ${vehicleInfo.model}${vehicleInfo.version?.trim() ? ` · Versão ${vehicleInfo.version.trim()}` : ""} · Ano-modelo ${vehicleInfo.year}`.trim(),
         } : service.isMotoKey ? {
           key_type: motoInfo.keyType,
           vehicle_info: `${MOTO_BRANDS.find(b => b.id === motoInfo.brandId)?.label || ''} ${motoModel?.label || ''} ${motoInfo.year}${motoInfo.keyType === 'presenca' ? (motoInfo.hasPassword ? ' · com senha' : ' · sem senha') : ''}`.trim(),
