@@ -9,6 +9,31 @@ export const motoYearRanges = {
   Honda: { 'Pop 110i': [2016, 2027], 'Biz 125': [2006, 2027], 'CG 160': [2016, 2026], 'NXR 160 Bros': [2015, 2026], 'CB 300F Twister': [2023, 2027], 'XRE 300': [2010, 2023], 'PCX 160': [2023, 2027], 'SH 150 / SH 300': [2016, 2021], 'CB 500 (acima de 300cc)': [1997, 2027] },
   Yamaha: { 'Neo 125': [2017, 2025], 'Factor 150': [2016, 2026], 'Crosser / XTZ 150': [2014, 2027], 'Fazer 250': [2006, 2026], 'Lander 250': [2007, 2026], 'NMAX 160': [2017, 2026], 'XMAX 250': [2020, 2025], 'MT-03 / R3 (acima de 300cc)': [2017, 2027], 'MT-07 (acima de 300cc)': [2015, 2026] },
 };
+const motoDetails = {
+  'Pop 110i': { cc: 110 }, 'Biz 125': { cc: 125 }, 'CG 160': { cc: 160 }, 'NXR 160 Bros': { cc: 160 },
+  'CB 300F Twister': { cc: 300 }, 'XRE 300': { cc: 300 }, 'PCX 160': { cc: 160, premium: true },
+  'SH 150 / SH 300': { cc: 300, premium: true }, 'ADV 350': { cc: 350, premium: true },
+  'CB 500 (acima de 300cc)': { cc: 500 }, 'XRE 190/750/1000 (acima de 300cc)': { cc: 750 },
+  'Neo 125': { cc: 125 }, 'Factor 150': { cc: 150 }, 'Crosser / XTZ 150': { cc: 150 },
+  'Fazer 250': { cc: 250 }, 'Lander 250': { cc: 250 }, 'NMAX 160': { cc: 160, premium: true },
+  'XMAX 250': { cc: 250, premium: true }, 'MT-03 / R3 (acima de 300cc)': { cc: 320 }, 'MT-07 (acima de 300cc)': { cc: 690 },
+};
+export function validateMotoServiceRequest(vehicle, keyType, hasPassword) {
+  const make = Object.keys(motoModels).find(item => normalize(item) === normalize(vehicle?.make));
+  const model = make && motoModels[make].find(item => normalize(item) === normalize(vehicle?.model));
+  if (!make || !model) throw new Error('Selecione uma marca e um modelo de moto disponíveis.');
+  const year = Number(vehicle?.year), max = new Date().getFullYear() + 1;
+  if (!Number.isInteger(year) || year < 1980 || year > max) throw new Error(`Informe um ano-modelo de moto entre 1980 e ${max}.`);
+  if (!['simples', 'presenca'].includes(keyType)) throw new Error('Selecione um tipo de chave de moto válido.');
+  const detail = motoDetails[model];
+  if (keyType === 'presenca') {
+    if (!detail?.premium) throw new Error('Este modelo não utiliza chave presença. Selecione chave simples.');
+    if (typeof hasPassword !== 'boolean') throw new Error('Informe se possui a senha da chave presença.');
+  }
+  if (detail?.premium && keyType === 'simples' && year > 2022) throw new Error('Modelos premium acima de 2022 utilizam chave presença.');
+  if (!detail?.premium && detail?.cc > 300) throw new Error('Motos acima de 300 cilindradas são atendidas somente no Modo Livre.');
+  return { make, model, year };
+}
 export function matchingMotoRule(make, model, year, rules = []) {
   return rules.find(rule => sameModel(rule, { make, model }) && Number(year) >= rule.year_start && Number(year) <= rule.year_end) || null;
 }
