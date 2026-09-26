@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useRef } from "react";
-import { useLocation } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
 import { useAuth } from "@/lib/AuthContext";
 import { useToast } from "@/components/ui/use-toast";
@@ -11,8 +10,6 @@ import { loadChatReadStates } from "@/lib/chatReadState";
 import { loadHiddenMessageIds } from "@/lib/chatVisibility";
 import useBlockedUsers from "@/hooks/useBlockedUsers";
 
-const lastSeenKey = (id) => `chat_last_seen_${id}`;
-
 /**
  * Alerta flutuante global para o chaveiro: dispara o som de notificação +
  * toast quando chega uma nova mensagem de cliente (em qualquer página) e
@@ -22,10 +19,8 @@ const lastSeenKey = (id) => `chat_last_seen_${id}`;
  */
 export default function GlobalChatAlert() {
   const { user } = useAuth();
-  const location = useLocation();
   const { toast } = useToast();
   const [locksmith, setLocksmith] = useState(null);
-  const [unread, setUnread] = useState(0);
   const { blockedIds, loading: blocksLoading } = useBlockedUsers();
   const seenIds = useRef(new Set());
   const initialized = useRef(false);
@@ -58,13 +53,8 @@ export default function GlobalChatAlert() {
     if (!locksmith?.id) return;
     // Garante a permissão de notificação nativa no celular
     ensureNotificationPermission();
-    const key = lastSeenKey(locksmith.id);
-    let lastSeen = 0;
-    try { lastSeen = parseInt(localStorage.getItem(key) || "0", 10) || 0; } catch (e) {}
-
     initialized.current = false;
     seenIds.current.clear();
-    setUnread(0);
     setChatUnread(0);
     const load = async () => {
       if (loading.current || blocksLoading) return;
@@ -85,18 +75,17 @@ export default function GlobalChatAlert() {
               seenIds.current.add(m.id);
               const ts = new Date(m.created_date).getTime();
               const persistentReadAt = readStates.get(`${locksmith.id}:${m.client_id}`);
-              const readAt = Math.max(lastSeen, persistentReadAt ? Date.parse(persistentReadAt) : 0);
+              const readAt = persistentReadAt ? Date.parse(persistentReadAt) : 0;
               if (ts > readAt) initialUnread++;
             });
             initialized.current = true;
-            setUnread(initialUnread);
             setChatUnread(initialUnread);
           } else {
             const newMsgs = customerMsgs.filter((m) => !seenIds.current.has(m.id));
             newMsgs.forEach((m) => seenIds.current.add(m.id));
             const unreadMsgs = newMsgs.filter((m) => {
               const readAt = readStates.get(`${locksmith.id}:${m.client_id}`);
-              return new Date(m.created_date).getTime() > Math.max(lastSeen, readAt ? Date.parse(readAt) : 0);
+              return new Date(m.created_date).getTime() > (readAt ? Date.parse(readAt) : 0);
             });
             if (unreadMsgs.length > 0) {
               const latest = unreadMsgs[unreadMsgs.length - 1];
@@ -113,9 +102,8 @@ export default function GlobalChatAlert() {
             }
             const totalUnread = customerMsgs.filter((m) => {
               const readAt = readStates.get(`${locksmith.id}:${m.client_id}`);
-              return new Date(m.created_date).getTime() > Math.max(lastSeen, readAt ? Date.parse(readAt) : 0);
+              return new Date(m.created_date).getTime() > (readAt ? Date.parse(readAt) : 0);
             }).length;
-            setUnread(totalUnread);
             setChatUnread(totalUnread);
           }
       } catch (error) {
@@ -130,17 +118,6 @@ export default function GlobalChatAlert() {
     const readUnsub = base44.entities.ChatReadState.subscribe(() => load());
     return () => { safeUnsubscribe(unsub)(); safeUnsubscribe(visibilityUnsub)(); safeUnsubscribe(readUnsub)(); };
   }, [locksmith?.id, blockedIds, blocksLoading]);
-
-  // Zera o contador e persiste lastSeen quando o chaveiro está no painel
-  useEffect(() => {
-    if (!locksmith?.id) return;
-    if (location.pathname === "/painel-chaveiro") {
-      setUnread(0);
-      setChatUnread(0);
-      const now = Date.now();
-      try { localStorage.setItem(lastSeenKey(locksmith.id), String(now)); } catch (e) {}
-    }
-  }, [location.pathname, locksmith?.id]);
 
   // Somente detecção/alerta — a abertura das conversas é feita pelo botão
   // flutuante global (LocksmithChatFab), disponível em qualquer tela.
