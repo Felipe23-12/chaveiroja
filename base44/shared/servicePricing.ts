@@ -82,9 +82,9 @@ async function carKeyPrice(base44, userId, data, inputs, factors, distanceFee, s
   const model = String(vehicle.model || '').trim();
   if (!make || !model || year < 1900) throw new Error('Dados do veículo inválidos para precificação');
   const quote = await verifyVehiclePricingQuote(inputs.vehicle_pricing_quote, userId, vehicle);
-  const catalog = await currentVehicleCatalog(base44, vehicle, 'carro');
   const fipe = quote.fipeValue;
   const keyType = ['simples', 'canivete', 'telecomando', 'presenca'].includes(data.key_type) ? data.key_type : 'simples';
+  const catalog = await currentVehicleCatalog(base44, vehicle, 'carro', keyType);
   const keyOrigin = inputs.key_origin === 'paralela' ? 'paralela' : 'original';
   const vehicleRule = matchingVehicleRule(make, model, year, vehicleFipeRates);
   if (vehicleKeyUnavailable(vehicleRule, keyType, keyOrigin)) throw new Error('Esta opção de chave está indisponível para o veículo e ano selecionados. Escolha outra opção.');
@@ -194,7 +194,7 @@ export async function calculateServerServicePrice(base44, userId, data) {
     const automotiveFee = rule.id === 'abertura_automotiva' ? ({ media: settings.opening_medium, alta: settings.opening_high }[vehicle.complexity] || 0) : 0;
     const locks = rule.id === 'abertura_residencial' || rule.id === 'abertura_tetra' || rule.id === 'abertura_eletronica' ? lockExtras(inputs.locks, settings) : 0;
     const brokenFee = rule.id.startsWith('abertura_') && inputs.broken_key_in_lock === true ? settings.condition_fee : 0;
-    const motoCatalog = rule.id === 'confeccao_chave_moto' ? await currentVehicleCatalog(base44, vehicle, 'moto') : null;
+    const motoCatalog = rule.id === 'confeccao_chave_moto' ? await currentVehicleCatalog(base44, vehicle, 'moto', data.key_type) : null;
     const motoKey = rule.id === 'confeccao_chave_moto' ? await catalogKeyPrice(base44, motoCatalog, 0, data.key_type || 'simples', inputs.key_origin, settings, vehicle.year) : 0;
     if (rule.id === 'confeccao_chave_moto' && data.key_type === 'presenca' && motoKey <= 0) throw new Error('Preço da chave de presença não confirmado para esta moto e ano-modelo. Atualize o catálogo antes de cotar.');
     const raw = round(adjusted.total + locks + distanceFee + motoKey);
