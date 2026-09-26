@@ -3,7 +3,7 @@ import { findVehicleKeyCatalog } from '@/lib/vehicleKeyCatalog';
 import { Plus, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { motoModels, motoYearRanges } from '../../../base44/shared/motoPricingRules';
+import { motoModels, motoServiceBaseRange, motoYearRanges } from '../../../base44/shared/motoPricingRules';
 
 const money = value => Number(value).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 function MotoCatalogReference({ make, model, year }) {
@@ -21,6 +21,7 @@ function MotoCatalogReference({ make, model, year }) {
 }
 
 export default function MotoPricingRulesEditor({ rules, disabled, onChange, values }) {
+  const [previewKeys, setPreviewKeys] = useState({});
   const patch = (index, change) => onChange(previous => previous.map((item, i) => i === index ? { ...item, ...change } : item));
   return <fieldset disabled={disabled} className="rounded-xl border border-border bg-card p-4 space-y-4">
     <legend className="px-2 font-heading font-semibold">Ajuste individual por moto e ano-modelo</legend>
@@ -30,6 +31,12 @@ export default function MotoPricingRulesEditor({ rules, disabled, onChange, valu
       const yearRange = motoYearRanges[rule.make]?.[rule.model];
       const percent = Number(rule.percent_adjustment);
       const hasPercent = rule.percent_adjustment !== '' && rule.percent_adjustment != null && Number.isFinite(percent) && percent >= -90 && percent <= 500;
+      const previewKey = previewKeys[index] || 'simples';
+      const selectedYear = Number(rule.year_start);
+      const selectedRange = rule.model && yearRange && selectedYear >= yearRange[0] && selectedYear <= Math.min(yearRange[1], new Date().getFullYear() + 1)
+        ? motoServiceBaseRange({ model: rule.model, year: selectedYear }, previewKey, previewKey === 'presenca_com_senha') : null;
+      const previewRange = selectedRange && [Math.max(0, selectedRange[0] + Number(values.base_min) - 200), Math.max(0, selectedRange[1] + Number(values.base_max) - 500)];
+      if (previewRange) previewRange[1] = Math.max(previewRange[0], previewRange[1]);
       return <div key={index} className="rounded-xl border border-border bg-background p-4 space-y-3">
         <div className="flex items-center justify-between"><strong>Regra {index + 1}{rule.make && rule.model ? ` · ${rule.make} ${rule.model}` : ''}</strong><Button type="button" variant="ghost" size="icon" aria-label={`Remover regra de moto ${index + 1}`} onClick={() => onChange(previous => previous.filter((_, i) => i !== index))}><Trash2 className="h-4 w-4" /></Button></div>
         <div className="grid gap-3 sm:grid-cols-2">
@@ -40,7 +47,8 @@ export default function MotoPricingRulesEditor({ rules, disabled, onChange, valu
           <label className="text-xs text-muted-foreground">Ano-modelo final<Input className="mt-1" type="number" min={Math.max(Number(rule.year_start) || 1980, yearRange?.[0] || 1980)} max={Math.min(yearRange?.[1] || 2200, new Date().getFullYear() + 1)} value={rule.year_end ?? ''} onChange={e => patch(index, { year_end: e.target.value })} /></label>
           {yearRange && <p className="text-xs text-muted-foreground sm:col-span-2">Anos-modelo observados para este modelo: {yearRange[0]}–{Math.min(yearRange[1], new Date().getFullYear() + 1)}.</p>}
           <label className="text-xs text-muted-foreground">Ajuste da mão de obra (%)<Input className="mt-1" type="number" min="-90" max="500" step="0.01" placeholder="Ex.: 10 ou -5" value={rule.percent_adjustment ?? ''} onChange={e => patch(index, { percent_adjustment: e.target.value })} /></label>
-          {hasPercent && <div className="text-xs text-muted-foreground sm:self-end">Faixa base geral {money(values.base_min)}–{money(values.base_max)} → com este ajuste {money(values.base_min * (1 + percent / 100))}–{money(values.base_max * (1 + percent / 100))}. O cálculo do chamado ainda aplica horário, oferta, clima e catálogo de chaves.</div>}
+          {selectedRange && <label className="text-xs text-muted-foreground">Tipo de chave para a prévia<select className="mt-1 w-full min-h-[40px] rounded-md border border-input bg-background px-3" value={previewKey} onChange={e => setPreviewKeys(previous => ({ ...previous, [index]: e.target.value }))}><option value="simples">Simples</option><option value="presenca_com_senha">Presença com senha</option><option value="presenca_sem_senha">Presença sem senha</option></select></label>}
+          {hasPercent && previewRange && <div className="text-xs text-muted-foreground sm:self-end">Faixa para {rule.make} {rule.model} {selectedYear}: {money(previewRange[0])}–{money(previewRange[1])} → após este ajuste {money(previewRange[0] * (1 + percent / 100))}–{money(previewRange[1] * (1 + percent / 100))}. Horário, demanda, urgência, chuva e catálogo de chaves são calculados separadamente.</div>}
         </div>
         <MotoCatalogReference make={rule.make} model={rule.model} year={rule.year_start} />
       </div>;
