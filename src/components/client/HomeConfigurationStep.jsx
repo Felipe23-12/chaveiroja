@@ -10,6 +10,7 @@ import ErrorBanner from "@/components/ui/ErrorBanner";
 import ServiceLocationDetails from "@/components/client/ServiceLocationDetails";
 import { isOpeningService } from "@/lib/pricing";
 import { requiresParallelKey } from "@/lib/vehicleKeyCatalog";
+import { validateVehicleModelYear } from "../../../base44/shared/vehicleModelYears";
 import useServicePriceQuote from "@/hooks/useServicePriceQuote";
 import useServiceCoverage from '@/hooks/useServiceCoverage';
 import ServiceQuoteScope from '@/components/location/ServiceQuoteScope';
@@ -26,8 +27,8 @@ export default function HomeConfigurationStep({ config }) {
   const locationIncomplete = !vehicle && (!locationContext.place_type || (locationContext.place_type === "condominium" && (!locationContext.building?.trim() || !locationContext.unit?.trim())));
   const disabled = coverageBlocked || !locationContext.coordinates_confirmed || locationIncomplete || !address || !keyBlock || keyBlock.blocked || programming?.dealerOnly ||
     (isOpeningService(service) && (openingReason == null || (service.id !== "abertura_automotiva" && brokenKeyInLock == null))) ||
-    (service.needsVehicleInfo && !service.isCarKey && (!vehicleInfo.make?.trim() || !vehicleInfo.model?.trim() || !String(vehicleInfo.year || "").trim())) ||
-    (service.isCarKey && (!fipeValue || !vehicleInfo.doorStatus)) ||
+    (service.needsVehicleInfo && !service.isMotoKey && !validateVehicleModelYear(vehicleInfo.make, vehicleInfo.model, vehicleInfo.year).valid) ||
+    (service.isCarKey && (!validateVehicleModelYear(vehicleInfo.make, vehicleInfo.model, vehicleInfo.year).valid || !fipeValue || !vehicleInfo.doorStatus)) ||
     (service.isCarKey && requiresParallelKey(keyCatalog) && keyOrigin !== "paralela") ||
     ((service.isCarKey || service.isMotoKey) && keyOrigin === "paralela" && selectedKeyValue <= 0) ||
     (service.isMotoKey && !motoRule?.range);
