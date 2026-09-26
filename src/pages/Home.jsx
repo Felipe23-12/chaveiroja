@@ -5,6 +5,7 @@ import { Navigation, AlertTriangle } from "lucide-react";
 import { SERVICE_CATALOG, calculateCancellationFee, CANCELLATION_THRESHOLD_MINUTES, isOpeningService } from "@/lib/pricing";
 import { getCancellationWindow } from "@/lib/cancellationWindow";
 import { resolveCarKeyValue, searchFipeAndKeyValue } from "@/lib/carKey";
+import { validateVehicleModelYear } from "../../base44/shared/vehicleModelYears";
 import { detectCarKeyProgramming } from "@/lib/carKeyProgramming";
 import { getKeyCancelBlock, createAppServiceRequest } from "@/lib/keyCancelBlock";
 import useAppCancellationBlock from "@/hooks/useAppCancellationBlock";
@@ -475,6 +476,8 @@ export default function Home() {
       setSearchError("Informe montadora, modelo e ano do veículo");
       return;
     }
+    const yearCheck = validateVehicleModelYear(vehicleInfo.make, vehicleInfo.model, vehicleInfo.year);
+    if (!yearCheck.valid) { setSearchError(yearCheck.error); return; }
     setSearching(true);
     setSearchError("");
     try {
@@ -527,6 +530,10 @@ export default function Home() {
     if (!serviceCoverage.allowed) { setSearchError(AREA_UNAVAILABLE); return; }
     if (!clientRegistrationComplete(user)) { navigate(clientCompletionUrl(serviceId)); return; }
     if (!address || submitting || !confirmedPricing) return;
+    if (service?.needsVehicleInfo && !service?.isMotoKey) {
+      const yearCheck = validateVehicleModelYear(vehicleInfo.make, vehicleInfo.model, vehicleInfo.year);
+      if (!yearCheck.valid) { setSearchError(yearCheck.error); return; }
+    }
     const expectedPrice = confirmedPricing.price;
     if (debt) {
       setSearchError("Você possui uma taxa de cancelamento em aberto. Pague o débito para solicitar novos serviços.");
