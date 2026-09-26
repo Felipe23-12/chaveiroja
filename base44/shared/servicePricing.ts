@@ -103,7 +103,9 @@ async function carKeyPrice(base44, userId, data, inputs, factors, distanceFee, s
   const chargedKey = keyValue;
   const onlineFee = serverProgrammingFee(make, model, year, settings, catalog?.transponder);
   const complexityFee = vehicleComplexity(make, model, year, settings);
-  const alarmFee = /^land\s*rover(?:\s|$)/i.test(make) && year >= 2020 && vehicle.alarm_locked === true ? settings.alarm_fee : 0;
+  const landRoverFrom2020 = /^land[\s-]*rover(?:\s|$)/i.test(make) && year >= 2020;
+  if (landRoverFrom2020 && typeof vehicle.alarm_locked !== 'boolean') throw new Error('Informe se a Land Rover está trancada no alarme antes de calcular o valor.');
+  const alarmFee = landRoverFrom2020 && vehicle.alarm_locked === true ? settings.alarm_fee : 0;
   const raw = round(chargedKey + adjusted.total + onlineFee + distanceFee);
   const base = Math.max(settings.minimum, raw);
   return {
