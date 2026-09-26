@@ -137,7 +137,7 @@ export default function VehicleFipeRateRow({ rule, values, index, onChange, onRe
       <div className="grid gap-3 sm:grid-cols-2">{keyFields.map(([field, label]) => {
         const unavailable = rule[field + '_unavailable'] === true;
         const catalogField = field.startsWith('parallel_') ? field : 'original_price';
-        const catalogValue = field === 'simple_price' ? null : Number(currentCatalog?.[catalogField]) > 0 ? Number(currentCatalog[catalogField]) : null;
+        const catalogValue = field === 'simple_price' ? Number(currentCatalog?.original_simple_price) > 0 ? Number(currentCatalog.original_simple_price) : Number(currentCatalog?.parallel_simple_price) > 0 ? Number(currentCatalog.parallel_simple_price) : 50 : field === 'original_proximity_price' && Number(currentCatalog?.original_proximity_price) > 0 ? Number(currentCatalog.original_proximity_price) : Number(currentCatalog?.[catalogField]) > 0 ? Number(currentCatalog[catalogField]) : null;
         return <div key={field} className="rounded-lg border border-border p-3 space-y-2">
           <label className="block text-xs text-muted-foreground">{label} (R$)
             <Input className="mt-1" type="number" min="0" max="20000" step="0.01" inputMode="decimal" placeholder={catalogValue != null ? `Catálogo: ${catalogValue}` : 'Usar catálogo'} disabled={unavailable} value={rule[field] ?? ''} onChange={e => onChange({ [field]: e.target.value })} />
