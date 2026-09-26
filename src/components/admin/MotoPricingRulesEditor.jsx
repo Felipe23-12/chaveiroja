@@ -1,10 +1,24 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
+import { findVehicleKeyCatalog } from '@/lib/vehicleKeyCatalog';
 import { Plus, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { motoModels } from '../../../base44/shared/motoPricingRules';
 
 const money = value => Number(value).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+function MotoCatalogReference({ make, model, year }) {
+  const [result, setResult] = useState(null);
+  useEffect(() => {
+    let active = true;
+    setResult(null);
+    if (!make || !model || !year) return () => { active = false; };
+    findVehicleKeyCatalog(make, model, year, 'moto').then(row => { if (active) setResult({ row, make, model, year }); }).catch(() => { if (active) setResult({ row: null, make, model, year }); });
+    return () => { active = false; };
+  }, [make, model, year]);
+  if (!make || !model || !year || result?.make !== make || result?.model !== model || result?.year !== year) return null;
+  const row = result.row;
+  return <p className="text-xs text-muted-foreground">{row ? `Catálogo para ${make} ${model} ${year}: original ${Number(row.original_price) > 0 ? money(row.original_price) : 'sem preço'} · paralela simples ${Number(row.parallel_simple_price) > 0 ? money(row.parallel_simple_price) : 'sem preço'} · presença paralela ${Number(row.parallel_proximity_price) > 0 ? money(row.parallel_proximity_price) : 'sem preço'}.` : `Sem ficha ativa de chave para ${make} ${model} ${year}.`} Os valores das chaves são editados no Catálogo de chaves.</p>;
+}
 
 export default function MotoPricingRulesEditor({ rules, disabled, onChange, values }) {
   const patch = (index, change) => onChange(previous => previous.map((item, i) => i === index ? { ...item, ...change } : item));
@@ -25,6 +39,7 @@ export default function MotoPricingRulesEditor({ rules, disabled, onChange, valu
           <label className="text-xs text-muted-foreground">Ajuste da mão de obra (%)<Input className="mt-1" type="number" min="-90" max="500" step="0.01" placeholder="Ex.: 10 ou -5" value={rule.percent_adjustment ?? ''} onChange={e => patch(index, { percent_adjustment: e.target.value })} /></label>
           {hasPercent && <div className="text-xs text-muted-foreground sm:self-end">Faixa base geral {money(values.base_min)}–{money(values.base_max)} → com este ajuste {money(values.base_min * (1 + percent / 100))}–{money(values.base_max * (1 + percent / 100))}. O cálculo do chamado ainda aplica horário, oferta, clima e catálogo de chaves.</div>}
         </div>
+        <MotoCatalogReference make={rule.make} model={rule.model} year={rule.year_start} />
       </div>;
     })}
     <div className="flex flex-wrap gap-2"><Button type="button" variant="outline" disabled={disabled || rules.length >= 1000} onClick={() => onChange(previous => [...previous, { make: '', model: '', year_start: '', year_end: '', percent_adjustment: '' }])}><Plus className="h-4 w-4" />Adicionar moto ou faixa</Button><Button type="submit" disabled={disabled}>Salvar regras de moto</Button></div>
