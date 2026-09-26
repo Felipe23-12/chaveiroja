@@ -234,7 +234,7 @@ export default function Home() {
     }
     if (service && regional?.range) return { ...service, baseRange: regional.range };
     return service;
-  }, [service, motoRule, regional, selectedKeyValue]);
+  }, [service, motoRule, regional]);
 
   useEffect(() => {
     base44.auth.me().then((u) => {
