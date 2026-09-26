@@ -304,7 +304,7 @@ export default async function(req) {
       }
       if (data.service_type === 'Confecção de Chave de Carro') {
         const vehicle = String(data.vehicle_info || '').trim();
-        const landRover2020 = /^land\s*rover(?:\s|$)/i.test(vehicle) && /Ano\s+(20(?:2\d|[3-9]\d)|2[1-9]\d{2})/i.test(vehicle);
+        const landRover2020 = /^land\s*rover(?:\s|$)/i.test(vehicle) && /Ano(?:-modelo)?\s+(20(?:2\d|[3-9]\d)|2[1-9]\d{2})/i.test(vehicle);
         if (landRover2020 && !/Alarme:\s*(?:trancado|não trancado)/i.test(vehicle)) {
           return Response.json({ error: 'Informe se a Land Rover está trancada no alarme.' }, { status: 400 });
         }
