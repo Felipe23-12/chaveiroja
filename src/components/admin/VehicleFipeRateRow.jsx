@@ -22,13 +22,14 @@ export default function VehicleFipeRateRow({ rule, index, onChange, onRemove }) 
   const first = rule.year_start ?? rule.year ?? '';
   const last = rule.year_end ?? rule.year ?? '';
   const [previewYear, setPreviewYear] = useState('');
+  const [previewVersion, setPreviewVersion] = useState('');
   const [fipe, setFipe] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [retry, setRetry] = useState(0);
   const year = Number(previewYear || first);
   const valid = Boolean(rule.make?.trim() && rule.model?.trim() && Number.isInteger(year) && range?.min && Number(first) >= range.min && Number(last) <= currentMax && year >= Number(first) && year <= Number(last));
-  const queryKey = valid ? JSON.stringify([rule.make.trim(), rule.model.trim(), year]) : '';
+  const queryKey = valid ? JSON.stringify([rule.make.trim(), rule.model.trim(), year, previewVersion.trim()]) : '';
   const invalidYears = Boolean(rule.model && range?.min && (Number(first) < range.min || Number(last) > currentMax || Number(first) > Number(last)));
   const missingRange = Boolean(rule.model && !range?.min);
   useEffect(() => {
@@ -40,12 +41,12 @@ export default function VehicleFipeRateRow({ rule, index, onChange, onRemove }) 
     if (!queryKey) return () => { active = false; };
     const timer = setTimeout(async () => {
       try {
-        const [make, model, selectedYear] = JSON.parse(queryKey);
+        const [make, model, selectedYear, version] = JSON.parse(queryKey);
         let value = cache.get(queryKey);
         if (!value) {
-          const { data } = await base44.functions.invoke('lookupVehiclePricing', { mode: 'admin_preview', make, model, year: selectedYear });
+          const { data } = await base44.functions.invoke('lookupVehiclePricing', { mode: 'admin_preview', make, model, year: selectedYear, version });
           if (!Number.isFinite(data?.fipe_value) || data.fipe_value <= 0) throw new Error('Valor FIPE não disponível para este veículo.');
-          value = { amount: data.fipe_value, consultedAt: new Date().toLocaleString('pt-BR') };
+          value = { amount: data.fipe_value, sourceUrl: data.source_url, reference: data.reference, consultedAt: new Date().toLocaleString('pt-BR') };
           cache.set(queryKey, value);
         }
         if (active) setFipe({ ...value, queryKey });
@@ -70,6 +71,7 @@ export default function VehicleFipeRateRow({ rule, index, onChange, onRemove }) 
       {rule.model && <p className="text-xs text-muted-foreground sm:col-span-2">{range?.min ? `Anos-modelo disponíveis para ${rule.make} ${rule.model}: ${range.min}–${currentMax}.` : "Modelo sem faixa de ano-modelo confirmada."}</p>}
       <label className="text-xs text-muted-foreground">Mão de obra (% da FIPE)<Input className="mt-1" type="number" min="0" max="10" step="0.01" required placeholder="Ex.: 1,3" value={rule.percent} onChange={e => onChange({ percent: e.target.value })} /></label>
       <label className="text-xs text-muted-foreground">Ano para consultar a FIPE<Input className="mt-1" type="number" min={Number(first) || 1900} max={Number(last) || 2200} step="1" value={previewYear || first} onChange={e => setPreviewYear(e.target.value)} /></label>
+      <label className="text-xs text-muted-foreground sm:col-span-2">Versão ou geração para a consulta (se houver)<Input className="mt-1" value={previewVersion} placeholder="Ex.: Cult 1.4, 500e, geração específica" onChange={e => setPreviewVersion(e.target.value)} /></label>
     </div>
     <div className="rounded-lg bg-muted/40 border border-border p-3 space-y-2 text-sm" aria-live="polite">
       <p className="font-semibold">Prévia · {rule.make} {rule.model} {year || ''}</p>
@@ -78,7 +80,8 @@ export default function VehicleFipeRateRow({ rule, index, onChange, onRemove }) 
       {error && <p role="alert" className="text-destructive">{error}</p>}
       {currentFipe && <><div className="flex justify-between gap-2"><span>Valor do veículo (FIPE)</span><strong>{money(currentFipe.amount)}</strong></div>
         <div className="flex justify-between gap-2"><span>Mão de obra base · {rule.percent || '0'}%</span><strong>{labor == null ? 'Informe o percentual' : money(labor)}</strong></div>
-        <p className="text-xs text-muted-foreground">Consulta: {currentFipe.consultedAt}. Referência da integração de pesquisa atual; confirme a versão do veículo antes de definir o preço. Cada ano da faixa usa sua própria FIPE.</p></>}
+        <p className="text-xs text-muted-foreground">Consulta: {currentFipe.consultedAt}{currentFipe.reference ? ` · Referência: ${currentFipe.reference}` : ''}. Confirme a versão do veículo antes de definir o preço. Cada ano da faixa usa sua própria FIPE.</p>
+        {/^https?:\/\//.test(currentFipe.sourceUrl || '') && <a className="text-xs underline" href={currentFipe.sourceUrl} target="_blank" rel="noopener noreferrer">Conferir fonte consultada</a>}</>}
       <p className="text-xs text-muted-foreground">Prévia de FIPE × percentual. Adicional de chave simples, programação, piso mínimo, deslocamento e ajustes de horário/clima são calculados separadamente no serviço.</p>
       <Button type="button" size="sm" variant="outline" disabled={!valid || loading} onClick={() => { cache.delete(queryKey); setRetry(value => value + 1); }}>Atualizar FIPE</Button>
     </div>
