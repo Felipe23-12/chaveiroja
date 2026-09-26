@@ -1,5 +1,6 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.46';
 import { createVehiclePricingQuote } from '../../shared/vehiclePricingQuote.ts';
+import { validateVehicleModelYear } from '../../shared/vehicleModelYears.ts';
 import { carKeyUnavailableReason } from '../../shared/carKeyAvailability.ts';
 import { requireServiceCoverage } from '../../shared/serviceCoverage.ts';
 
@@ -37,6 +38,8 @@ export default async function(req: Request): Promise<Response> {
       return Response.json({ error: 'Modelo e ano válido são obrigatórios' }, { status: 400 });
     }
 
+    const yearCheck = validateVehicleModelYear(make, model, year);
+    if (!yearCheck.valid) return Response.json({ error: yearCheck.error }, { status: 400 });
     const unavailable = carKeyUnavailableReason(make, model, year);
     if (unavailable && !adminPreview) return Response.json({ code: 'DEALER_ONLY', error: unavailable }, { status: 400 });
 
