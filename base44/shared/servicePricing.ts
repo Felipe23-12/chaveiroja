@@ -188,7 +188,11 @@ export async function calculateServerServicePrice(base44, userId, data) {
     const serviceRange = rule.id === 'confeccao_chave_moto'
       ? (() => { const [lower, upper] = motoServiceBaseRange(inputs.vehicle, data.key_type, inputs.moto_has_password); const min = Math.max(0, lower + settings.base_min - 200); return [min, Math.max(min, upper + settings.base_max - 500)]; })()
       : [settings.base_min, settings.base_max];
-    const [baseMin, baseMax] = regional?.range || serviceRange;
+    // A faixa regional não substitui o acréscimo técnico da moto sem senha.
+    const motoRegionalRange = rule.id === 'confeccao_chave_moto' && regional?.range
+      ? regional.range.map((amount, index) => amount + serviceRange[index] - [settings.base_min, settings.base_max][index])
+      : null;
+    const [baseMin, baseMax] = motoRegionalRange || regional?.range || serviceRange;
     const base = Math.round(baseMin + (baseMax - baseMin) * tierFactor);
     const vehicle = inputs.vehicle || {};
     const motoSpecific = rule.id === 'confeccao_chave_moto' ? matchingMotoRule(vehicle.make, vehicle.model, vehicle.year, config.moto_rules) : null;
