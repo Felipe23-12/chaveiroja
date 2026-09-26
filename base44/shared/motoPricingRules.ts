@@ -37,6 +37,15 @@ export function validateMotoServiceRequest(vehicle, keyType, hasPassword) {
   if (!detail?.premium && detail?.cc > 300) throw new Error('Motos acima de 300 cilindradas são atendidas somente no Modo Livre.');
   return { make, model, year };
 }
+export function motoServiceBaseRange(vehicle, keyType, hasPassword) {
+  const detail = motoDetails[vehicle.model];
+  const year = Number(vehicle.year);
+  if (detail?.premium) {
+    if (keyType === 'simples' || hasPassword === true) return [500, 700];
+    return year <= 2023 ? [700, 950] : [950, 1300];
+  }
+  return year >= 2022 ? [300, 500] : [200, 500];
+}
 export function matchingMotoRule(make, model, year, rules = []) {
   return rules.find(rule => sameModel(rule, { make, model }) && Number(year) >= rule.year_start && Number(year) <= rule.year_end) || null;
 }
