@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { CAR_MAKES } from "@/data/carModels";
+import { getVehicleYearRange } from "../../../base44/shared/vehicleModelYears";
 import { MOTO_BRANDS, MOTO_MODELS } from "@/lib/motoKey";
 import { Button } from "@/components/ui/button";
 import VehicleKeyCatalogForm from "./VehicleKeyCatalogForm";
@@ -34,6 +35,14 @@ export default function VehicleKeyCatalogPanel() {
   const save = async () => {
     if (saving) return;
     setError("");
+    if (form.vehicle_type === "carro") {
+      const range = getVehicleYearRange(form.make, form.model);
+      const first = Number(form.year_start), last = Number(form.year_end);
+      if (!range?.min || !Number.isInteger(first) || !Number.isInteger(last) || first < range.min || last > Math.min(range.max, new Date().getFullYear() + 1) || first > last) {
+        setError(range?.min ? `Informe ano-modelo inicial e final entre ${range.min} e ${Math.min(range.max, new Date().getFullYear() + 1)}.` : "Este modelo ainda não possui faixa de ano-modelo confirmada.");
+        return;
+      }
+    }
     if (form.active && form.verified && form.transponder_status === "presente" && !form.programming_machine?.trim()) {
       setError("Informe a máquina de codificação antes de publicar uma ficha com transponder confirmado.");
       return;
