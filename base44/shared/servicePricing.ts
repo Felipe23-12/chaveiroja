@@ -6,7 +6,7 @@ import { pricingCalendar, pricingFactors, adjustedCharge } from './servicePricin
 import { pricingWeather } from './serviceWeather.ts';
 import { regionalPriceForLocation } from './regionalServicePricing.ts';
 import { currentVehicleCatalog, catalogKeyPrice } from './catalogServicePricing.ts';
-import { matchingMotoRule } from './motoPricingRules.ts';
+import { matchingMotoRule, validateMotoServiceRequest } from './motoPricingRules.ts';
 import { vehicleFipeRate, matchingVehicleRule, vehicleManualKeyPrice, vehicleKeyUnavailable } from './vehicleFipeRates.ts';
 import { isAreaAvailable } from './serviceAreas.ts';
 import { requireServiceCoverage } from './serviceCoverage.ts';
@@ -143,6 +143,10 @@ export async function calculateServerServicePrice(base44, userId, data) {
     const vehicle = inputs.vehicle || {};
     const yearCheck = validateVehicleModelYear(vehicle.make, vehicle.model, vehicle.year);
     if (!yearCheck.valid) throw new Error(yearCheck.error);
+  }
+  if (rule.id === 'confeccao_chave_moto') {
+    const moto = validateMotoServiceRequest(inputs.vehicle, data.key_type, inputs.moto_has_password);
+    inputs.vehicle = { ...inputs.vehicle, ...moto };
   }
   if (rule.carKey) {
     const vehicle = inputs.vehicle || {};
