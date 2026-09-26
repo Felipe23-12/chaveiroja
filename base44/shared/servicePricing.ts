@@ -61,7 +61,7 @@ function normalizeVehicleText(value) {
   return String(value || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
 }
 
-function serverProgrammingFee(make, model, year, settings) {
+export function serverProgrammingFee(make, model, year, settings, transponder) {
   const text = normalizeVehicleText(`${make} ${model}`);
   const vw = /\b(vw|volkswagen)\b/.test(text);
   const gm = /\b(gm|chevrolet)\b/.test(text);
@@ -69,7 +69,11 @@ function serverProgrammingFee(make, model, year, settings) {
   if (vw && dealerOnly.some((item) => text.includes(item))) throw new Error('Este veículo só pode ser programado na concessionária');
   const vwOnline = ['polo', 'virtus', 't cross', 'tcross', 'nivus', 'jetta', 'golf', 'saveiro', 'gol', 'voyage'];
   const gmOnline = ['onix', 'onix plus', 'tracker', 'spin', 's10', 'cruze', 'montana', 'trailblazer', 'equinox'];
-  if ((gm && year >= 2020 && gmOnline.some((item) => text.includes(item))) || (vw && year >= 2018 && vwOnline.some((item) => text.includes(item)))) return settings.online_fee;
+  // A regra Chevrolet depende do transponder identificado, não apenas do ano-modelo.
+  const chip = String(transponder || '').trim();
+  const gm4a = /(?:^|[^a-z0-9])(?:id\s*)?4a(?:$|[^a-z0-9])/i.test(chip)
+    && !/(?:id\s*46|\b1d46\b|conforme|\bou\b|\/)/i.test(chip);
+  if ((gm && gm4a && gmOnline.some((item) => text.includes(item))) || (vw && year >= 2018 && vwOnline.some((item) => text.includes(item)))) return settings.online_fee;
   return 0;
 }
 
@@ -97,7 +101,7 @@ async function carKeyPrice(base44, userId, data, inputs, factors, distanceFee, s
   const labor = round(fipe * fipeRate.percent / 100);
   const adjusted = adjustedCharge(labor, factors, `Mão de obra: ${fipeRate.percent}% da FIPE${fipeRate.label ? ` (${fipeRate.label})` : ''}`);
   const chargedKey = keyValue;
-  const onlineFee = serverProgrammingFee(make, model, year, settings);
+  const onlineFee = serverProgrammingFee(make, model, year, settings, catalog?.transponder);
   const complexityFee = vehicleComplexity(make, model, year, settings);
   const alarmFee = /^land\s*rover(?:\s|$)/i.test(make) && year >= 2020 && vehicle.alarm_locked === true ? settings.alarm_fee : 0;
   const raw = round(chargedKey + adjusted.total + onlineFee + distanceFee);
@@ -110,7 +114,7 @@ async function carKeyPrice(base44, userId, data, inputs, factors, distanceFee, s
       { label: 'Valor da chave', value: chargedKey },
       ...adjusted.lines,
       ...(base > raw ? [{ label: 'Ajuste ao piso mínimo', value: round(base - raw) }] : []),
-      ...(onlineFee ? [{ label: 'Programação online', value: onlineFee }] : []),
+      ...(onlineFee ? [{ label: /^\s*(?:gm|chevrolet)\b/i.test(make) ? 'Programação online (transponder 4A confirmado)' : 'Programação online', value: onlineFee }] : []),
       ...(distanceFee ? [{ label: 'Locomoção', value: distanceFee }] : []),
       ...(complexityFee ? [{ label: /^ford(?:\s|$)/i.test(make) && year >= 2020 ? 'Adicional Ford a partir de 2020' : 'Complexidade do veículo', value: complexityFee }] : []),
       ...(alarmFee ? [{ label: 'Land Rover trancada no alarme', value: alarmFee }] : []),
