@@ -18,7 +18,7 @@ export default function ManualKeyPriceFields({ value, onChange }) {
         {prices.map(([name, label]) => (
           <label key={name} className="space-y-1 text-xs text-muted-foreground">
             {label}
-            <Input type="number" min="0" step="0.01" inputMode="decimal" placeholder="R$ 0,00" value={value[name] ?? ""} onChange={(event) => onChange({ ...value, [name]: event.target.value })} />
+            <Input type="number" min="0" step="0.01" inputMode="decimal" placeholder={name.includes('simple') ? 'Padrão: R$ 50,00' : 'R$ 0,00'} value={value[name] ?? ""} onChange={(event) => onChange({ ...value, [name]: event.target.value })} />
           </label>
         ))}
       </div>
