@@ -13,9 +13,7 @@ import useBlockedUsers from "@/hooks/useBlockedUsers";
 /**
  * Alerta flutuante global para o chaveiro: dispara o som de notificação +
  * toast quando chega uma nova mensagem de cliente (em qualquer página) e
- * mostra um botão com o contador de não lidas. O contador é persistido
- * (localStorage) por chaveiro, então mensagens recebidas enquanto o app
- * estava fechado continuam contando.
+ * atualiza o contador de não lidas com base no estado salvo no servidor.
  */
 export default function GlobalChatAlert() {
   const { user } = useAuth();
@@ -25,6 +23,7 @@ export default function GlobalChatAlert() {
   const seenIds = useRef(new Set());
   const initialized = useRef(false);
   const loading = useRef(false);
+  const pendingReload = useRef(false);
 
   const accountType = user?.account_type || (user?.role === "admin" ? "admin" : "cliente");
   const isChaveiro = accountType === "chaveiro";
@@ -55,9 +54,11 @@ export default function GlobalChatAlert() {
     ensureNotificationPermission();
     initialized.current = false;
     seenIds.current.clear();
+    pendingReload.current = false;
     setChatUnread(0);
     const load = async () => {
-      if (loading.current || blocksLoading) return;
+      if (blocksLoading) return;
+      if (loading.current) { pendingReload.current = true; return; }
       loading.current = true;
       try {
         const [list, readStates, hidden] = await Promise.all([
@@ -68,7 +69,7 @@ export default function GlobalChatAlert() {
           const customerMsgs = list.filter((m) => m.sender_type === "customer" && !blockedIds.has(m.client_id) && !hidden.has(m.id));
           if (!initialized.current) {
             // Primeira carga: conta mensagens recebidas enquanto o chaveiro
-            // estava fora (created_date > lastSeen) como não lidas, e marca
+            // estava fora conforme o estado de leitura, e marca
             // todas como vistas para a detecção em tempo real das próximas.
             let initialUnread = 0;
             customerMsgs.forEach((m) => {
@@ -110,6 +111,10 @@ export default function GlobalChatAlert() {
         // Recarrega na próxima alteração quando o servidor voltar a responder.
       } finally {
         loading.current = false;
+        if (pendingReload.current) {
+          pendingReload.current = false;
+          load();
+        }
       }
     };
     load();
