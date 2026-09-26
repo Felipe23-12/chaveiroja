@@ -492,11 +492,10 @@ export default async function(req) {
       if (account?.status !== 'active') return Response.json({ code: 'MERCADO_PAGO_REQUIRED', error: 'Conecte sua conta Mercado Pago para aceitar chamados. Acesse Cadastro de recebimentos no seu perfil.' }, { status: 403 });
       const queued = body.queued === true;
       const now = new Date().toISOString();
-      const updated = await base44.asServiceRole.entities.ServiceRequest.update(request.id, {
+      const acceptedData = {
         status: queued ? 'queued' : 'accepted',
         accepted_at: now,
-        queued_at: queued ? now : undefined,
-        queued_after_request_id: queued ? body.queued_after_request_id : undefined,
+        ...(queued ? { queued_at: now, queued_after_request_id: body.queued_after_request_id } : {}),
         locksmith_id: locksmith.id,
         locksmith_name: locksmith.name,
         locksmith_user_id: locksmith.created_by_id,
@@ -504,7 +503,17 @@ export default async function(req) {
         locksmith_lng: locksmith.lng,
         ringing_locksmith_ids: [locksmith.id],
         ringing_locksmith_user_ids: [locksmith.created_by_id],
-      });
+      };
+      // Reserva o chamado em uma única gravação condicional. Se dois chaveiros
+      // aceitarem ao mesmo tempo, apenas quem ainda encontrar status=ringing vence.
+      const claimed = await base44.asServiceRole.entities.ServiceRequest.updateMany(
+        { id: request.id, status: 'ringing' },
+        { $set: acceptedData },
+      );
+      if (claimed?.updated !== 1) {
+        return Response.json({ error: 'Outro chaveiro assumiu este atendimento primeiro.' }, { status: 409 });
+      }
+      const updated = await base44.asServiceRole.entities.ServiceRequest.get(request.id);
       return Response.json({ success: true, request: updated, queued });
     }
 
