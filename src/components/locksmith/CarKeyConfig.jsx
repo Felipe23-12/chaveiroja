@@ -10,6 +10,7 @@ import AddressAutocomplete from "./AddressAutocomplete";
 import { CAR_KEY_TYPES, getCarKeyComplexityFee, getCarKeyComplexityLabel, isLandRoverFrom2020 } from "@/lib/pricing";
 import CarKeyProgrammingNotice from "./CarKeyProgrammingNotice";
 import VehicleMakeModelFields from "./VehicleMakeModelFields";
+import { getVehicleYearRange, validateVehicleModelYear } from "../../../base44/shared/vehicleModelYears";
 import KeyOriginSelector from "./KeyOriginSelector";
 import { useServiceQuoteScope } from '@/components/location/ServiceQuoteScope';
 
@@ -38,6 +39,8 @@ export default function CarKeyConfig({
   showPriceBeforeAcceptance = false,
 }) {
   const { allowed } = useServiceQuoteScope();
+  const yearRange = getVehicleYearRange(vehicleInfo.make, vehicleInfo.model);
+  const yearCheck = vehicleInfo.year ? validateVehicleModelYear(vehicleInfo.make, vehicleInfo.model, vehicleInfo.year) : null;
   const updateVehicle = (field, value) =>
     setVehicleInfo((v) => ({ ...v, [field]: value }));
 
@@ -54,10 +57,12 @@ export default function CarKeyConfig({
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <VehicleMakeModelFields vehicleInfo={vehicleInfo} updateVehicle={updateVehicle} />
           <div>
-            <label className="text-xs text-muted-foreground mb-1 block">Ano do veículo</label>
+            <label className="text-xs text-muted-foreground mb-1 block">Ano-modelo {yearRange?.min ? `(${yearRange.min}–${Math.min(yearRange.max, new Date().getFullYear() + 1)})` : ""}</label>
             <Input
               type="number"
               inputMode="numeric"
+              min={yearRange?.min}
+              max={yearRange?.max ? Math.min(yearRange.max, new Date().getFullYear() + 1) : undefined}
               placeholder="Ex: 2020"
               value={vehicleInfo.year || ""}
               onChange={(e) => updateVehicle("year", e.target.value)}
@@ -65,6 +70,8 @@ export default function CarKeyConfig({
           </div>
         </div>
 
+        {vehicleInfo.model && !yearRange?.min && <p className="text-sm text-destructive">Modelo sem ano-modelo confirmado no catálogo; solicite revisão.</p>}
+        {yearCheck && !yearCheck.valid && <p className="text-sm text-destructive">{yearCheck.error}</p>}
         {isLandRoverFrom2020(vehicleInfo.make, vehicleInfo.year) && (
           <div>
             <label className="text-sm font-medium text-foreground mb-1.5 block">O carro está trancado no alarme?</label>
@@ -100,7 +107,7 @@ export default function CarKeyConfig({
           </div>
         </div>
 
-        <Button type="button" variant="outline" onClick={onSearch} disabled={!allowed || searching || programming?.dealerOnly} className="w-full">
+        <Button type="button" variant="outline" onClick={onSearch} disabled={!allowed || searching || programming?.dealerOnly || !yearCheck?.valid} className="w-full">
           {searching ? (
             <>
               <Loader2 className="w-4 h-4 mr-2 animate-spin" /> Consultando disponibilidade...
