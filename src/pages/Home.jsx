@@ -521,7 +521,7 @@ export default function Home() {
       vehicle_pricing_quote: vehiclePricingQuote,
       vehicle_catalog_id: keyCatalog?.id || null,
       catalog_revision: keyCatalog?.updated_date || null,
-      key_origin: keyOrigin, broken_key_in_lock: openingConditionFee > 0,
+      key_origin: keyOrigin, moto_has_password: service?.isMotoKey ? motoInfo.hasPassword : undefined, broken_key_in_lock: openingConditionFee > 0,
     },
   };
 
