@@ -40,9 +40,14 @@ export function validatePricing(service, values) {
   if (values.base_min > values.base_max || values.combined_min > values.combined_max) throw new Error('O valor mínimo não pode superar o máximo');
   return Object.fromEntries(fields.map(f => [f.key, Math.round(values[f.key] * 100) / 100]));
 }
-export async function loadServicePricing(base44, service) {
+export async function loadServicePricing(base44, service, { includeInvalidRates = false } = {}) {
   const defaults = defaultPricing(service);
   const rows = await base44.asServiceRole.entities.ServicePricingConfig.filter({ service_type: service }, '-created_date', 1);
   const record = rows[0];
-  return { values: record ? validatePricing(service, { ...defaults, ...record.values }) : defaults, vehicle_fipe_rates: service === 'Confecção de Chave de Carro' ? validateVehicleFipeRates(record?.vehicle_fipe_rates || []) : [], version: record?.id || null, saved_at: record?.created_date || null };
+  const savedRates = record?.vehicle_fipe_rates || [];
+  // Keep legacy rules visible to administrators so they can correct them. Pricing ignores invalid rules until saved again.
+  const vehicleRates = service !== 'Confecção de Chave de Carro' ? [] : includeInvalidRates ? savedRates : savedRates.filter(rule => {
+    try { validateVehicleFipeRates([rule]); return true; } catch { return false; }
+  });
+  return { values: record ? validatePricing(service, { ...defaults, ...record.values }) : defaults, vehicle_fipe_rates: vehicleRates, version: record?.id || null, saved_at: record?.created_date || null };
 }
