@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useAuth } from "@/lib/AuthContext";
 import { MessageCircle, ArrowLeft } from "lucide-react";
 import { fetchMyLocksmith } from "@/lib/myLocksmith";
-import { useChatUnread, setChatUnread } from "@/lib/chatUnreadStore";
+import { useChatUnread } from "@/lib/chatUnreadStore";
 import LocksmithChatConversations from "@/components/locksmith/LocksmithChatConversations";
 
 /**
@@ -36,8 +36,6 @@ export default function LocksmithChatFab() {
       <button
         onClick={() => {
           setOpen(true);
-          setChatUnread(0);
-          try { localStorage.setItem(`chat_last_seen_${me.id}`, String(Date.now())); } catch (e) {}
         }}
         aria-label="Mensagens dos clientes"
         className="fixed bottom-20 md:bottom-6 right-4 z-[60] flex items-center gap-2 pl-3 pr-4 h-12 rounded-full bg-primary text-primary-foreground font-bold text-sm shadow-2xl active:scale-95 transition-all"
