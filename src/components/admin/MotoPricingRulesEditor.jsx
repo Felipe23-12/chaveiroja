@@ -55,6 +55,6 @@ export default function MotoPricingRulesEditor({ rules, disabled, onChange, valu
       </div>;
     })}
     <div className="flex flex-wrap gap-2"><Button type="button" variant="outline" disabled={disabled || rules.length >= 1000} onClick={() => onChange(previous => [...previous, { make: '', model: '', year_start: '', year_end: '', percent_adjustment: '' }])}><Plus className="h-4 w-4" />Adicionar moto ou faixa</Button><Button type="submit" disabled={disabled}>Salvar regras de moto</Button></div>
-    <p className="text-xs text-muted-foreground">Faixas do mesmo modelo não podem se sobrepor. Preços de chaves continuam vinculados às fichas do Catálogo de chaves por moto e ano-modelo.</p>
+    <p className="text-xs text-muted-foreground">Faixas do mesmo modelo não podem se sobrepor. Chave simples usa R$ 50 quando não houver valor manual para o tipo escolhido. Preços editados nas fichas do Catálogo de chaves por moto e ano-modelo têm prioridade.</p>
   </fieldset>;
 }
