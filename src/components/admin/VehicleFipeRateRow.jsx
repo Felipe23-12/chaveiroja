@@ -53,8 +53,11 @@ export default function VehicleFipeRateRow({ rule, index, onChange, onRemove, on
           return name === wanted || name.replace(/\s+(?:g\d+|mk\d+)$/, '') === wanted;
         }));
         const manual = row => Boolean(row.manual_price_updated_at || Number(row.parallel_simple_price) > 0 || Number(row.parallel_flip_price) > 0 || Number(row.parallel_proximity_price) > 0);
-        matches.sort((a, b) => Number(manual(b)) - Number(manual(a)) || Number(!!b.verified) - Number(!!a.verified) || (Date.parse(b.manual_price_updated_at || b.updated_date || '') || 0) - (Date.parse(a.manual_price_updated_at || a.updated_date || '') || 0));
-        if (active) setCatalog(matches[0] || null);
+        const date = row => Date.parse(row.manual_price_updated_at || row.updated_date || '') || 0;
+        const datedPrice = row => Boolean(row.catalog_code && row.year_start && Number(row.original_price) > 0);
+        const score = row => Number(!!row.verified) * 100 + Number(!!(row.vvdi_supported || row.kd_supported || row.km100_supported)) * 10;
+        matches.sort((a, b) => Number(manual(b)) - Number(manual(a)) || (manual(a) && manual(b) ? date(b) - date(a) : 0) || Number(datedPrice(b)) - Number(datedPrice(a)) || score(b) - score(a) || date(b) - date(a));
+        if (active) setCatalog({ row: matches[0] || null, queryKey: catalogQueryKey, count: matches.length });
       } catch (e) { if (active) setCatalogError(e?.message || 'Não foi possível consultar o catálogo.'); }
       finally { if (active) setCatalogLoading(false); }
     }, 250);
@@ -84,6 +87,7 @@ export default function VehicleFipeRateRow({ rule, index, onChange, onRemove, on
     return () => { active = false; clearTimeout(timer); };
   }, [queryKey, retry]);
   const currentFipe = fipe?.queryKey === queryKey ? fipe : null;
+  const currentCatalog = catalog?.queryKey === catalogQueryKey ? catalog.row : null;
   const percent = Number(rule.percent);
   const labor = currentFipe && rule.percent !== '' && Number.isFinite(percent) && percent >= 0 && percent <= 10 ? Math.round(currentFipe.amount * percent) / 100 : null;
   return <div className="rounded-xl border border-border bg-background p-4 space-y-3">
