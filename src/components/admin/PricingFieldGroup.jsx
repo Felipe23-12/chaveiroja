@@ -12,7 +12,8 @@ export default function PricingFieldGroup({ group, values, onChange, disabled })
   if (generalFipe) return <details className="rounded-xl border border-border bg-card p-4 space-y-4">
     <summary className="cursor-pointer font-semibold">Percentuais gerais da FIPE · apenas veículos sem regra individual</summary>
     <p className="py-3 text-xs text-muted-foreground">Esses campos afetam todos os carros sem regra individual. Para alterar somente um modelo ou ano, use as regras por veículo acima.</p>
-    <fieldset disabled={disabled}>{fields}</fieldset>
+    <fieldset disabled>{fields}</fieldset>
+    <p className="text-xs text-muted-foreground">Valores gerais de referência, somente leitura. Use “Adicionar veículo” acima para definir uma porcentagem exclusiva.</p>
   </details>;
   return <fieldset disabled={disabled} className="rounded-xl border border-border bg-card p-4 space-y-4">
     <legend className="px-2 text-sm font-semibold">{group.title}</legend>
