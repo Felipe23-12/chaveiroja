@@ -25,7 +25,9 @@ export async function currentVehicleCatalog(base44, vehicle, type, keyType, orig
   const date = row => Date.parse(row.manual_price_updated_at || row.updated_date || '') || 0;
   const datedPrice = row => Boolean(row.catalog_code && row.year_start && Number(row.original_price) > 0);
   const score = row => Number(!!row.verified) * 100 + Number(!!(row.vvdi_supported || row.kd_supported || row.km100_supported)) * 10;
-  return candidates.sort((a, b) => Number(matchType(b)) - Number(matchType(a)) || selectedPrice(b) - selectedPrice(a) || Number(manual(b)) - Number(manual(a)) || (manual(a) && manual(b) ? date(b) - date(a) : 0) || Number(datedPrice(b)) - Number(datedPrice(a)) || score(b) - score(a) || Date.parse(b.updated_date) - Date.parse(a.updated_date))[0] || null;
+  // Edição manual explícita prevalece; entre ofertas não editadas, usa a maior cotação da chave escolhida.
+  const explicitlyEdited = row => Boolean(row.manual_price_updated_at);
+  return candidates.sort((a, b) => Number(matchType(b)) - Number(matchType(a)) || Number(explicitlyEdited(b)) - Number(explicitlyEdited(a)) || (explicitlyEdited(a) && explicitlyEdited(b) ? date(b) - date(a) : 0) || selectedPrice(b) - selectedPrice(a) || Number(manual(b)) - Number(manual(a)) || Number(datedPrice(b)) - Number(datedPrice(a)) || score(b) - score(a) || Date.parse(b.updated_date) - Date.parse(a.updated_date))[0] || null;
 }
 
 export async function catalogKeyPrice(base44, catalog, fallback, keyType, origin, settings, year) {
