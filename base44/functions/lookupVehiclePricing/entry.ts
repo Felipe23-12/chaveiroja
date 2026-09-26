@@ -41,6 +41,23 @@ export default async function(req: Request): Promise<Response> {
 
     const yearCheck = validateVehicleModelYear(make, model, year);
     if (!yearCheck.valid) return Response.json({ error: yearCheck.error }, { status: 400 });
+    if (adminPreview) {
+      const result = await base44.asServiceRole.integrations.Core.InvokeLLM({
+        prompt: `Consulte uma fonte atual da Tabela FIPE para ${make} ${model}, ano-modelo ${year}${version ? `, versão ${version}` : ''}, no Brasil. Informe somente o valor em reais quando confirmar que a marca, o modelo e o ano-modelo correspondem. Se houver versões diferentes no mesmo ano e não for possível identificar qual foi solicitada, retorne 0. Não estime o valor.`,
+        add_context_from_internet: true,
+        model: 'gemini_3_flash',
+        response_json_schema: {
+          type: 'object',
+          properties: { fipe_value: { type: 'number' }, source_url: { type: 'string' }, reference: { type: 'string' } },
+          required: ['fipe_value', 'source_url', 'reference'],
+        },
+      });
+      const fipeValue = Number(result.fipe_value);
+      if (!Number.isFinite(fipeValue) || fipeValue < 1000 || fipeValue > 3000000) {
+        return Response.json({ error: 'Valor FIPE não confirmado para este ano-modelo. Informe a versão ou tente outra consulta.' }, { status: 422 });
+      }
+      return Response.json({ fipe_value: fipeValue, source_url: result.source_url || '', reference: result.reference || '' });
+    }
     const unavailable = carKeyUnavailableReason(make, model, year);
     if (unavailable && !adminPreview) return Response.json({ code: 'DEALER_ONLY', error: unavailable }, { status: 400 });
 
