@@ -33,7 +33,9 @@ export function validateMotoServiceRequest(vehicle, keyType, hasPassword) {
     if (!detail?.premium) throw new Error('Este modelo não utiliza chave presença. Selecione chave simples.');
     if (typeof hasPassword !== 'boolean') throw new Error('Informe se possui a senha da chave presença.');
   }
-  if (detail?.premium && keyType === 'simples' && year > 2022) throw new Error('Modelos premium acima de 2022 utilizam chave presença.');
+  if (model === 'NMAX 160' && keyType === 'presenca' && year < 2021) throw new Error('NMAX 160 anterior a 2021: chave de presença não confirmada para este ano-modelo. Selecione chave simples.');
+  if (model === 'NMAX 160' && keyType === 'simples' && year >= 2021) throw new Error('NMAX 160 a partir de 2021 utiliza chave de presença.');
+  if (detail?.premium && model !== 'NMAX 160' && keyType === 'simples' && year > 2022) throw new Error('Modelos premium acima de 2022 utilizam chave presença.');
   if (!detail?.premium && detail?.cc > 300) throw new Error('Motos acima de 300 cilindradas são atendidas somente no Modo Livre.');
   return { make, model, year };
 }
