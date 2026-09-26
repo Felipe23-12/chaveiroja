@@ -37,11 +37,11 @@ export async function searchCarKeyValue(make, model, year, location) {
 
 // Pesquisa a FIPE, verifica chave codificada e consolida preços originais
 // de lojas especializadas, marketplaces verificados e arquivo importado.
-export async function searchFipeAndKeyValue(make, model, year, location) {
+export async function searchFipeAndKeyValue(make, model, year, location, version = "") {
   const input = validateVehicleQuery(model, year);
   if (!input.valid) throw new Error(input.error);
 
-  const response = await base44.functions.invoke("lookupVehiclePricing", { make, model: input.model, year: input.year, mode: "full", customer_lat: location?.lat, customer_lng: location?.lng });
+  const response = await base44.functions.invoke("lookupVehiclePricing", { make, model: input.model, year: input.year, version: version.trim().slice(0, 80), mode: "full", customer_lat: location?.lat, customer_lng: location?.lng });
   const res = response.data;
   const checked = validateFipeResult(res);
   if (!checked.valid) throw new Error(checked.error);
