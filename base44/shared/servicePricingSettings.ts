@@ -1,4 +1,5 @@
 import { validateVehicleFipeRates } from './vehicleFipeRates.ts';
+import { validateMotoPricingRules } from './motoPricingRules.ts';
 
 export const serviceTypes = ['Abertura Residencial', 'Abertura Automotiva', 'Abertura Fechadura Tetra', 'Abertura Fechadura Eletrônica', 'Confecção de Chave de Carro', 'Confecção de Chave de Moto', 'Cópia de Chave'];
 const ranges = [[80, 250], [120, 350], [100, 300], [350, 450], [0, 0], [200, 500], [4, 4]];
@@ -49,5 +50,9 @@ export async function loadServicePricing(base44, service, { includeInvalidRates 
   const vehicleRates = service !== 'Confecção de Chave de Carro' ? [] : includeInvalidRates ? savedRates : savedRates.filter(rule => {
     try { validateVehicleFipeRates([rule]); return true; } catch { return false; }
   });
-  return { values: record ? validatePricing(service, { ...defaults, ...record.values }) : defaults, vehicle_fipe_rates: vehicleRates, version: record?.id || null, saved_at: record?.created_date || null };
+  const savedMotoRules = record?.moto_rules || [];
+  const motoRules = service !== 'Confecção de Chave de Moto' ? [] : includeInvalidRates ? savedMotoRules : savedMotoRules.filter(rule => {
+    try { validateMotoPricingRules([rule]); return true; } catch { return false; }
+  });
+  return { values: record ? validatePricing(service, { ...defaults, ...record.values }) : defaults, vehicle_fipe_rates: vehicleRates, moto_rules: motoRules, version: record?.id || null, saved_at: record?.created_date || null };
 }
