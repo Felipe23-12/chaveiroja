@@ -25,6 +25,12 @@ export default async function(req) {
     }
     if (!userId) return Response.json({ skipped: true, reason: 'Destinatário sem usuário vinculado' });
 
+    const hiddenRows = await base44.asServiceRole.entities.ChatMessageVisibility.filter({
+      user_id: userId,
+      message_id: messageId,
+    });
+    if (hiddenRows.length) return Response.json({ skipped: true, reason: 'Mensagem excluída da visualização' });
+
     const readStates = await base44.asServiceRole.entities.ChatReadState.filter({
       user_id: userId,
       locksmith_id: msg.locksmith_id,
