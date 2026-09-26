@@ -122,13 +122,21 @@ export default function VehicleFipeRateRow({ rule, index, onChange, onRemove, on
     <Button type="button" variant="outline" size="sm" disabled={!canDuplicate || !rule.make || !rule.model} onClick={onDuplicate}>Adicionar outro ano ou faixa deste veículo</Button>
     <div className="space-y-2">
       <h5 className="font-semibold text-sm">Valor da chave para esta faixa de anos</h5>
-      <p className="text-xs text-muted-foreground">Preencha o valor de cada tipo de chave. Em branco mantém o catálogo. R$ 0,00 significa chave sem cobrança. Marque Indisponível para impedir pedidos dessa opção neste veículo e faixa de anos. O preço fica guardado para quando você reativar.</p>
+      <p className="text-xs text-muted-foreground">Os valores abaixo consultam o catálogo para o carro e ano-modelo da prévia. Campo vazio usa o catálogo desse veículo em cada ano; valor digitado substitui o catálogo para toda a faixa. Ao mudar montadora, modelo ou faixa, preços manuais e marcas de indisponibilidade são limpos. R$ 0,00 representa chave sem cobrança.</p>
+      {catalogLoading && <p className="text-xs">Consultando preços de chaves no catálogo...</p>}
+      {catalogError && <p role="alert" className="text-xs text-destructive">{catalogError}</p>}
+      {!catalogLoading && valid && catalog?.queryKey === catalogQueryKey && !currentCatalog && <p className="text-xs text-muted-foreground">Sem ficha ativa do catálogo para {rule.make} {rule.model}, ano-modelo {year}.</p>}
+      {currentCatalog && <p className="text-xs text-muted-foreground">Catálogo: {currentCatalog.catalog_code || currentCatalog.quoted_product || currentCatalog.model} · ano-modelo {year}{catalog.count > 1 ? ` · ${catalog.count} fichas compatíveis; confira versão e tipo de chave.` : ''} {/^https?:\/\//.test(currentCatalog.source_url || '') && <a href={currentCatalog.source_url} target="_blank" rel="noopener noreferrer" className="underline">Ver fonte</a>}</p>}
+      {Number(first) !== Number(last) && <p className="text-xs text-muted-foreground">A referência exibida é do ano-modelo {year}. Outros anos da faixa podem ter preços de chave diferentes; campos vazios consultam o catálogo de cada ano no chamado.</p>}
       <div className="grid gap-3 sm:grid-cols-2">{keyFields.map(([field, label]) => {
         const unavailable = rule[field + '_unavailable'] === true;
+        const catalogField = field === 'parallel_flip_price' || field === 'parallel_proximity_price' ? field : field === 'simple_price' ? 'original_price' : 'original_price';
+        const catalogValue = field === 'simple_price' ? null : Number(currentCatalog?.[catalogField]) > 0 ? Number(currentCatalog[catalogField]) : null;
         return <div key={field} className="rounded-lg border border-border p-3 space-y-2">
           <label className="block text-xs text-muted-foreground">{label} (R$)
             <Input className="mt-1" type="number" min="0" max="20000" step="0.01" inputMode="decimal" placeholder="Usar catálogo" disabled={unavailable} value={rule[field] ?? ''} onChange={e => onChange({ [field]: e.target.value })} />
           </label>
+          <p className="text-xs text-muted-foreground">{rule[field] !== '' && rule[field] != null ? `Valor manual desta regra: ${money(rule[field])}` : catalogValue != null ? `Referência do catálogo (${year}): ${money(catalogValue)}${catalogField === 'original_price' ? ' · chave original genérica, confira o tipo' : ''}` : 'Sem preço específico confirmado no catálogo para esta opção.'}</p>
           <label className="flex items-center gap-2 text-sm"><input type="checkbox" aria-label={label + ': indisponível'} checked={unavailable} onChange={e => onChange({ [field + '_unavailable']: e.target.checked })} />Indisponível</label>
           {unavailable ? <p className="text-xs text-destructive">Opção indisponível para este veículo e faixa de anos.</p> : labor != null && rule[field] !== '' && rule[field] != null && Number.isFinite(Number(rule[field])) && <p className="text-xs text-muted-foreground">Chave + mão de obra base: {money(labor + Number(rule[field]))}</p>}
         </div>;
