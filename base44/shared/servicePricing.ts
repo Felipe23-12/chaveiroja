@@ -94,10 +94,9 @@ async function carKeyPrice(base44, userId, data, inputs, factors, distanceFee, s
   const coded = catalog?.transponder_status === 'presente' || (catalog?.transponder_status !== 'ausente' && quote.hasCodedKey);
   if (keyOrigin === 'paralela' && keyValue <= 0 && manualKey === null) throw new Error('Preço da chave paralela não confirmado no catálogo');
   const fipeRate = vehicleFipeRate(make, model, year, coded, settings, vehicleFipeRates);
-  const labor = round(fipe * fipeRate.percent / 100 + (keyType === 'simples' ? settings.simple_fixed : 0));
-  const adjusted = adjustedCharge(labor, factors, `Mão de obra: ${fipeRate.percent}% da FIPE${fipeRate.label ? ` (${fipeRate.label})` : ''}${keyType === 'simples' ? ` + R$ ${settings.simple_fixed.toFixed(2)} (chave simples)` : ''}`);
-  const manualSimple = manualKey !== null || (keyOrigin === 'paralela' ? Number(catalog?.parallel_simple_price) > 0 : !!catalog?.manual_price_updated_at && Number(catalog?.original_price) > 0);
-  const chargedKey = keyType === 'simples' && !manualSimple ? 0 : keyValue;
+  const labor = round(fipe * fipeRate.percent / 100);
+  const adjusted = adjustedCharge(labor, factors, `Mão de obra: ${fipeRate.percent}% da FIPE${fipeRate.label ? ` (${fipeRate.label})` : ''}`);
+  const chargedKey = keyType === 'simples' && manualKey === null && keyOrigin === 'original' && !(Number(catalog?.original_simple_price) > 0 || catalog?.key_style === 'lamina_sem_pcf' && Number(catalog?.original_price) > 0) ? 0 : keyValue;
   const onlineFee = serverProgrammingFee(make, model, year, settings);
   const complexityFee = vehicleComplexity(make, model, year, settings);
   const alarmFee = /^land\s*rover(?:\s|$)/i.test(make) && year >= 2020 && vehicle.alarm_locked === true ? settings.alarm_fee : 0;
