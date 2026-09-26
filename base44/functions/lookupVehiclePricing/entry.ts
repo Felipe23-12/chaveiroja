@@ -33,6 +33,7 @@ export default async function(req: Request): Promise<Response> {
     const make = String(body.make || '').trim().slice(0, 80);
     const model = String(body.model || '').trim().slice(0, 100);
     const year = String(body.year || '').trim();
+    const version = String(body.version || '').trim().slice(0, 80).replace(/[<>]/g, '');
     const keyOnly = body.mode === 'key_only';
     if (!model || !/^\d{4}$/.test(year)) {
       return Response.json({ error: 'Modelo e ano válido são obrigatórios' }, { status: 400 });
@@ -90,7 +91,8 @@ export default async function(req: Request): Promise<Response> {
     }
 
     const vehicle = `${make} ${model}`.trim();
-    const prompt = `Consulte fontes brasileiras atuais para o veículo ${vehicle}, ano ${year}.
+    const prompt = `Consulte fontes brasileiras atuais para o veículo ${vehicle}${version ? `, versão/geração informada pelo cliente: ${version}` : ''}, ano-modelo ${year}.
+Se a versão foi informada, não use preços de outra versão ou geração.
 ${keyOnly ? 'Não pesquise FIPE.' : 'Informe o valor FIPE atual em BRL e se a chave usa chip, transponder ou imobilizador.'}
 Localize preços de CHAVE ORIGINAL GENUÍNA/OEM completa em lojas especializadas em chaves automotivas, concessionárias e marketplaces verificados (Mercado Livre, Shopee ou AliExpress).
 Aceite somente ofertas cujo título ou descrição comprove que a peça é original, genuína ou OEM e compatível com modelo e ano. Rejeite chave paralela, universal, compatível, similar, capa, carcaça, lâmina avulsa, controle sem chip, preço de programação, moeda estrangeira ou anúncio sem preço.
