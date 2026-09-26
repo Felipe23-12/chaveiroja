@@ -14,6 +14,7 @@ import { updateLocksmithLocation } from '../../shared/locksmithCoverage.ts';
 import { requireServiceCoverage } from '../../shared/serviceCoverage.ts';
 
 const waitMinutes = (minutes) => new Date(Date.now() + minutes * 60000).toISOString();
+const SECOND_JOB_MAX_DISTANCE_KM = 20;
 
 const serviceProfiles = {
   'Abertura Residencial': { id: 'abertura_residencial', specialty: 'Residencial' },
@@ -490,12 +491,35 @@ export default async function(req) {
       const legacyAccounts = accountsByUser.length ? [] : await base44.asServiceRole.entities.MercadoPagoAccount.filter({ locksmith_id: locksmith.id });
       const account = accountsByUser?.[0] || legacyAccounts?.[0];
       if (account?.status !== 'active') return Response.json({ code: 'MERCADO_PAGO_REQUIRED', error: 'Conecte sua conta Mercado Pago para aceitar chamados. Acesse Cadastro de recebimentos no seu perfil.' }, { status: 403 });
-      const queued = body.queued === true;
+      // O servidor decide se o aceite é imediato ou entra na fila. Nunca confie
+      // nos parâmetros queued/queued_after_request_id enviados pelo dispositivo.
+      const currentJobs = await base44.asServiceRole.entities.ServiceRequest.filter(
+        { locksmith_id: locksmith.id, status: { $in: ['accepted', 'on_the_way', 'queued'] } },
+        'accepted_at',
+        20,
+      );
+      const activeJob = currentJobs.find((item) => ['accepted', 'on_the_way'].includes(item.status));
+      const queuedJob = currentJobs.find((item) => item.status === 'queued');
+      if (queuedJob) return Response.json({ error: 'Você já atingiu o limite de dois chamados.' }, { status: 409 });
+      if (activeJob && request.urgency === 'urgent') return Response.json({ error: 'Chamados urgentes não podem entrar como segundo atendimento.' }, { status: 409 });
+      if (activeJob) {
+        const hasLocations = [activeJob.customer_lat, activeJob.customer_lng, request.customer_lat, request.customer_lng]
+          .every((value) => Number.isFinite(Number(value)));
+        if (!hasLocations) return Response.json({ error: 'Não foi possível validar a distância do segundo atendimento.' }, { status: 409 });
+        const queueDistance = distanceKm(
+          { lat: activeJob.customer_lat, lng: activeJob.customer_lng },
+          { lat: request.customer_lat, lng: request.customer_lng },
+        );
+        if (queueDistance > SECOND_JOB_MAX_DISTANCE_KM) {
+          return Response.json({ error: `O segundo atendimento precisa estar a até ${SECOND_JOB_MAX_DISTANCE_KM} km do atendimento atual.` }, { status: 409 });
+        }
+      }
+      const queued = Boolean(activeJob);
       const now = new Date().toISOString();
       const acceptedData = {
         status: queued ? 'queued' : 'accepted',
         accepted_at: now,
-        ...(queued ? { queued_at: now, queued_after_request_id: body.queued_after_request_id } : {}),
+        ...(queued ? { queued_at: now, queued_after_request_id: activeJob.id } : {}),
         locksmith_id: locksmith.id,
         locksmith_name: locksmith.name,
         locksmith_user_id: locksmith.created_by_id,
