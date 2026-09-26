@@ -546,7 +546,7 @@ export default function Home() {
       setSearchError(programming.reason);
       return;
     }
-    if (service?.isCarKey && /^land\s*rover(?:\s|$)/i.test(vehicleInfo.make.trim()) && Number(vehicleInfo.year) >= 2020 && vehicleInfo.alarmLocked == null) {
+    if (service?.isCarKey && /^land[\s-]*rover(?:\s|$)/i.test(vehicleInfo.make.trim()) && Number(vehicleInfo.year) >= 2020 && vehicleInfo.alarmLocked == null) {
       setSearchError("Informe se a Land Rover está trancada no alarme.");
       return;
     }
@@ -666,7 +666,7 @@ export default function Home() {
         discount_applied: useDiscount,
         ...(service.isCarKey ? {
           key_type: carKeyType,
-          vehicle_info: `${vehicleInfo.make} ${vehicleInfo.model}${vehicleInfo.version?.trim() ? ` · Versão ${vehicleInfo.version.trim()}` : ""} · Ano-modelo ${vehicleInfo.year} · Porta ${vehicleInfo.doorStatus}${complexity ? ` · ${complexity.label}` : ''}${/^land\s*rover(?:\s|$)/i.test(vehicleInfo.make.trim()) && Number(vehicleInfo.year) >= 2020 ? ` · Alarme: ${vehicleInfo.alarmLocked ? 'trancado' : 'não trancado'}` : ''}`.trim(),
+          vehicle_info: `${vehicleInfo.make} ${vehicleInfo.model}${vehicleInfo.version?.trim() ? ` · Versão ${vehicleInfo.version.trim()}` : ""} · Ano-modelo ${vehicleInfo.year} · Porta ${vehicleInfo.doorStatus}${complexity ? ` · ${complexity.label}` : ''}${/^land[\s-]*rover(?:\s|$)/i.test(vehicleInfo.make.trim()) && Number(vehicleInfo.year) >= 2020 ? ` · Alarme: ${vehicleInfo.alarmLocked ? 'trancado' : 'não trancado'}` : ''}`.trim(),
         } : service.id === "abertura_automotiva" ? {
           vehicle_info: `${vehicleInfo.make} ${vehicleInfo.model}${vehicleInfo.version?.trim() ? ` · Versão ${vehicleInfo.version.trim()}` : ""} · Ano-modelo ${vehicleInfo.year}`.trim(),
         } : service.isMotoKey ? {
