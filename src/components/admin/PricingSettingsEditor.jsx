@@ -30,7 +30,7 @@ export default function PricingSettingsEditor({ service, onServices, onDirty }) 
     } catch (e) { setError(e?.response?.data?.error || e.message); } finally { setBusy(false); }
   };
   if (!data && busy) return <LoadingCard label="Carregando tabela de cobranças..." />;
-  return <form onSubmit={save} className="space-y-4">
+  return <form onSubmit={save} noValidate className="space-y-4">
     {error && <p role="alert" className="rounded-xl bg-destructive/10 p-3 text-sm text-destructive">{error}</p>}
     {message && <p role="status" className="rounded-xl bg-success/10 p-3 text-sm text-success">{message}</p>}
     {data && <><p className="text-xs text-muted-foreground">{data.saved_at ? `Última versão: ${new Date(data.saved_at).toLocaleString('pt-BR')}` : 'Tabela inicial — ainda sem alterações manuais.'}</p>
