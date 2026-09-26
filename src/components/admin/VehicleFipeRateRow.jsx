@@ -16,7 +16,7 @@ const keyFields = [
   ['parallel_proximity_price', 'Chave de presença paralela'],
 ];
 
-export default function VehicleFipeRateRow({ rule, index, onChange, onRemove }) {
+export default function VehicleFipeRateRow({ rule, index, onChange, onRemove, onDuplicate, canDuplicate }) {
   const range = getVehicleYearRange(rule.make, rule.model);
   const currentMax = Math.min(range?.max || 2200, new Date().getFullYear() + 1);
   const first = rule.year_start ?? rule.year ?? '';
@@ -60,7 +60,8 @@ export default function VehicleFipeRateRow({ rule, index, onChange, onRemove }) 
   const percent = Number(rule.percent);
   const labor = currentFipe && rule.percent !== '' && Number.isFinite(percent) && percent >= 0 && percent <= 10 ? Math.round(currentFipe.amount * percent) / 100 : null;
   return <div className="rounded-xl border border-border bg-background p-4 space-y-3">
-    <div className="flex items-center justify-between gap-2"><h4 className="text-sm font-semibold">Veículo {index + 1}</h4><Button type="button" variant="ghost" size="icon" aria-label={`Remover regra ${index + 1}`} onClick={onRemove}><Trash2 className="h-4 w-4" /></Button></div>
+    <div className="flex items-center justify-between gap-2"><h4 className="text-sm font-semibold">Veículo {index + 1}{rule.make && rule.model ? ` · ${rule.make} ${rule.model}` : ''}</h4><Button type="button" variant="ghost" size="icon" aria-label={`Remover regra ${index + 1}`} onClick={onRemove}><Trash2 className="h-4 w-4" /></Button></div>
+    <p className="text-xs text-muted-foreground">Ano isolado: informe o mesmo ano inicial e final. Faixa: informe dois anos diferentes; a porcentagem valerá para cada ano-modelo da faixa.</p>
     {(invalidYears || missingRange) && <div role="alert" className="rounded-lg border border-destructive/50 bg-destructive/10 p-3 text-sm text-destructive">
       {invalidYears ? `Esta regra para ${rule.make} ${rule.model} usa ano-modelo ${first}${first !== last ? `–${last}` : ''}, fora da faixa confirmada ${range.min}–${currentMax}. Corrija os anos abaixo ou remova a regra antes de salvar.` : `Não há faixa de ano-modelo confirmada para ${rule.make} ${rule.model}. Escolha um modelo confirmado ou remova a regra antes de salvar.`}
       <Button type="button" variant="outline" size="sm" className="mt-2 block" onClick={onRemove}>Remover esta regra</Button>
@@ -87,6 +88,7 @@ export default function VehicleFipeRateRow({ rule, index, onChange, onRemove }) 
       <p className="text-xs text-muted-foreground">Prévia de FIPE × percentual. Adicional de chave simples, programação, piso mínimo, deslocamento e ajustes de horário/clima são calculados separadamente no serviço.</p>
       <Button type="button" size="sm" variant="outline" disabled={!valid || loading} onClick={() => { cache.delete(queryKey); setRetry(value => value + 1); }}>Atualizar FIPE</Button>
     </div>
+    <Button type="button" variant="outline" size="sm" disabled={!canDuplicate || !rule.make || !rule.model} onClick={onDuplicate}>Adicionar outro ano ou faixa deste veículo</Button>
     <div className="space-y-2">
       <h5 className="font-semibold text-sm">Valor da chave para esta faixa de anos</h5>
       <p className="text-xs text-muted-foreground">Preencha o valor de cada tipo de chave. Em branco mantém o catálogo. R$ 0,00 significa chave sem cobrança. Marque Indisponível para impedir pedidos dessa opção neste veículo e faixa de anos. O preço fica guardado para quando você reativar.</p>
