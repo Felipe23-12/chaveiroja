@@ -29,7 +29,7 @@ export default function PricingSettingsEditor({ service, onServices, onDirty }) 
       });
       const motorcycleRules = motoRules.map(rule => ({ ...rule, year_start: rule.year_start === '' ? null : Number(rule.year_start), year_end: rule.year_end === '' ? null : Number(rule.year_end), percent_adjustment: rule.percent_adjustment === '' ? null : Number(rule.percent_adjustment) }));
       const res = await base44.functions.invoke('manageServicePricing', { action: 'save', service_type: service, values: numeric, vehicle_fipe_rates: rates, moto_rules: motorcycleRules, version: data.version });
-      setData(res.data); setValues(res.data.values); setVehicleRates(res.data.vehicle_fipe_rates || []); onDirty(false); setMessage('Tabela salva. Os próximos cálculos deste serviço já usarão os novos valores.');
+      setData(res.data); setValues(res.data.values); setVehicleRates(res.data.vehicle_fipe_rates || []); setMotoRules(res.data.moto_rules || []); onDirty(false); setMessage('Tabela salva. Os próximos cálculos deste serviço já usarão os novos valores.');
     } catch (e) { setError(e?.response?.data?.error || e.message); } finally { setBusy(false); }
   };
   if (!data && busy) return <LoadingCard label="Carregando tabela de cobranças..." />;
