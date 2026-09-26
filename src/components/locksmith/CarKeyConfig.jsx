@@ -70,6 +70,7 @@ export default function CarKeyConfig({
           </div>
         </div>
 
+        <div><label className="text-xs text-muted-foreground mb-1 block">Versão ou geração (se souber)</label><Input placeholder="Ex.: 1.0 LT, G5, EXL" value={vehicleInfo.version || ""} onChange={(e) => updateVehicle("version", e.target.value)} maxLength={80} /></div>
         {vehicleInfo.model && !yearRange?.min && <p className="text-sm text-destructive">Modelo sem ano-modelo confirmado no catálogo; solicite revisão.</p>}
         {yearCheck && !yearCheck.valid && <p className="text-sm text-destructive">{yearCheck.error}</p>}
         {isLandRoverFrom2020(vehicleInfo.make, vehicleInfo.year) && (
