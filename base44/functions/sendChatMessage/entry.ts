@@ -20,6 +20,15 @@ export default async function(req) {
     }
     if (isLocksmith && !client_id) return Response.json({ error: 'Cliente não informado.' }, { status: 400 });
     const customerId = isLocksmith ? client_id : user.id;
+    const otherUserId = isLocksmith ? customerId : locksmith.created_by_id;
+    if (!otherUserId) return Response.json({ error: 'Destinatário sem usuário vinculado.' }, { status: 400 });
+    const [blockedBySender, blockedByRecipient] = await Promise.all([
+      base44.asServiceRole.entities.UserBlock.filter({ blocker_id: user.id, blocked_id: otherUserId, active: true }),
+      base44.asServiceRole.entities.UserBlock.filter({ blocker_id: otherUserId, blocked_id: user.id, active: true }),
+    ]);
+    if (blockedBySender.length || blockedByRecipient.length) {
+      return Response.json({ error: 'O envio de mensagens está bloqueado para esta conversa.' }, { status: 403 });
+    }
     if (isLocksmith) {
       const conversation = await base44.asServiceRole.entities.ChatMessage.filter({ locksmith_id, client_id: customerId });
       const requests = await base44.asServiceRole.entities.ServiceRequest.filter({ locksmith_id, created_by_id: customerId });
