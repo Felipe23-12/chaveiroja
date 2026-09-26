@@ -205,16 +205,17 @@ export async function calculateServerServicePrice(base44, userId, data) {
     const motoCatalog = rule.id === 'confeccao_chave_moto' ? await currentVehicleCatalog(base44, vehicle, 'moto', data.key_type, inputs.key_origin) : null;
     const motoKey = rule.id === 'confeccao_chave_moto' ? await catalogKeyPrice(base44, motoCatalog, 0, data.key_type || 'simples', inputs.key_origin, settings, vehicle.year) : 0;
     if (rule.id === 'confeccao_chave_moto' && data.key_type === 'presenca' && motoKey <= 0) throw new Error('Preço da chave de presença não confirmado para esta moto e ano-modelo. Atualize o catálogo antes de cotar.');
-    const raw = round(adjusted.total + locks + distanceFee + motoKey);
-    const floorAdjustment = round(Math.max(0, settings.minimum - raw));
-    const total = round(raw + floorAdjustment + automotiveFee + brokenFee);
+    // O piso vale para mão de obra e deslocamento; o custo da chave soma integralmente depois.
+    const laborAndTravel = round(adjusted.total + locks + distanceFee);
+    const floorAdjustment = round(Math.max(0, settings.minimum - laborAndTravel));
+    const total = round(laborAndTravel + floorAdjustment + motoKey + automotiveFee + brokenFee);
     calculation = {
       total,
       protectedFees: brokenFee,
       fields: { labor_cost: adjusted.total, extra_cost: locks + automotiveFee + brokenFee, locomotion_cost: distanceFee, ...(rule.id === 'confeccao_chave_moto' ? { key_value: motoKey } : {}) },
       lines: [
         ...adjusted.lines,
-        ...(motoKey ? [{ label: 'Valor da chave (catálogo administrativo)', value: motoKey }] : []),
+        ...(rule.id === 'confeccao_chave_moto' ? [{ label: 'Valor da chave selecionada', value: motoKey }] : []),
         ...(floorAdjustment ? [{ label: 'Ajuste ao piso mínimo', value: floorAdjustment }] : []),
         ...(locks ? [{ label: 'Fechaduras e miolos adicionais', value: locks }] : []),
         ...(distanceFee ? [{ label: 'Locomoção', value: distanceFee }] : []),
