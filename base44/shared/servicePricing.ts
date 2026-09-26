@@ -196,6 +196,7 @@ export async function calculateServerServicePrice(base44, userId, data) {
     const brokenFee = rule.id.startsWith('abertura_') && inputs.broken_key_in_lock === true ? settings.condition_fee : 0;
     const motoCatalog = rule.id === 'confeccao_chave_moto' ? await currentVehicleCatalog(base44, vehicle, 'moto') : null;
     const motoKey = rule.id === 'confeccao_chave_moto' ? await catalogKeyPrice(base44, motoCatalog, 0, data.key_type || 'simples', inputs.key_origin, settings, vehicle.year) : 0;
+    if (rule.id === 'confeccao_chave_moto' && data.key_type === 'presenca' && motoKey <= 0) throw new Error('Preço da chave de presença não confirmado para esta moto e ano-modelo. Atualize o catálogo antes de cotar.');
     const raw = round(adjusted.total + locks + distanceFee + motoKey);
     const floorAdjustment = round(Math.max(0, settings.minimum - raw));
     const total = round(raw + floorAdjustment + automotiveFee + brokenFee);
