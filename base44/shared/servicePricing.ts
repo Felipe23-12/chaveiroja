@@ -183,7 +183,7 @@ export async function calculateServerServicePrice(base44, userId, data) {
     calculation = await carKeyPrice(base44, userId, data, inputs, factors, distanceFee, settings, config.vehicle_fipe_rates);
   } else {
     const serviceRange = rule.id === 'confeccao_chave_moto'
-      ? motoServiceBaseRange(inputs.vehicle, data.key_type, inputs.moto_has_password).map((value, index) => value + (index === 0 ? settings.base_min - 200 : settings.base_max - 500))
+      ? (() => { const [lower, upper] = motoServiceBaseRange(inputs.vehicle, data.key_type, inputs.moto_has_password); const min = Math.max(0, lower + settings.base_min - 200); return [min, Math.max(min, upper + settings.base_max - 500)]; })()
       : [settings.base_min, settings.base_max];
     const [baseMin, baseMax] = regional?.range || serviceRange;
     const base = Math.round(baseMin + (baseMax - baseMin) * tierFactor);
