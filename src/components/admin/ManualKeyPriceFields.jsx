@@ -2,7 +2,9 @@ import React from "react";
 import { Input } from "@/components/ui/input";
 
 const prices = [
-  ["original_price", "Chave original"],
+  ["original_price", "Chave original canivete / telecomando"],
+  ["original_simple_price", "Chave original simples (padrão R$ 50)"],
+  ["original_proximity_price", "Chave original presença"],
   ["parallel_simple_price", "Paralela simples"],
   ["parallel_flip_price", "Paralela canivete / telecomando"],
   ["parallel_proximity_price", "Paralela presença"],
