@@ -23,7 +23,10 @@ export function validateMotoServiceRequest(vehicle, keyType, hasPassword) {
   const model = make && motoModels[make].find(item => normalize(item) === normalize(vehicle?.model));
   if (!make || !model) throw new Error('Selecione uma marca e um modelo de moto disponíveis.');
   const year = Number(vehicle?.year), max = new Date().getFullYear() + 1;
-  if (!Number.isInteger(year) || year < 1980 || year > max) throw new Error(`Informe um ano-modelo de moto entre 1980 e ${max}.`);
+  const range = motoYearRanges[make]?.[model];
+  if (!range) throw new Error('A faixa de anos-modelo desta moto ainda não está confirmada para solicitar o serviço.');
+  const last = Math.min(range[1], max);
+  if (!Number.isInteger(year) || year < range[0] || year > last) throw new Error(`Informe um ano-modelo de ${make} ${model} entre ${range[0]} e ${last}.`);
   if (!['simples', 'presenca'].includes(keyType)) throw new Error('Selecione um tipo de chave de moto válido.');
   const detail = motoDetails[model];
   if (keyType === 'presenca') {
