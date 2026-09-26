@@ -27,8 +27,9 @@ export default function VehicleFipeRateRow({ rule, index, onChange, onRemove }) 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [retry, setRetry] = useState(0);
-  const year = Number(previewYear || first);
-  const valid = Boolean(rule.make?.trim() && rule.model?.trim() && Number.isInteger(year) && range?.min && Number(first) >= range.min && Number(last) <= currentMax && year >= Number(first) && year <= Number(last));
+  const defaultPreviewYear = Number(first) >= (range?.min || 0) && Number(first) <= currentMax ? first : currentMax;
+  const year = Number(previewYear || defaultPreviewYear);
+  const valid = Boolean(rule.make?.trim() && rule.model?.trim() && Number.isInteger(year) && range?.min && year >= range.min && year <= currentMax);
   const queryKey = valid ? JSON.stringify([rule.make.trim(), rule.model.trim(), year, previewVersion.trim()]) : '';
   const invalidYears = Boolean(rule.model && range?.min && (Number(first) < range.min || Number(last) > currentMax || Number(first) > Number(last)));
   const missingRange = Boolean(rule.model && !range?.min);
@@ -70,12 +71,13 @@ export default function VehicleFipeRateRow({ rule, index, onChange, onRemove }) 
       <label className="text-xs text-muted-foreground">Ano-modelo final<Input className="mt-1" type="number" min={Math.max(Number(first) || 1900, range?.min || 1900)} max={currentMax} step="1" required value={last} onChange={e => onChange({ year_end: e.target.value })} /></label>
       {rule.model && <p className="text-xs text-muted-foreground sm:col-span-2">{range?.min ? `Anos-modelo disponíveis para ${rule.make} ${rule.model}: ${range.min}–${currentMax}.` : "Modelo sem faixa de ano-modelo confirmada."}</p>}
       <label className="text-xs text-muted-foreground">Mão de obra (% da FIPE)<Input className="mt-1" type="number" min="0" max="10" step="0.01" required placeholder="Ex.: 1,3" value={rule.percent} onChange={e => onChange({ percent: e.target.value })} /></label>
-      <label className="text-xs text-muted-foreground">Ano para consultar a FIPE<Input className="mt-1" type="number" min={Number(first) || 1900} max={Number(last) || 2200} step="1" value={previewYear || first} onChange={e => setPreviewYear(e.target.value)} /></label>
+      <label className="text-xs text-muted-foreground">Ano-modelo da prévia FIPE<Input className="mt-1" type="number" min={range?.min || 1900} max={currentMax} step="1" value={previewYear || defaultPreviewYear} onChange={e => setPreviewYear(e.target.value)} /></label>
       <label className="text-xs text-muted-foreground sm:col-span-2">Versão ou geração para a consulta (se houver)<Input className="mt-1" value={previewVersion} placeholder="Ex.: Cult 1.4, 500e, geração específica" onChange={e => setPreviewVersion(e.target.value)} /></label>
     </div>
     <div className="rounded-lg bg-muted/40 border border-border p-3 space-y-2 text-sm" aria-live="polite">
       <p className="font-semibold">Prévia · {rule.make} {rule.model} {year || ''}</p>
-      {!valid && <p>Escolha montadora, modelo e uma faixa de anos válida para consultar.</p>}
+      {!valid && <p>Escolha montadora, modelo e um ano-modelo confirmado para consultar.</p>
+      {invalidYears && <p className="text-xs">A prévia usa {year}; a regra de preços ainda precisa ser corrigida antes de salvar.</p>}}
       {loading && <p>Consultando referência FIPE...</p>}
       {error && <p role="alert" className="text-destructive">{error}</p>}
       {currentFipe && <><div className="flex justify-between gap-2"><span>Valor do veículo (FIPE)</span><strong>{money(currentFipe.amount)}</strong></div>
