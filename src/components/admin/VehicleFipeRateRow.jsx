@@ -8,6 +8,8 @@ import { getVehicleYearRange } from '../../../base44/shared/vehicleModelYears';
 
 const money = value => Number(value).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 const cache = new Map();
+const normalizeModel = value => String(value || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim().replace(/^novo\s+/, '').replace(/\beco sport\b/g, 'ecosport').replace(/\bs 10\b/g, 's10');
+const resetKeyPrices = () => Object.fromEntries(keyFields.flatMap(([field]) => [[field, ''], [field + '_unavailable', false]]));
 const keyFields = [
   ['simple_price', 'Chave simples'],
   ['original_flip_price', 'Chave canivete original'],
@@ -24,6 +26,9 @@ export default function VehicleFipeRateRow({ rule, index, onChange, onRemove, on
   const [previewYear, setPreviewYear] = useState('');
   const [previewVersion, setPreviewVersion] = useState('');
   const [fipe, setFipe] = useState(null);
+  const [catalog, setCatalog] = useState(null);
+  const [catalogLoading, setCatalogLoading] = useState(false);
+  const [catalogError, setCatalogError] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [retry, setRetry] = useState(0);
@@ -33,6 +38,28 @@ export default function VehicleFipeRateRow({ rule, index, onChange, onRemove, on
   const queryKey = valid ? JSON.stringify([rule.make.trim(), rule.model.trim(), year, previewVersion.trim()]) : '';
   const invalidYears = Boolean(rule.model && range?.min && (Number(first) < range.min || Number(last) > currentMax || Number(first) > Number(last)));
   const missingRange = Boolean(rule.model && !range?.min);
+  const catalogQueryKey = valid ? JSON.stringify([rule.make.trim(), rule.model.trim(), year]) : '';
+  useEffect(() => {
+    let active = true;
+    setCatalog(null); setCatalogError(''); setCatalogLoading(Boolean(catalogQueryKey));
+    if (!catalogQueryKey) return () => { active = false; };
+    const timer = setTimeout(async () => {
+      try {
+        const [make, model, selectedYear] = JSON.parse(catalogQueryKey);
+        const rows = await base44.entities.VehicleKeyCatalog.filter({ vehicle_type: 'carro', make, active: true }, '-updated_date', 1000);
+        const wanted = normalizeModel(model);
+        const matches = rows.filter(row => (!row.year_start || selectedYear >= Number(row.year_start)) && (!row.year_end || selectedYear <= Number(row.year_end)) && String(row.model || '').split(/[,/]/).some(part => {
+          const name = normalizeModel(part);
+          return name === wanted || name.replace(/\s+(?:g\d+|mk\d+)$/, '') === wanted;
+        }));
+        const manual = row => Boolean(row.manual_price_updated_at || Number(row.parallel_simple_price) > 0 || Number(row.parallel_flip_price) > 0 || Number(row.parallel_proximity_price) > 0);
+        matches.sort((a, b) => Number(manual(b)) - Number(manual(a)) || Number(!!b.verified) - Number(!!a.verified) || (Date.parse(b.manual_price_updated_at || b.updated_date || '') || 0) - (Date.parse(a.manual_price_updated_at || a.updated_date || '') || 0));
+        if (active) setCatalog(matches[0] || null);
+      } catch (e) { if (active) setCatalogError(e?.message || 'Não foi possível consultar o catálogo.'); }
+      finally { if (active) setCatalogLoading(false); }
+    }, 250);
+    return () => { active = false; clearTimeout(timer); };
+  }, [catalogQueryKey]);
   useEffect(() => {
     if (previewYear && (Number(previewYear) < (range?.min || 1900) || Number(previewYear) > currentMax)) setPreviewYear('');
   }, [range?.min, currentMax, previewYear]);
