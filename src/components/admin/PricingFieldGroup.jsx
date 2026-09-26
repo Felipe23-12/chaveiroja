@@ -3,7 +3,8 @@ import { Input } from '@/components/ui/input';
 
 export default function PricingFieldGroup({ group, values, onChange, disabled }) {
   return <fieldset disabled={disabled} className="rounded-xl border border-border bg-card p-4 space-y-4">
-    <legend className="px-2 text-sm font-semibold">{group.title}</legend>
+    <legend className="px-2 text-sm font-semibold">{group.title === 'Mão de obra sobre a FIPE' ? 'Percentuais gerais da FIPE (somente sem regra individual)' : group.title}</legend>
+    {group.title === 'Mão de obra sobre a FIPE' && <p className="text-xs text-muted-foreground">Alterar um destes campos muda todos os veículos sem regra específica. Para editar um único veículo, use a seção de regras por montadora, modelo e ano acima.</p>}
     <div className="grid gap-4 sm:grid-cols-2">
       {group.fields.map(field => <label key={field.key} className="space-y-1.5 text-sm">
         <span className="block text-muted-foreground">{field.label}</span>
