@@ -8,6 +8,7 @@ import AddressAutocomplete from "./AddressAutocomplete";
 import { MOTO_BRANDS, MOTO_MODELS, MOTO_KEY_TYPES, getMotoModel } from "@/lib/motoKey";
 import KeyOriginSelector from "./KeyOriginSelector";
 import { useServiceQuoteScope } from '@/components/location/ServiceQuoteScope';
+import { motoYearRanges } from '../../../base44/shared/motoPricingRules';
 
 function Chip({ active, onClick, children }) {
   return (
@@ -46,6 +47,7 @@ export default function MotoKeyConfig({
   const update = (field, value) => setMotoInfo((v) => ({ ...v, [field]: value }));
   const models = MOTO_MODELS[motoInfo.brandId] || [];
   const model = getMotoModel(motoInfo.brandId, motoInfo.modelId);
+  const yearRange = motoYearRanges[MOTO_BRANDS.find(b => b.id === motoInfo.brandId)?.label]?.[model?.label];
 
   return (
     <div className="space-y-5">
@@ -61,7 +63,7 @@ export default function MotoKeyConfig({
             <Chip
               key={b.id}
               active={motoInfo.brandId === b.id}
-              onClick={() => setMotoInfo((v) => ({ ...v, brandId: b.id, modelId: "" }))}
+              onClick={() => setMotoInfo((v) => ({ ...v, brandId: b.id, modelId: "", year: "" }))}
             >
               {b.label}
             </Chip>
@@ -74,7 +76,7 @@ export default function MotoKeyConfig({
           <label className="text-sm font-medium text-foreground mb-1.5 block">Modelo</label>
           <div className="grid grid-cols-2 gap-2">
             {models.map((m) => (
-              <Chip key={m.id} active={motoInfo.modelId === m.id} onClick={() => update("modelId", m.id)}>
+              <Chip key={m.id} active={motoInfo.modelId === m.id} onClick={() => setMotoInfo((v) => ({ ...v, modelId: m.id, year: "" }))}>
                 {m.label}
               </Chip>
             ))}
@@ -85,9 +87,12 @@ export default function MotoKeyConfig({
       {motoInfo.modelId && (
         <>
           <div>
-            <label className="text-sm font-medium text-foreground mb-1.5 block">Ano da moto</label>
+            <label className="text-sm font-medium text-foreground mb-1.5 block">Ano-modelo da moto</label>
+            {yearRange && <p className="mb-1 text-xs text-muted-foreground">Anos-modelo disponíveis: {yearRange[0]}–{Math.min(yearRange[1], new Date().getFullYear() + 1)}.</p>}
             <Input
               type="number"
+              min={yearRange?.[0]}
+              max={yearRange ? Math.min(yearRange[1], new Date().getFullYear() + 1) : undefined}
               placeholder="Ex: 2023"
               value={motoInfo.year || ""}
               onChange={(e) => update("year", e.target.value)}
