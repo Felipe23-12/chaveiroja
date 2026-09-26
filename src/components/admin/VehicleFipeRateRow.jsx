@@ -29,6 +29,8 @@ export default function VehicleFipeRateRow({ rule, index, onChange, onRemove }) 
   const year = Number(previewYear || first);
   const valid = Boolean(rule.make?.trim() && rule.model?.trim() && Number.isInteger(year) && range?.min && Number(first) >= range.min && Number(last) <= currentMax && year >= Number(first) && year <= Number(last));
   const queryKey = valid ? JSON.stringify([rule.make.trim(), rule.model.trim(), year]) : '';
+  const invalidYears = Boolean(rule.model && range?.min && (Number(first) < range.min || Number(last) > currentMax || Number(first) > Number(last)));
+  const missingRange = Boolean(rule.model && !range?.min);
   useEffect(() => {
     if (previewYear && (Number(previewYear) < Number(first) || Number(previewYear) > Number(last))) setPreviewYear('');
   }, [first, last, previewYear]);
@@ -57,6 +59,10 @@ export default function VehicleFipeRateRow({ rule, index, onChange, onRemove }) 
   const labor = currentFipe && rule.percent !== '' && Number.isFinite(percent) && percent >= 0 && percent <= 10 ? Math.round(currentFipe.amount * percent) / 100 : null;
   return <div className="rounded-xl border border-border bg-background p-4 space-y-3">
     <div className="flex items-center justify-between gap-2"><h4 className="text-sm font-semibold">Veículo {index + 1}</h4><Button type="button" variant="ghost" size="icon" aria-label={`Remover regra ${index + 1}`} onClick={onRemove}><Trash2 className="h-4 w-4" /></Button></div>
+    {(invalidYears || missingRange) && <div role="alert" className="rounded-lg border border-destructive/50 bg-destructive/10 p-3 text-sm text-destructive">
+      {invalidYears ? `Esta regra para ${rule.make} ${rule.model} usa ano-modelo ${first}${first !== last ? `–${last}` : ''}, fora da faixa confirmada ${range.min}–${currentMax}. Corrija os anos abaixo ou remova a regra antes de salvar.` : `Não há faixa de ano-modelo confirmada para ${rule.make} ${rule.model}. Escolha um modelo confirmado ou remova a regra antes de salvar.`}
+      <Button type="button" variant="outline" size="sm" className="mt-2 block" onClick={onRemove}>Remover esta regra</Button>
+    </div>}
     <div className="grid gap-3 sm:grid-cols-2">
       <VehicleMakeModelFields vehicleInfo={rule} updateVehicle={(key, value) => onChange({ [key]: value, ...(key === 'make' ? { model: '' } : {}) })} />
       <label className="text-xs text-muted-foreground">Ano-modelo inicial<Input className="mt-1" type="number" min={range?.min || 1900} max={currentMax} step="1" required value={first} onChange={e => onChange({ year_start: e.target.value })} /></label>
