@@ -18,7 +18,7 @@ const keyFields = [
   ['parallel_proximity_price', 'Chave de presença paralela'],
 ];
 
-export default function VehicleFipeRateRow({ rule, savedIdentity, index, onChange, onRemove, onDuplicate, canDuplicate }) {
+export default function VehicleFipeRateRow({ rule, index, onChange, onRemove, onDuplicate, canDuplicate }) {
   const range = getVehicleYearRange(rule.make, rule.model);
   const currentMax = Math.min(range?.max || 2200, new Date().getFullYear() + 1);
   const first = rule.year_start ?? rule.year ?? '';
@@ -98,7 +98,7 @@ export default function VehicleFipeRateRow({ rule, savedIdentity, index, onChang
       <Button type="button" variant="outline" size="sm" className="mt-2 block" onClick={onRemove}>Remover esta regra</Button>
     </div>}
     <div className="grid gap-3 sm:grid-cols-2">
-      {savedIdentity ? <div className="sm:col-span-2 text-sm"><span className="text-muted-foreground">Montadora e modelo desta regra: </span><strong>{savedIdentity.make} {savedIdentity.model}</strong><p className="text-xs text-muted-foreground">Para configurar outro carro, use “Adicionar veículo”.</p></div> : <VehicleMakeModelFields vehicleInfo={rule} updateVehicle={(key, value) => onChange({ [key]: value, ...(key === 'make' ? { model: '' } : {}), ...resetKeyPrices() })} />}
+      <VehicleMakeModelFields vehicleInfo={rule} updateVehicle={(key, value) => onChange({ [key]: value, ...(key === 'make' ? { model: '' } : {}), ...resetKeyPrices() })} />
       <label className="text-xs text-muted-foreground">Ano-modelo inicial<Input className="mt-1" type="number" min={range?.min || 1900} max={currentMax} step="1" required value={first} onChange={e => onChange({ year_start: e.target.value, ...resetKeyPrices() })} /></label>
       <label className="text-xs text-muted-foreground">Ano-modelo final<Input className="mt-1" type="number" min={Math.max(Number(first) || 1900, range?.min || 1900)} max={currentMax} step="1" required value={last} onChange={e => onChange({ year_end: e.target.value, ...resetKeyPrices() })} /></label>
       {rule.model && <p className="text-xs text-muted-foreground sm:col-span-2">{range?.min ? `Anos-modelo disponíveis para ${rule.make} ${rule.model}: ${range.min}–${currentMax}.` : "Modelo sem faixa de ano-modelo confirmada."}</p>}
