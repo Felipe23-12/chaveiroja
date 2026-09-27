@@ -38,6 +38,7 @@ async function upsert(base44: any, details: any, reference: string, url: string)
   else await base44.asServiceRole.entities.FipeVehiclePrice.create(update);
 }
 export default async function(req: Request): Promise<Response> {
+  calls = 0;
   const base44 = createClientFromRequest(req);
   const body = await req.json().catch(() => ({}));
   if (!verifyInternalCall(req, body)) {
