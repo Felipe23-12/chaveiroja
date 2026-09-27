@@ -90,7 +90,7 @@ export default function VehicleFipeRateRow({ rule, values, index, onChange, onRe
   }, [queryKey, retry]);
   const currentFipe = fipe?.queryKey === queryKey ? fipe : null;
   const currentCatalog = catalog?.queryKey === catalogQueryKey ? catalog.row : null;
-  const officialFipeSource = (() => { try { return ['www.fipe.org.br', 'fipe.org.br', 'veiculos.fipe.org.br'].includes(new URL(currentFipe?.sourceUrl || '').hostname.toLowerCase()); } catch { return false; } })();
+  const parallelumSource = (() => { try { return new URL(currentFipe?.sourceUrl || '').hostname.toLowerCase() === 'fipe.parallelum.com.br'; } catch { return false; } })();
   const percent = Number(rule.percent);
   const fallback = valid && values ? vehicleFipeRate(rule.make, rule.model, year, false, values).percent : null;
   const labor = currentFipe && rule.percent !== '' && Number.isFinite(percent) && percent >= 0 && percent <= 10 ? Math.round(currentFipe.amount * percent) / 100 : null;
@@ -118,11 +118,11 @@ export default function VehicleFipeRateRow({ rule, values, index, onChange, onRe
       {error && <p role="alert" className="text-destructive">{error}</p>}
       {fallback != null && <p className="text-xs text-muted-foreground">Sem regra individual salva para este ano-modelo: {fallback}% da FIPE pela regra geral existente{year < 2000 ? ' (considerando chave sem codificação nesta prévia)' : ''}. Os demais carros continuam com sua regra geral até serem editados.</p>}
       {valid && <a className="text-xs underline" href="https://www.fipe.org.br/pt-br/indices/veiculos" target="_blank" rel="noopener noreferrer">Consultar na FIPE oficial: selecione carros, montadora, versão e ano-modelo {year}</a>}
-      {currentFipe && <><div className="flex justify-between gap-2"><span>Prévia automatizada de valor FIPE (confirme na fonte oficial)</span><strong>{money(currentFipe.amount)}</strong></div>
+      {currentFipe && <><div className="flex justify-between gap-2"><span>Valor consultado por API independente (Parallelum) · confira na FIPE oficial</span><strong>{money(currentFipe.amount)}</strong></div>
         {fallback != null && <div className="flex justify-between gap-2 text-xs"><span>Mão de obra base pela regra geral ({fallback}%)</span><strong>{money(Math.round(currentFipe.amount * fallback) / 100)}</strong></div>}
         <div className="flex justify-between gap-2"><span>Mão de obra base · {rule.percent || '0'}%</span><strong>{labor == null ? 'Informe o percentual' : money(labor)}</strong></div>
-        {!officialFipeSource && <p role="alert" className="text-xs text-destructive">A prévia retornou uma fonte diferente da FIPE oficial. Confira mês, versão, ano-modelo e código FIPE no link oficial antes de usar este valor.</p>}
-        <p className="text-xs text-muted-foreground">Consulta automatizada: {currentFipe.consultedAt}{currentFipe.reference ? ` · Referência informada: ${currentFipe.reference}` : ''}. Confirme versão, ano-modelo, mês e código na consulta oficial antes de definir o preço. Anúncios de lojas e concessionárias não são valores da Tabela FIPE. Cada ano da faixa usa sua própria referência.</p>
+        {!parallelumSource && <p role="alert" className="text-xs text-destructive">Fonte automatizada inesperada. Confira mês, versão, ano-modelo e código FIPE na consulta oficial.</p>}
+        <p className="text-xs text-muted-foreground">Fonte independente da fundação FIPE · consulta: {currentFipe.consultedAt}{currentFipe.reference ? ` · Referência informada: ${currentFipe.reference}` : ''}. Confirme versão, ano-modelo, mês e código na consulta oficial antes de definir o preço. Anúncios de lojas e concessionárias não são valores da Tabela FIPE. Cada ano da faixa usa sua própria referência.</p>
         {/^https?:\/\//.test(currentFipe.sourceUrl || '') && <a className="text-xs underline" href={currentFipe.sourceUrl} target="_blank" rel="noopener noreferrer">Conferir fonte consultada</a>}</>}
       <p className="text-xs text-muted-foreground">Prévia de FIPE × percentual. O valor da chave escolhida é somado separadamente à mão de obra; programação, piso mínimo, deslocamento e ajustes de horário/clima também são calculados no serviço.</p>
       <Button type="button" size="sm" variant="outline" disabled={!valid || loading} onClick={() => { cache.delete(queryKey); setRetry(value => value + 1); }}>Atualizar FIPE</Button>
