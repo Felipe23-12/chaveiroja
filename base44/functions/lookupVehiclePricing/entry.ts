@@ -1,6 +1,6 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.46';
 import { createVehiclePricingQuote } from '../../shared/vehiclePricingQuote.ts';
-import { lookupExactFipe } from '../../shared/fipeCatalog.ts';
+import { fipeFromDatabase } from '../../shared/cachedFipe.ts';
 import { validateVehicleModelYear } from '../../shared/vehicleModelYears.ts';
 import { carKeyUnavailableReason } from '../../shared/carKeyAvailability.ts';
 import { requireServiceCoverage } from '../../shared/serviceCoverage.ts';
@@ -43,7 +43,7 @@ export default async function(req: Request): Promise<Response> {
     const yearCheck = validateVehicleModelYear(make, model, year);
     if (!yearCheck.valid) return Response.json({ error: yearCheck.error }, { status: 400 });
     if (adminPreview) {
-      const exact = await lookupExactFipe(make, model, year, version);
+      const exact = await fipeFromDatabase(base44, make, model, year, version);
       return Response.json({ fipe_value: exact.value, source_url: exact.sourceUrl, reference: `${exact.month} · código ${exact.code} · ${exact.model}`, provider: exact.provider });
     }
     const unavailable = carKeyUnavailableReason(make, model, year);
@@ -124,7 +124,7 @@ Retorne cada oferta aceita com fonte, categoria, preço em BRL, URL e original_c
       },
       required: keyOnly ? ['original_key_offers'] : ['has_coded_key', 'original_key_offers'],
     };
-    const fipeExact = keyOnly ? null : await lookupExactFipe(make, model, year, version);
+    const fipeExact = keyOnly ? null : await fipeFromDatabase(base44, make, model, year, version);
     const result = await base44.asServiceRole.integrations.Core.InvokeLLM({
       prompt,
       add_context_from_internet: true,
