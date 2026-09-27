@@ -111,7 +111,7 @@ async function carKeyPrice(base44, userId, data, inputs, factors, distanceFee, s
   return {
     total: round(base + complexityFee + alarmFee),
     protectedFees: complexityFee + alarmFee,
-    fields: { key_value: chargedKey, fipe_value: fipe, labor_cost: adjusted.total, locomotion_cost: distanceFee, extra_cost: onlineFee + complexityFee + alarmFee },
+    fields: { key_value: chargedKey, fipe_value: fipe, fipe_code: quote.fipeCode || '', fipe_reference_month: quote.fipeMonth || '', fipe_model: quote.fipeModel || '', fipe_source_url: quote.fipeSourceUrl || '', labor_cost: adjusted.total, locomotion_cost: distanceFee, extra_cost: onlineFee + complexityFee + alarmFee },
     lines: [
       { label: 'Valor da chave', value: chargedKey },
       ...adjusted.lines,
