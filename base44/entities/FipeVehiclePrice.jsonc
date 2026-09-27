@@ -1,0 +1,76 @@
+{
+  "name": "FipeVehiclePrice",
+  "type": "object",
+  "properties": {
+    "code_fipe": {
+      "type": "string"
+    },
+    "year_code": {
+      "type": "string"
+    },
+    "model_year": {
+      "type": "integer"
+    },
+    "brand": {
+      "type": "string"
+    },
+    "model": {
+      "type": "string"
+    },
+    "price": {
+      "type": "number"
+    },
+    "reference_month": {
+      "type": "string"
+    },
+    "reference_code": {
+      "type": "string"
+    },
+    "source_url": {
+      "type": "string"
+    },
+    "checked_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "next_check_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "required": [
+    "code_fipe",
+    "year_code",
+    "model_year",
+    "brand",
+    "model",
+    "price",
+    "reference_month",
+    "reference_code",
+    "source_url",
+    "checked_at",
+    "next_check_at"
+  ],
+  "rls": {
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

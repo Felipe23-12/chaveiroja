@@ -1,0 +1,72 @@
+{
+  "name": "FipeSyncState",
+  "type": "object",
+  "properties": {
+    "date_key": {
+      "type": "string"
+    },
+    "requests_used": {
+      "type": "integer"
+    },
+    "brand_index": {
+      "type": "integer"
+    },
+    "model_index": {
+      "type": "integer"
+    },
+    "year_index": {
+      "type": "integer"
+    },
+    "phase": {
+      "type": "string"
+    },
+    "cycle_completed_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "last_run_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "last_error": {
+      "type": "string"
+    },
+    "records_written": {
+      "type": "integer"
+    },
+    "reference_code": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "date_key",
+    "requests_used",
+    "brand_index",
+    "model_index",
+    "year_index",
+    "phase",
+    "records_written"
+  ],
+  "rls": {
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}
