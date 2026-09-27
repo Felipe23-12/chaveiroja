@@ -15,7 +15,7 @@ let calls = 0;
 async function api(path: string, reference?: string) {
   calls++;
   const response = await fetch(BASE + path + (reference ? '?reference=' + encodeURIComponent(reference) : ''), { headers: { accept: 'application/json' }, signal: AbortSignal.timeout(12000) });
-  if (response.status === 429) throw new Error('A API atingiu seu limite de requisições. O lote será retomado no próximo dia.');
+  if (response.status === 429) throw new Error('Limite da fonte FIPE (HTTP 429). Saldo informado: ' + (response.headers.get('x-ratelimit-remaining') ?? 'indisponível') + '; reinício: ' + (response.headers.get('x-ratelimit-reset') ?? 'indisponível') + '.');
   if (!response.ok) throw new Error('Erro HTTP ' + response.status + ' na API de preços.');
   return await response.json();
 }
