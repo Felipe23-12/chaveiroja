@@ -1,11 +1,12 @@
-import json, re, urllib.request, urllib.error, datetime, pathlib, time
+import json, re, urllib.request, urllib.error, datetime, pathlib, time, os
 root=pathlib.Path('/app')
 s=(root/'base44/shared/vehicleModelYears.ts').read_text()
 families=[x for x in json.loads(re.search(r'VEHICLE_MODEL_YEARS = (\[.*?\]);',s).group(1)) if x.get('min') and x.get('max')]
 base='https://fipe.parallelum.com.br/api/v2'
 calls=0
 rows=[]
-start=json.loads(pathlib.Path('/tmp/fipe_seed.json').read_text())['cursor'] if pathlib.Path('/tmp/fipe_seed.json').exists() else [0,0,0]
+start=json.loads(os.environ['FIPE_START_CURSOR']) if os.environ.get('FIPE_START_CURSOR') else (json.loads(pathlib.Path('/tmp/fipe_seed.json').read_text())['cursor'] if pathlib.Path('/tmp/fipe_seed.json').exists() else [0,0,0])
+limit=max(2,min(150,int(os.environ.get('FIPE_BATCH_LIMIT','103'))))
 cursor=list(start)
 def norm(x): return re.sub(r'[^a-z0-9]+',' ',str(x).lower()).strip()
 def api(path, ref=''):
@@ -22,19 +23,19 @@ try:
  brands=api('/cars/brands',ref)
  for fi,family in enumerate(families):
   if fi<start[0]: continue
-  if calls>=103: break
+  if calls>=limit: break
   brand=next((b for b in brands if norm(b['name'])==norm(family['make']) or (family['make']=='Chevrolet' and norm(b['name'])=='gm chevrolet') or (family['make']=='Volkswagen' and norm(b['name'])=='vw volkswagen')),None)
   if not brand: cursor=[fi+1,0,0]; continue
   models=api('/cars/brands/'+str(brand['code'])+'/models',ref)
   candidates=[m for m in models if norm(m['name'])==norm(family['model']) or norm(m['name']).startswith(norm(family['model'])+' ')]
   for mi,m in enumerate(candidates):
    if fi==start[0] and mi<start[1]: continue
-   if calls>=103: cursor=[fi,mi,0]; break
+   if calls>=limit: cursor=[fi,mi,0]; break
    years=api('/cars/brands/'+str(brand['code'])+'/models/'+str(m['code'])+'/years',ref)
    years=[y for y in years if family['min']<=int(y['code'][:4])<=min(family['max'],2027)]
    for yi,y in enumerate(years):
     if fi==start[0] and mi==start[1] and yi<start[2]: continue
-    if calls>=103: cursor=[fi,mi,yi]; break
+    if calls>=limit: cursor=[fi,mi,yi]; break
     path='/cars/brands/'+str(brand['code'])+'/models/'+str(m['code'])+'/years/'+y['code']
     d=api(path,ref)
     try: price=float(re.sub(r'[^0-9,]','',d['price']).replace(',','.'))
