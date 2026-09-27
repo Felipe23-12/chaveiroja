@@ -1,5 +1,6 @@
 // Fonte automatizada independente: Parallelum FIPE v2. A fundação FIPE não fornece API pública.
 const BASE = 'https://fipe.parallelum.com.br/api/v2';
+const cache = new Map<string, { expires: number; data: any }>();
 const normalize = (value: unknown) => String(value || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
 const numberFromBrl = (value: unknown) => Number(String(value || '').replace(/[^\d,]/g, '').replace(',', '.'));
 const isCarBrand = (name: string, wanted: string) => {
@@ -9,10 +10,14 @@ const isCarBrand = (name: string, wanted: string) => {
 };
 async function get(path: string, reference?: string) {
   const url = BASE + path + (reference ? '?reference=' + encodeURIComponent(reference) : '');
+  const cached = cache.get(url);
+  if (cached && cached.expires > Date.now()) return cached.data;
   const response = await fetch(url, { headers: { accept: 'application/json' }, signal: AbortSignal.timeout(10000) });
   if (response.status === 429) throw new Error('Limite diário de consultas FIPE da fonte automatizada atingido. Tente mais tarde.');
   if (!response.ok) throw new Error('Fonte automatizada de FIPE indisponível (' + response.status + ').');
-  return await response.json();
+  const data = await response.json();
+  cache.set(url, { expires: Date.now() + (path === '/references' ? 60 * 60 * 1000 : 30 * 60 * 1000), data });
+  return data;
 }
 export async function lookupExactFipe(make: string, model: string, year: string | number, version = '') {
   const references = await get('/references');
