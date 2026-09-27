@@ -1,3 +1,4 @@
+import { isMotoSeatOpening, validateOpeningVehicle, motoSeatRange } from './automotiveOpening.ts';
 import { verifyVehiclePricingQuote } from './vehiclePricingQuote.ts';
 import { validateVehicleModelYear } from './vehicleModelYears.ts';
 import { carKeyUnavailableReason } from './carKeyAvailability.ts';
@@ -18,7 +19,6 @@ const RULES = {
   'Abertura Fechadura Eletrônica': { range: [350, 450], id: 'abertura_eletronica' },
   'Confecção de Chave de Carro': { carKey: true, id: 'confeccao_chave_carro' },
   'Confecção de Chave de Moto': { range: [200, 500], id: 'confeccao_chave_moto' },
-  'Cópia de Chave': { fixed: 4, id: 'copia_chave' },
 };
 
 const LOCKS = {
@@ -146,7 +146,7 @@ export async function calculateServerServicePrice(base44, userId, data) {
   const inputs = data.pricing_inputs && typeof data.pricing_inputs === 'object' ? data.pricing_inputs : {};
   if (rule.carKey || rule.id === 'abertura_automotiva') {
     const vehicle = inputs.vehicle || {};
-    const yearCheck = validateVehicleModelYear(vehicle.make, vehicle.model, vehicle.year);
+    const yearCheck = rule.id === 'abertura_automotiva' ? validateOpeningVehicle(vehicle) : validateVehicleModelYear(vehicle.make, vehicle.model, vehicle.year);
     if (!yearCheck.valid) throw new Error(yearCheck.error);
   }
   if (rule.id === 'confeccao_chave_moto') {
@@ -170,6 +170,7 @@ export async function calculateServerServicePrice(base44, userId, data) {
   ]);
   const online = profiles.filter(l => isAreaAvailable(areas, l.lat, l.lng));
   const settings = config.values;
+  const seatOpening = rule.id === 'abertura_automotiva' && isMotoSeatOpening(inputs.vehicle);
   const urgency = data.urgency === 'urgent' ? 'urgent' : 'normal';
   const calendar = pricingCalendar(settings);
   const tierFactor = urgency === 'urgent' ? Math.max(calendar.tier, settings.tier_urgent_floor / 100) : Math.min(calendar.tier, settings.tier_normal_cap / 100);
@@ -189,18 +190,18 @@ export async function calculateServerServicePrice(base44, userId, data) {
   } else {
     const serviceRange = rule.id === 'confeccao_chave_moto'
       ? (() => { const [lower, upper] = motoServiceBaseRange(inputs.vehicle, data.key_type, inputs.moto_has_password); const min = Math.max(0, lower + settings.base_min - 200); return [min, Math.max(min, upper + settings.base_max - 500)]; })()
-      : [settings.base_min, settings.base_max];
+      : seatOpening ? motoSeatRange(settings) : [settings.base_min, settings.base_max];
     // A faixa regional não substitui o acréscimo técnico da moto sem senha.
     const motoRegionalRange = rule.id === 'confeccao_chave_moto' && regional?.range
       ? regional.range.map((amount, index) => amount + serviceRange[index] - [settings.base_min, settings.base_max][index])
       : null;
-    const [baseMin, baseMax] = motoRegionalRange || regional?.range || serviceRange;
+    const [baseMin, baseMax] = seatOpening ? serviceRange : motoRegionalRange || regional?.range || serviceRange;
     const base = Math.round(baseMin + (baseMax - baseMin) * tierFactor);
     const vehicle = inputs.vehicle || {};
     const motoSpecific = rule.id === 'confeccao_chave_moto' ? matchingMotoRule(vehicle.make, vehicle.model, vehicle.year, config.moto_rules) : null;
     const motoBase = motoSpecific ? round(base * (1 + motoSpecific.percent_adjustment / 100)) : base;
     const openingFactors = rule.id === 'abertura_automotiva' && Number(vehicle.year) >= 2020 ? [...factors, { label: 'Veículo de 2020 em diante', percent: settings.opening_2020 }] : factors;
-    const adjusted = adjustedCharge(motoBase, openingFactors, `${data.service_type} (mão de obra)${rule.id === 'confeccao_chave_moto' && data.key_type === 'presenca' ? inputs.moto_has_password ? ' · com senha' : ' · sem senha' : ''}${motoSpecific ? ` · ${vehicle.make} ${vehicle.model} ${motoSpecific.year_start}–${motoSpecific.year_end}: ${motoSpecific.percent_adjustment > 0 ? '+' : ''}${motoSpecific.percent_adjustment}%` : ''}`);
+    const adjusted = adjustedCharge(motoBase, openingFactors, `${seatOpening ? 'Abertura de banco de moto' : data.service_type} (mão de obra)${rule.id === 'confeccao_chave_moto' && data.key_type === 'presenca' ? inputs.moto_has_password ? ' · com senha' : ' · sem senha' : ''}${motoSpecific ? ` · ${vehicle.make} ${vehicle.model} ${motoSpecific.year_start}–${motoSpecific.year_end}: ${motoSpecific.percent_adjustment > 0 ? '+' : ''}${motoSpecific.percent_adjustment}%` : ''}`);
     const automotiveFee = rule.id === 'abertura_automotiva' ? ({ media: settings.opening_medium, alta: settings.opening_high }[vehicle.complexity] || 0) : 0;
     const locks = rule.id === 'abertura_residencial' || rule.id === 'abertura_tetra' || rule.id === 'abertura_eletronica' ? lockExtras(inputs.locks, settings) : 0;
     const brokenFee = rule.id.startsWith('abertura_') && inputs.broken_key_in_lock === true ? settings.condition_fee : 0;
@@ -240,7 +241,7 @@ export async function calculateServerServicePrice(base44, userId, data) {
     calculation: { total: calculation.total, lines: calculation.lines, notes: [
       'Preço recalculado e validado pelo servidor.',
       config.version ? `Tabela de cobranças: ${config.version}` : 'Tabela de cobranças inicial.',
-      ...(regional?.note ? [regional.note] : []),
+      ...(!seatOpening && regional?.note ? [regional.note] : []),
       ...(!rule.fixed ? [weather.label, 'Calendário de Brasília: nacionais e São Paulo. Feriado substitui sábado/domingo.'] : []),
     ] },
   };

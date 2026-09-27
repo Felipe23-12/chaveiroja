@@ -1,4 +1,5 @@
 import React from "react";
+import { isMotoSeatOpening, validateOpeningVehicle } from "../../../base44/shared/automotiveOpening";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import PriceSummary from "./PriceSummary";
@@ -36,8 +37,9 @@ export default function ServiceConfig({
   assumedNearby = false,
 }) {
   const { allowed } = useServiceQuoteScope();
-  const yearRange = getVehicleYearRange(vehicleInfo?.make, vehicleInfo?.model);
-  const yearCheck = validateVehicleModelYear(vehicleInfo?.make, vehicleInfo?.model, vehicleInfo?.year);
+  const seatOpening = service.id === "abertura_automotiva" && isMotoSeatOpening(vehicleInfo);
+  const yearRange = seatOpening ? { min: 1900, max: new Date().getFullYear() + 1 } : getVehicleYearRange(vehicleInfo?.make, vehicleInfo?.model);
+  const yearCheck = service.id === "abertura_automotiva" ? validateOpeningVehicle(vehicleInfo) : validateVehicleModelYear(vehicleInfo?.make, vehicleInfo?.model, vehicleInfo?.year);
   const vehicleReady = yearCheck.valid && Boolean(
     (vehicleInfo?.make || "").trim() &&
       (vehicleInfo?.model || "").trim() &&

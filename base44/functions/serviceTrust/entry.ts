@@ -23,7 +23,6 @@ const serviceProfiles = {
   'Abertura Fechadura Eletrônica': { id: 'abertura_eletronica', specialty: 'Residencial' },
   'Confecção de Chave de Carro': { id: 'confeccao_chave_carro', specialty: 'Automotivo' },
   'Confecção de Chave de Moto': { id: 'confeccao_chave_moto', specialty: 'Automotivo' },
-  'Cópia de Chave': { id: 'copia_chave', specialty: 'Residencial' },
 };
 
 function distanceKm(a, b) {

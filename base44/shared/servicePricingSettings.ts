@@ -1,8 +1,8 @@
 import { validateVehicleFipeRates } from './vehicleFipeRates.ts';
 import { validateMotoPricingRules } from './motoPricingRules.ts';
 
-export const serviceTypes = ['Abertura Residencial', 'Abertura Automotiva', 'Abertura Fechadura Tetra', 'Abertura Fechadura Eletrônica', 'Confecção de Chave de Carro', 'Confecção de Chave de Moto', 'Cópia de Chave'];
-const ranges = [[80, 250], [120, 350], [100, 300], [350, 450], [0, 0], [200, 500], [4, 4]];
+export const serviceTypes = ['Abertura Residencial', 'Abertura Automotiva', 'Abertura Fechadura Tetra', 'Abertura Fechadura Eletrônica', 'Confecção de Chave de Carro', 'Confecção de Chave de Moto'];
+const ranges = [[80, 250], [120, 350], [100, 300], [350, 450], [0, 0], [200, 500]];
 const field = (key, label, value, unit = '%', min = 0, max = 500) => ({ key, label, default: value, unit, min, max });
 const cash = (key, label, value) => field(key, label, value, 'R$', 0, 100000);
 const group = (title, fields) => ({ title, fields });
@@ -10,7 +10,6 @@ export function pricingFields(service) {
   const index = serviceTypes.indexOf(service);
   if (index < 0) throw new Error('Serviço inválido');
   const car = index === 4, opening = index < 4;
-  if (index === 6) return [group('Preço fixo (sem fatores dinâmicos)', [cash('fixed', 'Valor da cópia', 4), field('loyalty', 'Desconto de fidelidade', 10, '%', 0, 100)])];
   const groups = [];
   if (!car) groups.push(group('Base do serviço', [cash('base_min', 'Início da faixa base', ranges[index][0]), cash('base_max', 'Fim da faixa base', ranges[index][1]), field('tier_day', 'Posição na faixa: horário comercial (08h–17h)', 20, '% da faixa', 0, 100), field('tier_night', 'Posição na faixa: fora do horário comercial', 60, '% da faixa', 0, 100), field('tier_weekend', 'Posição na faixa: fim de semana / feriado', 90, '% da faixa', 0, 100), field('tier_normal_cap', 'Posição máxima na faixa: normal', 60, '% da faixa', 0, 100), field('tier_urgent_floor', 'Posição mínima na faixa: urgente', 60, '% da faixa', 0, 100)]));
   groups.push(group('Piso e desconto', [cash('minimum', 'Piso do serviço antes dos adicionais protegidos', car ? 380 : index < 2 ? 50 : 0), field('loyalty', 'Desconto de fidelidade', 10, '%', 0, 100)]));
@@ -27,7 +26,7 @@ export function pricingFields(service) {
   groups.push(group('Chuva no endereço do atendimento', [field('rain_drizzle', 'Garoa (> 0 e < 0,5 mm/h)', 15), field('rain_light', 'Chuva leve (≥ 0,5 e < 2,5 mm/h)', 25), field('rain_moderate', 'Chuva moderada (≥ 2,5 e < 7,6 mm/h)', 40), field('rain_heavy', 'Chuva forte (≥ 7,6 mm/h)', 55), field('rain_storm', 'Tempestade', 70)]));
   groups.push(group('Deslocamento', [field('distance_threshold', 'Cobrar quando a distância ultrapassar', 20, 'km', 0, 1000), field('distance_rate', 'Valor por km (distância total, como na regra atual)', 0.9, 'R$/km', 0, 100)]));
   if (opening) groups.push(group('Condição da abertura', [cash('condition_fee', 'Fechadura com problema / chave quebrada (cobrança única)', 25)]));
-  if (index === 1) groups.push(group('Abertura automotiva', [field('opening_2020', 'Veículo de 2020 em diante', 25), cash('opening_medium', 'Média complexidade', 25), cash('opening_high', 'Alta complexidade', 50)]));
+  if (index === 1) groups.push(group('Abertura automotiva', [cash('seat_base_min', 'Banco de moto: início da faixa base', 150), cash('seat_base_max', 'Banco de moto: fim da faixa base', 300), field('opening_2020', 'Veículo de 2020 em diante', 25), cash('opening_medium', 'Média complexidade', 25), cash('opening_high', 'Alta complexidade', 50)]));
   if ([0, 2, 3].includes(index)) groups.push(group('Fechaduras e miolos (por unidade)', ['simples', 'tetra', 'eletronica', 'auxiliar', 'outro'].flatMap((type, i) => [cash(`lock_${type}`, `Abertura adicional: ${type}`, [70, 120, 250, 60, 0][i]), cash(`core_${type}`, `Miolo: ${type}`, [90, 180, 300, 80, 0][i])])));
   return groups;
 }
@@ -38,7 +37,7 @@ export function validatePricing(service, values) {
   const fields = pricingFields(service).flatMap(g => g.fields);
   if (!values || typeof values !== 'object' || Array.isArray(values) || Object.keys(values).some(k => !fields.some(f => f.key === k))) throw new Error('Configuração inválida');
   for (const f of fields) if (typeof values[f.key] !== 'number' || !Number.isFinite(values[f.key]) || values[f.key] < f.min || values[f.key] > f.max) throw new Error(`Valor inválido: ${f.label} (${f.min} a ${f.max} ${f.unit})`);
-  if (values.base_min > values.base_max || values.combined_min > values.combined_max) throw new Error('O valor mínimo não pode superar o máximo');
+  if (values.base_min > values.base_max || values.seat_base_min > values.seat_base_max || values.combined_min > values.combined_max) throw new Error('O valor mínimo não pode superar o máximo');
   return Object.fromEntries(fields.map(f => [f.key, Math.round(values[f.key] * 100) / 100]));
 }
 export async function loadServicePricing(base44, service, { includeInvalidRates = false } = {}) {
