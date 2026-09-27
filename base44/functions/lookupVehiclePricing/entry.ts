@@ -157,6 +157,10 @@ Retorne cada oferta aceita com fonte, categoria, preço em BRL, URL e original_c
       model,
       year,
       fipeValue: validatedFipe,
+      fipeCode: fipeExact?.code,
+      fipeMonth: fipeExact?.month,
+      fipeModel: fipeExact?.model,
+      fipeSourceUrl: fipeExact?.sourceUrl,
       keyValue: validatedKeyValue,
       hasCodedKey: result.has_coded_key === true,
     });
