@@ -45,21 +45,6 @@ export default async function(req: Request): Promise<Response> {
     if (adminPreview) {
       const exact = await lookupExactFipe(make, model, year, version);
       return Response.json({ fipe_value: exact.value, source_url: exact.sourceUrl, reference: `${exact.month} · código ${exact.code} · ${exact.model}`, provider: exact.provider });
-      /*const result = await base44.asServiceRole.integrations.Core.InvokeLLM({
-        prompt: `Consulte a referência vigente da Tabela FIPE para ${make} ${model}, ano-modelo ${year}${version ? `, versão ${version}` : ''}, no Brasil. A FIPE (https://www.fipe.org.br/pt-br/indices/veiculos) usa ano-modelo, mês de referência e versões distintas no mesmo ano. Prefira a consulta oficial do modelo e informe no campo reference o mês/ano, o código FIPE e a versão encontrados. Informe somente o valor em reais quando a marca, o modelo, a versão e o ano-modelo corresponderem exatamente. Se houver versões diferentes no mesmo ano e não for possível identificar qual foi solicitada, retorne 0. Não confunda valor de anúncio com Tabela FIPE. Não estime o valor nem invente códigos ou fontes.`,
-        add_context_from_internet: true,
-        model: 'gemini_3_flash',
-        response_json_schema: {
-          type: 'object',
-          properties: { fipe_value: { type: 'number' }, source_url: { type: 'string' }, reference: { type: 'string' } },
-          required: ['fipe_value', 'source_url', 'reference'],
-        },
-      });
-      const fipeValue = Number(result.fipe_value);
-      if (!Number.isFinite(fipeValue) || fipeValue < 1000 || fipeValue > 3000000) {
-        return Response.json({ error: 'Valor FIPE não confirmado para este ano-modelo. Informe a versão ou tente outra consulta.' }, { status: 422 });
-      }
-      return Response.json({ fipe_value: fipeValue, source_url: result.source_url || '', reference: result.reference || '' });*/
     }
     const unavailable = carKeyUnavailableReason(make, model, year);
     if (unavailable && !adminPreview) return Response.json({ code: 'DEALER_ONLY', error: unavailable }, { status: 400 });
@@ -113,14 +98,13 @@ export default async function(req: Request): Promise<Response> {
     const vehicle = `${make} ${model}`.trim();
     const prompt = `Consulte fontes brasileiras atuais para o veículo ${vehicle}${version ? `, versão/geração informada pelo cliente: ${version}` : ''}, ano-modelo ${year}.
 Se a versão foi informada, não use preços de outra versão ou geração.
-${keyOnly ? 'Não pesquise FIPE.' : 'Consulte o preço FIPE no mês de referência vigente, exclusivamente para a versão correta e o ano-modelo escolhido. Se houver versões distintas sem versão fornecida, não estime e retorne fipe_value=0. Não use preço de anúncio, concessionária ou outro ano como FIPE. Informe também se a chave usa chip, transponder ou imobilizador.'}
+Não pesquise preços FIPE: esta parte já é consultada diretamente em uma fonte automatizada por código FIPE e mês de referência. Informe se a chave usa chip, transponder ou imobilizador.
 Localize preços de CHAVE ORIGINAL GENUÍNA/OEM completa em lojas especializadas em chaves automotivas, concessionárias e marketplaces verificados (Mercado Livre, Shopee ou AliExpress).
 Aceite somente ofertas cujo título ou descrição comprove que a peça é original, genuína ou OEM e compatível com modelo e ano. Rejeite chave paralela, universal, compatível, similar, capa, carcaça, lâmina avulsa, controle sem chip, preço de programação, moeda estrangeira ou anúncio sem preço.
 Retorne cada oferta aceita com fonte, categoria, preço em BRL, URL e original_confirmed=true. Não estime preços nem invente ofertas.`;
     const responseSchema = {
       type: 'object',
       properties: {
-        fipe_value: { type: 'number' },
         has_coded_key: { type: 'boolean' },
         notes: { type: 'string' },
         original_key_offers: {
@@ -138,7 +122,7 @@ Retorne cada oferta aceita com fonte, categoria, preço em BRL, URL e original_c
           },
         },
       },
-      required: keyOnly ? ['original_key_offers'] : ['fipe_value', 'has_coded_key', 'original_key_offers'],
+      required: keyOnly ? ['original_key_offers'] : ['has_coded_key', 'original_key_offers'],
     };
     const fipeExact = keyOnly ? null : await lookupExactFipe(make, model, year, version);
     const result = await base44.asServiceRole.integrations.Core.InvokeLLM({
