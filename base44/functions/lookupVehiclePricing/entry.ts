@@ -1,5 +1,6 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.46';
 import { createVehiclePricingQuote } from '../../shared/vehiclePricingQuote.ts';
+import { lookupExactFipe } from '../../shared/fipeCatalog.ts';
 import { validateVehicleModelYear } from '../../shared/vehicleModelYears.ts';
 import { carKeyUnavailableReason } from '../../shared/carKeyAvailability.ts';
 import { requireServiceCoverage } from '../../shared/serviceCoverage.ts';
@@ -42,7 +43,9 @@ export default async function(req: Request): Promise<Response> {
     const yearCheck = validateVehicleModelYear(make, model, year);
     if (!yearCheck.valid) return Response.json({ error: yearCheck.error }, { status: 400 });
     if (adminPreview) {
-      const result = await base44.asServiceRole.integrations.Core.InvokeLLM({
+      const exact = await lookupExactFipe(make, model, year, version);
+      return Response.json({ fipe_value: exact.value, source_url: exact.sourceUrl, reference: `${exact.month} · código ${exact.code} · ${exact.model}`, provider: exact.provider });
+      /*const result = await base44.asServiceRole.integrations.Core.InvokeLLM({
         prompt: `Consulte a referência vigente da Tabela FIPE para ${make} ${model}, ano-modelo ${year}${version ? `, versão ${version}` : ''}, no Brasil. A FIPE (https://www.fipe.org.br/pt-br/indices/veiculos) usa ano-modelo, mês de referência e versões distintas no mesmo ano. Prefira a consulta oficial do modelo e informe no campo reference o mês/ano, o código FIPE e a versão encontrados. Informe somente o valor em reais quando a marca, o modelo, a versão e o ano-modelo corresponderem exatamente. Se houver versões diferentes no mesmo ano e não for possível identificar qual foi solicitada, retorne 0. Não confunda valor de anúncio com Tabela FIPE. Não estime o valor nem invente códigos ou fontes.`,
         add_context_from_internet: true,
         model: 'gemini_3_flash',
@@ -56,7 +59,7 @@ export default async function(req: Request): Promise<Response> {
       if (!Number.isFinite(fipeValue) || fipeValue < 1000 || fipeValue > 3000000) {
         return Response.json({ error: 'Valor FIPE não confirmado para este ano-modelo. Informe a versão ou tente outra consulta.' }, { status: 422 });
       }
-      return Response.json({ fipe_value: fipeValue, source_url: result.source_url || '', reference: result.reference || '' });
+      return Response.json({ fipe_value: fipeValue, source_url: result.source_url || '', reference: result.reference || '' });*/
     }
     const unavailable = carKeyUnavailableReason(make, model, year);
     if (unavailable && !adminPreview) return Response.json({ code: 'DEALER_ONLY', error: unavailable }, { status: 400 });
@@ -137,6 +140,7 @@ Retorne cada oferta aceita com fonte, categoria, preço em BRL, URL e original_c
       },
       required: keyOnly ? ['original_key_offers'] : ['fipe_value', 'has_coded_key', 'original_key_offers'],
     };
+    const fipeExact = keyOnly ? null : await lookupExactFipe(make, model, year, version);
     const result = await base44.asServiceRole.integrations.Core.InvokeLLM({
       prompt,
       add_context_from_internet: true,
@@ -159,7 +163,7 @@ Retorne cada oferta aceita com fonte, categoria, preço em BRL, URL e original_c
     const offers = [...sortedLocalOffers, ...webOffers];
     const highest = manualCatalogOffer || sortedLocalOffers[0] || webOffers.sort((a, b) => b.price - a.price)[0] || null;
     const fallbackUsed = !highest;
-    const validatedFipe = Number(result.fipe_value);
+    const validatedFipe = Number(fipeExact?.value);
     const validatedKeyValue = fallbackUsed ? 250 : Number(highest.price);
     if (!keyOnly && (!Number.isFinite(validatedFipe) || validatedFipe < 1000 || validatedFipe > 3000000)) {
       return Response.json({ error: 'Não foi possível validar o valor FIPE do veículo' }, { status: 422 });
@@ -182,6 +186,11 @@ Retorne cada oferta aceita com fonte, categoria, preço em BRL, URL e original_c
       key_value_fallback: fallbackUsed,
       key_value_source: fallbackUsed ? 'Valor padrão sem preço original confirmado' : highest.source,
       original_key_offers: offers,
+      fipe_source_url: fipeExact?.sourceUrl || null,
+      fipe_code: fipeExact?.code || null,
+      fipe_reference_month: fipeExact?.month || null,
+      fipe_model: fipeExact?.model || null,
+      fipe_provider: fipeExact?.provider || null,
       notes: result.notes || '',
     });
   } catch (error) {
