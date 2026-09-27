@@ -8,7 +8,9 @@ function matches(model: string, family: string, version: string) {
   return (name === selected || name.startsWith(selected + ' ')) && (!variant || name.includes(variant));
 }
 export async function fipeFromDatabase(base44: any, make: string, model: string, year: string | number, version = '') {
-  const rows = await base44.asServiceRole.entities.FipeVehiclePrice.filter({ model_year: Number(year) }, '-checked_at', 500);
+  const sourceBrands: Record<string, string[]> = { chevrolet: ['GM - Chevrolet'], volkswagen: ['VW - VolksWagen'], 'mercedes benz': ['Mercedes-Benz'], 'caoa chery': ['CAOA Chery', 'Chery'] };
+  const brands = [make, ...(sourceBrands[normalize(make)] || [])];
+  const rows = await base44.asServiceRole.entities.FipeVehiclePrice.filter({ model_year: Number(year), brand: { $in: brands } }, '-checked_at', 500);
   const matchesRows = rows.filter((row: any) => sameMake(row.brand, make) && matches(row.model, model, version));
   // Durante a carga inicial, um único registro não prova que não há outras versões.
   const state = (await base44.asServiceRole.entities.FipeSyncState.list('-created_date', 1))[0];
