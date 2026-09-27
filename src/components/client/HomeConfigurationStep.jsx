@@ -15,6 +15,7 @@ import useServicePriceQuote from "@/hooks/useServicePriceQuote";
 import useServiceCoverage from '@/hooks/useServiceCoverage';
 import ServiceQuoteScope from '@/components/location/ServiceQuoteScope';
 import CoverageNotice from '@/components/location/CoverageNotice';
+import VehicleKeyLaborPreview from '@/components/client/VehicleKeyLaborPreview';
 export default function HomeConfigurationStep({ config }) {
   const { service, pricingService, vehicleInfo, setVehicleInfo, address, setAddress, handleAddressSelect, description, setDescription, originalKeyValue, searching, searchError, handleSearchKey, carKeyType, setCarKeyType, fipeValue, hasCodedKey, programming, keyOrigin, setKeyOrigin, keyCatalog, canPreviewKeyPrice, motoInfo, setMotoInfo, motoRule, selectedOptions, toggleOption, customAddons, setCustomAddon, locks, setLocks, brokenKeyInLock, setBrokenKeyInLock, openingReason, setOpeningReason, searchRadius, setSearchRadius, inRadiusCount, urgency, setUrgency, goToStep, handleConfirmConfig, submitting, keyBlock, selectedKeyValue, nearestDistance, assumedNearby, requiresRegistration } = config;
   const shared = { service, address, setAddress, onAddressSelect: handleAddressSelect, description, setDescription };
@@ -46,6 +47,7 @@ export default function HomeConfigurationStep({ config }) {
     <UrgencySelector urgency={urgency} setUrgency={setUrgency} />
     {quote.loading && <p role="status" className="flex items-center gap-2 text-sm text-muted-foreground"><Loader2 className="h-4 w-4 animate-spin" />Calculando valor do chamado...</p>}
     <ErrorBanner message={quote.error || searchError} onRetry={quote.error ? quote.retry : undefined} />
+    {(service.isCarKey || service.isMotoKey) && !disabled && quote.pricing && <VehicleKeyLaborPreview pricing={quote.pricing} />}
     <div className="flex gap-3"><Button variant="outline" onClick={() => goToStep(1)} className="flex-1"><ArrowLeft className="w-4 h-4 mr-2" /> Voltar</Button><Button onClick={() => handleConfirmConfig(quote.pricing)} disabled={submitting || coverageBlocked || !locationContext.coordinates_confirmed || (!requiresRegistration && (disabled || !quote.pricing))} className="flex-1">{submitting ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Bell className="w-4 h-4 mr-2" />}{programming?.dealerOnly ? "Confecção indisponível" : requiresRegistration ? "Concluir cadastro para solicitar" : "Solicitar chaveiro"}</Button></div>
   </div></ServiceQuoteScope>;
 }
