@@ -111,7 +111,7 @@ async function carKeyPrice(base44, userId, data, inputs, factors, distanceFee, s
   return {
     total: round(base + complexityFee + alarmFee),
     protectedFees: complexityFee + alarmFee,
-    fields: { key_value: chargedKey, fipe_value: fipe, fipe_code: quote.fipeCode || '', fipe_reference_month: quote.fipeMonth || '', fipe_model: quote.fipeModel || '', fipe_source_url: quote.fipeSourceUrl || '', labor_cost: adjusted.total, locomotion_cost: distanceFee, extra_cost: onlineFee + complexityFee + alarmFee },
+    fields: { base_labor_cost: labor, key_value: chargedKey, fipe_value: fipe, fipe_code: quote.fipeCode || '', fipe_reference_month: quote.fipeMonth || '', fipe_model: quote.fipeModel || '', fipe_source_url: quote.fipeSourceUrl || '', labor_cost: adjusted.total, locomotion_cost: distanceFee, extra_cost: onlineFee + complexityFee + alarmFee },
     lines: [
       { label: 'Valor da chave', value: chargedKey },
       ...adjusted.lines,
@@ -214,7 +214,7 @@ export async function calculateServerServicePrice(base44, userId, data) {
     calculation = {
       total,
       protectedFees: brokenFee,
-      fields: { labor_cost: adjusted.total, extra_cost: locks + automotiveFee + brokenFee, locomotion_cost: distanceFee, ...(rule.id === 'confeccao_chave_moto' ? { key_value: motoKey } : {}) },
+      fields: { base_labor_cost: motoBase, labor_cost: adjusted.total, extra_cost: locks + automotiveFee + brokenFee, locomotion_cost: distanceFee, ...(rule.id === 'confeccao_chave_moto' ? { key_value: motoKey } : {}) },
       lines: [
         ...adjusted.lines,
         ...(rule.id === 'confeccao_chave_moto' ? [{ label: 'Valor da chave selecionada', value: motoKey }] : []),
