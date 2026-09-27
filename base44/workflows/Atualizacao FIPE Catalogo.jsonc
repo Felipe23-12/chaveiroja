@@ -7,7 +7,7 @@
       "trigger_type": "scheduled",
       "events": [],
       "schedule_mode": "recurring",
-      "cron_expression": "0 11 * * *",
+      "cron_expression": "0 * * * *",
       "one_time_date": null,
       "timezone": "UTC",
       "interval_value": null,
@@ -31,7 +31,9 @@
           "call": "invoke_backend_function",
           "with": {
             "function_name": "syncFipeCatalog",
-            "args": {}
+            "args": {
+              "_internal_token": "${ .secrets.INTERNAL_CALL_TOKEN }"
+            }
           },
           "then": "end",
           "x-base44": {
