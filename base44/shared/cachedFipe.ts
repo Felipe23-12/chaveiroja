@@ -11,7 +11,7 @@ export async function fipeFromDatabase(base44: any, make: string, model: string,
   const sourceBrands: Record<string, string[]> = { chevrolet: ['GM - Chevrolet'], volkswagen: ['VW - VolksWagen'], 'mercedes benz': ['Mercedes-Benz'], 'caoa chery': ['CAOA Chery', 'Chery'] };
   const brands = [make, ...(sourceBrands[normalize(make)] || [])];
   const rows = await base44.asServiceRole.entities.FipeVehiclePrice.filter({ model_year: Number(year), brand: { $in: brands } }, '-checked_at', 500);
-  const matchesRows = rows.filter((row: any) => sameMake(row.brand, make) && matches(row.model, model, version));
+  const matchesRows = rows.filter((row: any) => sameMake(row.brand, make) && matches(row.model, model, version)).filter((row: any, index: number, all: any[]) => all.findIndex(item => item.code_fipe === row.code_fipe && item.year_code === row.year_code) === index);
   // Durante a carga inicial, um único registro não prova que não há outras versões.
   const state = (await base44.asServiceRole.entities.FipeSyncState.list('-created_date', 1))[0];
   const complete = state?.phase === 'refresh';
