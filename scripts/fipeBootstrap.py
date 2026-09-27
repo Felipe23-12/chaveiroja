@@ -5,7 +5,8 @@ families=[x for x in json.loads(re.search(r'VEHICLE_MODEL_YEARS = (\[.*?\]);',s)
 base='https://fipe.parallelum.com.br/api/v2'
 calls=0
 rows=[]
-cursor=[0,0,0]
+start=json.loads(pathlib.Path('/tmp/fipe_seed.json').read_text())['cursor'] if pathlib.Path('/tmp/fipe_seed.json').exists() else [0,0,0]
+cursor=list(start)
 def norm(x): return re.sub(r'[^a-z0-9]+',' ',str(x).lower()).strip()
 def api(path, ref=''):
  global calls
@@ -20,16 +21,19 @@ try:
  ref=refs[0]['code']
  brands=api('/cars/brands',ref)
  for fi,family in enumerate(families):
+  if fi<start[0]: continue
   if calls>=110: break
   brand=next((b for b in brands if norm(b['name'])==norm(family['make']) or (family['make']=='Chevrolet' and norm(b['name'])=='gm chevrolet') or (family['make']=='Volkswagen' and norm(b['name'])=='vw volkswagen')),None)
   if not brand: cursor=[fi+1,0,0]; continue
   models=api('/cars/brands/'+str(brand['code'])+'/models',ref)
   candidates=[m for m in models if norm(m['name'])==norm(family['model']) or norm(m['name']).startswith(norm(family['model'])+' ')]
   for mi,m in enumerate(candidates):
+   if fi==start[0] and mi<start[1]: continue
    if calls>=110: cursor=[fi,mi,0]; break
    years=api('/cars/brands/'+str(brand['code'])+'/models/'+str(m['code'])+'/years',ref)
    years=[y for y in years if family['min']<=int(y['code'][:4])<=min(family['max'],2027)]
    for yi,y in enumerate(years):
+    if fi==start[0] and mi==start[1] and yi<start[2]: continue
     if calls>=110: cursor=[fi,mi,yi]; break
     path='/cars/brands/'+str(brand['code'])+'/models/'+str(m['code'])+'/years/'+y['code']
     d=api(path,ref)
