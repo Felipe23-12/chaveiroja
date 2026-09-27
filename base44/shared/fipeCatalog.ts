@@ -46,5 +46,5 @@ export async function lookupExactFipe(make: string, model: string, year: string 
   const amount = numberFromBrl(result.price);
   if (result.modelYear !== Number(year) || !/^\d{6}-\d$/.test(String(result.codeFipe || '')) || !Number.isFinite(amount) || amount < 1000 || amount > 3000000 || !result.referenceMonth) throw new Error('Resposta FIPE incompleta ou incompatível com o ano-modelo.');
   if (normalize(result.model) !== normalize(selected[0].name) || !isCarBrand(result.brand, normalize(make))) throw new Error('Modelo ou montadora não correspondem à consulta FIPE.');
-  return { value: amount, code: result.codeFipe, month: result.referenceMonth, model: result.model, sourceUrl: BASE + path + '?reference=' + encodeURIComponent(reference.code), provider: 'Parallelum (fonte independente da FIPE)' };
+  return { value: amount, code: result.codeFipe, yearCode: matchesYear[0].code, referenceCode: String(reference.code), brand: result.brand, month: result.referenceMonth, model: result.model, sourceUrl: BASE + path + '?reference=' + encodeURIComponent(reference.code), provider: 'Parallelum (fonte independente da FIPE)' };
 }
