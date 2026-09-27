@@ -56,8 +56,13 @@ export default function ServiceConfig({
         <p className="text-sm text-muted-foreground">{service.description}</p>
       </div>
 
+      {service.id === "abertura_automotiva" && <fieldset className="space-y-2">
+        <legend className="text-sm font-medium">O que deseja abrir?</legend>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">{[{ id: 'car', label: 'Abertura de carro' }, { id: 'moto_seat', label: 'Abertura de banco de moto' }].map(item => <button type="button" key={item.id} aria-pressed={(vehicleInfo.opening_target || 'car') === item.id} className={`rounded-xl border-2 p-3 text-left text-sm ${(vehicleInfo.opening_target || 'car') === item.id ? 'border-primary bg-primary/5' : 'border-border'}`} onClick={() => { setVehicleInfo({ opening_target: item.id, make: '', model: '', year: '', complexity: 'simples', factory_seat_opening: null }); setOpeningReason(null); setBrokenKeyInLock(null); }}>{item.label}</button>)}</div>
+        {seatOpening && <p className="text-sm text-muted-foreground">Todas as marcas e modelos com banco de abertura original de fábrica. Faixa base: R$ 150 a R$ 300, sujeita aos adicionais do serviço.</p>}
+      </fieldset>}
       {isOpeningService(service) && (
-        <OpeningConditionQuestions automotive={service.id === "abertura_automotiva"} reason={openingReason} onReasonChange={setOpeningReason} brokenKey={brokenKeyInLock} onBrokenKeyChange={setBrokenKeyInLock} />
+        <OpeningConditionQuestions motoSeat={seatOpening} automotive={service.id === "abertura_automotiva"} reason={openingReason} onReasonChange={setOpeningReason} brokenKey={brokenKeyInLock} onBrokenKeyChange={setBrokenKeyInLock} />
       )}
 
       {/* Fechaduras: quantas portas abrir e quais miolos trocar */}
@@ -103,7 +108,11 @@ export default function ServiceConfig({
       {service.needsVehicleInfo && (
         <div className="space-y-3">
           <label className="text-sm font-medium text-foreground block">Dados do veículo</label>
-          <VehicleMakeModelFields vehicleInfo={vehicleInfo} updateVehicle={updateVehicle} />
+          {seatOpening ? <div className="space-y-3">
+            <label className="block text-sm">Montadora<Input value={vehicleInfo.make || ''} maxLength={80} placeholder="Ex.: Honda, Yamaha, BMW" onChange={e => setVehicleInfo(v => ({ ...v, make: e.target.value, model: '', year: '', factory_seat_opening: null }))} /></label>
+            <label className="block text-sm">Modelo da moto<Input value={vehicleInfo.model || ''} maxLength={120} placeholder="Ex.: PCX 150, ADV 150" onChange={e => setVehicleInfo(v => ({ ...v, model: e.target.value, year: '', factory_seat_opening: null }))} /></label>
+            <label className="flex gap-2 items-start text-sm"><input type="checkbox" checked={vehicleInfo.factory_seat_opening === true} onChange={e => updateVehicle('factory_seat_opening', e.target.checked)} />Confirmo que o banco possui abertura original de fábrica.</label>
+          </div> : <VehicleMakeModelFields vehicleInfo={vehicleInfo} updateVehicle={updateVehicle} />}
           <div>
             <label className="text-xs text-muted-foreground mb-1 block">Ano-modelo {yearRange?.min ? `(${yearRange.min}–${Math.min(yearRange.max, new Date().getFullYear() + 1)})` : ""}</label>
             <Input

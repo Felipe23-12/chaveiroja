@@ -5,6 +5,7 @@ import { Navigation, AlertTriangle } from "lucide-react";
 import { SERVICE_CATALOG, calculateCancellationFee, CANCELLATION_THRESHOLD_MINUTES, isOpeningService } from "@/lib/pricing";
 import { getCancellationWindow } from "@/lib/cancellationWindow";
 import { resolveCarKeyValue, searchFipeAndKeyValue } from "@/lib/carKey";
+import { isMotoSeatOpening, validateOpeningVehicle } from "../../base44/shared/automotiveOpening";
 import { validateVehicleModelYear } from "../../base44/shared/vehicleModelYears";
 import { detectCarKeyProgramming } from "@/lib/carKeyProgramming";
 import { getKeyCancelBlock, createAppServiceRequest } from "@/lib/keyCancelBlock";
@@ -232,9 +233,10 @@ export default function Home() {
     if (service?.isMotoKey && motoRule?.range) {
       return { ...service, baseRange: motoRule.range };
     }
+    if (service?.id === "abertura_automotiva" && isMotoSeatOpening(vehicleInfo)) return { ...service, baseRange: [150, 300] };
     if (service && regional?.range) return { ...service, baseRange: regional.range };
     return service;
-  }, [service, motoRule, regional]);
+  }, [service, motoRule, regional, vehicleInfo.opening_target]);
 
   useEffect(() => {
     base44.auth.me().then((u) => {
@@ -534,7 +536,7 @@ export default function Home() {
     if (!clientRegistrationComplete(user)) { navigate(clientCompletionUrl(serviceId)); return; }
     if (!address || submitting || !confirmedPricing) return;
     if (service?.needsVehicleInfo && !service?.isMotoKey) {
-      const yearCheck = validateVehicleModelYear(vehicleInfo.make, vehicleInfo.model, vehicleInfo.year);
+      const yearCheck = service.id === "abertura_automotiva" ? validateOpeningVehicle(vehicleInfo) : validateVehicleModelYear(vehicleInfo.make, vehicleInfo.model, vehicleInfo.year);
       if (!yearCheck.valid) { setSearchError(yearCheck.error); return; }
     }
     const expectedPrice = confirmedPricing.price;
@@ -620,7 +622,7 @@ export default function Home() {
       // Resumo das fechaduras enviado ao chaveiro junto com a solicitação
       const locksText = service.hasLocks ? locksSummary(locks) : "";
       const openingReasonText = isOpeningService(service)
-        ? openingReason === "lock_problem" ? "Cliente informou: fechadura com problema" : service.id === "abertura_automotiva" ? "Cliente informou: esqueceu a chave dentro do carro" : "Cliente informou: perdeu a chave"
+        ? openingReason === "lock_problem" ? "Cliente informou: fechadura com problema" : service.id === "abertura_automotiva" ? (isMotoSeatOpening(vehicleInfo) ? "Cliente informou: abertura de banco de moto" : "Cliente informou: esqueceu a chave dentro do carro") : "Cliente informou: perdeu a chave"
         : "";
       const brokenKeyText = isOpeningService(service) && service.id !== "abertura_automotiva"
         ? brokenKeyInLock ? "Chave quebrada dentro da fechadura" : "Chave não está quebrada na fechadura"
@@ -668,7 +670,7 @@ export default function Home() {
           key_type: carKeyType,
           vehicle_info: `${vehicleInfo.make} ${vehicleInfo.model}${vehicleInfo.version?.trim() ? ` · Versão ${vehicleInfo.version.trim()}` : ""} · Ano-modelo ${vehicleInfo.year} · Porta ${vehicleInfo.doorStatus}${complexity ? ` · ${complexity.label}` : ''}${/^land[\s-]*rover(?:\s|$)/i.test(vehicleInfo.make.trim()) && Number(vehicleInfo.year) >= 2020 ? ` · Alarme: ${vehicleInfo.alarmLocked ? 'trancado' : 'não trancado'}` : ''}`.trim(),
         } : service.id === "abertura_automotiva" ? {
-          vehicle_info: `${vehicleInfo.make} ${vehicleInfo.model}${vehicleInfo.version?.trim() ? ` · Versão ${vehicleInfo.version.trim()}` : ""} · Ano-modelo ${vehicleInfo.year}`.trim(),
+          vehicle_info: `${isMotoSeatOpening(vehicleInfo) ? 'Abertura de banco de moto · Banco com abertura original de fábrica · ' : ''}${vehicleInfo.make} ${vehicleInfo.model}${vehicleInfo.version?.trim() ? ` · Versão ${vehicleInfo.version.trim()}` : ""} · Ano-modelo ${vehicleInfo.year}`.trim(),
         } : service.isMotoKey ? {
           key_type: motoInfo.keyType,
           vehicle_info: `${MOTO_BRANDS.find(b => b.id === motoInfo.brandId)?.label || ''} ${motoModel?.label || ''} ${motoInfo.year}${motoInfo.keyType === 'presenca' ? (motoInfo.hasPassword ? ' · com senha' : ' · sem senha') : ''}`.trim(),

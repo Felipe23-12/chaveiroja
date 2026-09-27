@@ -1,4 +1,5 @@
 import React from "react";
+import { validateOpeningVehicle } from "../../../base44/shared/automotiveOpening";
 import { ArrowLeft, Bell, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import CarKeyConfig from "@/components/locksmith/CarKeyConfig";
@@ -28,7 +29,7 @@ export default function HomeConfigurationStep({ config }) {
   const locationIncomplete = !vehicle && (!locationContext.place_type || (locationContext.place_type === "condominium" && (!locationContext.building?.trim() || !locationContext.unit?.trim())));
   const disabled = coverageBlocked || !locationContext.coordinates_confirmed || locationIncomplete || !address || !keyBlock || keyBlock.blocked || programming?.dealerOnly ||
     (isOpeningService(service) && (openingReason == null || (service.id !== "abertura_automotiva" && brokenKeyInLock == null))) ||
-    (service.needsVehicleInfo && !service.isMotoKey && !validateVehicleModelYear(vehicleInfo.make, vehicleInfo.model, vehicleInfo.year).valid) ||
+    (service.needsVehicleInfo && !service.isMotoKey && !(service.id === "abertura_automotiva" ? validateOpeningVehicle(vehicleInfo) : validateVehicleModelYear(vehicleInfo.make, vehicleInfo.model, vehicleInfo.year)).valid) ||
     (service.isCarKey && (!validateVehicleModelYear(vehicleInfo.make, vehicleInfo.model, vehicleInfo.year).valid || !fipeValue || !vehicleInfo.doorStatus || (isLandRoverFrom2020(vehicleInfo.make, vehicleInfo.year) && vehicleInfo.alarmLocked == null))) ||
     (service.isCarKey && requiresParallelKey(keyCatalog) && keyOrigin !== "paralela") ||
     ((service.isCarKey || service.isMotoKey) && keyOrigin === "paralela" && selectedKeyValue <= 0) ||
