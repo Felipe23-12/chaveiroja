@@ -6,10 +6,10 @@ export async function currentVehicleCatalog(base44, vehicle, type, keyType, orig
   if (!vehicle?.make || !vehicle?.model || !vehicle?.year) return null;
   const rows = await base44.asServiceRole.entities.VehicleKeyCatalog.filter({ vehicle_type: type, make: String(vehicle.make), active: true }, '-updated_date', 1000);
   const model = modelName(vehicle.model), year = Number(vehicle.year);
-  const candidates = rows.filter(row => (!row.year_start || year >= row.year_start) && (!row.year_end || year <= row.year_end) && String(row.model || '').split(/[,/]/).some(part => {
+  const candidates = rows.filter(row => (!row.year_start || year >= row.year_start) && (!row.year_end || year <= row.year_end) && (modelName(row.model) === model || String(row.model || '').split(/[,/]/).some(part => {
     const name = modelName(part);
     return name && (name === model || name.replace(/\s+(?:g\d+|mk\d+)$/, '') === model);
-  }));
+  })));
   const matchType = row => keyType === 'simples' ? Number(row.original_simple_price) > 0 || Number(row.parallel_simple_price) > 0 || row.key_style === 'lamina_sem_pcf' : keyType === 'presenca' ? Number(row.original_proximity_price) > 0 || Number(row.parallel_proximity_price) > 0 || row.key_style === 'presenca' : keyType === 'canivete' || keyType === 'telecomando' ? Number(row.parallel_flip_price) > 0 || ['canivete_sem_pcf', 'pcf_integrado'].includes(row.key_style) : false;
   const selectedPrice = row => {
     if (origin === 'paralela') {
