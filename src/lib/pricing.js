@@ -379,9 +379,8 @@ export function calculateCommission(total, workMode) {
   return 0;
 }
 
-// Taxa de cancelamento (modo aplicativo): após 5 minutos da confirmação do
-// chaveiro, o cliente que cancelar paga 25% do valor total — 20% para o
-// chaveiro e 5% para o aplicativo.
+// Demais serviços: taxa de 25%, sujeita às gratuidades verificadas pelo servidor.
+// Confecção de chaves usa a tabela fixa compartilhada abaixo.
 export const CANCELLATION_THRESHOLD_MINUTES = 5;
 export const CANCELLATION_FEE_RATE = 0.25;
 export const CANCELLATION_LOCKSMITH_SHARE = 0.20;
