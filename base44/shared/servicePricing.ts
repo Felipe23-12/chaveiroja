@@ -255,7 +255,7 @@ export async function calculateServerServicePrice(base44, userId, data) {
     calculation: { ...(carOpening ? { opening_method: method, lishi_percent: lishiPercent, simple_opening_price: simplePrice } : {}), total: calculation.total, lines: calculation.lines, notes: [
       'Preço recalculado e validado pelo servidor.',
       config.version ? `Tabela de cobranças: ${config.version}` : 'Tabela de cobranças inicial.',
-      ...(!seatOpening && regional?.note ? [regional.note] : []),
+      ...(!seatOpening && openingRule?.base_price == null && regional?.note ? [regional.note] : []),
       ...(!rule.fixed ? [weather.label, 'Calendário de Brasília: nacionais e São Paulo. Feriado substitui sábado/domingo.'] : []),
     ] },
   };
