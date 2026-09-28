@@ -1,3 +1,4 @@
+import { neighborhoodPricing } from './neighborhoodPricing.ts';
 import { matchingOpeningRule, openingMethod, assertOpeningAvailable } from './vehicleOpeningRules.ts';
 import { isMotoSeatOpening, validateOpeningVehicle, motoSeatRange } from './automotiveOpening.ts';
 import { verifyVehiclePricingQuote } from './vehiclePricingQuote.ts';
@@ -182,6 +183,8 @@ export async function calculateServerServicePrice(base44, userId, data) {
   const calendar = pricingCalendar(settings);
   const tierFactor = urgency === 'urgent' ? Math.max(calendar.tier, settings.tier_urgent_floor / 100) : Math.min(calendar.tier, settings.tier_normal_cap / 100);
   const factors = rule.fixed ? [] : pricingFactors(settings, online.length, searching.length + ringing.length, urgency === 'urgent', calendar, weather);
+  const neighborhood = neighborhoodPricing(data.address, data.customer_lat, data.customer_lng, settings);
+  if (!rule.fixed) factors.push(neighborhood);
   const customer = { lat: Number(data.customer_lat), lng: Number(data.customer_lng) };
   const distances = Number.isFinite(customer.lat) && Number.isFinite(customer.lng)
     ? online.filter((item) => Number.isFinite(Number(item.lat)) && Number.isFinite(Number(item.lng))).map((item) => distanceKm(customer, { lat: Number(item.lat), lng: Number(item.lng) }))
@@ -255,6 +258,7 @@ export async function calculateServerServicePrice(base44, userId, data) {
     fields: calculation.fields,
     calculation: { ...(carOpening ? { opening_method: method, lishi_percent: lishiPercent, simple_opening_price: simplePrice } : {}), total: calculation.total, lines: calculation.lines, notes: [
       'Preço recalculado e validado pelo servidor.',
+      `${neighborhood.label}. Identificação por componente do endereço na região de São Paulo; ajuste sobre a mão de obra.`,
       config.version ? `Tabela de cobranças: ${config.version}` : 'Tabela de cobranças inicial.',
       ...(!seatOpening && openingRule?.base_price == null && regional?.note ? [regional.note] : []),
       ...(!rule.fixed ? [weather.label, 'Calendário de Brasília: nacionais e São Paulo. Feriado substitui sábado/domingo.'] : []),

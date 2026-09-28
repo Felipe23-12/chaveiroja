@@ -29,7 +29,7 @@ export function adjustedCharge(base, factors, label) {
   let total = round(base);
   const lines = [{ label, value: total }];
   for (const factor of factors) {
-    if (!factor.percent) continue;
+    if (!factor.percent && !factor.alwaysShow) continue;
     const next = round(total * (1 + factor.percent / 100));
     lines.push({ label: `${factor.label} (${factor.percent >= 0 ? '+' : ''}${Number(factor.percent.toFixed(2))}%)`, value: round(next - total) });
     total = next;
