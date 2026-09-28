@@ -1,4 +1,5 @@
 import React from "react";
+import useOpeningOptions from "@/hooks/useOpeningOptions";
 import { isMotoSeatOpening, validateOpeningVehicle } from "../../../base44/shared/automotiveOpening";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -45,6 +46,8 @@ export default function ServiceConfig({
       (vehicleInfo?.model || "").trim() &&
       (vehicleInfo?.year || "").toString().trim()
   );
+
+  const openingOptions = useOpeningOptions(vehicleInfo, service.id === "abertura_automotiva" && !seatOpening && vehicleReady);
 
   const updateVehicle = (field, value) =>
     setVehicleInfo((v) => ({ ...v, [field]: value }));
@@ -128,11 +131,14 @@ export default function ServiceConfig({
           {vehicleInfo?.model && !yearCheck.valid && <p className="text-sm text-destructive">{yearCheck.error}</p>}
           {!seatOpening && <div>
             <p className="text-sm font-medium mb-1.5">Tipo de abertura</p>
+            {openingOptions.loading && <p className="text-sm text-muted-foreground">Consultando disponibilidade...</p>}
+            {openingOptions.error && <p role="alert" className="text-sm text-destructive">{openingOptions.error} <button type="button" className="underline" onClick={openingOptions.retry}>Tentar novamente</button></p>}
+            {openingOptions.availability?.simples === false && openingOptions.availability?.lishi === false && <p role="alert" className="text-sm text-destructive">Abertura indisponível para este veículo e ano-modelo.</p>}
             <div className="grid grid-cols-1 gap-2">
               {[
                 { id: 'simples', label: 'Abertura simples', description: 'Abertura convencional' },
-                { id: 'lishi', label: 'Abertura Lishi profissional', description: price?.serverPricing?.calculation?.lishi_percent != null ? `Abertura com ferramenta Lishi · adicional de ${price.serverPricing.calculation.lishi_percent}% sobre o total da abertura simples` : 'Abertura com ferramenta Lishi · consulte o adicional ao completar os dados' },
-              ].map(item => <button type="button" key={item.id} aria-pressed={(vehicleInfo.opening_method || 'simples') === item.id} onClick={() => updateVehicle('opening_method', item.id)} className={`min-h-[44px] rounded-xl border-2 p-3 text-left ${(vehicleInfo.opening_method || 'simples') === item.id ? 'border-primary bg-primary/5' : 'border-border'}`}><span className="block text-sm font-medium">{item.label}</span><span className="block text-xs text-muted-foreground">{item.description}</span></button>)}
+                { id: 'lishi', label: 'Abertura Lishi profissional', description: openingOptions.lishi_percent != null ? `Abertura com ferramenta Lishi · adicional de ${openingOptions.lishi_percent}% sobre o total da abertura simples` : 'Abertura com ferramenta Lishi · consulte o adicional ao completar os dados' },
+              ].map(item => <button type="button" key={item.id} disabled={openingOptions.loading || !!openingOptions.error || openingOptions.availability?.[item.id] === false} aria-pressed={(vehicleInfo.opening_method || 'simples') === item.id} onClick={() => updateVehicle('opening_method', item.id)} className={`min-h-[44px] rounded-xl border-2 p-3 text-left disabled:opacity-50 disabled:cursor-not-allowed ${(vehicleInfo.opening_method || 'simples') === item.id ? 'border-primary bg-primary/5' : 'border-border'}`}><span className="block text-sm font-medium">{item.label}{openingOptions.availability?.[item.id] === false ? " — Indisponível" : ""}</span><span className="block text-xs text-muted-foreground">{item.description}</span></button>)}
             </div>
           </div>}
         </div>

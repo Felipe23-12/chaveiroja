@@ -187,6 +187,12 @@
             "type": "number",
             "minimum": 0,
             "maximum": 500
+          },
+          "simple_unavailable": {
+            "type": "boolean"
+          },
+          "lishi_unavailable": {
+            "type": "boolean"
           }
         },
         "required": [

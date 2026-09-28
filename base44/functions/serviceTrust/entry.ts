@@ -3,6 +3,8 @@ import { secrets } from 'base44:runtime';
 import { scoreFor, penalizeLocksmithCancellation, recordClientCancellation, getClientCancelBlock, clientCancellationQuote } from '../../shared/cancellationRules.ts';
 import { validatedLocation } from '../../shared/cancellationSafety.ts';
 import { calculateServerServicePrice } from '../../shared/servicePricing.ts';
+import { matchingOpeningRule, openingAvailability } from '../../shared/vehicleOpeningRules.ts';
+import { validateOpeningVehicle, isMotoSeatOpening } from '../../shared/automotiveOpening.ts';
 import { loadServicePricing } from '../../shared/servicePricingSettings.ts';
 import { urgencyServicePrice } from '../../shared/urgencyServicePricing.ts';
 import { clientDebt, confirmedServicePayment } from '../../shared/paymentVerification.ts';
@@ -114,6 +116,15 @@ export default async function(req) {
         added += 1;
       }
       return Response.json({ added });
+    }
+
+    if (action === 'opening_options') {
+      const vehicle = body.vehicle || {};
+      const check = validateOpeningVehicle(vehicle);
+      if (!check.valid || isMotoSeatOpening(vehicle)) return Response.json({ error: check.error || 'Selecione um carro.' }, { status: 400 });
+      const config = await loadServicePricing(base44, 'Abertura Automotiva');
+      const rule = matchingOpeningRule(vehicle, config.vehicle_opening_rules);
+      return Response.json({ availability: openingAvailability(rule), lishi_percent: rule?.lishi_percent ?? config.values.lishi_percent });
     }
 
     if (action === 'price_quote') {

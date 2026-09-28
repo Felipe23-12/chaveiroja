@@ -1,4 +1,4 @@
-import { matchingOpeningRule, openingMethod } from './vehicleOpeningRules.ts';
+import { matchingOpeningRule, openingMethod, assertOpeningAvailable } from './vehicleOpeningRules.ts';
 import { isMotoSeatOpening, validateOpeningVehicle, motoSeatRange } from './automotiveOpening.ts';
 import { verifyVehiclePricingQuote } from './vehiclePricingQuote.ts';
 import { validateVehicleModelYear } from './vehicleModelYears.ts';
@@ -176,6 +176,7 @@ export async function calculateServerServicePrice(base44, userId, data) {
   const carOpening = rule.id === 'abertura_automotiva' && !seatOpening;
   const method = rule.id === 'abertura_automotiva' ? openingMethod(openingVehicle) : 'simples';
   const openingRule = carOpening ? matchingOpeningRule(openingVehicle, config.vehicle_opening_rules) : null;
+  if (carOpening) assertOpeningAvailable(openingRule, method);
   const lishiPercent = carOpening ? openingRule?.lishi_percent ?? settings.lishi_percent : 0;
   const urgency = data.urgency === 'urgent' ? 'urgent' : 'normal';
   const calendar = pricingCalendar(settings);

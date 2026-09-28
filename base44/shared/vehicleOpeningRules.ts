@@ -17,7 +17,11 @@ export function validateVehicleOpeningRules(rules) {
       if (typeof value !== 'number' || !Number.isFinite(value) || value < 0 || value > max) throw new Error(`Abertura ${index + 1}: ${field === 'base_price' ? 'preço base' : 'percentual Lishi'} deve estar entre 0 e ${max}.`);
       result[field] = Math.round(value * 100) / 100;
     }
-    if (result.base_price == null && result.lishi_percent == null) throw new Error(`Abertura ${index + 1}: informe preço base ou percentual Lishi.`);
+    for (const field of ['simple_unavailable', 'lishi_unavailable']) {
+      if (rule[field] != null && typeof rule[field] !== 'boolean') throw new Error('Disponibilidade da abertura inválida.');
+      if (rule[field] != null) result[field] = rule[field];
+    }
+    if (result.base_price == null && result.lishi_percent == null && result.simple_unavailable == null && result.lishi_unavailable == null) throw new Error(`Abertura ${index + 1}: informe preço, percentual ou disponibilidade.`);
     if (seen.some(item => sameModel(item, result) && norm(item.version) === norm(result.version) && first <= item.year_end && last >= item.year_start)) throw new Error(`Faixas sobrepostas para ${result.make} ${result.model} ${result.version}.`);
     seen.push(result); return result;
   });
@@ -32,4 +36,11 @@ export function openingMethod(vehicle) {
   if (!['simples', 'lishi'].includes(method)) throw new Error('Selecione abertura simples ou abertura Lishi profissional.');
   if (vehicle?.opening_target === 'moto_seat' && method === 'lishi') throw new Error('Lishi profissional está disponível na abertura de carros.');
   return method;
+}
+
+export function openingAvailability(rule) {
+  return { simples: rule?.simple_unavailable !== true, lishi: rule?.lishi_unavailable !== true };
+}
+export function assertOpeningAvailable(rule, method) {
+  if (!openingAvailability(rule)[method]) throw new Error(`${method === 'lishi' ? 'Abertura Lishi profissional' : 'Abertura simples'} indisponível para este veículo e ano-modelo. Escolha outra opção disponível.`);
 }
