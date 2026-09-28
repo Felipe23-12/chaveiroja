@@ -11,16 +11,17 @@ const SERVICE_STYLES = {
   abertura_eletronica: { color: "text-indigo-600", bg: "bg-indigo-50", border: "border-indigo-200" },
   confeccao_chave_carro: { color: "text-emerald-600", bg: "bg-emerald-50", border: "border-emerald-200" },
   confeccao_chave_moto: { color: "text-teal-600", bg: "bg-teal-50", border: "border-teal-200" },
-  copia_chave: { color: "text-rose-600", bg: "bg-rose-50", border: "border-rose-200" },
 };
 
+const activeServices = (services = []) => services.filter(id => SERVICE_CATALOG.some(service => service.id === id));
+
 export default function ServiceSelector({ locksmith, onUpdate }) {
-  const [selected, setSelected] = useState(locksmith?.services || []);
+  const [selected, setSelected] = useState(activeServices(locksmith?.services));
   const [saving, setSaving] = useState(false);
 
   // Sincroniza estado local quando o perfil externo muda
   useEffect(() => {
-    setSelected(locksmith?.services || []);
+    setSelected(activeServices(locksmith?.services));
   }, [locksmith?.id, locksmith?.services?.length]);
 
   const toggle = (serviceId) => {
