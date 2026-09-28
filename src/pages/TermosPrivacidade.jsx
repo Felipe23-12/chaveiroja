@@ -1,3 +1,4 @@
+import CancellationPolicy from '@/components/legal/CancellationPolicy';
 import React from "react";
 import { Link } from "react-router-dom";
 import { ArrowLeft, ShieldCheck, FileText, Lock, UserCheck, ScrollText, CreditCard, AlertTriangle, Mail, Scale } from "lucide-react";
@@ -13,7 +14,7 @@ export default function TermosPrivacidade() {
         </div>
         <div>
           <h1 className="font-heading font-bold text-2xl text-foreground">Termos de Uso e Privacidade</h1>
-          <p className="text-sm text-muted-foreground">Chaveiro Já · atualizado em 08/09/2026</p>
+          <p className="text-sm text-muted-foreground">Chaveiro Já · atualizado em 28/09/2026</p>
         </div>
       </div>
 
@@ -116,12 +117,7 @@ export default function TermosPrivacidade() {
           urgência e disponibilidade de profissionais. O pagamento ocorre após a conclusão do atendimento,
           exclusivamente pelo Mercado Pago, com os meios disponibilizados no checkout.
         </p>
-        <p>
-          Cancelamentos são gratuitos nos primeiros 5 minutos após o aceite do chaveiro. Após esse prazo,
-          havendo deslocamento do profissional, é cobrada taxa de cancelamento informada previamente na tela
-          de confirmação. As regras completas estão na{" "}
-          <Link to="/politica-reembolso" className="text-primary underline">Política de Reembolso</Link>.
-        </p>
+        <CancellationPolicy />
       </LegalSection>
 
       <LegalSection icon={Scale} title="6. Direitos do consumidor (CDC — Lei nº 8.078/1990)">
@@ -131,7 +127,7 @@ export default function TermosPrivacidade() {
         </p>
         <ul className="list-disc pl-5 space-y-1">
           <li><strong className="text-foreground">Reclamação por vício do serviço:</strong> 30 dias (art. 26), contados da conclusão do atendimento.</li>
-          <li><strong className="text-foreground">Direito de arrependimento:</strong> 7 dias para contratações a distância não executadas (art. 49). Serviços de urgência já prestados, por sua natureza, não são reversíveis.</li>
+          <li><strong className="text-foreground">Direito de arrependimento:</strong> 7 dias nas contratações a distância, nos termos do art. 49, quando presentes os requisitos legais, sem renúncia por meio deste aceite.</li>
           <li><strong className="text-foreground">Reexecução ou abatimento:</strong> em caso de serviço inadequado, você pode solicitar a reexecução, o abatimento proporcional do preço ou a devolução do valor pago.</li>
         </ul>
         <p>

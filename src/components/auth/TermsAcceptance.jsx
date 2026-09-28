@@ -1,3 +1,4 @@
+import CancellationPolicy from '@/components/legal/CancellationPolicy';
 import React, { useState } from "react";
 import { Link } from "react-router-dom";
 import { Info } from "lucide-react";
@@ -44,6 +45,8 @@ export default function TermsAcceptance({ accountType = "cliente", checked, onCh
         </p>
       </div>
 
+      <CancellationPolicy />
+
       <ul className="list-disc pl-5 space-y-1 text-xs text-muted-foreground">
         <li>não enviar violência, racismo, homofobia, preconceito, nudez ou violência contra pessoas e animais em mensagens ou fotos</li>
         {RULES[accountType].map((r) => (
@@ -69,7 +72,7 @@ export default function TermsAcceptance({ accountType = "cliente", checked, onCh
           <Link to="/politica-reembolso" target="_blank" className="text-primary underline">
             Política de Reembolso
           </Link>
-          , reconhecendo o papel de intermediação da plataforma.
+          , incluindo as taxas de cancelamento apresentadas acima, sem renúncia aos direitos previstos em lei.
         </span>
       </label>
 

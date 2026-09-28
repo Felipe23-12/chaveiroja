@@ -11,7 +11,7 @@ export function pricingCalendar(settings, now = new Date()) {
   const date = `${p.year}-${p.month}-${p.day}`;
   const holiday = fixedHolidays.has(`${p.month}-${p.day}`) || ['01-25', '07-09'].includes(`${p.month}-${p.day}`) || [-47, -2, 60].some(offset => { const d = easterDate(Number(p.year)); d.setUTCDate(d.getUTCDate() + offset); return d.toISOString().slice(0, 10) === date; });
   const weekend = ['Sat', 'Sun'].includes(p.weekday), night = Number(p.hour) < 8 || Number(p.hour) >= 17;
-  return { tier: (holiday || weekend ? settings.tier_weekend : night ? settings.tier_night : settings.tier_day) / 100,
+  return { businessHours: !holiday && !weekend && !night, tier: (holiday || weekend ? settings.tier_weekend : night ? settings.tier_night : settings.tier_day) / 100,
     factors: [{ label: holiday ? 'Feriado' : p.weekday === 'Sun' ? 'Domingo' : p.weekday === 'Sat' ? 'Sábado' : 'Dia útil', percent: holiday ? settings.holiday : p.weekday === 'Sun' ? settings.sunday : p.weekday === 'Sat' ? settings.saturday : 0 }, { label: 'Fora do horário comercial', percent: night ? settings.night : 0 }] };
 }
 

@@ -437,7 +437,7 @@ export default async function(req) {
       const update = { status: 'cancelled', cancelled_by: actor };
       if (isClient && !isAdmin) {
         const quote = await clientCancellationQuote(base44, request);
-        if (!quote.free && body.confirmed_fee !== true) return Response.json({ error: 'Confirme a taxa de cancelamento para continuar', requires_fee: true, ...quote }, { status: 409 });
+        if (!quote.free && (body.confirmed_fee !== true || Number(body.confirmed_fee_amount) !== quote.fee)) return Response.json({ error: 'Confirme a taxa de cancelamento para continuar', requires_fee: true, ...quote }, { status: 409 });
         update.cancellation_fee = quote.fee;
         update.cancellation_locksmith_amount = quote.locksmithAmount;
         update.cancellation_app_fee = quote.appFee;

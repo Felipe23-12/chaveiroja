@@ -41,7 +41,7 @@ export default function AceiteTermos() {
       <p className="text-xs text-muted-foreground mb-4 leading-relaxed">
         Em conformidade com a Lei Geral de Proteção de Dados (Lei nº 13.709/2018), o Código de Defesa do
         Consumidor (Lei nº 8.078/1990) e o Marco Civil da Internet (Lei nº 12.965/2014), pedimos a confirmação
-        do aceite uma única vez, no cadastro, antes do uso das funções do aplicativo.
+        do aceite da versão vigente. Atualizamos as taxas de cancelamento para confecção de chaves de carros e motos; confira os valores abaixo.
       </p>
 
       {error && (

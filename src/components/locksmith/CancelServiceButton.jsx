@@ -56,6 +56,7 @@ export default function CancelServiceButton({ request }) {
         request_id: request.id,
         actor: "cliente",
         confirmed_fee: !free,
+        confirmed_fee_amount: quote?.fee,
       });
       toast({
         title: "Serviço cancelado",
@@ -89,7 +90,7 @@ export default function CancelServiceButton({ request }) {
             <AlertDialogDescription>
               {free
                 ? "O cancelamento agora é sem custo. Os três primeiros cancelamentos do dia são gratuitos. Deseja continuar?"
-                : `Será cobrada uma taxa de cancelamento ${feeData?.fixed ? "fixa" : "de 25%"} de R$ ${feeData?.fee.toFixed(2)}, paga apenas online (cartão).`}
+                : `Será cobrada uma taxa de cancelamento ${feeData?.fixed ? "fixa" : "de 25%"} de R$ ${feeData?.fee.toFixed(2)}, paga online pelos meios disponíveis no checkout.`}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

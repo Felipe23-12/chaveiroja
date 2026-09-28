@@ -1,3 +1,4 @@
+import { cancellationFee } from './cancellationFee.ts';
 import { detectCancellationPattern, safetyBlockFor } from './cancellationSafety.ts';
 const sixHours = 6 * 3600000;
 const localDay = (date) => new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Sao_Paulo', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date(date));
@@ -85,7 +86,6 @@ export async function clientCancellationQuote(base44, request) {
   const elapsed = Date.now() - Date.parse(request.accepted_at || request.created_date);
   const started = ['accepted', 'on_the_way', 'queued'].includes(request.status);
   const free = block.cancelCount < 3 || !started || !Number.isFinite(elapsed) || elapsed < 5 * 60000;
-  const fixed = { 'Confecção de Chave de Carro': request.urgency === 'urgent' ? 220 : 150, 'Confecção de Chave de Moto': request.urgency === 'urgent' ? 150 : 100 }[request.service_type];
-  const fee = free ? 0 : fixed || Math.round(Number(request.price || 0) * 25) / 100;
-  return { free, fee, fixed: !!fixed, locksmithAmount: Math.round(fee * 80) / 100, appFee: Math.round(fee * 20) / 100, cancelCount: block.cancelCount, freeRemaining: Math.max(0, 3 - block.cancelCount) };
+  const quote = cancellationFee(request.price || 0, { serviceType: request.service_type });
+  return { ...quote, free, ...(free ? { fee: 0, locksmithAmount: 0, appFee: 0 } : {}), cancelCount: block.cancelCount, freeRemaining: Math.max(0, 3 - block.cancelCount) };
 }

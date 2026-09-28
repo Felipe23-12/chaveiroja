@@ -80,7 +80,7 @@ export function downloadCommissionCSV({ me, completed, cancelled, payments = [],
   if (isAppMode && mca.length > 0) {
     lines.push("");
     lines.push("CANCELAMENTOS COM TAXA");
-    lines.push("Data;Tipo;Taxa (25%);Chaveiro (20%);App (5%)");
+    lines.push("Data;Tipo;Taxa de cancelamento;Chaveiro (80% da taxa);App (20% da taxa)");
     mca.forEach((r) => {
       lines.push(
         `${formatDate(r.created_date)};${r.service_type};${formatBRL(r.cancellation_fee)};${formatBRL(r.cancellation_locksmith_amount)};${formatBRL(r.cancellation_app_fee)}`

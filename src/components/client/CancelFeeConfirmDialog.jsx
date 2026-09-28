@@ -18,8 +18,8 @@ export default function CancelFeeConfirmDialog({ open, onOpenChange, cancelFeeDa
         <AlertDialogHeader>
           <AlertDialogTitle>Confirmar taxa de cancelamento</AlertDialogTitle>
           <AlertDialogDescription>
-            O chaveiro já aceitou seu pedido e está a caminho. Será cobrada uma taxa de cancelamento{" "}
-            {cancelFeeData?.fixed ? "fixa" : "de 25%"} de R$ {cancelFeeData?.fee.toFixed(2)}, paga apenas online (cartão). Deseja continuar?
+            Este cancelamento está sujeito a uma taxa. Será cobrada uma taxa de cancelamento{" "}
+            {cancelFeeData?.fixed ? "fixa" : "de 25%"} de R$ {cancelFeeData?.fee.toFixed(2)}, paga online pelos meios disponíveis no checkout. Deseja continuar?
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>

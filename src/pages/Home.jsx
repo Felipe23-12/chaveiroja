@@ -1002,11 +1002,13 @@ export default function Home() {
         request_id: activeRequest.id,
         actor: "cliente",
         confirmed_fee: true,
+        confirmed_fee_amount: cancelFeeData.fee,
       });
       setActiveRequest(response.data.request);
       if (!response.data.request.cancellation_fee) handleNewRequest();
       refreshDebt();
     } catch (e) {
+      if (e?.response?.data?.requires_fee) { setCancelFeeData(e.response.data); setCancelConfirmOpen(true); return; }
       toast({ title: "Falha ao cancelar", description: e.message || "Tente novamente", variant: "destructive" });
       setCancelFeeData(null);
     }

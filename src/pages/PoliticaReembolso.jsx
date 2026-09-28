@@ -1,3 +1,4 @@
+import CancellationPolicy from '@/components/legal/CancellationPolicy';
 import React from "react";
 import { Link } from "react-router-dom";
 import { ArrowLeft, ShieldCheck, RefreshCcw, AlertCircle, CheckCircle2 } from "lucide-react";
@@ -105,12 +106,13 @@ export default function PoliticaReembolso() {
               </p>
             </section>
 
+            <section><h2 className="text-lg font-bold text-slate-900 mb-3">8. Cancelamento de chamados</h2><CancellationPolicy /></section>
             <section className="pt-4 border-t border-slate-200">
-              <h2 className="text-lg font-bold text-slate-900 mb-2">8. Atualizações</h2>
+              <h2 className="text-lg font-bold text-slate-900 mb-2">9. Atualizações</h2>
               <p className="text-sm text-slate-600">
                 Esta política poderá ser atualizada para refletir alterações na legislação, nos serviços do aplicativo ou nos procedimentos de atendimento.
               </p>
-              <p className="mt-3 text-xs text-slate-500">Última atualização: 02 de setembro de 2026.</p>
+              <p className="mt-3 text-xs text-slate-500">Última atualização: 28 de setembro de 2026.</p>
             </section>
           </div>
         </div>

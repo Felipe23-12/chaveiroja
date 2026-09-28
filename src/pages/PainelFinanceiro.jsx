@@ -353,7 +353,7 @@ export default function PainelFinanceiro() {
                       </p>
                     </div>
                     <div className="text-right shrink-0">
-                      <p className="text-[11px] text-muted-foreground">Taxa do cliente (25%)</p>
+                      <p className="text-[11px] text-muted-foreground">Taxa de cancelamento do cliente</p>
                       <p className="text-sm font-medium text-foreground">R$ {fee.toFixed(2)}</p>
                       <p className="text-[11px] text-success mt-0.5">+ R$ {locksmithAmt.toFixed(2)} para você (20%)</p>
                       <p className="text-[11px] text-muted-foreground">R$ {appFee.toFixed(2)} para o app (5%)</p>
