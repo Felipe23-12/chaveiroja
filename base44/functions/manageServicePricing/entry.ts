@@ -2,6 +2,7 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.46';
 import { serviceTypes, pricingFields, loadServicePricing, validatePricing } from '../../shared/servicePricingSettings.ts';
 import { manageRegionalPricing } from '../../shared/regionalServicePricing.ts';
 import { validateVehicleFipeRates } from '../../shared/vehicleFipeRates.ts';
+import { validateVehicleOpeningRules } from '../../shared/vehicleOpeningRules.ts';
 import { validateMotoPricingRules } from '../../shared/motoPricingRules.ts';
 
 export default async function(req) {
@@ -18,9 +19,10 @@ export default async function(req) {
     if (body.action === 'get') return Response.json({ services: serviceTypes, groups: pricingFields(service), ...current });
     if (body.action !== 'save') return Response.json({ error: 'Ação inválida' }, { status: 400 });
     if ((body.version || null) !== current.version) return Response.json({ error: 'A tabela foi alterada por outro administrador. Recarregue antes de salvar.' }, { status: 409 });
-    let values, vehicleFipeRates, motoRules;
+    let values, vehicleFipeRates, motoRules, openingRules;
     try {
-      values = validatePricing(service, body.values);
+      values = validatePricing(service, { ...current.values, ...body.values });
+      openingRules = service === 'Abertura Automotiva' ? validateVehicleOpeningRules(body.vehicle_opening_rules ?? current.vehicle_opening_rules) : [];
       if (service === 'Confecção de Chave de Carro') {
         const globalFipeFields = Object.keys(current.values).filter(key => key.startsWith('fipe_'));
         if (globalFipeFields.some(key => values[key] !== current.values[key])) throw new Error('Percentuais gerais da FIPE são somente leitura. Adicione uma regra por montadora, modelo e ano-modelo.');
@@ -28,7 +30,7 @@ export default async function(req) {
       vehicleFipeRates = service === 'Confecção de Chave de Carro' ? validateVehicleFipeRates(body.vehicle_fipe_rates ?? current.vehicle_fipe_rates) : [];
       motoRules = service === 'Confecção de Chave de Moto' ? validateMotoPricingRules(body.moto_rules ?? current.moto_rules) : [];
     } catch (error) { return Response.json({ error: error.message }, { status: 400 }); }
-    const record = await base44.entities.ServicePricingConfig.create({ service_type: service, values, vehicle_fipe_rates: vehicleFipeRates, moto_rules: motoRules, edited_by: user.id });
-    return Response.json({ services: serviceTypes, groups: pricingFields(service), values, vehicle_fipe_rates: vehicleFipeRates, moto_rules: motoRules, version: record.id, saved_at: record.created_date });
+    const record = await base44.entities.ServicePricingConfig.create({ service_type: service, values, vehicle_fipe_rates: vehicleFipeRates, moto_rules: motoRules, vehicle_opening_rules: openingRules, edited_by: user.id });
+    return Response.json({ services: serviceTypes, groups: pricingFields(service), values, vehicle_fipe_rates: vehicleFipeRates, moto_rules: motoRules, vehicle_opening_rules: openingRules, version: record.id, saved_at: record.created_date });
   } catch (error) { return Response.json({ error: error.message || 'Não foi possível salvar a tabela' }, { status: 500 }); }
 }

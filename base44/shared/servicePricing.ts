@@ -1,3 +1,4 @@
+import { matchingOpeningRule, openingMethod } from './vehicleOpeningRules.ts';
 import { isMotoSeatOpening, validateOpeningVehicle, motoSeatRange } from './automotiveOpening.ts';
 import { verifyVehiclePricingQuote } from './vehiclePricingQuote.ts';
 import { validateVehicleModelYear } from './vehicleModelYears.ts';
@@ -171,6 +172,11 @@ export async function calculateServerServicePrice(base44, userId, data) {
   const online = profiles.filter(l => isAreaAvailable(areas, l.lat, l.lng));
   const settings = config.values;
   const seatOpening = rule.id === 'abertura_automotiva' && isMotoSeatOpening(inputs.vehicle);
+  const openingVehicle = inputs.vehicle || {};
+  const carOpening = rule.id === 'abertura_automotiva' && !seatOpening;
+  const method = rule.id === 'abertura_automotiva' ? openingMethod(openingVehicle) : 'simples';
+  const openingRule = carOpening ? matchingOpeningRule(openingVehicle, config.vehicle_opening_rules) : null;
+  const lishiPercent = carOpening ? openingRule?.lishi_percent ?? settings.lishi_percent : 0;
   const urgency = data.urgency === 'urgent' ? 'urgent' : 'normal';
   const calendar = pricingCalendar(settings);
   const tierFactor = urgency === 'urgent' ? Math.max(calendar.tier, settings.tier_urgent_floor / 100) : Math.min(calendar.tier, settings.tier_normal_cap / 100);
@@ -196,13 +202,13 @@ export async function calculateServerServicePrice(base44, userId, data) {
       ? regional.range.map((amount, index) => amount + serviceRange[index] - [settings.base_min, settings.base_max][index])
       : null;
     const [baseMin, baseMax] = seatOpening ? serviceRange : motoRegionalRange || regional?.range || serviceRange;
-    const base = Math.round(baseMin + (baseMax - baseMin) * tierFactor);
+    const base = openingRule?.base_price ?? Math.round(baseMin + (baseMax - baseMin) * tierFactor);
     const vehicle = inputs.vehicle || {};
     const motoSpecific = rule.id === 'confeccao_chave_moto' ? matchingMotoRule(vehicle.make, vehicle.model, vehicle.year, config.moto_rules) : null;
     const motoBase = motoSpecific ? round(base * (1 + motoSpecific.percent_adjustment / 100)) : base;
     const openingFactors = rule.id === 'abertura_automotiva' && Number(vehicle.year) >= 2020 ? [...factors, { label: 'Veículo de 2020 em diante', percent: settings.opening_2020 }] : factors;
-    const adjusted = adjustedCharge(motoBase, openingFactors, `${seatOpening ? 'Abertura de banco de moto' : data.service_type} (mão de obra)${rule.id === 'confeccao_chave_moto' && data.key_type === 'presenca' ? inputs.moto_has_password ? ' · com senha' : ' · sem senha' : ''}${motoSpecific ? ` · ${vehicle.make} ${vehicle.model} ${motoSpecific.year_start}–${motoSpecific.year_end}: ${motoSpecific.percent_adjustment > 0 ? '+' : ''}${motoSpecific.percent_adjustment}%` : ''}`);
-    const automotiveFee = rule.id === 'abertura_automotiva' ? ({ media: settings.opening_medium, alta: settings.opening_high }[vehicle.complexity] || 0) : 0;
+    const adjusted = adjustedCharge(motoBase, openingFactors, `${seatOpening ? 'Abertura de banco de moto' : data.service_type} (mão de obra)${openingRule?.base_price != null ? ' · preço individual do veículo' : ''}${rule.id === 'confeccao_chave_moto' && data.key_type === 'presenca' ? inputs.moto_has_password ? ' · com senha' : ' · sem senha' : ''}${motoSpecific ? ` · ${vehicle.make} ${vehicle.model} ${motoSpecific.year_start}–${motoSpecific.year_end}: ${motoSpecific.percent_adjustment > 0 ? '+' : ''}${motoSpecific.percent_adjustment}%` : ''}`);
+    const automotiveFee = rule.id === 'abertura_automotiva' && !carOpening ? ({ media: settings.opening_medium, alta: settings.opening_high }[vehicle.complexity] || 0) : 0;
     const locks = rule.id === 'abertura_residencial' || rule.id === 'abertura_tetra' || rule.id === 'abertura_eletronica' ? lockExtras(inputs.locks, settings) : 0;
     const brokenFee = rule.id.startsWith('abertura_') && inputs.broken_key_in_lock === true ? settings.condition_fee : 0;
     const motoCatalog = rule.id === 'confeccao_chave_moto' ? await currentVehicleCatalog(base44, vehicle, 'moto', data.key_type, inputs.key_origin) : null;
@@ -232,13 +238,21 @@ export async function calculateServerServicePrice(base44, userId, data) {
   const discountBase = Math.max(0, calculation.total - calculation.protectedFees);
   const discount = useDiscount ? round(discountBase * settings.loyalty / 100) : 0;
   const minimum = rule.carKey ? settings.minimum + calculation.protectedFees : 0;
-  const price = Math.max(minimum, round(calculation.total - discount));
+  const simplePrice = Math.max(minimum, round(calculation.total - discount));
+  const actualDiscount = round(calculation.total - simplePrice);
+  const lishiFee = carOpening && method === 'lishi' ? round(simplePrice * lishiPercent / 100) : 0;
+  const price = round(simplePrice + lishiFee);
+  if (lishiFee) {
+    calculation.total = round(calculation.total + lishiFee);
+    calculation.fields.extra_cost = round((calculation.fields.extra_cost || 0) + lishiFee);
+    calculation.lines.push({ label: `Abertura Lishi profissional (+${lishiPercent}% sobre o total final da abertura simples)`, value: lishiFee });
+  }
   return {
     price,
-    discount: round(calculation.total - price),
+    discount: actualDiscount,
     minimum,
     fields: calculation.fields,
-    calculation: { total: calculation.total, lines: calculation.lines, notes: [
+    calculation: { ...(carOpening ? { opening_method: method, lishi_percent: lishiPercent, simple_opening_price: simplePrice } : {}), total: calculation.total, lines: calculation.lines, notes: [
       'Preço recalculado e validado pelo servidor.',
       config.version ? `Tabela de cobranças: ${config.version}` : 'Tabela de cobranças inicial.',
       ...(!seatOpening && regional?.note ? [regional.note] : []),

@@ -4,7 +4,7 @@ import { Input } from '@/components/ui/input';
 export default function PricingFieldGroup({ group, values, onChange, disabled }) {
   const generalFipe = group.title === 'Mão de obra sobre a FIPE';
   const fields = <div className="grid gap-4 sm:grid-cols-2">
-    {group.fields.filter(field => field.key !== 'simple_fixed').map(field => <label key={field.key} className="space-y-1.5 text-sm">
+    {group.fields.filter(field => !['simple_fixed', 'opening_medium', 'opening_high'].includes(field.key)).map(field => <label key={field.key} className="space-y-1.5 text-sm">
       <span className="block text-muted-foreground">{field.label}</span>
       <div className="flex items-center gap-2"><Input type="number" inputMode="decimal" required disabled={disabled} step="0.01" min={field.min} max={field.max} value={values[field.key] ?? ''} onChange={e => onChange(field.key, e.target.value)} className="min-h-[44px]" /><span className="shrink-0 text-xs text-muted-foreground">{field.unit}</span></div>
     </label>)}

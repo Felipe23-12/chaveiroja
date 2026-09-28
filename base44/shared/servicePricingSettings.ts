@@ -1,4 +1,5 @@
 import { validateVehicleFipeRates } from './vehicleFipeRates.ts';
+import { validateVehicleOpeningRules } from './vehicleOpeningRules.ts';
 import { validateMotoPricingRules } from './motoPricingRules.ts';
 
 export const serviceTypes = ['Abertura Residencial', 'Abertura Automotiva', 'Abertura Fechadura Tetra', 'Abertura Fechadura Eletrônica', 'Confecção de Chave de Carro', 'Confecção de Chave de Moto'];
@@ -26,7 +27,7 @@ export function pricingFields(service) {
   groups.push(group('Chuva no endereço do atendimento', [field('rain_drizzle', 'Garoa (> 0 e < 0,5 mm/h)', 15), field('rain_light', 'Chuva leve (≥ 0,5 e < 2,5 mm/h)', 25), field('rain_moderate', 'Chuva moderada (≥ 2,5 e < 7,6 mm/h)', 40), field('rain_heavy', 'Chuva forte (≥ 7,6 mm/h)', 55), field('rain_storm', 'Tempestade', 70)]));
   groups.push(group('Deslocamento', [field('distance_threshold', 'Cobrar quando a distância ultrapassar', 20, 'km', 0, 1000), field('distance_rate', 'Valor por km (distância total, como na regra atual)', 0.9, 'R$/km', 0, 100)]));
   if (opening) groups.push(group('Condição da abertura', [cash('condition_fee', 'Fechadura com problema / chave quebrada (cobrança única)', 25)]));
-  if (index === 1) groups.push(group('Abertura automotiva', [cash('seat_base_min', 'Banco de moto: início da faixa base', 150), cash('seat_base_max', 'Banco de moto: fim da faixa base', 300), field('opening_2020', 'Veículo de 2020 em diante', 25), cash('opening_medium', 'Média complexidade', 25), cash('opening_high', 'Alta complexidade', 50)]));
+  if (index === 1) groups.push(group('Abertura automotiva', [cash('seat_base_min', 'Banco de moto: início da faixa base', 150), cash('seat_base_max', 'Banco de moto: fim da faixa base', 300), field('opening_2020', 'Veículo de 2020 em diante', 25), field('lishi_percent', 'Lishi profissional: adicional sobre o total final', 40), cash('opening_medium', 'Legado: média complexidade', 25), cash('opening_high', 'Legado: alta complexidade', 50)]));
   if ([0, 2, 3].includes(index)) groups.push(group('Fechaduras e miolos (por unidade)', ['simples', 'tetra', 'eletronica', 'auxiliar', 'outro'].flatMap((type, i) => [cash(`lock_${type}`, `Abertura adicional: ${type}`, [70, 120, 250, 60, 0][i]), cash(`core_${type}`, `Miolo: ${type}`, [90, 180, 300, 80, 0][i])])));
   return groups;
 }
@@ -53,5 +54,9 @@ export async function loadServicePricing(base44, service, { includeInvalidRates 
   const motoRules = service !== 'Confecção de Chave de Moto' ? [] : includeInvalidRates ? savedMotoRules : savedMotoRules.filter(rule => {
     try { validateMotoPricingRules([rule]); return true; } catch { return false; }
   });
-  return { values: record ? validatePricing(service, { ...defaults, ...record.values }) : defaults, vehicle_fipe_rates: vehicleRates, moto_rules: motoRules, version: record?.id || null, saved_at: record?.created_date || null };
+  const savedOpeningRules = record?.vehicle_opening_rules || [];
+  const openingRules = service !== 'Abertura Automotiva' ? [] : includeInvalidRates ? savedOpeningRules : savedOpeningRules.filter(rule => {
+    try { validateVehicleOpeningRules([rule]); return true; } catch { return false; }
+  });
+  return { vehicle_opening_rules: openingRules, values: record ? validatePricing(service, { ...defaults, ...record.values }) : defaults, vehicle_fipe_rates: vehicleRates, moto_rules: motoRules, version: record?.id || null, saved_at: record?.created_date || null };
 }
