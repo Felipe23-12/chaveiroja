@@ -13,7 +13,7 @@ const SERVICE_STYLES = {
   confeccao_chave_moto: { color: "text-teal-600", bg: "bg-teal-50", border: "border-teal-200" },
 };
 
-const activeServices = (services = []) => services.filter(id => SERVICE_CATALOG.some(service => service.id === id));
+const activeServices = (services) => (Array.isArray(services) ? services : []).filter(id => SERVICE_CATALOG.some(service => service.id === id));
 
 export default function ServiceSelector({ locksmith, onUpdate }) {
   const [selected, setSelected] = useState(activeServices(locksmith?.services));
