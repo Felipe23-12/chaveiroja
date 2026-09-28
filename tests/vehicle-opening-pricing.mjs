@@ -60,3 +60,21 @@ res=await api.manage(request({action:'save',version:'stale',values,vehicle_openi
 role='cliente';res=await api.manage(request({action:'save',version:record.id,values,vehicle_opening_rules:rules}));assert.equal(res.status,403);assert.equal(writes,1,'client cannot change admin prices');
 role='admin';res=await api.manage(request({action:'save',version:record.id,values,vehicle_opening_rules:[...rules,...rules]}));assert.equal(res.status,400);assert.equal(writes,1,'invalid rules not written');
 console.log('PASS: legacy fallback, rain, vehicle/year/version isolation, 40% final total, custom/zero Lishi percent, loyalty, conditions, roundtrip, admin authorization, conflict and validation.');
+
+const availabilityOnly = { make:'Chevrolet', model:'Celta', year_start:2015, year_end:2015, simple_unavailable:true, lishi_unavailable:false };
+res=await api.manage(request({action:'save',version:record.id,values,vehicle_opening_rules:[availabilityOnly]}));
+assert.equal(res.status,200,'availability-only config can be saved');
+assert.equal(record.vehicle_opening_rules[0].simple_unavailable,true,'flag persisted');
+await assert.rejects(quote(vehicle),/Abertura simples indisponível/);
+assert.equal((await quote({...vehicle,opening_method:'lishi'})).price,525,'Lishi remains available at existing price');
+assert.equal((await quote({...vehicle,year:2014})).price,375,'other year remains available');
+record.vehicle_opening_rules=api.validateVehicleOpeningRules([{...availabilityOnly,simple_unavailable:false,lishi_unavailable:true}]);
+assert.equal((await quote()).price,375,'simple can be reenabled');
+await assert.rejects(quote({...vehicle,opening_method:'lishi'}),/Lishi profissional indisponível/);
+record.vehicle_opening_rules=api.validateVehicleOpeningRules([{...availabilityOnly,lishi_unavailable:true}]);
+await assert.rejects(quote(),/indisponível/);
+await assert.rejects(quote({...vehicle,opening_method:'lishi'}),/indisponível/);
+record.vehicle_opening_rules=api.validateVehicleOpeningRules([{...availabilityOnly,simple_unavailable:false}]);
+assert.equal((await quote()).price,375,'reenabling preserves legacy price');
+assert.throws(()=>api.validateVehicleOpeningRules([{...availabilityOnly,simple_unavailable:'true'}]),/Disponibilidade/);
+console.log('PASS: availability-only save, per-method server blocking, both blocked, other-year isolation and reenabling.');
