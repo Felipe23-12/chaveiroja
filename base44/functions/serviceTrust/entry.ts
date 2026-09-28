@@ -274,7 +274,8 @@ export default async function(req) {
       if (!conditions.length || !photos.length) return Response.json({ error: 'Informe a condição e anexe as fotos' }, { status: 400 });
       const alreadyCharged = /Cliente informou: fechadura com problema|Chave quebrada dentro da fechadura|Adicional único de R\$ [\d.,]+ aplicado/.test(String(request.description || ''));
       const config = await loadServicePricing(base44, request.service_type);
-      const fee = alreadyCharged ? 0 : config.values.condition_fee;
+      const lishiPercent = request.service_type === 'Abertura Automotiva' && request.pricing_calculation?.opening_method === 'lishi' ? Number(request.pricing_calculation.lishi_percent || 0) : 0;
+      const fee = alreadyCharged ? 0 : Math.round(config.values.condition_fee * (1 + lishiPercent / 100) * 100) / 100;
       const labels = conditions.map((item) => item === 'lock_problem' ? 'fechadura com problema' : 'chave quebrada dentro da fechadura').join(' e ');
       const note = `Ajuste no local confirmado pelo chaveiro: ${labels}. Prova fotográfica anexada.${fee ? ` Adicional único de R$ ${fee.toFixed(2).replace('.', ',')} aplicado.` : ' Nenhum novo adicional aplicado.'}`;
       const updated = await base44.asServiceRole.entities.ServiceRequest.update(request.id, {

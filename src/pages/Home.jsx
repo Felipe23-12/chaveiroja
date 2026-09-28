@@ -116,7 +116,7 @@ export default function Home() {
   const [urgency, setUrgency] = useState("normal");
   const [selectedOptions, setSelectedOptions] = useState([]);
   const [customAddons, setCustomAddons] = useState({});
-  const [vehicleInfo, setVehicleInfo] = useState({ make: "", model: "", year: "", doorStatus: "", complexity: "simples", alarmLocked: null });
+  const [vehicleInfo, setVehicleInfo] = useState({ make: "", model: "", year: "", doorStatus: "", opening_method: "simples", alarmLocked: null });
   const [locks, setLocks] = useState([createLock()]);
   // null = cliente ainda não confirmou se a chave está quebrada na fechadura
   const [brokenKeyInLock, setBrokenKeyInLock] = useState(null);
@@ -670,7 +670,7 @@ export default function Home() {
           key_type: carKeyType,
           vehicle_info: `${vehicleInfo.make} ${vehicleInfo.model}${vehicleInfo.version?.trim() ? ` · Versão ${vehicleInfo.version.trim()}` : ""} · Ano-modelo ${vehicleInfo.year} · Porta ${vehicleInfo.doorStatus}${complexity ? ` · ${complexity.label}` : ''}${/^land[\s-]*rover(?:\s|$)/i.test(vehicleInfo.make.trim()) && Number(vehicleInfo.year) >= 2020 ? ` · Alarme: ${vehicleInfo.alarmLocked ? 'trancado' : 'não trancado'}` : ''}`.trim(),
         } : service.id === "abertura_automotiva" ? {
-          vehicle_info: `${isMotoSeatOpening(vehicleInfo) ? 'Abertura de banco de moto · Banco com abertura original de fábrica · ' : ''}${vehicleInfo.make} ${vehicleInfo.model}${vehicleInfo.version?.trim() ? ` · Versão ${vehicleInfo.version.trim()}` : ""} · Ano-modelo ${vehicleInfo.year}`.trim(),
+          vehicle_info: `${isMotoSeatOpening(vehicleInfo) ? 'Abertura de banco de moto · Banco com abertura original de fábrica · ' : `${vehicleInfo.opening_method === 'lishi' ? 'Abertura Lishi profissional' : 'Abertura simples'} · `}${vehicleInfo.make} ${vehicleInfo.model}${vehicleInfo.version?.trim() ? ` · Versão ${vehicleInfo.version.trim()}` : ""} · Ano-modelo ${vehicleInfo.year}`.trim(),
         } : service.isMotoKey ? {
           key_type: motoInfo.keyType,
           vehicle_info: `${MOTO_BRANDS.find(b => b.id === motoInfo.brandId)?.label || ''} ${motoModel?.label || ''} ${motoInfo.year}${motoInfo.keyType === 'presenca' ? (motoInfo.hasPassword ? ' · com senha' : ' · sem senha') : ''}`.trim(),
@@ -1034,7 +1034,7 @@ export default function Home() {
     setUrgency("normal");
     setSelectedOptions([]);
     setCustomAddons({});
-    setVehicleInfo({ make: "", model: "", year: "", doorStatus: "", complexity: "simples", alarmLocked: null });
+    setVehicleInfo({ make: "", model: "", year: "", doorStatus: "", opening_method: "simples", alarmLocked: null });
     setLocks([createLock()]);
     setBrokenKeyInLock(null);
     setOpeningReason(null);

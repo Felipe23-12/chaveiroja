@@ -58,7 +58,7 @@ export default function ServiceConfig({
 
       {service.id === "abertura_automotiva" && <fieldset className="space-y-2">
         <legend className="text-sm font-medium">O que deseja abrir?</legend>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">{[{ id: 'car', label: 'Abertura de carro' }, { id: 'moto_seat', label: 'Abertura de banco de moto' }].map(item => <button type="button" key={item.id} aria-pressed={(vehicleInfo.opening_target || 'car') === item.id} className={`rounded-xl border-2 p-3 text-left text-sm ${(vehicleInfo.opening_target || 'car') === item.id ? 'border-primary bg-primary/5' : 'border-border'}`} onClick={() => { setVehicleInfo({ opening_target: item.id, make: '', model: '', year: '', complexity: 'simples', factory_seat_opening: null }); setOpeningReason(null); setBrokenKeyInLock(null); }}>{item.label}</button>)}</div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">{[{ id: 'car', label: 'Abertura de carro' }, { id: 'moto_seat', label: 'Abertura de banco de moto' }].map(item => <button type="button" key={item.id} aria-pressed={(vehicleInfo.opening_target || 'car') === item.id} className={`rounded-xl border-2 p-3 text-left text-sm ${(vehicleInfo.opening_target || 'car') === item.id ? 'border-primary bg-primary/5' : 'border-border'}`} onClick={() => { setVehicleInfo({ opening_target: item.id, make: '', model: '', year: '', opening_method: 'simples', factory_seat_opening: null }); setOpeningReason(null); setBrokenKeyInLock(null); }}>{item.label}</button>)}</div>
         {seatOpening && <p className="text-sm text-muted-foreground">Todas as marcas e modelos com banco de abertura original de fábrica. Faixa base: R$ 150 a R$ 300, sujeita aos adicionais do serviço.</p>}
       </fieldset>}
       {isOpeningService(service) && (
@@ -126,21 +126,15 @@ export default function ServiceConfig({
           </div>
           <div><label className="text-xs text-muted-foreground mb-1 block">Versão ou geração (se souber)</label><Input placeholder="Ex.: 1.0 LT, G5, EXL" value={vehicleInfo.version || ""} onChange={(e) => updateVehicle("version", e.target.value)} maxLength={80} /></div>
           {vehicleInfo?.model && !yearCheck.valid && <p className="text-sm text-destructive">{yearCheck.error}</p>}
-          <div>
-            <p className="text-xs text-muted-foreground mb-1.5">Complexidade da abertura</p>
+          {!seatOpening && <div>
+            <p className="text-sm font-medium mb-1.5">Tipo de abertura</p>
             <div className="grid grid-cols-1 gap-2">
               {[
-                { id: "simples", label: "Abertura simples", description: "Abertura convencional, sem dificuldade adicional" },
-                { id: "media", label: "Média complexidade", description: "Possivelmente existe algum problema para abrir · adicional conforme tabela vigente" },
-                { id: "alta", label: "Alta complexidade", description: "Sistema do veículo não permite uma abertura simples · adicional conforme tabela vigente" },
-              ].map((item) => (
-                <button type="button" key={item.id} onClick={() => updateVehicle("complexity", item.id)} className={`min-h-[44px] rounded-xl border-2 p-3 text-left transition-all ${vehicleInfo.complexity === item.id ? "border-primary bg-primary/5" : "border-border"}`}>
-                  <span className="block text-sm font-medium text-foreground">{item.label}</span>
-                  <span className="block text-xs text-muted-foreground">{item.description}</span>
-                </button>
-              ))}
+                { id: 'simples', label: 'Abertura simples', description: 'Abertura convencional' },
+                { id: 'lishi', label: 'Abertura Lishi profissional', description: price?.serverPricing?.calculation?.lishi_percent != null ? `Abertura com ferramenta Lishi · adicional de ${price.serverPricing.calculation.lishi_percent}% sobre o total da abertura simples` : 'Abertura com ferramenta Lishi · consulte o adicional ao completar os dados' },
+              ].map(item => <button type="button" key={item.id} aria-pressed={(vehicleInfo.opening_method || 'simples') === item.id} onClick={() => updateVehicle('opening_method', item.id)} className={`min-h-[44px] rounded-xl border-2 p-3 text-left ${(vehicleInfo.opening_method || 'simples') === item.id ? 'border-primary bg-primary/5' : 'border-border'}`}><span className="block text-sm font-medium">{item.label}</span><span className="block text-xs text-muted-foreground">{item.description}</span></button>)}
             </div>
-          </div>
+          </div>}
         </div>
       )}
 
