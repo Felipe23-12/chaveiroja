@@ -548,7 +548,11 @@ export default async function(req) {
       if (claimed?.updated !== 1) {
         return Response.json({ error: 'Outro chaveiro assumiu este atendimento primeiro.' }, { status: 409 });
       }
-      const updated = await base44.asServiceRole.entities.ServiceRequest.get(request.id);
+      // updateMany faz a reserva atômica, mas não publica os eventos individuais.
+      // Publica o registro confirmado sem regravar status/posição (que podem
+      // ter avançado por outra ação), mantendo a proteção contra aceite duplo.
+      const updated = await base44.asServiceRole.entities.ServiceRequest.update(request.id, { accepted_at: now })
+        .catch(() => base44.asServiceRole.entities.ServiceRequest.get(request.id));
       return Response.json({ success: true, request: updated, queued });
     }
 

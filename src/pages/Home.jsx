@@ -344,7 +344,11 @@ export default function Home() {
         // A finalização registrada pelo chaveiro tem prioridade sobre o status
         // de deslocamento, que pode continuar como on_the_way até o pagamento.
         if (!active.end_photos?.length && (active.status === "accepted" || active.status === "on_the_way")) {
-          navigate(`/acompanhamento/${active.id}`, { replace: true });
+          void fetchDrivingRoute(
+            { lat: active.locksmith_lat, lng: active.locksmith_lng },
+            { lat: active.customer_lat, lng: active.customer_lng }
+          );
+          navigate(`/acompanhamento/${active.id}`, { replace: true, state: { request: active } });
           return;
         }
         let s = 5;
@@ -830,7 +834,7 @@ export default function Home() {
               { lat: updated.locksmith_lat, lng: updated.locksmith_lng },
               { lat: updated.customer_lat, lng: updated.customer_lng }
             );
-            navigate(`/acompanhamento/${updated.id}`);
+            navigate(`/acompanhamento/${updated.id}`, { state: { request: updated } });
           }
           if (travelling && updated.status === "on_the_way" && step === 4) {
             goToStep(5);

@@ -1,4 +1,5 @@
 import { base44 } from "@/api/base44Client";
+import { fetchDrivingRoute } from '@/lib/geo';
 import { canReceiveWhileBusy, getLocksmithQueueState, SECOND_JOB_MAX_DISTANCE_KM } from "@/lib/serviceQueue";
 
 // Quantos chaveiros próximos recebem o mesmo chamado ao mesmo tempo
@@ -83,6 +84,10 @@ export async function acceptRing(requestId, locksmith) {
   } catch (error) {
     return { ok: false, code: "GPS_SYNC_FAILED", reason: error?.response?.data?.error || "Não foi possível confirmar sua posição. Verifique a conexão e tente novamente." };
   }
+  if (!queued) void fetchDrivingRoute(
+    { lat: position.coords.latitude, lng: position.coords.longitude },
+    { lat: fresh.customer_lat, lng: fresh.customer_lng }
+  );
   let result;
   try {
     result = await base44.functions.invoke("serviceTrust", {

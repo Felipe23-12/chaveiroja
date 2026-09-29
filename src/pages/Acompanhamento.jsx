@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useRef, useMemo } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useLocation } from "react-router-dom";
+import { useAuth } from '@/lib/AuthContext';
+import useLiveDrivingRoute from '@/hooks/useLiveDrivingRoute';
 import { base44 } from "@/api/base44Client";
 import watchServiceRequest from "@/lib/watchServiceRequest";
 import { ArrowLeft, Send, MessageCircle, Navigation, MapPin, Clock, Loader2, CheckCircle2, AlertTriangle } from "lucide-react";
@@ -10,7 +12,7 @@ import QuickMessages from "@/components/chat/QuickMessages";
 import ArrivalDeadlineCountdown from "@/components/locksmith/ArrivalDeadlineCountdown";
 import CancelServiceButton from "@/components/locksmith/CancelServiceButton";
 import CancellationCaseNotice from "@/components/client/CancellationCaseNotice";
-import { fetchDrivingRoute, etaMinutes, haversineKm } from "@/lib/geo";
+import { haversineKm } from "@/lib/geo";
 import { safeUnsubscribe } from "@/lib/safeUnsubscribe";
 import useBlockedUsers from "@/hooks/useBlockedUsers";
 import ModerationActions from "@/components/moderation/ModerationActions";
@@ -21,15 +23,17 @@ import KeyServicePrice from "@/components/client/KeyServicePrice";
 export default function Acompanhamento() {
   const { requestId } = useParams();
   const navigate = useNavigate();
-  const [request, setRequest] = useState(null);
+  const { user } = useAuth();
+  const location = useLocation();
+  const passedRequest = location.state?.request;
+  const initialRequest = passedRequest?.id === requestId && passedRequest?.created_by_id === user?.id ? passedRequest : null;
+  const [request, setRequest] = useState(initialRequest);
   const [locksmith, setLocksmith] = useState(null);
   const [messages, setMessages] = useState([]);
   const [text, setText] = useState("");
   const [sending, setSending] = useState(false);
-  const [routePath, setRoutePath] = useState(null);
-  const [routeEta, setRouteEta] = useState(null);
-  const [routeDistanceKm, setRouteDistanceKm] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const { routePath, routeEta, routeDistanceKm } = useLiveDrivingRoute(request);
+  const [loading, setLoading] = useState(!initialRequest);
   const [chatOpen, setChatOpen] = useState(false);
   const [arrivalUpdating, setArrivalUpdating] = useState(false);
   const [arrivalError, setArrivalError] = useState("");
@@ -41,13 +45,14 @@ export default function Acompanhamento() {
   // Consulta o aceite mesmo se a gravação condicional não emitir evento.
   useEffect(() => {
     if (!requestId) return;
-    setLoading(true);
+    setRequest(initialRequest);
+    setLoading(!initialRequest);
     return watchServiceRequest(requestId, (latest) => {
       if (latest.status === "cancelled") { navigate("/", { replace: true }); return; }
       setRequest(latest);
       setLoading(false);
     }, () => setLoading(false));
-  }, [requestId, navigate]);
+  }, [requestId, navigate, initialRequest]);
 
   // O profissional pode ser designado depois que esta tela já abriu.
   useEffect(() => {
@@ -66,27 +71,7 @@ export default function Acompanhamento() {
     scrollRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages.length]);
 
-  // Busca a rota de carro entre o chaveiro e o cliente (OSRM)
-  useEffect(() => {
-    if (!["accepted", "on_the_way"].includes(request?.status)) return;
-    if (![request?.locksmith_lat, request?.locksmith_lng, request?.customer_lat, request?.customer_lng].every(Number.isFinite)) return;
-    const from = { lat: request.locksmith_lat, lng: request.locksmith_lng };
-    const to = { lat: request.customer_lat, lng: request.customer_lng };
-    let cancelled = false;
-    fetchDrivingRoute(from, to).then((r) => {
-      if (cancelled || !r) return;
-      setRoutePath(r.coordinates);
-      setRouteEta(etaMinutes(r.duration));
-      setRouteDistanceKm(r.distance / 1000);
-    });
-    return () => { cancelled = true; };
-  }, [request?.status, request?.locksmith_lat, request?.locksmith_lng, request?.customer_lat, request?.customer_lng]);
 
-  useEffect(() => {
-    setRoutePath(null);
-    setRouteEta(null);
-    setRouteDistanceKm(null);
-  }, [requestId, request?.customer_lat, request?.customer_lng]);
 
   const distanceKm = useMemo(() => {
     if (!request?.locksmith_lat || !request?.customer_lat) return null;

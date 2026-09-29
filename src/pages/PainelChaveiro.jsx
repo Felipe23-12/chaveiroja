@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { useNavigate, useLocation, Link } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
 import { useAuth } from "@/lib/AuthContext";
+import useLiveDrivingRoute from '@/hooks/useLiveDrivingRoute';
 import { fetchMyLocksmith, fetchLocksmithFinancials, mergeLocksmithFinancials, preserveFinancials } from "@/lib/myLocksmith";
 import prepareLocksmithProfile from '@/lib/locksmithOnboarding';
 import { Wrench, Bell, Check, X, Navigation, Power, Loader2, MapPin, WifiOff, CheckCircle2, Wallet, ArrowLeft, MessageCircle } from "lucide-react";
@@ -26,7 +27,7 @@ import LocksmithCaseStatus from "@/components/locksmith/LocksmithCaseStatus";
 import LocksmithCancellationFlow from "@/components/locksmith/LocksmithCancellationFlow";
 import { useToast } from "@/components/ui/use-toast";
 import DarkModeToggle from "@/components/DarkModeToggle";
-import { haversineKm, stepToward, fetchDrivingRoute, etaMinutes, getPreciseLocation, locationErrorMessage } from "@/lib/geo";
+import { haversineKm, stepToward, getPreciseLocation, locationErrorMessage } from "@/lib/geo";
 import { SERVICE_CATALOG } from "@/lib/pricing";
 import { confirmCashReceived } from "@/lib/payments";
 import { saveLastService, getLastService, clearLastService, saveLocksmithProfile, getLocksmithProfile, isOnline, saveLastRoute, getLastRoute, savePendingRequests, getPendingRequests } from "@/lib/offlineCache";
@@ -113,9 +114,11 @@ export default function PainelChaveiro() {
   const [arrived, setArrived] = useState(false);
   const [startPhotos, setStartPhotos] = useState([]);
   const [endPhotos, setEndPhotos] = useState([]);
-  const [routePath, setRoutePath] = useState(null);
-  const [routeEta, setRouteEta] = useState(null);
   const [online, setOnline] = useState(isOnline());
+  const liveRoute = useLiveDrivingRoute(active);
+  const cachedRoute = !online && active && !liveRoute.routePath ? getLastRoute() : null;
+  const routePath = liveRoute.routePath || cachedRoute?.routePath || null;
+  const routeEta = liveRoute.routeEta ?? cachedRoute?.eta ?? null;
   const [queuedCount, setQueuedCount] = useState(queuedActionsCount());
   const moveTimer = useRef(null);
   const notifiedIds = useRef(new Set());
@@ -334,40 +337,8 @@ export default function PainelChaveiro() {
   }, [selectedId, me, blockedIds, coverage.allowed, coverage.areas]);
 
   useEffect(() => {
-    setRoutePath(null);
-    setRouteEta(null);
-  }, [active?.id, active?.customer_lat, active?.customer_lng]);
-
-  // Mantém a rota visível durante a atualização da posição.
-  useEffect(() => {
-    if (!active || !active.locksmith_lat || !active.customer_lat) {
-      setRoutePath(null);
-      setRouteEta(null);
-      return;
-    }
-    const from = { lat: active.locksmith_lat, lng: active.locksmith_lng };
-    const to = { lat: active.customer_lat, lng: active.customer_lng };
-    let cancelled = false;
-    fetchDrivingRoute(from, to)
-      .then((r) => {
-        if (r && !cancelled) {
-          setRoutePath(r.coordinates);
-          setRouteEta(etaMinutes(r.duration));
-          saveLastRoute(r.coordinates, etaMinutes(r.duration));
-        }
-      })
-      .catch(() => {
-        // Offline: usa a última rota em cache para navegação
-        if (!cancelled && !isOnline()) {
-          const cached = getLastRoute();
-          if (cached?.routePath) {
-            setRoutePath(cached.routePath);
-            setRouteEta(cached.eta);
-          }
-        }
-      });
-    return () => { cancelled = true; };
-  }, [active?.id, active?.locksmith_lat, active?.locksmith_lng, active?.customer_lat, active?.customer_lng]);
+    if (liveRoute.routePath) saveLastRoute(liveRoute.routePath, liveRoute.routeEta);
+  }, [liveRoute.routePath, liveRoute.routeEta]);
 
   // Assina o serviço em andamento deste chaveiro (aceito / a caminho)
   useEffect(() => {
