@@ -182,7 +182,7 @@ export default function PainelFinanceiroAdmin() {
       <NotifyMissingMercadoPagoButton />
 
       {/* Gráficos: serviços por mês e comissão por mês */}
-      <FinanceCharts />
+      <Suspense fallback={<div className="py-8 text-center text-sm text-muted-foreground">Carregando gráficos...</div>}><FinanceCharts /></Suspense>
 
       {/* Cards de resumo geral */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
