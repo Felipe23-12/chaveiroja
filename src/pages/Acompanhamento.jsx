@@ -26,8 +26,6 @@ export default function Acompanhamento() {
   const [messages, setMessages] = useState([]);
   const [text, setText] = useState("");
   const [sending, setSending] = useState(false);
-  const [customerName, setCustomerName] = useState("");
-  const [customerId, setCustomerId] = useState("");
   const [routePath, setRoutePath] = useState(null);
   const [routeEta, setRouteEta] = useState(null);
   const [routeDistanceKm, setRouteDistanceKm] = useState(null);
@@ -63,13 +61,6 @@ export default function Acompanhamento() {
     loadMessages();
     return () => { cancelled = true; unsubscribe(); };
   }, [request?.locksmith_id]);
-
-  useEffect(() => {
-    base44.auth.me().then((u) => {
-      setCustomerId(u?.id || "");
-      setCustomerName(u?.full_name || "Cliente");
-    }).catch(() => {});
-  }, []);
 
   useEffect(() => {
     scrollRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -112,14 +103,10 @@ export default function Acompanhamento() {
     const msg = text.trim();
     setText("");
     try {
-      await base44.entities.ChatMessage.create({
+      await base44.functions.invoke("sendChatMessage", {
+        customer_lat: request.customer_lat,
+        customer_lng: request.customer_lng,
         locksmith_id: request.locksmith_id,
-        locksmith_name: locksmith?.name,
-        locksmith_user_id: request.locksmith_user_id || locksmith?.created_by_id,
-        client_id: customerId,
-        client_name: customerName,
-        sender_type: "customer",
-        sender_name: customerName,
         message: msg,
       });
     } finally {
@@ -131,14 +118,10 @@ export default function Acompanhamento() {
     if (sending || !request?.locksmith_id || blockedIds.has(request?.locksmith_user_id || locksmith?.created_by_id)) return;
     setSending(true);
     try {
-      await base44.entities.ChatMessage.create({
+      await base44.functions.invoke("sendChatMessage", {
+        customer_lat: request.customer_lat,
+        customer_lng: request.customer_lng,
         locksmith_id: request.locksmith_id,
-        locksmith_name: locksmith?.name,
-        locksmith_user_id: request.locksmith_user_id || locksmith?.created_by_id,
-        client_id: customerId,
-        client_name: customerName,
-        sender_type: "customer",
-        sender_name: customerName,
         message: "Foto",
         photo_url: photoUrl,
       });
@@ -151,14 +134,10 @@ export default function Acompanhamento() {
     if (sending || !request?.locksmith_id || blockedIds.has(request?.locksmith_user_id || locksmith?.created_by_id)) return;
     setSending(true);
     try {
-      await base44.entities.ChatMessage.create({
+      await base44.functions.invoke("sendChatMessage", {
+        customer_lat: request.customer_lat,
+        customer_lng: request.customer_lng,
         locksmith_id: request.locksmith_id,
-        locksmith_name: locksmith?.name,
-        locksmith_user_id: request.locksmith_user_id || locksmith?.created_by_id,
-        client_id: customerId,
-        client_name: customerName,
-        sender_type: "customer",
-        sender_name: customerName,
         message: msg,
       });
     } finally {
