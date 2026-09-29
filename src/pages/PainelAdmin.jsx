@@ -1,27 +1,37 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { lazy, Suspense, useState, useEffect, useRef } from "react";
 import { base44 } from "@/api/base44Client";
 import { ShieldCheck, Users, Wrench, ClipboardList, Wallet, Trash2, ArrowDownToLine, CheckCircle2, Info, Bell } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import AdminCharts from "@/components/admin/AdminCharts";
-import RevenueCommissionChart from "@/components/admin/RevenueCommissionChart";
+
 import ServiceFilters, { filterRequests } from "@/components/admin/ServiceFilters";
 import ServiceSearchBar from "@/components/admin/ServiceSearchBar";
 import ServiceGallery from "@/components/locksmith/ServiceGallery";
-import FinancialConsolidation from "@/components/admin/FinancialConsolidation";
-import ResetLocksmithsDialog from "@/components/admin/ResetLocksmithsDialog";
-import MigrateLocksmithFinancialsDialog from "@/components/admin/MigrateLocksmithFinancialsDialog";
-import WeeklyOperationsPanel from "@/components/admin/WeeklyOperationsPanel";
-import ConductReportsPanel from "@/components/admin/ConductReportsPanel";
-import VehicleKeyCatalogPanel from "@/components/admin/VehicleKeyCatalogPanel";
+
 import AdminPanelTabs from "@/components/admin/AdminPanelTabs";
-import PricingSettingsPanel from "@/components/admin/PricingSettingsPanel";
-import ServiceAreasPanel from '@/components/admin/ServiceAreasPanel';
-import FeedbackPanel from "@/components/admin/FeedbackPanel";
-import FailedServiceReports from '@/components/admin/FailedServiceReports';
-import LocksmithQualityTable from "@/components/admin/LocksmithQualityTable";
+
 import { completeWithdrawal } from "@/lib/payments";
 import { useToast } from "@/components/ui/use-toast";
 import { safeUnsubscribe } from "@/lib/safeUnsubscribe";
+
+const AdminCharts = lazy(() => import("@/components/admin/AdminCharts"));
+const RevenueCommissionChart = lazy(() => import("@/components/admin/RevenueCommissionChart"));
+const FinancialConsolidation = lazy(() => import("@/components/admin/FinancialConsolidation"));
+const ResetLocksmithsDialog = lazy(() => import("@/components/admin/ResetLocksmithsDialog"));
+const MigrateLocksmithFinancialsDialog = lazy(() => import("@/components/admin/MigrateLocksmithFinancialsDialog"));
+const WeeklyOperationsPanel = lazy(() => import("@/components/admin/WeeklyOperationsPanel"));
+const ConductReportsPanel = lazy(() => import("@/components/admin/ConductReportsPanel"));
+const VehicleKeyCatalogPanel = lazy(() => import("@/components/admin/VehicleKeyCatalogPanel"));
+const PricingSettingsPanel = lazy(() => import("@/components/admin/PricingSettingsPanel"));
+const ServiceAreasPanel = lazy(() => import("@/components/admin/ServiceAreasPanel"));
+const FeedbackPanel = lazy(() => import("@/components/admin/FeedbackPanel"));
+const FailedServiceReports = lazy(() => import("@/components/admin/FailedServiceReports"));
+const LocksmithQualityTable = lazy(() => import("@/components/admin/LocksmithQualityTable"));
+
+const LazySection = ({ children }) => (
+  <Suspense fallback={<div className="py-8 text-center text-sm text-muted-foreground">Carregando seção...</div>}>
+    {children}
+  </Suspense>
+);
 
 const fmtMoney = (n) =>
   (n || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
@@ -174,8 +184,8 @@ export default function PainelAdmin() {
       )}
 
       {activeTab === "overview" && <div className="flex justify-end gap-2">
-        <MigrateLocksmithFinancialsDialog />
-        <ResetLocksmithsDialog onReset={load} />
+        <LazySection><MigrateLocksmithFinancialsDialog /></LazySection>
+        <LazySection><ResetLocksmithsDialog onReset={load} /></LazySection>
       </div>}
 
       {activeTab === "overview" && <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
@@ -185,21 +195,21 @@ export default function PainelAdmin() {
         <StatCard icon={Wallet} label="Receita (concluídos)" value={fmtMoney(revenue)} />
       </div>}
 
-      {activeTab === "overview" && <WeeklyOperationsPanel requests={requests} scores={scores} />}
+      {activeTab === "overview" && <LazySection><WeeklyOperationsPanel requests={requests} scores={scores} /></LazySection>}
 
-      {activeTab === "reports" && <ConductReportsPanel users={users} locksmiths={locksmiths} />}
+      {activeTab === "reports" && <LazySection><ConductReportsPanel users={users} locksmiths={locksmiths} /></LazySection>}
 
-      {activeTab === "feedback" && <FeedbackPanel users={users} />}
+      {activeTab === "feedback" && <LazySection><FeedbackPanel users={users} /></LazySection>}
 
-      {activeTab === "catalog" && <VehicleKeyCatalogPanel />}
-      {activeTab === "pricing" && <PricingSettingsPanel />}
-      {activeTab === "areas" && <ServiceAreasPanel />}
+      {activeTab === "catalog" && <LazySection><VehicleKeyCatalogPanel /></LazySection>}
+      {activeTab === "pricing" && <LazySection><PricingSettingsPanel /></LazySection>}
+      {activeTab === "areas" && <LazySection><ServiceAreasPanel /></LazySection>}
 
-      {activeTab === "overview" && <AdminCharts requests={requests} />}
+      {activeTab === "overview" && <LazySection><AdminCharts requests={requests} /></LazySection>}
 
-      {activeTab === "finance" && <RevenueCommissionChart requests={requests} />}
+      {activeTab === "finance" && <LazySection><RevenueCommissionChart requests={requests} /></LazySection>}
 
-      {activeTab === "finance" && <FinancialConsolidation requests={requests} locksmiths={locksmiths} />}
+      {activeTab === "finance" && <LazySection><FinancialConsolidation requests={requests} locksmiths={locksmiths} /></LazySection>}
 
       <section className={activeTab === "people" ? "" : "hidden"}>
         <h2 className="font-heading font-semibold text-lg text-foreground mb-3">Usuários</h2>
@@ -257,7 +267,7 @@ export default function PainelAdmin() {
       </section>
 
       <div className={activeTab === "people" ? "" : "hidden"}>
-        <LocksmithQualityTable locksmiths={locksmiths} scores={scores} onToggle={toggleAvailable} onRemove={removeLocksmith} />
+        <LazySection><LocksmithQualityTable locksmiths={locksmiths} scores={scores} onToggle={toggleAvailable} onRemove={removeLocksmith} /></LazySection>
       </div>
 
       <section className={activeTab === "finance" ? "" : "hidden"}>
@@ -327,7 +337,7 @@ export default function PainelAdmin() {
         </section>
 
       <section className={activeTab === "requests" ? "" : "hidden"}>
-        <div className="mb-6"><FailedServiceReports /></div>
+        <div className="mb-6"><LazySection><FailedServiceReports /></LazySection></div>
         <h2 className="font-heading font-semibold text-lg text-foreground mb-3">Solicitações</h2>
         <div className="mb-3">
           <ServiceSearchBar
