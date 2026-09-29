@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo, useRef } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
+import watchServiceRequest from "@/lib/watchServiceRequest";
 import { Navigation, AlertTriangle } from "lucide-react";
 import { SERVICE_CATALOG, calculateCancellationFee, CANCELLATION_THRESHOLD_MINUTES, isOpeningService } from "@/lib/pricing";
 import { getCancellationWindow } from "@/lib/cancellationWindow";
@@ -785,10 +786,7 @@ export default function Home() {
     if (!activeRequest) return;
     // Solicita permissão de notificação nativa ao iniciar o acompanhamento
     ensureNotificationPermission();
-    const unsub = base44.entities.ServiceRequest.subscribe((event) => {
-      if (event.id === activeRequest.id || event.data?.id === activeRequest.id) {
-        base44.entities.ServiceRequest.get(activeRequest.id).catch(() => null).then((updated) => {
-          if (!updated) return; // falha de rede momentânea — ignora e espera o próximo evento
+    return watchServiceRequest(activeRequest.id, (updated) => {
           setActiveRequest(updated);
           if (updated.status === "cancelled" && updated.cancelled_by !== "cliente") {
             notifyClient("Chamado cancelado", updated.cancelled_by === "chaveiro" ? "O chaveiro cancelou o atendimento." : "O atendimento foi cancelado automaticamente.");
@@ -807,11 +805,15 @@ export default function Home() {
           if (updated.status === "queued" && step === 3) {
             goToStep(4);
           }
-          if (updated.status === "accepted" && !notifiedAccepted.current) {
+          if (["accepted", "on_the_way"].includes(updated.status) && !notifiedAccepted.current) {
             notifiedAccepted.current = true;
             sendServiceStatusMessage("accepted", { request: updated, locksmith: selectedLocksmith });
             notifyClient("Chaveiro aceitou seu pedido!", `${updated.locksmith_name || selectedLocksmith?.name || "O chaveiro"} confirmou o atendimento.`);
             toast({ title: "Chaveiro aceitou!", description: "Preço, rota, cancelamento e conversa estão reunidos no acompanhamento." });
+            void fetchDrivingRoute(
+              { lat: updated.locksmith_lat, lng: updated.locksmith_lng },
+              { lat: updated.customer_lat, lng: updated.customer_lng }
+            );
             navigate(`/acompanhamento/${updated.id}`);
           }
           if (updated.status === "on_the_way" && step === 4) {
@@ -891,26 +893,28 @@ export default function Home() {
             notifiedCompleted.current = true;
             notifyClient("Tudo certo!", "Serviço finalizado. Avalie o atendimento.");
           }
-        });
-      }
     });
-    return safeUnsubscribe(unsub);
   }, [activeRequest?.id, step, selectedLocksmith]);
 
-  // Busca a rota real de carro entre o chaveiro e o cliente (OSRM)
+  useEffect(() => {
+    setRoutePath(null);
+    setRouteEta(null);
+  }, [activeRequest?.id, activeRequest?.customer_lat, activeRequest?.customer_lng]);
+
+  // Mantém a rota visível enquanto busca a posição atualizada.
   useEffect(() => {
     if (step < 4 || !activeRequest) return;
     const from = { lat: activeRequest.locksmith_lat, lng: activeRequest.locksmith_lng };
     const to = { lat: activeRequest.customer_lat, lng: activeRequest.customer_lng };
     if (!from.lat || !to.lat) return;
-    setRoutePath(null);
-    setRouteEta(null);
+    let cancelled = false;
     fetchDrivingRoute(from, to).then((r) => {
-      if (r) {
+      if (r && !cancelled) {
         setRoutePath(r.coordinates);
         setRouteEta(etaMinutes(r.duration));
       }
     });
+    return () => { cancelled = true; };
   }, [step, activeRequest?.locksmith_lat, activeRequest?.locksmith_lng, activeRequest?.customer_lat, activeRequest?.customer_lng]);
 
   const handleAdvance = async () => {

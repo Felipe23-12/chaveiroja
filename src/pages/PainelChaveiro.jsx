@@ -333,7 +333,12 @@ export default function PainelChaveiro() {
     return safeUnsubscribe(unsub);
   }, [selectedId, me, blockedIds, coverage.allowed, coverage.areas]);
 
-  // Busca a rota de carro entre o chaveiro e o cliente (OSRM) — com cache offline
+  useEffect(() => {
+    setRoutePath(null);
+    setRouteEta(null);
+  }, [active?.id, active?.customer_lat, active?.customer_lng]);
+
+  // Mantém a rota visível durante a atualização da posição.
   useEffect(() => {
     if (!active || !active.locksmith_lat || !active.customer_lat) {
       setRoutePath(null);
@@ -342,11 +347,10 @@ export default function PainelChaveiro() {
     }
     const from = { lat: active.locksmith_lat, lng: active.locksmith_lng };
     const to = { lat: active.customer_lat, lng: active.customer_lng };
-    setRoutePath(null);
-    setRouteEta(null);
+    let cancelled = false;
     fetchDrivingRoute(from, to)
       .then((r) => {
-        if (r) {
+        if (r && !cancelled) {
           setRoutePath(r.coordinates);
           setRouteEta(etaMinutes(r.duration));
           saveLastRoute(r.coordinates, etaMinutes(r.duration));
@@ -354,7 +358,7 @@ export default function PainelChaveiro() {
       })
       .catch(() => {
         // Offline: usa a última rota em cache para navegação
-        if (!isOnline()) {
+        if (!cancelled && !isOnline()) {
           const cached = getLastRoute();
           if (cached?.routePath) {
             setRoutePath(cached.routePath);
@@ -362,6 +366,7 @@ export default function PainelChaveiro() {
           }
         }
       });
+    return () => { cancelled = true; };
   }, [active?.id, active?.locksmith_lat, active?.locksmith_lng, active?.customer_lat, active?.customer_lng]);
 
   // Assina o serviço em andamento deste chaveiro (aceito / a caminho)

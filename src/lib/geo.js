@@ -34,11 +34,27 @@ function toRad(v) {
 
 // Busca a rota de carro entre dois pontos via OSRM (gratuito, sem chave de API).
 // Retorna { coordinates: [{lat,lng}...], duration: segundos, distance: metros } ou null.
-export async function fetchDrivingRoute(from, to) {
-  if (!from || !to || !from.lat || !to.lat) return null;
+const drivingRoutes = new Map();
+export function fetchDrivingRoute(from, to) {
+  if (![from?.lat, from?.lng, to?.lat, to?.lng].every(Number.isFinite)) return Promise.resolve(null);
+  const key = [from.lat, from.lng, to.lat, to.lng].map(value => value.toFixed(5)).join(',');
+  const cached = drivingRoutes.get(key);
+  if (cached && Date.now() - cached.time < 30000) return cached.promise;
+  const promise = loadDrivingRoute(from, to).then(route => {
+    if (!route) drivingRoutes.delete(key);
+    return route;
+  });
+  if (drivingRoutes.size >= 30) drivingRoutes.delete(drivingRoutes.keys().next().value);
+  drivingRoutes.set(key, { time: Date.now(), promise });
+  return promise;
+}
+
+async function loadDrivingRoute(from, to) {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 10000);
   try {
     const url = `https://router.project-osrm.org/route/v1/driving/${from.lng},${from.lat};${to.lng},${to.lat}?overview=full&geometries=geojson`;
-    const res = await fetch(url);
+    const res = await fetch(url, { signal: controller.signal });
     if (!res.ok) return null;
     const data = await res.json();
     if (!data.routes || data.routes.length === 0) return null;
@@ -50,6 +66,8 @@ export async function fetchDrivingRoute(from, to) {
     };
   } catch (e) {
     return null;
+  } finally {
+    clearTimeout(timeout);
   }
 }
 

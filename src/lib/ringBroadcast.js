@@ -95,7 +95,8 @@ export async function acceptRing(requestId, locksmith) {
     const data = err?.response?.data || err?.data || err;
     return { ok: false, code: data?.code, reason: data?.error || err?.message || "Não foi possível aceitar o chamado." };
   }
-  await base44.functions.invoke("serviceTrust", {
+  // A pontuação não bloqueia a abertura do atendimento já aceito.
+  void base44.functions.invoke("serviceTrust", {
     action: "score_event", event_type: "accepted", request_id: requestId, locksmith_id: locksmith.id,
   }).catch(() => null);
   return { ok: true, request: result?.data?.request, queued: result?.data?.queued === true || queued };

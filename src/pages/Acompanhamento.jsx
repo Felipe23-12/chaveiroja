@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useMemo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
+import watchServiceRequest from "@/lib/watchServiceRequest";
 import { ArrowLeft, Send, MessageCircle, Navigation, MapPin, Clock, Loader2, CheckCircle2, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -39,58 +40,29 @@ export default function Acompanhamento() {
   const { blockedIds } = useBlockedUsers();
   const scrollRef = useRef(null);
 
-  // Carrega a solicitação e assina atualizações em tempo real
+  // Consulta o aceite mesmo se a gravação condicional não emitir evento.
   useEffect(() => {
     if (!requestId) return;
-    const load = () =>
-      base44.entities.ServiceRequest
-        .get(requestId)
-        .then((r) => {
-          setRequest(r);
-          setLoading(false);
-          if (r?.locksmith_id) {
-            base44.entities.Locksmith.get(r.locksmith_id).then(setLocksmith).catch(() => {});
-            const loadMsgs = () =>
-              base44.entities.ChatMessage
-                .filter({ locksmith_id: r.locksmith_id }, "created_date")
-                .then(setMessages)
-                .catch(() => {});
-            loadMsgs();
-            return safeUnsubscribe(base44.entities.ChatMessage.subscribe(() => loadMsgs()));
-          }
-        })
-        .catch(() => setLoading(false));
-    const promise = load();
-    const unsub = safeUnsubscribe(
-      base44.entities.ServiceRequest.subscribe((event) => {
-        if (event.id === requestId || event.data?.id === requestId) {
-          base44.entities.ServiceRequest.get(requestId).then((updated) => {
-            if (updated.status === "cancelled") {
-              navigate("/", { replace: true });
-              return;
-            }
-            setRequest(updated);
-          }).catch(() => {});
-        }
-      })
-    );
-    // Recupera atualizações perdidas quando o aparelho retorna do segundo plano.
-    const refreshPosition = () => {
-      if (document.visibilityState !== "visible") return;
-      base44.entities.ServiceRequest.get(requestId).then((latest) => {
-        if (latest?.status === "cancelled") { navigate("/", { replace: true }); return; }
-        if (latest) setRequest(latest);
-      }).catch(() => {});
-    };
-    const timer = setInterval(refreshPosition, 10000);
-    document.addEventListener("visibilitychange", refreshPosition);
-    return () => {
-      unsub();
-      clearInterval(timer);
-      document.removeEventListener("visibilitychange", refreshPosition);
-      if (typeof promise?.then === "function") promise.then((u) => typeof u === "function" && u()).catch(() => {});
-    };
-  }, [requestId]);
+    setLoading(true);
+    return watchServiceRequest(requestId, (latest) => {
+      if (latest.status === "cancelled") { navigate("/", { replace: true }); return; }
+      setRequest(latest);
+      setLoading(false);
+    }, () => setLoading(false));
+  }, [requestId, navigate]);
+
+  // O profissional pode ser designado depois que esta tela já abriu.
+  useEffect(() => {
+    const id = request?.locksmith_id;
+    if (!id) return;
+    let cancelled = false;
+    base44.entities.Locksmith.get(id).then(value => { if (!cancelled) setLocksmith(value); }).catch(() => {});
+    const loadMessages = () => base44.entities.ChatMessage.filter({ locksmith_id: id }, "created_date")
+      .then(value => { if (!cancelled) setMessages(value); }).catch(() => {});
+    const unsubscribe = safeUnsubscribe(base44.entities.ChatMessage.subscribe(loadMessages));
+    loadMessages();
+    return () => { cancelled = true; unsubscribe(); };
+  }, [request?.locksmith_id]);
 
   useEffect(() => {
     base44.auth.me().then((u) => {
@@ -105,13 +77,11 @@ export default function Acompanhamento() {
 
   // Busca a rota de carro entre o chaveiro e o cliente (OSRM)
   useEffect(() => {
-    if (request?.status === "queued" || !request?.locksmith_lat || !request?.customer_lat) return;
+    if (!["accepted", "on_the_way"].includes(request?.status)) return;
+    if (![request?.locksmith_lat, request?.locksmith_lng, request?.customer_lat, request?.customer_lng].every(Number.isFinite)) return;
     const from = { lat: request.locksmith_lat, lng: request.locksmith_lng };
     const to = { lat: request.customer_lat, lng: request.customer_lng };
     let cancelled = false;
-    setRoutePath(null);
-    setRouteEta(null);
-    setRouteDistanceKm(null);
     fetchDrivingRoute(from, to).then((r) => {
       if (cancelled || !r) return;
       setRoutePath(r.coordinates);
@@ -119,7 +89,13 @@ export default function Acompanhamento() {
       setRouteDistanceKm(r.distance / 1000);
     });
     return () => { cancelled = true; };
-  }, [request?.locksmith_lat, request?.locksmith_lng, request?.customer_lat, request?.customer_lng]);
+  }, [request?.status, request?.locksmith_lat, request?.locksmith_lng, request?.customer_lat, request?.customer_lng]);
+
+  useEffect(() => {
+    setRoutePath(null);
+    setRouteEta(null);
+    setRouteDistanceKm(null);
+  }, [requestId, request?.customer_lat, request?.customer_lng]);
 
   const distanceKm = useMemo(() => {
     if (!request?.locksmith_lat || !request?.customer_lat) return null;
