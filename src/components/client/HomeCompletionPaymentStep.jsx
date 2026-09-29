@@ -9,7 +9,7 @@ import { getOpeningConditionFee } from "@/lib/openingCondition";
 
 /** Etapa 6: serviço concluído pelo chaveiro — confirmação e pagamento. */
 export default function HomeCompletionPaymentStep({ config }) {
-  const { activeRequest, selectedLocksmith, handleConfirmService, navigate, handleServicePayment, handleCashPayment, paying, searchError, customerName, goToStep } = config;
+  const { activeRequest, selectedLocksmith, handleConfirmService, navigate, handleServicePayment, handleCashPayment, paying, searchError, customerName, goToStep, onReturnHome } = config;
   return (
     <div className="space-y-3 step-enter">
       <div className="flex flex-col items-center text-center py-4">
@@ -59,13 +59,14 @@ export default function HomeCompletionPaymentStep({ config }) {
               Aguardando o chaveiro finalizar o serviço.
             </p>
           </div>
-          <div className="w-full max-w-xs">
+          <div className="w-full max-w-xs space-y-3">
             <ReceiptButton
               customerView
               serviceRequest={activeRequest}
               locksmith={selectedLocksmith}
               customerName={customerName}
             />
+            <Button variant="outline" className="w-full" onClick={onReturnHome}>Voltar ao início</Button>
           </div>
         </div>
       ) : (

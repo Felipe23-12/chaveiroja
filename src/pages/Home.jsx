@@ -312,6 +312,9 @@ export default function Home() {
         const returningPaymentId = searchParams.get("mercado_pago") === "retorno" ? searchParams.get("local_payment_id") : null;
         const returnedRequest = returningPaymentId ? list.find((r) => r.payment_id === returningPaymentId) : null;
         const active = returnedRequest || list.find((r) => {
+          // Já quitado e com fotos finais: o cliente pode sair sem esperar
+          // o chaveiro acionar a confirmação administrativa no painel.
+          if (r.end_photos?.length > 0 && (r.payment_status === "paid" || (r.payment_method === "dinheiro" && r.cash_received === true))) return false;
           if (r.status === "ringing" || r.status === "queued" || r.status === "accepted" || r.status === "on_the_way") return true;
           if (r.end_photos?.length > 0 && r.status !== "completed" && r.status !== "cancelled") return true;
           // Serviço concluído mas ainda não pago: trata como ativo para reabrir
@@ -1206,7 +1209,7 @@ export default function Home() {
 
       {/* Step 6: Pagamento (após o chaveiro registrar o final do serviço) */}
       {step === 6 && activeRequest && activeRequest.end_photos?.length > 0 && activeRequest.status !== "completed" && (
-        <HomeCompletionPaymentStep config={{ activeRequest, selectedLocksmith, handleConfirmService, navigate, handleServicePayment, handleCashPayment, paying, searchError, customerName, goToStep }} />
+        <HomeCompletionPaymentStep config={{ activeRequest, selectedLocksmith, handleConfirmService, navigate, handleServicePayment, handleCashPayment, paying, searchError, customerName, goToStep, onReturnHome: handleNewRequest }} />
       )}
 
       {/* Step 7: Pagamento de serviço concluído não pago, ou avaliação final */}
