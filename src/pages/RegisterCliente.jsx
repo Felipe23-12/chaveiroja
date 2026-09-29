@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import PasswordInput from "@/components/ui/PasswordInput";
 import { Label } from "@/components/ui/label";
-import { UserPlus, Mail, Loader2, User, Phone, CreditCard } from "lucide-react";
+import { UserPlus, Mail, Loader2, User, Phone } from "lucide-react";
 import AuthLayout from "@/components/AuthLayout";
 import GoogleIcon from "@/components/GoogleIcon";
 import AppleSignInButton from '@/components/auth/AppleSignInButton';

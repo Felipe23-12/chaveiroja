@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { base44 } from "@/api/base44Client";
-import { Mail, Check, Loader2 } from "lucide-react";
+import { Mail, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { GMAIL_CONNECTOR_ID } from "@/lib/gmailStatusEmail";
 

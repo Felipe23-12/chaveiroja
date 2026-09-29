@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { base44 } from "@/api/base44Client";
-import { ShieldCheck, Users, Wrench, ClipboardList, Wallet, Trash2, Power, ArrowDownToLine, CheckCircle2, Info, Bell } from "lucide-react";
+import { ShieldCheck, Users, Wrench, ClipboardList, Wallet, Trash2, ArrowDownToLine, CheckCircle2, Info, Bell } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import AdminCharts from "@/components/admin/AdminCharts";
 import RevenueCommissionChart from "@/components/admin/RevenueCommissionChart";

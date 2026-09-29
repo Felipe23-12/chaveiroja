@@ -1,5 +1,5 @@
 import React from "react";
-import { Gift, Sparkles, Trophy, PartyPopper } from "lucide-react";
+import { Sparkles, Trophy, PartyPopper } from "lucide-react";
 
 export default function PointsProgressCard({ loyalty }) {
   if (!loyalty) return null;

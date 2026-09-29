@@ -5,7 +5,7 @@ import { useAuth } from "@/lib/AuthContext";
 import useLiveDrivingRoute from '@/hooks/useLiveDrivingRoute';
 import { fetchMyLocksmith, fetchLocksmithFinancials, mergeLocksmithFinancials, preserveFinancials } from "@/lib/myLocksmith";
 import prepareLocksmithProfile from '@/lib/locksmithOnboarding';
-import { Wrench, Bell, Check, X, Navigation, Power, Loader2, MapPin, WifiOff, CheckCircle2, Wallet, ArrowLeft, MessageCircle } from "lucide-react";
+import { Wrench, Bell, Check, X, Power, Loader2, MapPin, WifiOff, CheckCircle2, ArrowLeft, MessageCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { usePullToRefresh, PullToRefreshIndicator } from "@/components/ui/PullToRefresh";
 import LightMap from "@/components/map/LightMap";
@@ -18,7 +18,6 @@ import CashReceiptAlert from "@/components/locksmith/CashReceiptAlert";
 import WithdrawalSection from "@/components/locksmith/WithdrawalSection";
 import MercadoPagoConnectSetup from "@/components/locksmith/MercadoPagoConnectSetup";
 import PendingCreditsCard from "@/components/payment/PendingCreditsCard";
-import IncomingRequestAlert from "@/components/locksmith/IncomingRequestAlert";
 import PendingRequestsList from "@/components/locksmith/PendingRequestsList";
 import NearbyRequestsList from "@/components/locksmith/NearbyRequestsList";
 import InactivityRevalidationCard from "@/components/locksmith/InactivityRevalidationCard";
@@ -27,21 +26,13 @@ import LocksmithCaseStatus from "@/components/locksmith/LocksmithCaseStatus";
 import LocksmithCancellationFlow from "@/components/locksmith/LocksmithCancellationFlow";
 import { useToast } from "@/components/ui/use-toast";
 import DarkModeToggle from "@/components/DarkModeToggle";
-import { haversineKm, stepToward, getPreciseLocation, locationErrorMessage } from "@/lib/geo";
+import { haversineKm, getPreciseLocation, locationErrorMessage } from "@/lib/geo";
 import { SERVICE_CATALOG } from "@/lib/pricing";
 import { confirmCashReceived } from "@/lib/payments";
 import { saveLastService, getLastService, clearLastService, saveLocksmithProfile, getLocksmithProfile, isOnline, saveLastRoute, getLastRoute, savePendingRequests, getPendingRequests } from "@/lib/offlineCache";
 import LoadingCard from "@/components/ui/LoadingCard";
-import {
-  AlertDialog,
-  AlertDialogContent,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogAction,
-  AlertDialogCancel,
-} from "@/components/ui/alert-dialog";
+
+
 import { syncServiceUpdate, flushActionQueue, queuedActionsCount, bindAutoFlush } from "@/lib/offlineActionQueue";
 import { playNotificationSound } from "@/lib/notificationSound";
 import ServiceStatusBadge, { PHASE_BORDER } from "@/components/locksmith/ServiceStatusBadge";

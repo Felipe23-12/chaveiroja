@@ -8,7 +8,7 @@ import PasswordInput from "@/components/ui/PasswordInput";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import SpecialtiesSelector from "@/components/locksmith/SpecialtiesSelector";
-import { Wrench, Mail, Loader2, User, Phone, CreditCard } from "lucide-react";
+import { Wrench, Mail, Loader2, User, Phone } from "lucide-react";
 import AuthLayout from "@/components/AuthLayout";
 
 import { safeReturnTo } from "@/lib/authReturnTo";
