@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { Navigation, Plus, Minus, Locate, Wrench } from "lucide-react";
+import { Navigation, Plus, Minus, Locate, Wrench, MapPin, Clock3 } from "lucide-react";
 import ServiceAreaOverlay from '@/components/map/ServiceAreaOverlay';
 
 /**
@@ -50,6 +50,7 @@ function fitZoom(b, w, h, pad = 0.82) {
 const wrap = (n, m) => ((n % m) + m) % m;
 
 export default function LightMap({ center, markers = [], route = null, routePath = null, eta = null, height = 320, renderPopup = null, fitPoints = [], coverageMode = 'standard' }) {
+  const routeMode = Boolean(route || routePath?.length > 1);
   const containerRef = useRef(null);
   const [size, setSize] = useState({ w: 360, h: height });
   const [selected, setSelected] = useState(null);
@@ -108,9 +109,9 @@ export default function LightMap({ center, markers = [], route = null, routePath
       maxLng: Math.max(...lngs),
     };
     const c = { lat: (b.minLat + b.maxLat) / 2, lng: (b.minLng + b.maxLng) / 2 };
-    return { c, z: fitZoom(b, fw, fh) };
+    return { c, z: fitZoom(b, fw, fh, routeMode ? 0.66 : 0.82) };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [allPoints, fw, fh]);
+  }, [allPoints, fw, fh, routeMode]);
 
   // Mantém o zoom escolhido pelo usuário durante atualizações em tempo real.
   // O enquadramento automático só volta quando ele toca em centralizar.
@@ -198,11 +199,11 @@ export default function LightMap({ center, markers = [], route = null, routePath
       onPointerMove={moveDrag}
       onPointerUp={stopDrag}
       onPointerCancel={stopDrag}
-      className={`relative w-full touch-none rounded-2xl overflow-hidden border border-border bg-muted/40 select-none ${dragging ? "cursor-grabbing" : "cursor-grab"}`}
+      className={`relative w-full touch-none rounded-[24px] overflow-hidden border border-slate-200 bg-slate-100 shadow-sm select-none ${dragging ? "cursor-grabbing" : "cursor-grab"}`}
       style={{ height }}
     >
       {/* Fundo: grade mínima de tiles do OpenStreetMap */}
-      <div className="absolute inset-0">
+      <div className="absolute inset-0" style={routeMode ? { filter: "saturate(0.35) contrast(1.04) brightness(1.03)" } : undefined}>
         {tiles.map((t) => (
           <img
             key={t.key}
@@ -225,15 +226,15 @@ export default function LightMap({ center, markers = [], route = null, routePath
       >
         {polyline && (
           <>
-            <polyline points={ptsStr(polyline)} fill="none" stroke="#0ea5e9" strokeWidth={10} opacity={0.25} strokeLinejoin="round" strokeLinecap="round" />
-            <polyline points={ptsStr(polyline)} fill="none" stroke="#0f172a" strokeWidth={5} strokeLinejoin="round" strokeLinecap="round" />
-            <polyline points={ptsStr(polyline)} fill="none" stroke="#38bdf8" strokeWidth={3} strokeDasharray="10 8" strokeLinejoin="round" strokeLinecap="round" />
+            <polyline points={ptsStr(polyline)} fill="none" stroke="#ffffff" strokeWidth={12} opacity={0.95} strokeLinejoin="round" strokeLinecap="round" />
+            <polyline points={ptsStr(polyline)} fill="none" stroke="#111827" strokeWidth={7} strokeLinejoin="round" strokeLinecap="round" />
+            <polyline points={ptsStr(polyline)} fill="none" stroke="#fbbf24" strokeWidth={3} strokeLinejoin="round" strokeLinecap="round" />
           </>
         )}
         {straight && (
           <>
-            <polyline points={ptsStr(straight)} fill="none" stroke="#0ea5e9" strokeWidth={10} opacity={0.25} />
-            <polyline points={ptsStr(straight)} fill="none" stroke="#0f172a" strokeWidth={5} />
+            <polyline points={ptsStr(straight)} fill="none" stroke="#ffffff" strokeWidth={12} opacity={0.95} />
+            <polyline points={ptsStr(straight)} fill="none" stroke="#64748b" strokeWidth={3} strokeDasharray="6 8" />
           </>
         )}
       </svg>
@@ -246,9 +247,7 @@ export default function LightMap({ center, markers = [], route = null, routePath
           if (m.type === "customer") {
             return (
               <div key={m.id} className="absolute -translate-x-1/2 -translate-y-1/2 z-10" style={p}>
-                <div className="w-8 h-8 rounded-full bg-blue-600 border-[3px] border-white shadow-lg flex items-center justify-center text-white text-[11px] font-bold">
-                  Eu
-                </div>
+                <div className="flex flex-col items-center" title={m.label || 'Local do atendimento'}><span className="mb-1 rounded-lg bg-white px-2 py-1 text-[10px] font-semibold text-slate-900 shadow">{routeMode ? 'Destino' : 'Você'}</span><div className="w-9 h-9 rounded-full bg-slate-950 border-[3px] border-white shadow-lg flex items-center justify-center text-white"><MapPin className="w-4 h-4" /></div></div>
               </div>
             );
           }
@@ -303,7 +302,7 @@ export default function LightMap({ center, markers = [], route = null, routePath
                   m.active ? "bg-amber-500" : "bg-emerald-500"
                 }`}
               >
-                <span className="rotate-45 text-white text-[11px] font-bold">{letter}</span>
+                <span className="rotate-45 text-white text-[11px] font-bold">{routeMode ? <Navigation className="h-4 w-4" /> : letter}</span>
               </div>
             </div>
           );
@@ -324,18 +323,17 @@ export default function LightMap({ center, markers = [], route = null, routePath
         );
       })()}
 
-      {eta != null && (
-        <div className="absolute top-2 right-2 z-20 flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-sky-500 text-white shadow-lg text-xs font-bold">
-          <Navigation className="w-3.5 h-3.5" /> {eta} min · chegada
-        </div>
-      )}
+      {routeMode && <div className="absolute top-3 left-3 right-3 z-20 pointer-events-none flex items-start justify-between gap-2">
+        <div className="rounded-2xl bg-slate-950/95 text-white shadow-lg px-3 py-2.5 flex items-center gap-2"><div className="rounded-xl bg-amber-400 p-2 text-slate-950"><Navigation className="w-4 h-4" /></div><div><p className="text-xs font-semibold">{polyline ? 'Acompanhamento da rota' : 'Aguardando rota pelas ruas'}</p><p className="text-[10px] text-slate-300">{polyline ? 'Trajeto até o atendimento' : 'Linha pontilhada indica apenas a direção'}</p></div></div>
+        {eta != null && polyline && <div className="shrink-0 rounded-2xl bg-white px-3 py-2 text-slate-950 shadow-lg text-center"><p className="text-xl font-bold leading-tight">{eta}<span className="text-xs font-medium"> min</span></p><p className="text-[9px] text-slate-500 flex items-center justify-center gap-1"><Clock3 className="h-3 w-3" />estimativa</p></div>}
+      </div>}
 
       {/* Controles de zoom */}
-      <div className="absolute right-2 bottom-8 z-30 flex flex-col gap-1.5">
+      <div className="absolute right-3 bottom-9 z-30 flex flex-col gap-1.5">
         <button
           onPointerDown={(e) => e.stopPropagation()}
           onClick={(e) => { e.stopPropagation(); zoomIn(); }}
-          className="w-9 h-9 min-h-[44px] min-w-[44px] md:min-h-0 md:min-w-0 rounded-lg bg-white/95 hover:bg-white shadow-lg border border-border flex items-center justify-center text-foreground"
+          className="w-11 h-11 min-h-[44px] min-w-[44px] rounded-xl bg-white/95 hover:bg-white shadow-lg border border-slate-200 flex items-center justify-center text-foreground"
           aria-label="Aproximar"
         >
           <Plus className="w-5 h-5" />
@@ -343,7 +341,7 @@ export default function LightMap({ center, markers = [], route = null, routePath
         <button
           onPointerDown={(e) => e.stopPropagation()}
           onClick={(e) => { e.stopPropagation(); zoomOut(); }}
-          className="w-9 h-9 min-h-[44px] min-w-[44px] md:min-h-0 md:min-w-0 rounded-lg bg-white/95 hover:bg-white shadow-lg border border-border flex items-center justify-center text-foreground"
+          className="w-11 h-11 min-h-[44px] min-w-[44px] rounded-xl bg-white/95 hover:bg-white shadow-lg border border-slate-200 flex items-center justify-center text-foreground"
           aria-label="Afastar"
         >
           <Minus className="w-5 h-5" />
@@ -351,7 +349,7 @@ export default function LightMap({ center, markers = [], route = null, routePath
         <button
           onPointerDown={(e) => e.stopPropagation()}
           onClick={(e) => { e.stopPropagation(); recenter(); }}
-          className="w-9 h-9 min-h-[44px] min-w-[44px] md:min-h-0 md:min-w-0 rounded-lg bg-white/95 hover:bg-white shadow-lg border border-border flex items-center justify-center text-primary"
+          className="w-11 h-11 min-h-[44px] min-w-[44px] rounded-xl bg-white/95 hover:bg-white shadow-lg border border-slate-200 flex items-center justify-center text-primary"
           aria-label="Centralizar"
           title="Ajustar à rota"
         >

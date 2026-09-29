@@ -19,6 +19,6 @@ export default function PricingFieldGroup({ group, values, onChange, disabled })
   return <fieldset disabled={disabled} className="rounded-xl border border-border bg-card p-4 space-y-4">
     <legend className="px-2 text-sm font-semibold">{group.title}</legend>
     {fields}
-    {group.title === 'Cobrança por bairro' && <div className="space-y-2 text-xs text-muted-foreground"><p>Aplica-se à mão de obra, por serviço. Valor negativo reduz; 0% mantém. Bairro não identificado não altera o preço. Lista existente de São Paulo e entorno, identificada pelo nome completo no endereço.</p>{Object.entries(NEIGHBORHOOD_TIERS).map(([key, item]) => <details key={key}><summary className="cursor-pointer">{item.label}: bairros cadastrados</summary><p>{[...new Set(item.neighborhoods)].join(', ')}</p></details>)}</div>}
+    {group.title === 'Cobrança por bairro' && <div className="space-y-2 text-xs text-muted-foreground"><p>Aplica-se à mão de obra, por serviço. Valor negativo reduz; 0% mantém. Bairro não identificado não altera o preço. Use o catálogo abaixo para classificar cada bairro, com município e localização. Bairros pendentes ou ambíguos não recebem ajuste.</p>{Object.entries(NEIGHBORHOOD_TIERS).map(([key, item]) => <details key={key}><summary className="cursor-pointer">{item.label}: bairros cadastrados</summary><p>{[...new Set(item.neighborhoods)].join(', ')}</p></details>)}</div>}
   </fieldset>;
 }
