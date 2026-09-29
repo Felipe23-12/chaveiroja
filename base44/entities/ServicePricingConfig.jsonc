@@ -202,6 +202,13 @@
           "year_end"
         ]
       }
+    },
+    "neighborhood_assignments": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "string"
+      },
+      "description": "Classificação administrativa por código único de bairro, específica deste serviço."
     }
   },
   "required": [
