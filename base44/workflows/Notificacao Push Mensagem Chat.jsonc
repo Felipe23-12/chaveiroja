@@ -15,7 +15,7 @@
     "document": {
       "dsl": "1.0.0",
       "name": "push_mensagem_chat",
-      "version": "1.0",
+      "version": "1.1",
       "namespace": "base44"
     },
     "do": [
@@ -25,7 +25,6 @@
           "with": {
             "function_name": "sendChatPushNotification",
             "args": {
-              "_internal_token": "${ .secrets.INTERNAL_CALL_TOKEN }",
               "chat_message_id": "${ .trigger.entity_id }"
             }
           },
