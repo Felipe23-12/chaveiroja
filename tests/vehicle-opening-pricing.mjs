@@ -96,3 +96,10 @@ assert.ok(unknown.calculation.lines.some(l=>l.label.includes('Bairro ainda sem i
 record.values.neighborhood_high=0;
 assert.equal((await quote(vehicle,{address:'Moema'})).price,375,'zero disables group surcharge');
 console.log('PASS: neighborhood defaults, editable percent, Lishi ordering, unknown/zero disclosure and no street/out-of-region false matches.');
+const assignments={'osm_node_2714628617':'medium_high'};
+res=await api.manage(request({action:'save',version:record.id,values:record.values,neighborhood_assignments:assignments}));
+assert.equal(res.status,200);assert.deepEqual(record.neighborhood_assignments,assignments);
+res=await api.manage(request({action:'get'}));assert.deepEqual((await res.json()).neighborhood_assignments,assignments);
+assert.equal((await quote(vehicle,{address:'Moema'})).price,393.75,'saved neighborhood category used by server');
+res=await api.manage(request({action:'save',version:record.id,values:record.values,neighborhood_assignments:{fake:'high'}}));assert.equal(res.status,400);
+console.log('PASS: neighborhood classification save/get roundtrip, server pricing and invalid ID rejection.');
