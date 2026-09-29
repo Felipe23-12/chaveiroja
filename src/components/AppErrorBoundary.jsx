@@ -3,18 +3,10 @@ import { AlertTriangle, RotateCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { base44 } from "@/api/base44Client";
 
-const CACHE_RECOVERY_KEY = "app-cache-recovery";
+import { recoverModuleLoad } from "@/lib/moduleRecovery";
 
 export default class AppErrorBoundary extends React.Component {
   state = { failed: false, diagnostic: "" };
-
-  componentDidMount() {
-    this.recoveryTimer = window.setTimeout(() => sessionStorage.removeItem(CACHE_RECOVERY_KEY), 10000);
-  }
-
-  componentWillUnmount() {
-    window.clearTimeout(this.recoveryTimer);
-  }
 
   static getDerivedStateFromError() {
     return { failed: true };
@@ -31,17 +23,10 @@ export default class AppErrorBoundary extends React.Component {
       component_stack: String(info?.componentStack || ""),
       path: `${window.location.pathname}${window.location.search}`,
     }).catch(() => {});
-    const staleModule = /requested module|dynamically imported module|module script|chunkloaderror/i.test(message);
-    if (staleModule && !sessionStorage.getItem(CACHE_RECOVERY_KEY)) {
-      sessionStorage.setItem(CACHE_RECOVERY_KEY, "1");
-      const url = new URL(window.location.href);
-      url.searchParams.set("app_refresh", Date.now().toString());
-      window.location.replace(url.toString());
-    }
+    recoverModuleLoad(error);
   }
 
   reload = () => {
-    sessionStorage.removeItem(CACHE_RECOVERY_KEY);
     const url = new URL(window.location.href);
     url.searchParams.set("app_refresh", Date.now().toString());
     window.location.replace(url.toString());

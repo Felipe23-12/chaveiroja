@@ -1,4 +1,6 @@
 import React, { lazy, Suspense } from 'react';
+import { importWithRetry } from '@/lib/moduleRecovery';
+const lazyPage = loader => lazy(() => importWithRetry(loader));
 import { Toaster } from "@/components/ui/toaster"
 import { QueryClientProvider } from '@tanstack/react-query'
 import { queryClientInstance } from '@/lib/query-client'
@@ -20,40 +22,40 @@ import CustomerCoverageGate from '@/components/location/CustomerCoverageGate';
 
 // Páginas carregadas sob demanda — reduz o tempo de inicialização em
 // conexões móveis lentas (WebView), pois só o código da rota atual é baixado.
-const Home = lazy(() => import('@/pages/Home'));
-const History = lazy(() => import('@/pages/History'));
-const LocksmithProfile = lazy(() => import('@/pages/LocksmithProfile'));
-const Mapa = lazy(() => import('@/pages/Mapa'));
-const Chat = lazy(() => import('@/pages/Chat'));
-const PainelChaveiro = lazy(() => import('@/pages/PainelChaveiro'));
-const PainelFinanceiro = lazy(() => import('@/pages/PainelFinanceiro'));
-const LocksmithPublicProfile = lazy(() => import('@/pages/LocksmithPublicProfile'));
-const Login = lazy(() => import('@/pages/Login'));
-const Register = lazy(() => import('@/pages/Register'));
-const ForgotPassword = lazy(() => import('@/pages/ForgotPassword'));
-const ResetPassword = lazy(() => import('@/pages/ResetPassword'));
-const RegisterCliente = lazy(() => import('@/pages/RegisterCliente'));
-const RegisterChaveiro = lazy(() => import('@/pages/RegisterChaveiro'));
-const PainelAdmin = lazy(() => import('@/pages/PainelAdmin'));
-const PainelFinanceiroAdmin = lazy(() => import('@/pages/PainelFinanceiroAdmin'));
-const GoogleComplete = lazy(() => import('@/pages/GoogleComplete'));
-const GoogleSignInReturn = lazy(() => import('@/pages/GoogleSignInReturn'));
-const PoliticaReembolso = lazy(() => import('@/pages/PoliticaReembolso'));
-const TermosPrivacidade = lazy(() => import('@/pages/TermosPrivacidade'));
-const Acompanhamento = lazy(() => import('@/pages/Acompanhamento'));
-const Pagamentos = lazy(() => import('@/pages/Pagamentos'));
-const AceiteTermos = lazy(() => import('@/pages/AceiteTermos'));
-const CadastroRecebimentos = lazy(() => import('@/pages/CadastroRecebimentos'));
-const CreatePassword = lazy(() => import('@/pages/CreatePassword'));
-const ExclusaoConta = lazy(() => import('@/pages/ExclusaoConta'));
-const Sobre = lazy(() => import('@/pages/Sobre'));
-const Contato = lazy(() => import('@/pages/Contato'));
-const About = lazy(() => import('@/pages/About'));
-const Contact = lazy(() => import('@/pages/Contact'));
-const CalculosChamados = lazy(() => import('@/pages/CalculosChamados'));
-const QuoteMode = lazy(() => import('@/pages/QuoteMode'));
-const Sugestoes = lazy(() => import('@/pages/Sugestoes'));
-const MeusDados = lazy(() => import('@/pages/MeusDados'));
+const Home = lazyPage(() => import('@/pages/Home'));
+const History = lazyPage(() => import('@/pages/History'));
+const LocksmithProfile = lazyPage(() => import('@/pages/LocksmithProfile'));
+const Mapa = lazyPage(() => import('@/pages/Mapa'));
+const Chat = lazyPage(() => import('@/pages/Chat'));
+const PainelChaveiro = lazyPage(() => import('@/pages/PainelChaveiro'));
+const PainelFinanceiro = lazyPage(() => import('@/pages/PainelFinanceiro'));
+const LocksmithPublicProfile = lazyPage(() => import('@/pages/LocksmithPublicProfile'));
+const Login = lazyPage(() => import('@/pages/Login'));
+const Register = lazyPage(() => import('@/pages/Register'));
+const ForgotPassword = lazyPage(() => import('@/pages/ForgotPassword'));
+const ResetPassword = lazyPage(() => import('@/pages/ResetPassword'));
+const RegisterCliente = lazyPage(() => import('@/pages/RegisterCliente'));
+const RegisterChaveiro = lazyPage(() => import('@/pages/RegisterChaveiro'));
+const PainelAdmin = lazyPage(() => import('@/pages/PainelAdmin'));
+const PainelFinanceiroAdmin = lazyPage(() => import('@/pages/PainelFinanceiroAdmin'));
+const GoogleComplete = lazyPage(() => import('@/pages/GoogleComplete'));
+const GoogleSignInReturn = lazyPage(() => import('@/pages/GoogleSignInReturn'));
+const PoliticaReembolso = lazyPage(() => import('@/pages/PoliticaReembolso'));
+const TermosPrivacidade = lazyPage(() => import('@/pages/TermosPrivacidade'));
+const Acompanhamento = lazyPage(() => import('@/pages/Acompanhamento'));
+const Pagamentos = lazyPage(() => import('@/pages/Pagamentos'));
+const AceiteTermos = lazyPage(() => import('@/pages/AceiteTermos'));
+const CadastroRecebimentos = lazyPage(() => import('@/pages/CadastroRecebimentos'));
+const CreatePassword = lazyPage(() => import('@/pages/CreatePassword'));
+const ExclusaoConta = lazyPage(() => import('@/pages/ExclusaoConta'));
+const Sobre = lazyPage(() => import('@/pages/Sobre'));
+const Contato = lazyPage(() => import('@/pages/Contato'));
+const About = lazyPage(() => import('@/pages/About'));
+const Contact = lazyPage(() => import('@/pages/Contact'));
+const CalculosChamados = lazyPage(() => import('@/pages/CalculosChamados'));
+const QuoteMode = lazyPage(() => import('@/pages/QuoteMode'));
+const Sugestoes = lazyPage(() => import('@/pages/Sugestoes'));
+const MeusDados = lazyPage(() => import('@/pages/MeusDados'));
 // Add page imports here
 
 const PageFallback = () => (
