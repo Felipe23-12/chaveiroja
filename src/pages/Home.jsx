@@ -324,6 +324,18 @@ export default function Home() {
           if (!isNaN(urlStep) && urlStep >= 3) goToStep(1);
           return;
         }
+        // Ao retomar, os marcos já salvos não são novos eventos.
+        const finished = active.end_photos?.length > 0 || active.client_confirmed || active.status === "completed";
+        notifiedAccepted.current = finished || ["accepted", "on_the_way"].includes(active.status);
+        notifiedMoving.current = finished || active.status === "on_the_way";
+        notifiedArrived.current = finished || !!active.locksmith_arrived;
+        notifiedNearby.current = finished || !!active.locksmith_arrived || (
+          [active.locksmith_lat, active.locksmith_lng, active.customer_lat, active.customer_lng].every(Number.isFinite) &&
+          haversineKm({ lat: active.locksmith_lat, lng: active.locksmith_lng }, { lat: active.customer_lat, lng: active.customer_lng }) <= 1
+        );
+        notifiedEnd.current = !!finished;
+        notifiedCompleted.current = active.status === "completed";
+        notifiedConditionAdjustment.current = hasLocksmithConditionCorrection(active);
         setActiveRequest(active);
         reqRef.current = active.id;
         if (active.locksmith_id) {
@@ -788,6 +800,10 @@ export default function Home() {
     ensureNotificationPermission();
     return watchServiceRequest(activeRequest.id, (updated) => {
           setActiveRequest(updated);
+          // O status pode continuar on_the_way até a quitação: a finalização
+          // prevalece e nunca deve mandar o cliente de volta ao acompanhamento.
+          const travelling = ["accepted", "on_the_way"].includes(updated.status) &&
+            !updated.end_photos?.length && !updated.client_confirmed;
           if (updated.status === "cancelled" && updated.cancelled_by !== "cliente") {
             notifyClient("Chamado cancelado", updated.cancelled_by === "chaveiro" ? "O chaveiro cancelou o atendimento." : "O atendimento foi cancelado automaticamente.");
             toast({
@@ -805,7 +821,7 @@ export default function Home() {
           if (updated.status === "queued" && step === 3) {
             goToStep(4);
           }
-          if (["accepted", "on_the_way"].includes(updated.status) && !notifiedAccepted.current) {
+          if (travelling && !notifiedAccepted.current) {
             notifiedAccepted.current = true;
             sendServiceStatusMessage("accepted", { request: updated, locksmith: selectedLocksmith });
             notifyClient("Chaveiro aceitou seu pedido!", `${updated.locksmith_name || selectedLocksmith?.name || "O chaveiro"} confirmou o atendimento.`);
@@ -816,7 +832,7 @@ export default function Home() {
             );
             navigate(`/acompanhamento/${updated.id}`);
           }
-          if (updated.status === "on_the_way" && step === 4) {
+          if (travelling && updated.status === "on_the_way" && step === 4) {
             goToStep(5);
           }
           if (hasLocksmithConditionCorrection(updated) && !notifiedConditionAdjustment.current) {
@@ -836,7 +852,7 @@ export default function Home() {
           }
 
           // Notificação: chaveiro iniciou o deslocamento
-          if (updated.status === "on_the_way" && !notifiedMoving.current) {
+          if (travelling && updated.status === "on_the_way" && !notifiedMoving.current) {
             notifiedMoving.current = true;
             sendServiceStatusMessage("on_the_way", { request: updated, locksmith: selectedLocksmith });
             notifyClient(
@@ -851,6 +867,7 @@ export default function Home() {
 
           // Notificação: chaveiro a menos de 1 km de distância
           if (
+            travelling && !updated.locksmith_arrived &&
             updated.locksmith_lat &&
             updated.customer_lat &&
             !notifiedNearby.current
@@ -874,7 +891,7 @@ export default function Home() {
           }
 
           // Notificação: chaveiro chegou ao local
-          if (updated.locksmith_arrived && !notifiedArrived.current) {
+          if (travelling && updated.locksmith_arrived && !updated.client_arrived_confirmed && !notifiedArrived.current) {
             notifiedArrived.current = true;
             sendServiceStatusMessage("arrived", { request: updated, locksmith: selectedLocksmith });
             notifyClient("Chaveiro chegou!", `${selectedLocksmith?.name || "O chaveiro"} chegou ao seu endereço. Confirme a chegada.`);
@@ -882,7 +899,7 @@ export default function Home() {
           }
 
           // Notificação: chaveiro registrou o final do serviço (hora de confirmar e pagar)
-          if (updated.end_photos?.length > 0 && !notifiedEnd.current) {
+          if (updated.end_photos?.length > 0 && !updated.client_confirmed && updated.status !== "completed" && !notifiedEnd.current) {
             notifiedEnd.current = true;
             sendServiceStatusMessage("finished", { request: updated, locksmith: selectedLocksmith });
             notifyClient("Serviço concluído!", "O chaveiro finalizou o atendimento. Confirme e efetue o pagamento.");
