@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import catalog from '../../../base44/shared/neighborhoodData/catalog';
 import manifest from '../../../base44/shared/neighborhoodData/manifest';
 import { NEIGHBORHOOD_TIERS } from '../../../base44/shared/neighborhoodPricing';
-const norm=value=>String(value||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
+const norm=value=>String(value||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,' ').trim();
 const byId=new Map(catalog.map(row=>[row.id,row]));
 export default function NeighborhoodCatalogEditor({assignments={},onChange,disabled}) {
  const [city,setCity]=useState('São Paulo'),[search,setSearch]=useState(''),[page,setPage]=useState(0);

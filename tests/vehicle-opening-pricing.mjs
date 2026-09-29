@@ -80,9 +80,10 @@ assert.throws(()=>api.validateVehicleOpeningRules([{...availabilityOnly,simple_u
 console.log('PASS: availability-only save, per-method server blocking, both blocked, other-year isolation and reenabling.');
 record.vehicle_opening_rules=[];
 record.values={...values};
+data.customer_lat=-23.597085;data.customer_lng=-46.6628884;
 let byNeighborhood=await quote(vehicle,{address:'Rua Exemplo, 100 - Moema, São Paulo - SP'});
 assert.equal(byNeighborhood.price,431.25,'restored neighborhood +15% after rain on labor');
-assert.ok(byNeighborhood.calculation.lines.some(l=>l.label.includes('Bairro: moema') && l.value===56.25));
+assert.ok(byNeighborhood.calculation.lines.some(l=>l.label.includes('Bairro: Moema') && l.value===56.25));
 let neighborhoodLishi=await quote({...vehicle,opening_method:'lishi'},{address:'Rua Exemplo, 100 - Moema, São Paulo - SP'});
 assert.equal(neighborhoodLishi.price,603.75,'Lishi applied once after neighborhood');
 record.values.neighborhood_high=20;
@@ -91,7 +92,7 @@ assert.equal((await quote(vehicle,{address:'Rua Moema, 100 - Bairro desconhecido
 assert.equal((await quote(vehicle,{address:'Rua José, 100 - Bairro desconhecido, São Paulo - SP'})).price,375,'Sé not matched inside José');
 assert.equal((await quote(vehicle,{address:'Moema',customer_lat:-22.9,customer_lng:-43.2})).price,375,'SP list not applied in another state');
 let unknown=await quote(vehicle,{address:'Rua desconhecida'});
-assert.ok(unknown.calculation.lines.some(l=>l.label.includes('Bairro não identificado') && l.value===0),'no adjustment explicitly recorded');
+assert.ok(unknown.calculation.lines.some(l=>l.label.includes('Bairro ainda sem identificação confirmada') && l.value===0),'no adjustment explicitly recorded');
 record.values.neighborhood_high=0;
 assert.equal((await quote(vehicle,{address:'Moema'})).price,375,'zero disables group surcharge');
 console.log('PASS: neighborhood defaults, editable percent, Lishi ordering, unknown/zero disclosure and no street/out-of-region false matches.');
