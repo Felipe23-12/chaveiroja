@@ -1,0 +1,17 @@
+import assert from 'node:assert/strict';
+import { importWithRetry, recoverModuleLoad } from '../src/lib/moduleRecovery.js';
+const error=new TypeError('Failed to fetch dynamically imported module: https://example.test/Home-old.js');
+let calls=0;const module={default:'Home'};
+assert.equal(await importWithRetry(async()=>{if(++calls===1)throw error;return module;},async()=>{}),module);
+assert.equal(calls,2);
+calls=0;await assert.rejects(importWithRetry(async()=>{calls++;throw Error('render bug');},async()=>{}));assert.equal(calls,1);
+calls=0;await assert.rejects(importWithRetry(async()=>{calls++;throw error;},async()=>{}));assert.equal(calls,2);
+const saved=new Map();let urls=[];
+const win={navigator:{onLine:true},sessionStorage:{getItem:k=>saved.get(k),setItem:(k,v)=>saved.set(k,v)},location:{href:'https://example.test/Home?request=123#tracking',replace:u=>urls.push(u)}};
+assert.equal(recoverModuleLoad(error,win,1000000),true);
+assert.equal(recoverModuleLoad(error,win,1001000),false);assert.equal(urls.length,1);
+assert.ok(urls[0].includes('request=123'));assert.ok(urls[0].endsWith('#tracking'));
+win.navigator.onLine=false;assert.equal(recoverModuleLoad(error,win,2000000),false);
+win.navigator.onLine=true;win.sessionStorage.getItem=()=>{throw Error('blocked');};assert.equal(recoverModuleLoad(error,win,2000000),false);
+assert.equal(recoverModuleLoad(Error('render bug'),win),false);
+console.log('PASS: transient retry, bounded failure, no retry for application errors, cooldown, offline/blocked storage, route preservation.');
