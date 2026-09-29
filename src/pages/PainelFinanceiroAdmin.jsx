@@ -1,8 +1,8 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, { lazy, Suspense, useState, useEffect, useMemo } from "react";
 import { base44 } from "@/api/base44Client";
 import { Wallet, TrendingUp, Receipt, Percent, Loader2, CreditCard, QrCode, Banknote } from "lucide-react";
 import { COMMISSION_RATE } from "@/lib/payments";
-import FinanceCharts from "@/components/admin/FinanceCharts";
+const FinanceCharts = lazy(() => import("@/components/admin/FinanceCharts"));
 import PendingCreditsCard from "@/components/payment/PendingCreditsCard";
 import PendingPayoutsOverview from "@/components/admin/PendingPayoutsOverview";
 import NotifyMissingMercadoPagoButton from "@/components/admin/NotifyMissingMercadoPagoButton";
