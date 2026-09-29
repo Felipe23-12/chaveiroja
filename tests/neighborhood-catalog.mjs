@@ -18,9 +18,15 @@ for(const rows of groups.values())if(rows.length>1)for(const row of rows){const 
 assert.ok(resolvedHomonyms>10,'homonyms differentiated at their own coordinates');
 const candidate=catalog.find(r=>!r.boundary_verified&&r.city!=='São Paulo'&&resolve(r.name,r.lat,r.lng).row?.id===r.id);
 assert.ok(candidate);
-assert.equal(price(candidate.name,candidate.lat,candidate.lng,{}).percent,0,'new unclassified locality has no guessed adjustment');
+assert.equal(price(candidate.name,candidate.lat,candidate.lng,{}).percent,0,'middle-class default is zero percent');
 assert.equal(price(candidate.name,candidate.lat,candidate.lng,{neighborhood_high:17},{[candidate.id]:'high'}).percent,17);
 assert.equal(price(candidate.name,candidate.lat,candidate.lng,{}, {[candidate.id]:'neutral'}).percent,0);
 assert.deepEqual(validate({[candidate.id]:'high'}),{[candidate.id]:'high'});
 assert.throws(()=>validate({'unknown':'high'}));assert.throws(()=>validate({[candidate.id]:'invalid'}));
 console.log(`PASS: 3138 unique records, 486 official boundaries, municipality-safe neighbors, ${resolvedHomonyms} homonym positions, street/out-of-area protection, pending/neutral pricing and assignment validation.`);
+
+assert.equal(price(candidate.name,candidate.lat,candidate.lng,{neighborhood_medium:7}).percent,7,'unclassified uses configured middle-class rate');
+assert.match(price(candidate.name,candidate.lat,candidate.lng,{}).label,/classe média/);
+assert.equal(price(candidate.name,candidate.lat,candidate.lng,{neighborhood_medium:7},{[candidate.id]:'pending'}).percent,7,'previous pending uses middle-class default');
+assert.equal(price(candidate.name,candidate.lat,candidate.lng,{neighborhood_medium:7},{[candidate.id]:'neutral'}).percent,0,'explicit neutral override preserved');
+console.log('PASS: middle-class default, previous pending records, editable rate, explicit neutral preserved.');

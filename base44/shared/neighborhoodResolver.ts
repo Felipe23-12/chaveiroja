@@ -35,7 +35,8 @@ export function catalogNeighborhoodPricing(address,lat,lng,settings,assignments=
  if(!found.row)return {label:`${found.reason}${found.city?` · ${found.city}`:''}`,percent:0,alwaysShow:true};
  const row=found.row;
  const legacy = row.city==='São Paulo' ? Object.entries(NEIGHBORHOOD_TIERS).find(([,value])=>value.neighborhoods.some(name=>norm(name)===norm(row.name)))?.[0] : null;
- const tier=assignments[row.id]??legacy??'pending';
+ const assigned=assignments[row.id];
+ const tier=assigned==='pending'?'medium':(assigned??legacy??'medium');
  const category=NEIGHBORHOOD_TIERS[tier];
  return {label:`Bairro: ${row.name} · ${row.city}/SP · ${category?.label||(tier==='neutral'?'Sem ajuste':'Classificação pendente')}`,percent:category?(settings[`neighborhood_${tier}`]??Math.round((category.multiplier-1)*100)):0,alwaysShow:true,source:`${found.method}. Fonte: ${row.source}. ${row.source_url}`};
 }
