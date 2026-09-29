@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { lazy, Suspense, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
 import { useAuth } from "@/lib/AuthContext";
@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import LoadingCard from "@/components/ui/LoadingCard";
 import ChargeCalculationCard from "@/components/admin/ChargeCalculationCard";
 import NeighborhoodPricingPanel from "@/components/admin/NeighborhoodPricingPanel";
-import RegionalPricingPanel from "@/components/admin/RegionalPricingPanel";
+const RegionalPricingPanel = lazy(() => import("@/components/admin/RegionalPricingPanel"));
 export default function CalculosChamados() {
   const { user } = useAuth();
   const [serviceType, setServiceType] = useState("");
@@ -22,7 +22,7 @@ export default function CalculosChamados() {
   return <div className="mx-auto max-w-3xl space-y-4 px-4 py-6">
     <h1 className="font-heading text-2xl font-bold">Cálculos dos chamados</h1>
     <p className="text-sm text-muted-foreground">Consulte os cálculos registrados e configure as faixas regionais para novos pedidos, sem alterar cobranças de chamados existentes.</p>
-    <RegionalPricingPanel />
+    <Suspense fallback={<LoadingCard label="Carregando preços regionais..." />}><RegionalPricingPanel /></Suspense>
     <NeighborhoodPricingPanel />
     <div className="flex flex-wrap gap-3">
       <select aria-label="Tipo de serviço" value={serviceType} onChange={(e) => { setServiceType(e.target.value); setPage(0); }} className="min-h-11 max-w-full flex-1 rounded-md border border-input bg-background px-3 text-sm"><option value="">Todos os serviços</option>{SERVICE_CATALOG.map((s) => <option key={s.id} value={s.label}>{s.label}</option>)}</select>
