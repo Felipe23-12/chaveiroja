@@ -29,6 +29,7 @@ import { ensureNotificationPermission, notifyClient } from "@/lib/clientNotifica
 import { sendServiceStatusMessage } from "@/lib/serviceStatusMessages";
 import { Image } from "@/components/ui/image";
 import StepProgress from "@/components/ui/StepProgress";
+import StepTransition from "@/components/ui/StepTransition";
 import ErrorBanner from "@/components/ui/ErrorBanner";
 import { useToast } from "@/components/ui/use-toast";
 import CancelFeeConfirmDialog from "@/components/client/CancelFeeConfirmDialog";
@@ -1118,6 +1119,7 @@ export default function Home() {
         <StepProgress step={step} total={7} />
       )}
 
+      <StepTransition stepKey={step}>
       {/* Step 1: Serviço */}
       {step === 1 && showAppFlow && !cancelFeeData && registrationComplete && (
         <HomeServiceSelectionStep config={{ keyBlock, loyalty, serviceId, setServiceId, setOpeningReason, setBrokenKeyInLock, goToStep }} />
@@ -1225,6 +1227,8 @@ export default function Home() {
           onNewRequest={handleNewRequest}
         />
       )}
+
+      </StepTransition>
 
       {/* Tela de pagamento da taxa de cancelamento */}
       {cancelFeeData && activeRequest && !cancelConfirmOpen && (

@@ -18,6 +18,9 @@ import { useChatUnread } from "@/lib/chatUnreadStore";
 import PageTransition from "@/components/PageTransition";
 import ChargeCalculationsLink from "@/components/admin/ChargeCalculationsLink";
 import { getEffectiveRole, canAccess } from "@/lib/accessControl";
+import useMobileMenuHistory from '@/hooks/useMobileMenuHistory';
+
+const rootPaths = ['/', '/mapa', '/historico', '/pagamentos', '/painel-chaveiro', '/painel-financeiro', '/modo-trabalho', '/painel-admin', '/painel-financeiro-admin', '/sugestoes'];
 
 const ALL_NAV = [
   { label: "Início", path: "/", icon: HomeIcon, roles: ["cliente"] },
@@ -167,6 +170,7 @@ function MobileTopBar({ onMenu }) {
   const effectiveRole = getEffectiveRole(user);
   const navItems = ALL_NAV.filter((i) => canAccess(user, i.roles));
   const current = navItems.find((i) => i.path === location.pathname);
+  if (!rootPaths.includes(location.pathname)) return null;
   return (
     <div className="md:hidden sticky top-0 z-40 flex h-[calc(3.5rem+env(safe-area-inset-top))] items-center justify-between border-b border-border bg-card px-4 pt-safe">
       <Link to={effectiveRole === "chaveiro" ? "/painel-chaveiro" : effectiveRole === "admin" ? "/painel-admin" : "/"} className="flex items-center gap-2">
@@ -193,7 +197,7 @@ function MobileTopBar({ onMenu }) {
   );
 }
 
-function MobileDrawer({ open, onClose }) {
+function MobileDrawer({ open, onClose, onNavigate }) {
   if (!open) return null;
   return (
     <div className="md:hidden fixed inset-0 z-50 flex">
@@ -205,15 +209,16 @@ function MobileDrawer({ open, onClose }) {
             <X className="w-5 h-5" />
           </button>
         </div>
-        <SidebarContent onNavigate={onClose} />
+        <SidebarContent onNavigate={onNavigate} />
       </aside>
     </div>
   );
 }
 
 export default function Layout() {
-  const [drawerOpen, setDrawerOpen] = useState(false);
   const location = useLocation();
+  const isRootPath = rootPaths.includes(location.pathname);
+  const { open, openMenu, closeMenu, navigateFromMenu } = useMobileMenuHistory();
   return (
     <div className="flex min-h-[100dvh] flex-col bg-background md:flex-row">
       <GlobalLocksmithRequestAlert />
@@ -221,17 +226,17 @@ export default function Layout() {
       <LocksmithChatFab />
       <ReportCaseCenter />
       <ServiceFinishAlert />
-      <MobileTopBar onMenu={() => setDrawerOpen(true)} />
-      <MobileDrawer open={drawerOpen} onClose={() => setDrawerOpen(false)} />
+      <MobileTopBar onMenu={openMenu} />
+      <MobileDrawer open={open} onClose={closeMenu} onNavigate={navigateFromMenu} />
       <aside className="hidden md:flex md:w-64 md:min-h-screen bg-card border-r border-border flex-col sticky top-0 md:h-screen">
         <SidebarContent onNavigate={() => {}} />
       </aside>
-      <main className="min-w-0 flex-1 pb-[calc(4rem+env(safe-area-inset-bottom))] md:pb-0">
+      <main className={`min-w-0 flex-1 ${isRootPath ? 'pb-[calc(4rem+env(safe-area-inset-bottom))]' : 'pb-safe'} md:pb-0`}>
         <PageTransition key={location.pathname}>
           <Outlet />
         </PageTransition>
       </main>
-      <MobileTabBar />
+      {isRootPath && <MobileTabBar />}
     </div>
   );
 }

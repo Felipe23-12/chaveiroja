@@ -8,7 +8,8 @@ export const isTabActive = (tab, path) => tab === path || (tab !== '/' && path.s
 
 export default function useMobileTabNavigation(location, tabs, identity) {
   if (owner !== identity) { owner = identity; routes = {}; scroll = {}; }
-  const path = `${location.pathname}${location.search}${location.hash}`;
+  const hash = location.hash === '#menu' ? '' : location.hash;
+  const path = `${location.pathname}${location.search}${hash}`;
   const active = tabs.find(tab => isTabActive(tab.path, location.pathname));
   const lastPosition = useRef(window.scrollY);
   useLayoutEffect(() => {
@@ -22,14 +23,14 @@ export default function useMobileTabNavigation(location, tabs, identity) {
     };
   }, [path, active?.path, identity]);
   useEffect(() => {
-    if (!window.matchMedia('(max-width: 767px)').matches || location.hash) return;
+    if (!window.matchMedia('(max-width: 767px)').matches || hash) return;
     const saved = scroll[path];
     if (saved == null) return;
     const restore = () => window.scrollTo({ top: saved, left: 0, behavior: 'instant' });
     const frame = requestAnimationFrame(restore);
     const timer = setTimeout(restore, 220);
     return () => { cancelAnimationFrame(frame); clearTimeout(timer); };
-  }, [path, identity, location.hash]);
+  }, [path, identity, hash]);
   const destination = tab => active?.path === tab ? path : routes[tab] || tab;
   const onClick = (event, tab) => {
     if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey || event.button !== 0) return;
