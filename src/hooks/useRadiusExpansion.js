@@ -47,6 +47,5 @@ export function useRadiusExpansion({ request, service, locksmiths, customerLoc, 
     }, RADIUS_EXPAND_INTERVAL_MS);
 
     return () => clearInterval(timer);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [enabled, request?.id, request?.status, service?.id, locksmiths.length]);
 }
