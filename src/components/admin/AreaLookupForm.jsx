@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { base44 } from '@/api/base44Client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import NativeSelectDrawer from '@/components/ui/NativeSelectDrawer';
 const types = [['street','Rua'],['neighborhood','Bairro'],['city','Cidade'],['state','Estado'],['country','País']];
 export default function AreaLookupForm({ onAdd, disabled }) {
   const [scope, setScope] = useState('city'); const [query, setQuery] = useState('');
@@ -13,7 +14,7 @@ export default function AreaLookupForm({ onAdd, disabled }) {
   };
   const add = async area => { setBusy(true); setError(''); try { await onAdd(area); setResults([]); setQuery(''); } catch (e) { setError(e.message); } finally { setBusy(false); } };
   return <div className="space-y-3"><form onSubmit={search} className="flex flex-col gap-2 sm:flex-row">
-    <select aria-label="Tipo de área" value={scope} onChange={e => { setScope(e.target.value); setResults([]); }} disabled={busy} className="h-11 rounded-md border border-input bg-background px-3 text-sm">{types.map(([value,label]) => <option key={value} value={value}>{label}</option>)}</select>
+    <NativeSelectDrawer label="Tipo de área" value={scope} onChange={next => { setScope(next); setResults([]); }} disabled={busy} className="sm:w-auto" options={types.map(([value, label]) => ({ value, label }))} />
     <Input required minLength={3} maxLength={140} value={query} onChange={e => { setQuery(e.target.value); setResults([]); }} disabled={busy} placeholder="Ex.: Osasco, São Paulo, Brasil" aria-label="Localidade" className="h-11 flex-1" />
     <Button disabled={disabled || busy}>{busy ? 'Buscando…' : 'Buscar limites'}</Button></form>
     {error && <p role="alert" className="text-sm text-destructive">{error}</p>}

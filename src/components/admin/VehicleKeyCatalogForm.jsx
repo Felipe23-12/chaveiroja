@@ -1,4 +1,5 @@
 import React from "react";
+import NativeSelectDrawer from '@/components/ui/NativeSelectDrawer';
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import KeyProgrammingFields from "@/components/admin/KeyProgrammingFields";
@@ -18,15 +19,11 @@ export default function VehicleKeyCatalogForm({ value, onChange, onSave, saving 
   const yearRange = value.vehicle_type === "carro" ? getVehicleYearRange(value.make, value.model) : null;
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
-      <select value={value.vehicle_type || "carro"} onChange={(e) => onChange({ ...value, vehicle_type: e.target.value })} className="h-10 rounded-md border border-input bg-background px-3 text-sm">
-        <option value="carro">Carro</option><option value="moto">Moto</option>
-      </select>
-      <select value={value.key_style || "nao_confirmado"} onChange={(e) => onChange({ ...value, key_style: e.target.value })} className="h-10 rounded-md border border-input bg-background px-3 text-sm">
-        <option value="nao_confirmado">Arquitetura não confirmada</option><option value="lamina_sem_pcf">Lâmina sem PCF</option><option value="canivete_sem_pcf">Canivete sem PCF</option><option value="pcf_integrado">PCF integrado</option><option value="presenca">Presença</option>
-      </select>
-      <select value={value.factory_alarm_status || "nao_confirmado"} onChange={(e) => onChange({ ...value, factory_alarm_status: e.target.value })} className="h-10 rounded-md border border-input bg-background px-3 text-sm">
-        <option value="nao_confirmado">Alarme de fábrica não confirmado</option><option value="original">Possui alarme original</option><option value="ausente">Sem alarme original</option>
-      </select>
+      <NativeSelectDrawer label="Tipo de veículo" value={value.vehicle_type || 'carro'} onChange={next => onChange({ ...value, vehicle_type: next })} options={[{ value: 'carro', label: 'Carro' }, { value: 'moto', label: 'Moto' }]} />
+      <NativeSelectDrawer label="Arquitetura da chave" value={value.key_style || 'nao_confirmado'} onChange={next => onChange({ ...value, key_style: next })} options={[
+        { value: 'nao_confirmado', label: 'Arquitetura não confirmada' }, { value: 'lamina_sem_pcf', label: 'Lâmina sem PCF' }, { value: 'canivete_sem_pcf', label: 'Canivete sem PCF' }, { value: 'pcf_integrado', label: 'PCF integrado' }, { value: 'presenca', label: 'Presença' },
+      ]} />
+      <NativeSelectDrawer label="Alarme de fábrica" value={value.factory_alarm_status || 'nao_confirmado'} onChange={next => onChange({ ...value, factory_alarm_status: next })} options={[{ value: 'nao_confirmado', label: 'Alarme de fábrica não confirmado' }, { value: 'original', label: 'Possui alarme original' }, { value: 'ausente', label: 'Sem alarme original' }]} />
       <KeyProgrammingFields value={value} onChange={onChange} />
       <ManualKeyPriceFields value={value} onChange={onChange} />
       {(value.vehicle_type || "carro") === "carro" ? (

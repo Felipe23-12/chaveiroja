@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import NativeSelectDrawer from '@/components/ui/NativeSelectDrawer';
 import { base44 } from "@/api/base44Client";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -34,7 +35,7 @@ export default function ReportForm({ data, onDone }) {
   };
   return <form onSubmit={submit} className="space-y-4">
     {error && <p className="rounded-lg bg-destructive/10 p-3 text-sm text-destructive">{error}</p>}
-    <select value={category} onChange={(e) => setCategory(e.target.value)} className="h-11 w-full rounded-md border border-input bg-background px-3 text-sm">{CATEGORIES.map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select>
+    <NativeSelectDrawer label="Categoria da denúncia" value={category} onChange={setCategory} options={CATEGORIES.map(([value, label]) => ({ value, label }))} />
     <Textarea value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Descreva detalhadamente o que aconteceu" rows={4} required />
     <PhotoUploader photos={photos} onChange={setPhotos} label="Evidências em fotos (opcional)" />
     <Button type="submit" className="w-full" disabled={saving || !description.trim()}>{saving ? "Enviando..." : "Enviar para análise"}</Button>

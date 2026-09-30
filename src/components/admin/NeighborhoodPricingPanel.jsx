@@ -4,6 +4,7 @@ import { serviceTypes } from '../../../base44/shared/servicePricingSettings';
 import NeighborhoodCatalogEditor from './NeighborhoodCatalogEditor';
 import PricingFieldGroup from './PricingFieldGroup';
 import { Button } from '@/components/ui/button';
+import NativeSelectDrawer from '@/components/ui/NativeSelectDrawer';
 export default function NeighborhoodPricingPanel() {
   const [service, setService] = useState(serviceTypes[0]);
   const [assignments,setAssignments] = useState({});
@@ -26,7 +27,7 @@ export default function NeighborhoodPricingPanel() {
     } catch(e) { setError(e?.response?.data?.error || e.message); } finally {setBusy(false);}
   };
   return <section className="rounded-xl border p-4 space-y-3"><h2 className="font-semibold text-lg">Cobrança por bairro</h2>
-    <label className="block text-sm">Serviço<select disabled={busy} value={service} className="block w-full border rounded-md p-3 mt-1 bg-background" onChange={e => {if(!dirty || window.confirm('Descartar alterações não salvas?'))setService(e.target.value);}}>{serviceTypes.map(s => <option key={s}>{s}</option>)}</select></label>
+    <label className="block text-sm">Serviço<NativeSelectDrawer label="Serviço" disabled={busy} value={service} className="mt-1" onChange={next => {if(!dirty || window.confirm('Descartar alterações não salvas?'))setService(next);}} options={serviceTypes.map(s => ({ value: s, label: s }))} /></label>
     {busy && <p role="status">Carregando...</p>}{error && <p role="alert" className="text-destructive">{error}</p>}{message && <p role="status" className="text-success">{message}</p>}
     {config && <form onSubmit={save} className="space-y-3"><PricingFieldGroup group={config.groups.find(g => g.title === 'Cobrança por bairro')} values={values} disabled={busy} onChange={(key,value) => {setValues(prev => ({...prev,[key]:value}));setDirty(true);setMessage('');}} /><NeighborhoodCatalogEditor assignments={assignments} disabled={busy} onChange={value=>{setAssignments(value);setDirty(true);setMessage('');}} /><Button disabled={busy} type="submit">Salvar cobrança por bairro</Button></form>}
     <Button type="button" variant="outline" disabled={busy} onClick={() => {if(!dirty || window.confirm('Descartar alterações e recarregar?'))setRevision(v=>v+1);}}>Recarregar</Button>

@@ -1,4 +1,5 @@
-import React, { useEffect, useRef } from "react";
+import React from "react";
+import useMobileTabNavigation, { isTabActive } from '@/hooks/useMobileTabNavigation';
 import { Link, useLocation } from "react-router-dom";
 import {
   Home as HomeIcon,
@@ -31,24 +32,6 @@ const TABS_BY_ROLE = {
   ],
 };
 
-// Cache de posição de rolagem por caminho — persiste entre trocas de aba
-// (sobrevive a remontagens pois vive no escopo do módulo) para que o usuário
-// não perca seu lugar ao voltar para uma aba visitada anteriormente.
-const scrollCache = {};
-
-// A aba está ativa também quando o usuário está numa sub-rota dela
-// (ex: /chat/123 pertence à aba Início do cliente).
-const TAB_SUBROUTES = {
-  "/": ["/chat", "/chaveiro", "/acompanhamento"],
-};
-
-function isTabActive(tabPath, currentPath) {
-  if (currentPath === tabPath) return true;
-  return (TAB_SUBROUTES[tabPath] || []).some(
-    (p) => currentPath === p || currentPath.startsWith(`${p}/`)
-  );
-}
-
 export default function MobileTabBar() {
   const location = useLocation();
   const { user } = useAuth();
@@ -56,43 +39,8 @@ export default function MobileTabBar() {
     user?.account_type || (user?.role === "admin" ? "admin" : "cliente");
   const tabs = TABS_BY_ROLE[accountType] || TABS_BY_ROLE.cliente;
   const currentPath = location.pathname;
-  const lastPath = useRef(currentPath);
   const chatUnread = useChatUnread();
-
-  // Ao trocar de rota: salva a rolagem da rota anterior e restaura a da nova.
-  // O rAF cobre a renderização inicial; o timeout curto cobre conteúdo
-  // carregado de forma assíncrona (listas, mapas).
-  useEffect(() => {
-    if (lastPath.current === currentPath) return;
-    scrollCache[lastPath.current] = window.scrollY;
-    lastPath.current = currentPath;
-    const saved = scrollCache[currentPath];
-    if (saved == null) return;
-    const raf = requestAnimationFrame(() => window.scrollTo(0, saved));
-    const t = setTimeout(() => window.scrollTo(0, saved), 220);
-    return () => {
-      cancelAnimationFrame(raf);
-      clearTimeout(t);
-    };
-  }, [currentPath]);
-
-  const handleTabClick = (path) => {
-    // Já na aba (rota raiz): apenas volta ao topo, como num app nativo.
-    if (path === currentPath) {
-      scrollCache[path] = 0;
-      window.scrollTo({ top: 0, behavior: "smooth" });
-      return;
-    }
-    // Aba ativa numa sub-rota (ex: /chat/123): volta à raiz da aba
-    // descartando a rolagem antiga da sub-rota.
-    if (isTabActive(path, currentPath)) {
-      delete scrollCache[currentPath];
-      scrollCache[path] = 0;
-      return;
-    }
-    // Salva a rolagem atual antes de navegar para a nova aba.
-    scrollCache[currentPath] = window.scrollY;
-  };
+  const { destination, onClick } = useMobileTabNavigation(location, tabs, `${user?.id || 'anonymous'}:${accountType}`);
 
   return (
     <nav className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-card border-t border-border pb-safe">
@@ -103,8 +51,9 @@ export default function MobileTabBar() {
           return (
             <Link
               key={t.path}
-              to={t.path}
-              onClick={() => handleTabClick(t.path)}
+              to={destination(t.path)}
+              onClick={(event) => onClick(event, t.path)}
+              aria-current={active ? 'page' : undefined}
               className={`flex-1 flex min-h-[48px] flex-col items-center justify-center gap-0.5 py-1 text-[11px] font-heading font-semibold transition-all active:bg-accent active:scale-[0.98] select-none touch-manipulation ${
                 active ? "text-primary" : "text-muted-foreground"
               }`}

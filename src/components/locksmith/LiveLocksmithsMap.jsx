@@ -11,6 +11,7 @@ import useBlockedUsers from "@/hooks/useBlockedUsers";
 import { useServiceAreas, isAreaAvailable } from '@/lib/serviceAreas';
 import CoverageNotice from '@/components/location/CoverageNotice';
 import useServiceCoverage from '@/hooks/useServiceCoverage';
+import NativeSelectDrawer from '@/components/ui/NativeSelectDrawer';
 
 /**
  * Tela principal do cliente: mostra TODOS os chaveiros disponíveis
@@ -179,19 +180,7 @@ export default function LiveLocksmithsMap({ customerLoc, livreOnly = false, loca
         </div>
         <div className="flex items-center gap-2">
           <SlidersHorizontal className="w-4 h-4 text-muted-foreground shrink-0" />
-          <select
-            value={maxDistance}
-            onChange={(e) => setMaxDistance(Number(e.target.value))}
-            className="h-11 px-3 rounded-lg border border-input bg-card text-sm text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-          >
-            <option value={0}>Qualquer distância</option>
-            <option value={1}>Até 1 km</option>
-            <option value={3}>Até 3 km</option>
-            <option value={5}>Até 5 km</option>
-            <option value={10}>Até 10 km</option>
-            <option value={20}>Até 20 km</option>
-            <option value={50}>Até 50 km</option>
-          </select>
+          <NativeSelectDrawer label="Distância máxima" value={maxDistance} onChange={next => setMaxDistance(Number(next))} className="w-auto" options={[0, 1, 3, 5, 10, 20, 50].map(distance => ({ value: distance, label: distance === 0 ? 'Qualquer distância' : `Até ${distance} km` }))} />
           {maxDistance > 0 && (
             <button
               onClick={() => setMaxDistance(0)}

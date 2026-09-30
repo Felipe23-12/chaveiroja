@@ -5,6 +5,7 @@ import { useAuth } from "@/lib/AuthContext";
 import ReportChannel from "@/components/moderation/ReportChannel";
 import AdminChatEvidence from "@/components/admin/AdminChatEvidence";
 import ReportParticipantCard from "@/components/admin/ReportParticipantCard";
+import NativeSelectDrawer from '@/components/ui/NativeSelectDrawer';
 
 const labels = { pornography: "Pornografia", violence: "Violência/ameaça", harassment: "Assédio", discrimination: "Discriminação", illegal_activity: "Atividade ilegal", human_dignity: "Dignidade humana", other: "Outra" };
 export default function ConductReportCard({ report, users, locksmiths, scores = [], onStatus }) {
@@ -17,7 +18,7 @@ export default function ConductReportCard({ report, users, locksmiths, scores = 
   const reporterScore = scores.find((item) => item.locksmith_user_id === report.reporter_id);
   const reportedScore = scores.find((item) => item.locksmith_user_id === report.reported_id);
   return <article className="rounded-xl border border-border bg-card p-4 shadow-sm">
-    <div className="flex flex-wrap items-start justify-between gap-3"><div><p className="font-heading font-semibold text-foreground">{labels[report.category] || report.category}</p><p className="mt-1 text-xs text-muted-foreground">{report.reporter_name} denunciou {report.reported_name}</p></div><select value={report.status} onChange={(e) => onStatus(report.id, e.target.value)} className="h-11 rounded-md border bg-background px-2 text-xs"><option value="pending">Pendente</option><option value="awaiting_defense">Aguardando defesa</option><option value="reviewing">Em análise</option><option value="resolved">Resolvida</option><option value="dismissed">Arquivada</option></select></div>
+    <div className="flex flex-wrap items-start justify-between gap-3"><div><p className="font-heading font-semibold text-foreground">{labels[report.category] || report.category}</p><p className="mt-1 text-xs text-muted-foreground">{report.reporter_name} denunciou {report.reported_name}</p></div><NativeSelectDrawer label="Status da ocorrência" value={report.status} onChange={next => onStatus(report.id, next)} className="w-auto text-xs" options={[{ value: 'pending', label: 'Pendente' }, { value: 'awaiting_defense', label: 'Aguardando defesa' }, { value: 'reviewing', label: 'Em análise' }, { value: 'resolved', label: 'Resolvida' }, { value: 'dismissed', label: 'Arquivada' }]} /></div>
     <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground"><span className="flex items-center gap-1"><CalendarDays className="h-3.5 w-3.5" />{new Date(report.created_date).toLocaleString("pt-BR")}</span><span className="flex items-center gap-1">{report.context_type === "service" ? <Wrench className="h-3.5 w-3.5" /> : <MessageSquare className="h-3.5 w-3.5" />}{report.context_type === "service" ? "Durante atendimento" : "Conversa ou perfil"}</span>{report.request_id && <span>Chamado: {report.request_id}</span>}</div>
     {report.defense_deadline && <p className="mt-2 text-xs font-medium text-destructive">Defesa até {new Date(report.defense_deadline).toLocaleString("pt-BR")}</p>}
     <p className="mt-3 whitespace-pre-wrap text-sm text-foreground">{report.description}</p>

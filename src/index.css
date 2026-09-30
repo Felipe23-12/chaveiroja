@@ -231,6 +231,15 @@
   animation: slide-in-left 0.25s ease-out;
 }
 
+@keyframes page-fade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.page-transition {
+  animation: page-fade 0.2s ease-out;
+}
+
 /* === Compatibilidade nativa Android / WebView === */
 
 /* Evita bounce/overscroll no body e em containers roláveis */
@@ -238,7 +247,7 @@ html, body {
   min-height: 100%;
   width: 100%;
   overflow-x: hidden;
-  overscroll-behavior-y: auto;
+  overscroll-behavior-y: none;
   touch-action: pan-y;
   -webkit-tap-highlight-color: transparent;
   -webkit-text-size-adjust: 100%;
@@ -272,7 +281,7 @@ button, a, input, select, textarea {
 
 .overflow-y-auto,
 .overflow-auto {
-  overscroll-behavior-y: auto;
+  overscroll-behavior-y: none;
   -webkit-overflow-scrolling: touch;
 }
 

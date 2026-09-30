@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import PricingSettingsEditor from '@/components/admin/PricingSettingsEditor';
 import RegionalPricingPanel from '@/components/admin/RegionalPricingPanel';
+import NativeSelectDrawer from '@/components/ui/NativeSelectDrawer';
 
 export default function PricingSettingsPanel() {
   const [service, setService] = useState('Confecção de Chave de Carro');
@@ -17,7 +18,7 @@ export default function PricingSettingsPanel() {
       <p>Os preços individuais das chaves de carro e moto vêm do Catálogo de chaves. Valores manuais têm prioridade; salve e mantenha a ficha disponível ao cliente. As cotações abertas são atualizadas periodicamente e o valor é conferido novamente ao solicitar. Esta tabela não altera comissões, mensalidades ou cancelamentos.</p>
     </div>
     <RegionalPricingPanel />
-    <label className="block text-sm font-medium">Serviço a configurar<select value={service} onChange={e => { if (!dirty || window.confirm('Trocar de serviço e descartar alterações não salvas?')) { setDirty(false); setService(e.target.value); } }} className="mt-2 block w-full min-h-[44px] rounded-md border border-input bg-background px-3 text-foreground">{services.map(s => <option key={s} value={s}>{s}</option>)}</select></label>
+    <label className="block text-sm font-medium">Serviço a configurar<NativeSelectDrawer label="Serviço a configurar" value={service} onChange={value => { if (!dirty || window.confirm('Trocar de serviço e descartar alterações não salvas?')) { setDirty(false); setService(value); } }} className="mt-2" options={services.map(s => ({ value: s, label: s }))} /></label>
     <PricingSettingsEditor key={service} service={service} onServices={setServices} onDirty={setDirty} />
   </section>;
 }

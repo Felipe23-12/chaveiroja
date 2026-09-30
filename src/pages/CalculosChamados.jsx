@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import LoadingCard from "@/components/ui/LoadingCard";
 import ChargeCalculationCard from "@/components/admin/ChargeCalculationCard";
 import NeighborhoodPricingPanel from "@/components/admin/NeighborhoodPricingPanel";
+import NativeSelectDrawer from '@/components/ui/NativeSelectDrawer';
 const RegionalPricingPanel = lazy(() => import("@/components/admin/RegionalPricingPanel"));
 export default function CalculosChamados() {
   const { user } = useAuth();
@@ -25,7 +26,7 @@ export default function CalculosChamados() {
     <Suspense fallback={<LoadingCard label="Carregando preços regionais..." />}><RegionalPricingPanel /></Suspense>
     <NeighborhoodPricingPanel />
     <div className="flex flex-wrap gap-3">
-      <select aria-label="Tipo de serviço" value={serviceType} onChange={(e) => { setServiceType(e.target.value); setPage(0); }} className="min-h-11 max-w-full flex-1 rounded-md border border-input bg-background px-3 text-sm"><option value="">Todos os serviços</option>{SERVICE_CATALOG.map((s) => <option key={s.id} value={s.label}>{s.label}</option>)}</select>
+      <NativeSelectDrawer label="Tipo de serviço" value={serviceType} onChange={next => { setServiceType(next); setPage(0); }} className="flex-1" options={[{ value: '', label: 'Todos os serviços' }, ...SERVICE_CATALOG.map(s => ({ value: s.label, label: s.label }))]} />
       <Button variant="outline" disabled={isFetching} onClick={() => refetch()}>Atualizar</Button>
     </div>
     {isLoading ? <LoadingCard label="Carregando cálculos..." /> : error ? <p role="alert" className="text-sm text-destructive">{error?.response?.data?.error || "Não foi possível carregar. Toque em Atualizar para tentar novamente."}</p> : <>

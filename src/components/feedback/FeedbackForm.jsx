@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import FeedbackPhotoUploader from "@/components/feedback/FeedbackPhotoUploader";
+import NativeSelectDrawer from '@/components/ui/NativeSelectDrawer';
 
 const hasLink = (text) => /(?:[a-z][a-z0-9+.-]*:\/\/|www\.|mailto:|\b(?:[a-z0-9-]+\.)+[a-z]{2,63}\b)/i.test(text.normalize("NFKC").replace(/[\u200B-\u200D\uFEFF]/g, ""));
 
@@ -40,7 +41,7 @@ export default function FeedbackForm() {
   </div>;
   return <form onSubmit={submit} className="rounded-2xl border border-border bg-card p-5 space-y-5">
     <fieldset disabled={saving} className="space-y-4">
-      <div className="space-y-2"><Label htmlFor="feedback-category">Tipo de relato</Label><select id="feedback-category" value={category} onChange={(e) => setCategory(e.target.value)} className="min-h-[44px] w-full rounded-md border border-input bg-background px-3 text-sm text-foreground"><option value="suggestion">Sugestão de melhoria</option><option value="experience">Minha experiência</option><option value="bug">Erro ou problema</option></select></div>
+      <div className="space-y-2"><Label htmlFor="feedback-category">Tipo de relato</Label><NativeSelectDrawer id="feedback-category" label="Tipo de relato" disabled={saving} value={category} onChange={setCategory} options={[{ value: 'suggestion', label: 'Sugestão de melhoria' }, { value: 'experience', label: 'Minha experiência' }, { value: 'bug', label: 'Erro ou problema' }]} /></div>
       <div className="space-y-2"><Label htmlFor="feedback-subject">Assunto</Label><Input id="feedback-subject" required maxLength={120} value={subject} onChange={(e) => setSubject(e.target.value)} placeholder="Resuma o que você gostaria de nos contar" className="min-h-[44px]" /></div>
       <div className="space-y-2"><Label htmlFor="feedback-message">Conte mais</Label><Textarea id="feedback-message" required maxLength={3000} rows={7} value={message} onChange={(e) => setMessage(e.target.value)} placeholder="Descreva sua experiência ou sugestão. Se ocorreu um erro, diga em qual tela e o que você estava tentando fazer." aria-describedby="feedback-hint" /><p id="feedback-hint" className="text-xs text-muted-foreground">Não inclua links, senhas, CPF ou dados de pagamento. {message.length}/3000 caracteres.</p></div>
       <FeedbackPhotoUploader photos={photos} onChange={setPhotos} onError={setError} onUploadingChange={setUploading} />
