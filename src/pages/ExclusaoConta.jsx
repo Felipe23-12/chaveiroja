@@ -1,6 +1,6 @@
 import React from "react";
 import { Link } from "react-router-dom";
-import { ShieldCheck, Trash2, Clock3, ArrowRight } from "lucide-react";
+import { ShieldCheck, Trash2, Clock3, ArrowRight, Mail } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import LegalSection from "@/components/legal/LegalSection";
 
@@ -25,6 +25,13 @@ export default function ExclusaoConta() {
         <ol className="list-decimal pl-5 space-y-2">{STEPS.map((step) => <li key={step}>{step}</li>)}</ol>
         <p>A exclusão da conta é iniciada imediatamente após a confirmação. Se você não conseguir entrar, use “Esqueci minha senha” na tela de login para recuperar o acesso e seguir as etapas.</p>
         <Button asChild className="w-full"><Link to="/login?returnTo=/"><span>Acessar o Chaveiro Já</span><ArrowRight className="w-4 h-4" /></Link></Button>
+      </LegalSection>
+
+      <LegalSection icon={Mail} title="Solicitar exclusão por e-mail">
+        <p>Se você não conseguir acessar sua conta, também pode solicitar a exclusão da conta e dos dados pelo e-mail oficial do Chaveiro Já.</p>
+        <p>Envie a solicitação usando, de preferência, o mesmo endereço de e-mail cadastrado na conta. Poderemos solicitar informações adicionais apenas para confirmar a titularidade e proteger seus dados.</p>
+        <Button asChild variant="outline" className="w-full"><a href="mailto:chaveiroja.comercial@gmail.com?subject=Solicita%C3%A7%C3%A3o%20de%20exclus%C3%A3o%20de%20conta%20e%20dados%20-%20Chaveiro%20J%C3%A1"><Mail className="w-4 h-4" /><span>Solicitar exclusão por e-mail</span></a></Button>
+        <p className="text-sm"><strong>E-mail:</strong> chaveiroja.comercial@gmail.com</p>
       </LegalSection>
 
       <LegalSection icon={Trash2} title="Dados excluídos ou anonimizados">
