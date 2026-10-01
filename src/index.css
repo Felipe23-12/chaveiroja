@@ -242,6 +242,22 @@
 
 /* === Compatibilidade nativa Android / WebView === */
 
+/* Contêiner de autenticação com fallback para navegadores antigos e WebViews.
+   A rolagem fica no próprio contêiner para não depender do body do app nativo. */
+.auth-scroll-container {
+  min-height: 100vh;
+  min-height: 100svh;
+  height: 100vh;
+  height: 100dvh;
+  max-height: 100vh;
+  max-height: 100dvh;
+  overflow-y: auto;
+  overflow-x: hidden;
+  overscroll-behavior-y: contain;
+  touch-action: pan-y;
+  -webkit-overflow-scrolling: touch;
+}
+
 /* Evita bounce/overscroll no body e em containers roláveis */
 html, body {
   min-height: 100%;
