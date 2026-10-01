@@ -8,8 +8,7 @@ export default function AuthLayout({ icon: Icon, title, subtitle, footer, childr
   return (
     <div
       data-scrollable="true"
-      className="h-[100dvh] max-h-[100dvh] overflow-y-auto overscroll-contain touch-pan-y [-webkit-overflow-scrolling:touch] flex items-start sm:items-center justify-center bg-background px-4 py-8 pt-[calc(2rem+env(safe-area-inset-top))] pb-[calc(2rem+env(safe-area-inset-bottom))]"
-      style={{ WebkitOverflowScrolling: "touch" }}
+      className="auth-scroll-container flex items-start sm:items-center justify-center bg-background px-4 py-8 pt-[calc(2rem+env(safe-area-inset-top))] pb-[calc(2rem+env(safe-area-inset-bottom))]"
     >
       <div className="w-full max-w-md fade-in-up">
         <div className="text-center mb-10">
