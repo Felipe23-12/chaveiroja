@@ -209,7 +209,9 @@ function MobileDrawer({ open, onClose, onNavigate }) {
             <X className="w-5 h-5" />
           </button>
         </div>
-        <SidebarContent onNavigate={onNavigate} />
+        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain touch-pan-y [-webkit-overflow-scrolling:touch]">
+          <SidebarContent onNavigate={onNavigate} />
+        </div>
       </aside>
     </div>
   );
