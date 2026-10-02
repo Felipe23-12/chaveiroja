@@ -258,20 +258,36 @@
   -webkit-overflow-scrolling: touch;
 }
 
-/* Evita bounce/overscroll no body e em containers roláveis */
-html, body {
+/* A página principal deve continuar sendo o contêiner de rolagem do WebView.
+   Não bloqueamos o overscroll vertical no html/body: alguns WebViews Android
+   interpretam esse bloqueio como uma trava do gesto depois de áreas interativas. */
+html, body, #root {
   min-height: 100%;
   width: 100%;
+}
+
+html, body {
   overflow-x: hidden;
-  overscroll-behavior-y: none;
   touch-action: pan-y;
   -webkit-tap-highlight-color: transparent;
   -webkit-text-size-adjust: 100%;
 }
 
+html {
+  overflow-y: auto;
+}
+
 body {
+  min-height: 100vh;
   min-height: 100dvh;
+  overflow-y: visible;
+  overscroll-behavior-y: auto;
   text-rendering: optimizeLegibility;
+}
+
+#root {
+  min-height: 100vh;
+  min-height: 100dvh;
 }
 
 button, a, input, select, textarea {
