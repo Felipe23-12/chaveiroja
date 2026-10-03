@@ -11,7 +11,7 @@ import AuthLayout from "@/components/AuthLayout";
 import GoogleIcon from "@/components/GoogleIcon";
 import ErrorBanner from "@/components/ui/ErrorBanner";
 import { safeReturnTo } from "@/lib/authReturnTo";
-import { getAuthProvider, markAuthProvider } from "@/lib/authProvider";
+import { clearAuthProvider, getAuthProvider, markAuthProvider } from "@/lib/authProvider";
 import { loginWithGoogle } from "@/lib/googleSignIn";
 import { requiresEmailVerification } from "@/lib/emailRegistration";
 import InlineOtpInput from "@/components/auth/InlineOtpInput";
@@ -89,7 +89,11 @@ export default function Login() {
         const dest = returnTo !== "/" ? returnTo : me.role === "admin" ? "/painel-admin" : me.account_type === "chaveiro" ? "/painel-chaveiro" : "/";
         sessionStorage.setItem("active_login_session", "true");
         window.location.replace(dest);
-      }).catch(() => {});
+      }).catch(() => {
+        // Não mantenha um marcador Apple antigo: ele faria cada abertura da
+        // tela tentar silenciosamente uma sessão que não foi concluída.
+        clearAuthProvider();
+      });
       return;
     }
 
