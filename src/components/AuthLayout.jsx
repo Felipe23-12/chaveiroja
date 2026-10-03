@@ -8,10 +8,10 @@ export default function AuthLayout({ icon: Icon, title, subtitle, footer, childr
   return (
     <div
       data-scrollable="true"
-      className="auth-scroll-container flex items-start sm:items-center justify-center bg-background px-4 py-8 pt-[calc(2rem+env(safe-area-inset-top))] pb-[calc(2rem+env(safe-area-inset-bottom))]"
+      className="auth-scroll-container flex items-start justify-center bg-background px-4 py-6 sm:py-8 pt-[calc(1.5rem+env(safe-area-inset-top))] sm:pt-[calc(2rem+env(safe-area-inset-top))] pb-[calc(2rem+env(safe-area-inset-bottom))]"
     >
       <div className="w-full max-w-md fade-in-up">
-        <div className="text-center mb-10">
+        <div className="text-center mb-6 sm:mb-8">
           <Image
             src={LOGO_URL}
             alt="Chaveiro Já"
@@ -20,10 +20,10 @@ export default function AuthLayout({ icon: Icon, title, subtitle, footer, childr
           />
           <p className="font-heading font-bold text-foreground text-lg leading-tight">Chaveiro Já</p>
           <p className="text-[11px] text-muted-foreground mb-4">Socorro na hora</p>
-          <h1 className="text-3xl font-bold tracking-tight text-foreground">{title}</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground">{title}</h1>
           {subtitle && <p className="text-muted-foreground mt-2">{subtitle}</p>}
         </div>
-        <div className="bg-card rounded-2xl shadow-sm border border-border p-8">
+        <div className="bg-card rounded-2xl shadow-sm border border-border p-5 sm:p-8">
           {children}
         </div>
         {footer && (
