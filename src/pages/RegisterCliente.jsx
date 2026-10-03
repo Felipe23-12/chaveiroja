@@ -23,7 +23,7 @@ import ExistingAccountNotice from "@/components/auth/ExistingAccountNotice";
 import { isFullName } from "@/lib/fullName";
 
 // Campos que recebem foco além do scroll.
-const FOCUS_FIELDS = new Set(["fullName", "password", "confirmPassword"]);
+const FOCUS_FIELDS = new Set(["fullName", "phone", "password", "confirmPassword"]);
 
 export default function RegisterCliente() {
   const [fullName, setFullName] = useState("");
@@ -39,6 +39,7 @@ export default function RegisterCliente() {
   const [acceptedTerms, setAcceptedTerms] = useState(false);
 
   const fullNameRef = useRef(null);
+  const phoneRef = useRef(null);
   const passwordRef = useRef(null);
   const confirmPasswordRef = useRef(null);
   const cpfRef = useRef(null);
@@ -46,6 +47,7 @@ export default function RegisterCliente() {
 
   const refMap = {
     fullName: fullNameRef,
+    phone: phoneRef,
     password: passwordRef,
     confirmPassword: confirmPasswordRef,
     cpf: cpfRef,
@@ -72,6 +74,11 @@ export default function RegisterCliente() {
     if (!isFullName(fullName)) {
       setError("Informe seu nome completo, com nome e sobrenome");
       setFieldError("fullName");
+      return;
+    }
+    if (!/^\d{10,11}$/.test(phone.replace(/\D/g, ""))) {
+      setError("Informe um telefone válido com DDD");
+      setFieldError("phone");
       return;
     }
     if (!/^(?=.*[A-Za-z])(?=.*\d).{8,}$/.test(password)) {
@@ -215,13 +222,18 @@ export default function RegisterCliente() {
           <div className="relative">
             <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" aria-hidden="true" />
             <Input
+              ref={phoneRef}
               id="phone"
               type="tel"
               autoComplete="tel"
               placeholder="(11) 99999-9999"
               value={phone}
-              onChange={(e) => setPhone(e.target.value)}
-              className="pl-10 h-12"
+              onChange={(e) => {
+                setPhone(e.target.value);
+                if (fieldError === "phone") setFieldError("");
+              }}
+              className={`pl-10 h-12 ${fieldError === "phone" ? "border-destructive" : ""}`}
+              aria-invalid={fieldError === "phone" || undefined}
               required
             />
           </div>
