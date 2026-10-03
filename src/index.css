@@ -247,15 +247,20 @@
 .auth-scroll-container {
   min-height: 100vh;
   min-height: 100svh;
-  height: 100vh;
-  height: 100dvh;
-  max-height: 100vh;
-  max-height: 100dvh;
-  overflow-y: auto;
+  min-height: 100dvh;
+  width: 100%;
   overflow-x: hidden;
-  overscroll-behavior-y: contain;
+  overflow-y: visible;
   touch-action: pan-y;
-  -webkit-overflow-scrolling: touch;
+}
+
+/* Em iPad/iPhone deixe o documento fazer a rolagem. Altura/max-height fixas no
+   contêiner de autenticação podiam posicionar o início do formulário acima da
+   viewport ao combinar teclado, safe-area e conteúdo alto. */
+@supports (-webkit-touch-callout: none) {
+  .auth-scroll-container {
+    min-height: -webkit-fill-available;
+  }
 }
 
 /* A página principal deve continuar sendo o contêiner de rolagem do WebView.
