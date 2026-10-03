@@ -19,6 +19,23 @@ export const AuthProvider = ({ children }) => {
     checkAppState();
   }, []);
 
+  const clearInvalidStoredSession = () => {
+    // Safari/WKWebView pode manter um JWT antigo entre atualizações/retornos do app.
+    // Remova somente a credencial inválida; dados de preferência do usuário ficam intactos.
+    try {
+      localStorage.removeItem('base44_access_token');
+      localStorage.removeItem('token');
+      sessionStorage.removeItem('active_login_session');
+      base44.auth.setToken('', false);
+    } catch { /* storage pode estar indisponível em modos restritos do iOS */ }
+  };
+
+  const isInvalidSessionError = (error) => {
+    const status = error?.status || error?.response?.status;
+    const message = String(error?.message || error?.response?.data?.message || error?.response?.data?.detail || '');
+    return status === 401 || /invalid\s*(?:access\s*)?token|token\s*(?:is\s*)?invalid|token.*expir|expir.*token|jwt.*(?:invalid|expir)|unauthorized/i.test(message);
+  };
+
   const checkAppState = async () => {
     try {
       if (appParams.token && localStorage.getItem('remember_login') === 'false' && sessionStorage.getItem('active_login_session') !== 'true') {
@@ -104,13 +121,14 @@ export const AuthProvider = ({ children }) => {
       return currentUser;
     } catch (error) {
       console.error('User auth check failed:', error);
+      if (isInvalidSessionError(error)) clearInvalidStoredSession();
       setIsLoadingAuth(false);
       setIsAuthenticated(false);
       setUser(null);
       setAuthChecked(true);
       
       // If user auth fails, it might be an expired token
-      if (error.status === 401 || error.status === 403) {
+      if (isInvalidSessionError(error) || error.status === 403 || error?.response?.status === 403) {
         setAuthError({
           type: 'auth_required',
           message: 'Authentication required'
