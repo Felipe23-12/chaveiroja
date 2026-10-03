@@ -20,14 +20,17 @@ export const AuthProvider = ({ children }) => {
   }, []);
 
   const clearInvalidStoredSession = () => {
-    // Safari/WKWebView pode manter um JWT antigo entre atualizações/retornos do app.
+    // WebViews Android e iOS podem manter um JWT antigo entre atualizações/retornos do app.
     // Remova somente a credencial inválida; dados de preferência do usuário ficam intactos.
     try {
       localStorage.removeItem('base44_access_token');
       localStorage.removeItem('token');
       sessionStorage.removeItem('active_login_session');
       base44.auth.setToken('', false);
-    } catch { /* storage pode estar indisponível em modos restritos do iOS */ }
+      // appParams é capturado no bootstrap. Zere também a cópia em memória para
+      // que a checagem pública seguinte não reutilize o JWT que acabou de falhar.
+      appParams.token = null;
+    } catch { /* storage pode estar indisponível em WebViews/modos restritos */ }
   };
 
   const isInvalidSessionError = (error) => {
@@ -65,6 +68,20 @@ export const AuthProvider = ({ children }) => {
         setIsLoadingPublicSettings(false);
       } catch (appError) {
         console.error('App state check failed:', appError);
+
+        // Em Android/iOS o wrapper pode restaurar um token antigo antes mesmo de
+        // auth.me(). Se a própria consulta pública rejeitar essa credencial,
+        // descarte-a e continue como sessão encerrada, sem expor "token inválido".
+        if (isInvalidSessionError(appError)) {
+          clearInvalidStoredSession();
+          setIsAuthenticated(false);
+          setUser(null);
+          setAuthChecked(true);
+          setAuthError({ type: 'auth_required', message: 'Authentication required' });
+          setIsLoadingPublicSettings(false);
+          setIsLoadingAuth(false);
+          return;
+        }
         
         // Handle app-level errors
         if (appError.status === 403 && appError.data?.extra_data?.reason) {
