@@ -11,7 +11,7 @@ import AuthLayout from "@/components/AuthLayout";
 import GoogleIcon from "@/components/GoogleIcon";
 import ErrorBanner from "@/components/ui/ErrorBanner";
 import { safeReturnTo } from "@/lib/authReturnTo";
-import { markAuthProvider } from "@/lib/authProvider";
+import { getAuthProvider, markAuthProvider } from "@/lib/authProvider";
 import { loginWithGoogle } from "@/lib/googleSignIn";
 import { requiresEmailVerification } from "@/lib/emailRegistration";
 import InlineOtpInput from "@/components/auth/InlineOtpInput";
@@ -81,6 +81,18 @@ export default function Login() {
   };
 
   useEffect(() => {
+    // O callback da Apple retorna para /login. Se a sessão acabou de ser
+    // autenticada pelo provedor, conclua a entrada em vez de mostrar a tela
+    // de login novamente para um usuário já autenticado.
+    if (getAuthProvider() === "apple") {
+      base44.auth.me().then((me) => {
+        const dest = returnTo !== "/" ? returnTo : me.role === "admin" ? "/painel-admin" : me.account_type === "chaveiro" ? "/painel-chaveiro" : "/";
+        sessionStorage.setItem("active_login_session", "true");
+        window.location.replace(dest);
+      }).catch(() => {});
+      return;
+    }
+
     const params = new URLSearchParams(window.location.search);
     if (params.get("provider") !== "google" || googleRetryStarted.current) return;
     googleRetryStarted.current = true;
