@@ -19,6 +19,7 @@ import PageTransition from "@/components/PageTransition";
 import ChargeCalculationsLink from "@/components/admin/ChargeCalculationsLink";
 import { getEffectiveRole, canAccess } from "@/lib/accessControl";
 import useMobileMenuHistory from '@/hooks/useMobileMenuHistory';
+import MobileMenuViewport from '@/components/MobileMenuViewport';
 
 const rootPaths = ['/', '/mapa', '/historico', '/pagamentos', '/painel-chaveiro', '/painel-financeiro', '/modo-trabalho', '/painel-admin', '/painel-financeiro-admin', '/sugestoes'];
 
@@ -200,20 +201,20 @@ function MobileTopBar({ onMenu }) {
 function MobileDrawer({ open, onClose, onNavigate }) {
   if (!open) return null;
   return (
-    <div className="md:hidden fixed inset-0 z-50 flex">
+    <MobileMenuViewport>
       <div className="absolute inset-0 bg-black/40" onClick={onClose} />
-      <aside className="relative flex h-[100dvh] w-72 max-w-[80vw] flex-col border-r border-border bg-card pt-safe pb-safe animate-slide-in-left">
-        <div className="flex min-h-[56px] items-center justify-between p-4 border-b border-border">
+      <aside className="relative flex h-full min-h-0 w-72 max-w-[80vw] flex-col overflow-hidden border-r border-border bg-card pt-safe animate-slide-in-left">
+        <div className="flex shrink-0 min-h-[56px] items-center justify-between p-4 border-b border-border">
           <span className="font-heading font-semibold text-foreground">Menu</span>
           <button onClick={onClose} className="min-h-[44px] min-w-[44px] p-2 rounded-lg text-muted-foreground hover:bg-accent active:bg-accent" aria-label="Fechar">
             <X className="w-5 h-5" />
           </button>
         </div>
-        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain touch-pan-y [-webkit-overflow-scrolling:touch]">
+        <div className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto overscroll-contain touch-pan-y pb-[calc(1rem+env(safe-area-inset-bottom))] [-webkit-overflow-scrolling:touch]">
           <SidebarContent onNavigate={onNavigate} />
         </div>
       </aside>
-    </div>
+    </MobileMenuViewport>
   );
 }
 
