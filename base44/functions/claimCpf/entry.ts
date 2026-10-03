@@ -7,6 +7,33 @@ function formatCpf(cpf) {
   return `${cpf.slice(0, 3)}.${cpf.slice(3, 6)}.${cpf.slice(6, 9)}-${cpf.slice(9)}`;
 }
 
+// Exceção individual autorizada pelo titular: a conta operacional de chaveiro
+// abaixo pode compartilhar o CPF já usado pela conta administrativa/cliente.
+// A regra geral de unicidade continua valendo para todos os demais usuários.
+const SHARED_OWNER_EXCEPTION = Object.freeze({
+  cpf: '03693893101',
+  locksmithEmail: 'chaveiro.carvalho24h@gmail.com',
+  adminEmail: 'felipemotacs1@gmail.com',
+});
+
+function isAllowedOwnerDuplicate(user, cpf, duplicateAccounts = [], trustedMatches = []) {
+  if (cpf !== SHARED_OWNER_EXCEPTION.cpf) return false;
+  if (String(user?.email || '').toLowerCase() !== SHARED_OWNER_EXCEPTION.locksmithEmail) return false;
+  if (user?.account_type !== 'chaveiro') return false;
+
+  const otherUsers = duplicateAccounts.filter((account) => account.id !== user.id);
+  const otherTrustedIds = trustedMatches.filter((row) => row.user_id !== user.id).map((row) => row.user_id);
+  const allowedAdmin = otherUsers.find((account) =>
+    String(account?.email || '').toLowerCase() === SHARED_OWNER_EXCEPTION.adminEmail &&
+    account?.role === 'admin' &&
+    account?.account_type === 'cliente'
+  );
+  if (!allowedAdmin) return false;
+
+  return otherUsers.every((account) => account.id === allowedAdmin.id) &&
+    otherTrustedIds.every((id) => id === allowedAdmin.id);
+}
+
 export default async function(req) {
   try {
     const base44 = createClientFromRequest(req);
@@ -50,8 +77,10 @@ export default async function(req) {
       base44.asServiceRole.entities.BlockedCpf.filter({ cpf }),
     ]);
     const trustedMatches = await base44.asServiceRole.entities.VerifiedCpf.filter({ cpf });
-    const duplicate = [...plainMatches, ...formattedMatches].find((account) => account.id !== user.id) || trustedMatches.find((account) => account.user_id !== user.id);
-    if (!blockedMatches.length && !duplicate) {
+    const duplicateAccounts = [...plainMatches, ...formattedMatches].filter((account, index, all) => all.findIndex((item) => item.id === account.id) === index);
+    const duplicate = duplicateAccounts.find((account) => account.id !== user.id) || trustedMatches.find((account) => account.user_id !== user.id);
+    const allowedOwnerDuplicate = duplicate && isAllowedOwnerDuplicate(user, cpf, duplicateAccounts, trustedMatches);
+    if (!blockedMatches.length && (!duplicate || allowedOwnerDuplicate)) {
       await base44.asServiceRole.entities.VerifiedCpf.create({ user_id: user.id, cpf });
       if (onlyDigits(user.cpf) !== cpf) await base44.auth.updateMe({ cpf });
       return received(true);
