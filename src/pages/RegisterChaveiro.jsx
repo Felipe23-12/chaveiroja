@@ -26,7 +26,7 @@ import { markAuthProvider } from '@/lib/authProvider';
 import prepareLocksmithProfile from '@/lib/locksmithOnboarding';
 
 // Campos que recebem foco além do scroll.
-const FOCUS_FIELDS = new Set(["fullName", "password", "confirmPassword", "vehicle"]);
+const FOCUS_FIELDS = new Set(["fullName", "phone", "password", "confirmPassword", "vehicle"]);
 
 export default function RegisterChaveiro() {
   const [fullName, setFullName] = useState("");
@@ -45,6 +45,7 @@ export default function RegisterChaveiro() {
   const [acceptedTerms, setAcceptedTerms] = useState(false);
 
   const fullNameRef = useRef(null);
+  const phoneRef = useRef(null);
   const passwordRef = useRef(null);
   const confirmPasswordRef = useRef(null);
   const specialtiesRef = useRef(null);
@@ -54,6 +55,7 @@ export default function RegisterChaveiro() {
 
   const refMap = {
     fullName: fullNameRef,
+    phone: phoneRef,
     password: passwordRef,
     confirmPassword: confirmPasswordRef,
     specialties: specialtiesRef,
@@ -82,6 +84,11 @@ export default function RegisterChaveiro() {
     if (!isFullName(fullName)) {
       setError("Informe seu nome completo, com nome e sobrenome");
       setFieldError("fullName");
+      return;
+    }
+    if (!/^\d{10,11}$/.test(phone.replace(/\D/g, ""))) {
+      setError("Informe um telefone válido com DDD");
+      setFieldError("phone");
       return;
     }
     if (!/^(?=.*[A-Za-z])(?=.*\d).{8,}$/.test(password)) {
@@ -218,13 +225,18 @@ export default function RegisterChaveiro() {
           <div className="relative">
             <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" aria-hidden="true" />
             <Input
+              ref={phoneRef}
               id="phone"
               type="tel"
               autoComplete="tel"
               placeholder="(11) 99999-9999"
               value={phone}
-              onChange={(e) => setPhone(e.target.value)}
-              className="pl-10 h-12"
+              onChange={(e) => {
+                setPhone(e.target.value);
+                if (fieldError === "phone") setFieldError("");
+              }}
+              className={`pl-10 h-12 ${fieldError === "phone" ? "border-destructive" : ""}`}
+              aria-invalid={fieldError === "phone" || undefined}
               required
             />
           </div>
