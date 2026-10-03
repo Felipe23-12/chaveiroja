@@ -4,8 +4,12 @@ export function markAuthProvider(provider) {
   localStorage.setItem(KEY, provider);
 }
 
+export function getAuthProvider() {
+  return localStorage.getItem(KEY);
+}
+
 export function isGoogleAuthSession() {
-  return localStorage.getItem(KEY) === "google";
+  return getAuthProvider() === "google";
 }
 
 export function clearAuthProvider() {
