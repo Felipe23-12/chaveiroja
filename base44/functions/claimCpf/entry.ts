@@ -57,7 +57,13 @@ export default async function(req) {
       return received(linkedCpf === cpf);
     }
     // Um CPF legado só pode ser confirmado para o mesmo titular, nunca trocado.
-    if (user.cpf && onlyDigits(user.cpf) !== cpf) return received();
+    // Exceção: a conta operacional autorizada abaixo já possuía um CPF legado e
+    // precisa substituí-lo pelo CPF compartilhado com a conta administrativa.
+    const ownerLegacyReplacement =
+      cpf === SHARED_OWNER_EXCEPTION.cpf &&
+      String(user?.email || '').toLowerCase() === SHARED_OWNER_EXCEPTION.locksmithEmail &&
+      user?.account_type === 'chaveiro';
+    if (user.cpf && onlyDigits(user.cpf) !== cpf && !ownerLegacyReplacement) return received();
     const attemptedAfter = new Date(Date.now() - 15 * 60 * 1000).toISOString();
     const recentAttempts = await base44.asServiceRole.entities.ClaimCpfAttempt.filter({
       user_id: user.id,
