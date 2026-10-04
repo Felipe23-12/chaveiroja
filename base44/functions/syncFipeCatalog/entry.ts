@@ -9,7 +9,52 @@ const NEXT_REVIEW_MS = 20 * 24 * 60 * 60 * 1000;
 const normalize = (v: unknown) => String(v || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
 const priceNumber = (v: unknown) => Number(String(v || '').replace(/[^\d,]/g, '').replace(',', '.'));
 const dateKey = () => new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Sao_Paulo', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date());
-const families = VEHICLE_MODEL_YEARS.filter(item => item.min && item.max);
+const baseFamilies = VEHICLE_MODEL_YEARS.filter(item => item.min && item.max);
+// Prioridade inicial baseada em modelos de maior presença recente no mercado brasileiro (Fenabrave)
+// e modelos historicamente muito difundidos que já existem no catálogo. Depois, todos os demais
+// continuam normalmente, sem exclusão.
+const priorityByMake: Record<string, string[]> = {
+  Chevrolet: ['Onix', 'Onix Plus', 'Tracker', 'S10', 'Montana', 'Spin', 'Celta', 'Corsa', 'Prisma'],
+  Fiat: ['Strada', 'Argo', 'Mobi', 'Toro', 'Pulse', 'Fastback', 'Cronos', 'Uno', 'Palio', 'Fiorino'],
+  Volkswagen: ['Polo', 'T-Cross', 'Nivus', 'Virtus', 'Saveiro', 'Gol', 'Fox', 'Voyage', 'Jetta'],
+  Ford: ['Ranger', 'Territory', 'Ka', 'EcoSport', 'Fiesta', 'Focus', 'Maverick'],
+  Toyota: ['Corolla Cross', 'Corolla', 'Hilux', 'Yaris', 'Yaris Sedan', 'SW4'],
+  Honda: ['HR-V', 'City', 'Civic', 'Fit', 'WR-V'],
+  Hyundai: ['HB20', 'HB20S', 'Creta', 'Tucson', 'ix35', 'HB20X'],
+  Renault: ['Kwid', 'Duster', 'Kardian', 'Sandero', 'Logan', 'Master', 'Oroch'],
+  Nissan: ['Kicks', 'Sentra', 'Versa', 'Frontier', 'March'],
+  Jeep: ['Compass', 'Renegade', 'Commander', 'Grand Cherokee'],
+  Peugeot: ['208', '2008', '3008', 'Partner'],
+  'Citroën': ['Basalt', 'C3', 'C4 Cactus', 'Aircross'],
+  Mitsubishi: ['Eclipse Cross', 'L200', 'Outlander', 'Pajero Sport'],
+  Kia: ['Sportage', 'Cerato', 'Sorento', 'Picanto', 'Bongo'],
+  BMW: ['Serie 3', 'X1', 'X3', 'X5'],
+  'Mercedes-Benz': ['Classe C', 'GLA', 'GLC', 'Sprinter'],
+  Audi: ['A3', 'Q3', 'A4', 'Q5'],
+  Volvo: ['XC40', 'XC60', 'XC90'],
+  'Caoa Chery': ['Tiggo 7', 'Tiggo 5x', 'Tiggo 8', 'Arrizo 6'],
+  BYD: ['Dolphin Mini', 'Dolphin', 'Song Plus', 'King', 'Yuan Plus'],
+  'Land Rover': ['Evoque', 'Discovery Sport', 'Range Rover Sport'],
+  Suzuki: ['Jimny', 'Vitara', 'Grand Vitara'],
+  RAM: ['Rampage', '1500', '2500', '3500'],
+};
+const priorityKey = (make: string, model: string) => {
+  const list = priorityByMake[make] || [];
+  const index = list.findIndex(item => normalize(item) === normalize(model));
+  return index < 0 ? 10000 : index;
+};
+const families = [...baseFamilies].sort((a, b) => {
+  const aPriority = priorityKey(a.make, a.model), bPriority = priorityKey(b.make, b.model);
+  const aPopular = aPriority < 10000, bPopular = bPriority < 10000;
+  if (aPopular !== bPopular) return aPopular ? -1 : 1;
+  if (aPopular && bPopular) {
+    const makeOrder = Object.keys(priorityByMake);
+    const makeDiff = makeOrder.indexOf(a.make) - makeOrder.indexOf(b.make);
+    if (makeDiff) return makeDiff;
+    return aPriority - bPriority;
+  }
+  return baseFamilies.indexOf(a) - baseFamilies.indexOf(b);
+});
 const aliases: Record<string, string[]> = { chevrolet: ['gm chevrolet'], volkswagen: ['vw volkswagen'], 'mercedes benz': ['mercedes benz'], 'caoa chery': ['caoa chery', 'chery'] };
 let calls = 0;
 async function api(path: string, reference?: string) {
