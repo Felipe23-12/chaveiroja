@@ -25,7 +25,7 @@ export default function useServicePriceQuote(data, requested, revision = 0) {
         const response = await base44.functions.invoke("serviceTrust", { action: "price_quote", data: JSON.parse(key) });
         if (!cancelled) setState({ key, revision, retry, pricing: response.data.pricing });
       } catch (error) {
-        if (!cancelled) setState({ key, revision, retry, error: error?.response?.data?.error || error.message || "Não foi possível calcular o valor." });
+        if (!cancelled) setState({ key, revision, retry, error: error?.response?.data?.error || error?.data?.error || error.message || "Não foi possível calcular o valor." });
       }
     }, 400);
     return () => { cancelled = true; clearTimeout(timer); };

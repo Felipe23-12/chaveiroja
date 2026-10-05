@@ -511,7 +511,7 @@ export default function Home() {
       setKeyValueFallback(false);
       setKeyCatalog(null);
       setHasCodedKey(false);
-      setSearchError(e.message || "Falha ao consultar os dados do veículo");
+      setSearchError(e?.response?.data?.error || e?.data?.error || e.message || "Falha ao consultar os dados do veículo");
     } finally {
       setSearching(false);
     }

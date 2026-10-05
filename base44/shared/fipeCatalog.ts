@@ -13,8 +13,8 @@ async function get(path: string, reference?: string) {
   const cached = cache.get(url);
   if (cached && cached.expires > Date.now()) return cached.data;
   const response = await fetch(url, { headers: { accept: 'application/json' }, signal: AbortSignal.timeout(10000) });
-  if (response.status === 429) throw new Error('Limite diário de consultas FIPE da fonte automatizada atingido. Tente mais tarde.');
-  if (!response.ok) throw new Error('Fonte automatizada de FIPE indisponível (' + response.status + ').');
+  if (response.status === 429) throw Object.assign(new Error('A consulta FIPE está temporariamente indisponível porque a fonte atingiu o limite de consultas. Não foi possível confirmar o valor deste veículo. Tente novamente mais tarde.'), { code: 'FIPE_RATE_LIMIT', status: 429 });
+  if (!response.ok) throw Object.assign(new Error('A fonte FIPE está temporariamente indisponível. Tente novamente mais tarde.'), { code: 'FIPE_UNAVAILABLE', status: 503 });
   const data = await response.json();
   cache.set(url, { expires: Date.now() + (path === '/references' ? 60 * 60 * 1000 : 30 * 60 * 1000), data });
   return data;
