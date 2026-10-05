@@ -19,11 +19,14 @@ import ModerationActions from "@/components/moderation/ModerationActions";
 import ChatPhotoButton from "@/components/chat/ChatPhotoButton";
 import ChatMessageContent from "@/components/chat/ChatMessageContent";
 import KeyServicePrice from "@/components/client/KeyServicePrice";
+import { useToast } from '@/components/ui/use-toast';
 
 export default function Acompanhamento() {
   const { requestId } = useParams();
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { toast } = useToast();
+  const showChatError = (error) => toast({ title: 'Mensagem não enviada', description: error?.response?.data?.error || error?.data?.error || 'Não foi possível enviar. Tente novamente.', variant: 'destructive' });
   const location = useLocation();
   const passedRequest = location.state?.request;
   const initialRequest = passedRequest?.id === requestId && passedRequest?.created_by_id === user?.id ? passedRequest : null;
@@ -86,7 +89,6 @@ export default function Acompanhamento() {
     if (!text.trim() || sending || !request?.locksmith_id || blockedIds.has(request?.locksmith_user_id || locksmith?.created_by_id)) return;
     setSending(true);
     const msg = text.trim();
-    setText("");
     try {
       await base44.functions.invoke("sendChatMessage", {
         customer_lat: request.customer_lat,
@@ -94,6 +96,9 @@ export default function Acompanhamento() {
         locksmith_id: request.locksmith_id,
         message: msg,
       });
+      setText('');
+    } catch (error) {
+      showChatError(error);
     } finally {
       setSending(false);
     }
@@ -110,6 +115,8 @@ export default function Acompanhamento() {
         message: "Foto",
         photo_url: photoUrl,
       });
+    } catch (error) {
+      showChatError(error);
     } finally {
       setSending(false);
     }
@@ -125,6 +132,8 @@ export default function Acompanhamento() {
         locksmith_id: request.locksmith_id,
         message: msg,
       });
+    } catch (error) {
+      showChatError(error);
     } finally {
       setSending(false);
     }
@@ -142,7 +151,7 @@ export default function Acompanhamento() {
       });
       setRequest(response.data.request);
     } catch (error) {
-      setArrivalError(error?.message || "Não foi possível registrar sua resposta. Tente novamente.");
+      setArrivalError(error?.response?.data?.error || error?.data?.error || error?.message || "Não foi possível registrar sua resposta. Tente novamente.");
     } finally {
       setArrivalUpdating(false);
     }
@@ -162,7 +171,7 @@ export default function Acompanhamento() {
       }
       navigate("/", { replace: true });
     } catch (error) {
-      setFinishError(error?.message || "Não foi possível confirmar o serviço. Tente novamente.");
+      setFinishError(error?.response?.data?.error || error?.data?.error || error?.message || "Não foi possível confirmar o serviço. Tente novamente.");
       setFinishUpdating(false);
     }
   };

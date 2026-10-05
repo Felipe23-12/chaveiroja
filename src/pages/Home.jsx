@@ -711,9 +711,10 @@ export default function Home() {
       reqRef.current = req.id;
       goToStep(3);
     } catch (error) {
-      if (error?.response?.data?.code === 'REGISTRATION_REQUIRED') { navigate(clientCompletionUrl(serviceId)); return; }
-      if (error?.response?.data?.code === "PRICE_CHANGED") setQuoteRevision((value) => value + 1);
-      setSearchError(error?.response?.data?.error || error.message || "Não foi possível solicitar o serviço.");
+      const details = error?.response?.data || error?.data;
+      if (details?.code === 'REGISTRATION_REQUIRED') { navigate(clientCompletionUrl(serviceId)); return; }
+      if (details?.code === "PRICE_CHANGED") setQuoteRevision((value) => value + 1);
+      setSearchError(details?.error || error.message || "Não foi possível solicitar o serviço.");
     } finally {
       setSubmitting(false);
     }
@@ -836,13 +837,11 @@ export default function Home() {
             notifyClient(charged ? "Valor do chamado atualizado" : "Condição do chamado atualizada", charged ? `O chaveiro comprovou uma condição diferente com fotos. Foi aplicado o adicional único de ${feeText}.` : "O chaveiro registrou com fotos a condição encontrada no local. Nenhum novo adicional foi aplicado.");
             toast({ title: charged ? `Valor atualizado em ${feeText}` : "Condição registrada pelo chaveiro", description: charged ? "As fotos comprobatórias foram anexadas ao chamado." : "A prova fotográfica foi anexada sem nova cobrança." });
           }
-          // Chaveiro registrou o final do serviço → cliente paga
-          if (updated.end_photos?.length > 0 && step === 5) {
-            goToStep(6);
-          }
-          // Chaveiro finaliza o serviço (após pagamento) → avaliação
-          if (updated.status === "completed" && step === 6) {
-            goToStep(7);
+          // Retomar após perder eventos não pode depender da etapa anterior.
+          if (updated.status === "completed" && step !== 7) {
+            goToStep(7, true);
+          } else if (updated.end_photos?.length > 0 && !["completed", "cancelled"].includes(updated.status) && step !== 6) {
+            goToStep(6, true);
           }
 
           // Notificação: chaveiro iniciou o deslocamento
@@ -1081,6 +1080,10 @@ export default function Home() {
     notifiedConditionAdjustment.current = false;
     notifiedEnd.current = false;
     notifiedCompleted.current = false;
+    reqRef.current = null;
+    queueRef.current = [];
+    cancelTriggered.current = false;
+    setCancelConfirmOpen(false);
   };
 
   const showAppFlow = module === "app" || step > 1 || activeRequest;
