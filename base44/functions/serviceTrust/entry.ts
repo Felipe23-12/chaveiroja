@@ -391,11 +391,17 @@ export default async function(req) {
       return Response.json({ success: true, score: update.score });
     }
 
-    if (action === 'heartbeat') {
+    if (action === 'record_app_access' || action === 'heartbeat') {
+      const now = new Date().toISOString();
+      const recorded = await base44.asServiceRole.entities.Locksmith.updateMany({
+        created_by_id: user.id,
+        $or: [{ last_activity_at: { $exists: false } }, { last_activity_at: null }, { last_activity_at: { $lt: new Date(Date.now() - 60000).toISOString() } }],
+      }, { $set: { last_activity_at: now } });
+      if (action === 'record_app_access') return Response.json({ success: true, recorded: recorded.updated || 0 });
       const profiles = await base44.asServiceRole.entities.Locksmith.filter({ created_by_id: user.id });
       if (!profiles[0]) return Response.json({ error: 'Perfil não encontrado' }, { status: 404 });
       const score = await scoreFor(base44, profiles[0]);
-      await base44.asServiceRole.entities.LocksmithScore.update(score.id, { last_heartbeat_at: new Date().toISOString() });
+      await base44.asServiceRole.entities.LocksmithScore.update(score.id, { last_heartbeat_at: now });
       return Response.json({ success: true });
     }
 

@@ -19,6 +19,7 @@ import Layout from '@/components/Layout';
 import MercadoPagoOnboardingGuard from '@/components/MercadoPagoOnboardingGuard';
 import ModerationBlockGate from '@/components/ModerationBlockGate';
 import CustomerCoverageGate from '@/components/location/CustomerCoverageGate';
+import LocksmithActivityTracker from '@/components/locksmith/LocksmithActivityTracker';
 
 // Páginas carregadas sob demanda — reduz o tempo de inicialização em
 // conexões móveis lentas (WebView), pois só o código da rota atual é baixado.
@@ -165,6 +166,7 @@ function App() {
       <QueryClientProvider client={queryClientInstance}>
         <Router>
           <ScrollToTop />
+          <LocksmithActivityTracker />
           <AuthenticatedApp />
         </Router>
         <Toaster />

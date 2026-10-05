@@ -36,8 +36,9 @@ export default async function(req) {
         revalidated_at: now,
       });
       const updatedLocksmith = await base44.asServiceRole.entities.Locksmith.update(locksmith.id, {
-        last_accepted_at: now,
+        last_activity_at: now,
         inactive_deactivated: false,
+        deactivated_at: null,
         available: true,
       });
       return Response.json({ success: true, locksmith: updatedLocksmith, revalidation_documents: docs, revalidated_at: now });

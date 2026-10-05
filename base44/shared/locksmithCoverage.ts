@@ -15,6 +15,7 @@ export async function updateLocksmithLocation(base44, user, body) {
   }
   const updated = await base44.asServiceRole.entities.Locksmith.update(locksmith.id, {
     lat, lng, online: allowed && (body.go_online === true || locksmith.online === true),
+    last_activity_at: new Date().toISOString(),
   });
   if (body.go_online === true && !allowed) return Response.json({ code: 'AREA_UNAVAILABLE', error: 'Esta área ainda não está disponível para atendimento. Sua conta continua ativa; entre em uma área liberada.' }, { status: 403 });
   return Response.json({ locksmith: updated, allowed });

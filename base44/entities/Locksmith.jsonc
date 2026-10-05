@@ -173,12 +173,17 @@
     "last_accepted_at": {
       "type": "string",
       "format": "date-time",
-      "description": "Data/hora do \u00faltimo chamado aceito pelo chaveiro \u2014 base da regra de inatividade de 30 dias"
+      "description": "Data/hora do \u00faltimo chamado aceito pelo chaveiro"
+    },
+    "last_activity_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "\u00daltimo acesso ao aplicativo, presen\u00e7a online ou rein\u00edcio administrativo da contagem de 30 dias de inatividade"
     },
     "inactive_deactivated": {
       "type": "boolean",
       "default": false,
-      "description": "Perfil desativado automaticamente por mais de 30 dias sem aceitar chamados"
+      "description": "Perfil desativado ap\u00f3s 30 dias offline e sem acessar o aplicativo"
     },
     "deactivated_at": {
       "type": "string",

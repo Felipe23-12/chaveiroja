@@ -1,10 +1,10 @@
-import { createClientFromRequest } from 'npm:@base44/sdk@0.8.44';
+import { createClientFromRequest } from 'npm:@base44/sdk@0.8.52';
 import { verifyInternalCall } from '../../shared/internalCall.ts';
 
 const INACTIVITY_DAYS = 30;
 
-// Desativa automaticamente os perfis de chaveiro sem nenhum chamado aceito
-// há mais de 30 dias, exigindo revalidação dos documentos para voltar a atender.
+// Desativa somente quem está offline e há 30 dias sem acessar o aplicativo.
+// Acessar o app ou estar online reinicia a contagem, independentemente de aceites.
 export default async function (req: Request): Promise<Response> {
   try {
     const base44 = createClientFromRequest(req);
@@ -17,40 +17,40 @@ export default async function (req: Request): Promise<Response> {
       }
     }
 
-    const limit = Date.now() - INACTIVITY_DAYS * 24 * 60 * 60 * 1000;
-    const [locksmiths, financials] = await Promise.all([
-      base44.asServiceRole.entities.Locksmith.list('-created_date', 500),
-      base44.asServiceRole.entities.LocksmithFinancials.list('-created_date', 500),
-    ]);
-    const financialsByLocksmith = {};
-    financials.forEach((f) => { financialsByLocksmith[f.locksmith_id] = f; });
-    const deactivated = [];
+    const now = new Date().toISOString();
+    const limit = new Date(Date.now() - INACTIVITY_DAYS * 24 * 60 * 60 * 1000).toISOString();
+    const inactiveQuery = {
+      online: { $ne: true },
+      inactive_deactivated: { $ne: true },
+      $or: [
+        { last_activity_at: { $lte: limit } },
+        { last_activity_at: { $exists: false }, created_date: { $lte: limit } },
+        { last_activity_at: null, created_date: { $lte: limit } },
+      ],
+    };
+    if (body.dry_run === true) return Response.json({ dry_run: true, candidates: await base44.asServiceRole.entities.Locksmith.count(inactiveQuery) });
 
-    for (const l of locksmiths) {
-      if (l.inactive_deactivated) continue;
+    // Cada lote deixa de satisfazer a consulta, evitando repetir as mesmas linhas.
+    const onlineQuery = {
+      online: true, inactive_deactivated: { $ne: true },
+      $or: [{ last_activity_at: { $lt: now } }, { last_activity_at: { $exists: false } }, { last_activity_at: null }],
+    };
+    let refreshed = 0;
+    let result;
+    do {
+      result = await base44.asServiceRole.entities.Locksmith.updateMany(onlineQuery, { $set: { last_activity_at: now } });
+      refreshed += result.updated || 0;
+    } while (result.has_more);
 
-      let lastActivity = l.last_accepted_at || financialsByLocksmith[l.id]?.revalidated_at || null;
-      if (!lastActivity) {
-        const last = await base44.asServiceRole.entities.ServiceRequest.filter(
-          { locksmith_id: l.id },
-          '-created_date',
-          1
-        );
-        lastActivity = last[0]?.accepted_at || last[0]?.created_date || l.created_date;
-      }
-
-      if (new Date(lastActivity).getTime() > limit) continue;
-
-      await base44.asServiceRole.entities.Locksmith.update(l.id, {
-        inactive_deactivated: true,
-        deactivated_at: new Date().toISOString(),
-        available: false,
-        online: false,
+    // A condição é reavaliada na gravação: um acesso simultâneo impede o bloqueio.
+    let deactivated = 0;
+    do {
+      result = await base44.asServiceRole.entities.Locksmith.updateMany(inactiveQuery, {
+        $set: { inactive_deactivated: true, deactivated_at: now, available: false, online: false },
       });
-      deactivated.push({ id: l.id, name: l.name, last_activity: lastActivity });
-    }
-
-    return Response.json({ checked: locksmiths.length, deactivated });
+      deactivated += result.updated || 0;
+    } while (result.has_more);
+    return Response.json({ refreshed, deactivated });
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });
   }

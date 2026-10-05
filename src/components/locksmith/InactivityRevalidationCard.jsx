@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import PhotoUploader from "@/components/locksmith/PhotoUploader";
 
 /**
- * Perfil desativado automaticamente por 30 dias sem aceitar chamados.
+ * Perfil desativado após 30 dias offline e sem acessar o aplicativo.
  * O chaveiro reenvia os documentos para revalidar o cadastro e voltar a atender.
  */
 export default function InactivityRevalidationCard({ locksmith, onRevalidated }) {
@@ -44,7 +44,7 @@ export default function InactivityRevalidationCard({ locksmith, onRevalidated })
         <p className="font-bold text-sm">Perfil desativado por inatividade</p>
       </div>
       <p className="text-sm text-foreground">
-        Você não aceitou nenhum chamado por mais de 30 dias{since ? ` (desativado em ${since})` : ""}.
+        Seu perfil ficou offline e sem acessar o aplicativo por 30 dias ou mais{since ? ` (desativado em ${since})` : ""}.
         Envie novamente seus documentos (RG/CNH e comprovante de atividade) para revalidar o cadastro
         e voltar a receber solicitações.
       </p>

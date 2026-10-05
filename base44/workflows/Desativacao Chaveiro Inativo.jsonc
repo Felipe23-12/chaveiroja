@@ -1,6 +1,6 @@
 {
   "name": "Desativa\u00e7\u00e3o Chaveiro Inativo",
-  "description": "Todos os dias verifica os chaveiros sem chamados aceitos h\u00e1 mais de 30 dias e desativa o perfil, exigindo revalida\u00e7\u00e3o dos documentos.",
+  "description": "Todos os dias verifica perfis offline h\u00e1 30 dias sem acesso ao aplicativo. Acessos ou presen\u00e7a online reiniciam a contagem, sem exigir aceites de chamados.",
   "trigger": {
     "condition": null,
     "config": {
@@ -38,7 +38,7 @@
           "then": "end",
           "x-base44": {
             "title": "Verificar chaveiros inativos",
-            "description": "Desativa quem n\u00e3o aceita h\u00e1 30 dias"
+            "description": "30 dias offline e sem acesso ao app"
           }
         }
       }

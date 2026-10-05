@@ -237,7 +237,9 @@ export default function PainelChaveiro() {
 
   useEffect(() => {
     if (!active) return;
-    const heartbeat = () => base44.functions.invoke("serviceTrust", { action: "heartbeat" }).catch(() => {});
+    const heartbeat = () => {
+      if (document.visibilityState === 'visible') base44.functions.invoke("serviceTrust", { action: "heartbeat" }).catch(() => {});
+    };
     heartbeat();
     const timer = setInterval(heartbeat, 60000);
     return () => clearInterval(timer);
@@ -524,7 +526,7 @@ export default function PainelChaveiro() {
         setGpsLoading(false);
       }
     } else {
-      await base44.entities.Locksmith.update(me.id, { online: false });
+      await base44.entities.Locksmith.update(me.id, { online: false, last_activity_at: new Date().toISOString() });
     }
   };
 
@@ -885,7 +887,7 @@ export default function PainelChaveiro() {
             </p>
             {blockedOnline && (
               <p className="text-xs text-warning mt-1">
-                Pague a mensalidade para ficar online e visível no mapa.
+                {me.inactive_deactivated ? 'Revalide seu cadastro para voltar a receber chamados.' : 'Pague a mensalidade para ficar online e visível no mapa.'}
               </p>
             )}
           </div>
@@ -912,7 +914,7 @@ export default function PainelChaveiro() {
         <div className="p-4 rounded-xl border-2 border-destructive/40 bg-destructive/10 text-destructive mb-5"><p className="font-bold text-sm">Conta temporariamente suspensa</p><p className="text-sm mt-1">Você não receberá chamados até o fim da análise de segurança.</p></div>
       )}
 
-      {/* Perfil desativado automaticamente por 30 dias sem aceitar chamados */}
+      {/* Perfil desativado após 30 dias offline e sem acessar o aplicativo */}
       {me?.inactive_deactivated && (
         <InactivityRevalidationCard locksmith={me} onRevalidated={setMe} />
       )}
