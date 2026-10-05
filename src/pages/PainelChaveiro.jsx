@@ -179,6 +179,10 @@ export default function PainelChaveiro() {
 
   // Recupera o perfil profissional antes de carregar o painel, sem duplicar o cadastro.
   useEffect(() => {
+    setMe(null);
+    setSelectedId('');
+    setLocksmiths([]);
+    setProfileChecked(false);
     if (!user?.id) return;
     let disposed = false;
     const load = async () => {
@@ -200,18 +204,21 @@ export default function PainelChaveiro() {
   }, [user?.id]);
 
   useEffect(() => {
-    if (!selectedId) return;
+    if (!selectedId || !user?.id) return;
+    let disposed = false;
     const loadMe = () =>
       Promise.all([base44.entities.Locksmith.get(selectedId), fetchLocksmithFinancials(selectedId)])
         .then(([locksmith, financials]) => {
+          if (disposed || locksmith?.created_by_id !== user.id) return;
           const merged = mergeLocksmithFinancials(locksmith, financials);
           setMe(merged);
           saveLocksmithProfile(merged);
         })
         .catch(() => {
-          // Offline: usa perfil em cache
+          // Não restaura um perfil removido ou de outra conta após erro online.
+          if (disposed || isOnline()) return;
           const cached = getLocksmithProfile(selectedId);
-          if (cached) setMe(cached);
+          if (cached?.created_by_id === user.id) setMe(cached);
         });
     loadMe();
     const unsub = base44.entities.Locksmith.subscribe((event) => {
@@ -223,10 +230,11 @@ export default function PainelChaveiro() {
     const cleanupLocksmith = safeUnsubscribe(unsub);
     const cleanupFinancials = safeUnsubscribe(unsubFinancials);
     return () => {
+      disposed = true;
       cleanupLocksmith();
       cleanupFinancials();
     };
-  }, [selectedId]);
+  }, [selectedId, user?.id]);
 
   useEffect(() => {
     if (!selectedId) return;
@@ -486,7 +494,7 @@ export default function PainelChaveiro() {
   }, [active?.id, active?.status]);
 
   const toggleOnline = async () => {
-    if (!me) return;
+    if (!me || gpsLoading) return;
     if (trustBlocked) {
       toast({ title: "Conta suspensa", description: "Aguarde o fim da análise de segurança.", variant: "destructive" });
       return;
@@ -513,11 +521,26 @@ export default function PainelChaveiro() {
       // Ao ficar online, exige uma posição GPS real; nunca publica o centro padrão.
       setGpsLoading(true);
       try {
+        const sessionUser = await base44.auth.me();
+        if (sessionUser.id !== user?.id) throw new Error('Sua sessão mudou. Entre novamente com sua conta de chaveiro.');
+        // O perfil pode ter sido recriado enquanto o painel estava aberto.
+        const existing = await fetchMyLocksmith(sessionUser.id);
+        const current = existing || (sessionUser.account_type === 'chaveiro' ? await prepareLocksmithProfile() : null);
+        if (!current) {
+          setMe(null);
+          setSelectedId('');
+          setLocksmiths([]);
+          throw new Error('Seu perfil profissional precisa ser recuperado. Reabra o painel para concluir seu cadastro.');
+        }
+        setMe(current);
+        setLocksmiths([current]);
+        setSelectedId(current.id);
         const loc = await getPreciseLocation();
-        const { data } = await base44.functions.invoke('serviceTrust', { action: 'locksmith_location', locksmith_id: me.id, lat: loc.lat, lng: loc.lng, go_online: true });
+        const { data } = await base44.functions.invoke('serviceTrust', { action: 'locksmith_location', locksmith_id: current.id, lat: loc.lat, lng: loc.lng, go_online: true });
         const updated = data.locksmith;
-        setMe((prev) => preserveFinancials(prev, updated));
-        await base44.functions.invoke("serviceTrust", { action: "sync_online_requests", locksmith_id: me.id });
+        setMe(preserveFinancials(current, updated));
+        saveLocksmithProfile(preserveFinancials(current, updated));
+        await base44.functions.invoke("serviceTrust", { action: "sync_online_requests", locksmith_id: updated.id });
         toast({ title: "Você está online", description: `Localização atualizada via GPS${loc.accuracy ? ` (precisão de ${Math.round(loc.accuracy)} m)` : ""}.` });
       } catch (error) {
         toast({ title: error?.response?.data?.code === 'AREA_UNAVAILABLE' ? 'Fora da área de atendimento' : 'Não foi possível ficar online', description: error?.response?.data?.error || locationErrorMessage(error), variant: "destructive" });

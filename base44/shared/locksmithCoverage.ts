@@ -1,9 +1,10 @@
 import { loadServiceAreas, isAreaAvailable } from './serviceAreas.ts';
 
 export async function updateLocksmithLocation(base44, user, body) {
-  const profiles = await base44.asServiceRole.entities.Locksmith.filter({ created_by_id: user.id });
-  const locksmith = profiles.find(p => p.id === body.locksmith_id);
-  if (!locksmith) return Response.json({ error: 'Perfil não encontrado' }, { status: 403 });
+  if (typeof body.locksmith_id !== 'string' || !body.locksmith_id.trim()) return Response.json({ code: 'PROFILE_REQUIRED', error: 'Atualize seu painel antes de entrar online.' }, { status: 400 });
+  const profiles = await base44.asServiceRole.entities.Locksmith.filter({ id: body.locksmith_id, created_by_id: user.id }, '-updated_date', 1);
+  const locksmith = profiles[0];
+  if (!locksmith) return Response.json({ code: 'PROFILE_NOT_FOUND', error: 'O perfil exibido não está mais vinculado à sua sessão. Atualize o painel e entre novamente com sua conta de chaveiro.' }, { status: 404 });
   const { lat, lng } = body;
   if (typeof lat !== 'number' || typeof lng !== 'number' || !Number.isFinite(lat) || !Number.isFinite(lng) || Math.abs(lat) > 90 || Math.abs(lng) > 180) return Response.json({ error: 'Obtenha sua localização pelo GPS.' }, { status: 400 });
   const areas = await loadServiceAreas(base44);
