@@ -19,7 +19,7 @@ import NativeSelectDrawer from '@/components/ui/NativeSelectDrawer';
  * localização atual do cliente. Usa o LightMap (imagem estática + sobreposição),
  * leve para WebView do Android — sem travamentos.
  */
-export default function LiveLocksmithsMap({ customerLoc, livreOnly = false, locationKnown = false }) {
+export default function LiveLocksmithsMap({ customerLoc, livreOnly = false, locationKnown = false, locationAccuracy }) {
   const navigate = useNavigate();
   const coverage = useServiceAreas();
   const [locksmiths, setLocksmiths] = useState([]);
@@ -121,7 +121,7 @@ export default function LiveLocksmithsMap({ customerLoc, livreOnly = false, loca
 
   return (
     <div className="space-y-3">
-      <CoverageNotice location={requestedLocation} known={searchLoc ? Number.isFinite(searchLoc.lat) && Number.isFinite(searchLoc.lng) : locationKnown} />
+      <CoverageNotice location={requestedLocation} known={searchLoc ? Number.isFinite(searchLoc.lat) && Number.isFinite(searchLoc.lng) : locationKnown} accuracy={searchLoc ? undefined : locationAccuracy} />
       <div className="flex items-center justify-between">
         <div>
           <h3 className="font-heading font-semibold text-foreground flex items-center gap-2">

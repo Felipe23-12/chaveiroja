@@ -30,7 +30,7 @@ export default function Mapa() {
       <div className="mb-4">
         <LocationStatusNotice status={gps.status} error={gps.error} accuracy={gps.accuracy} onRetry={gps.retry} />
       </div>
-      <LiveLocksmithsMap customerLoc={customerLoc} livreOnly locationKnown={gps.hasFix} />
+      <LiveLocksmithsMap customerLoc={customerLoc} livreOnly locationKnown={gps.hasFix} locationAccuracy={gps.accuracy} />
     </div>
   );
 }

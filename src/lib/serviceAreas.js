@@ -50,5 +50,5 @@ export function useServiceAreas() {
     }
   } });
   useEffect(() => safeUnsubscribe(base44.entities.ServiceArea.subscribe(() => client.invalidateQueries({ queryKey: ['serviceAreas'] }))), [client]);
-  return { areas: query.data || EMPTY_AREAS, loading: query.isPending, checking: query.isFetching, error: query.error };
+  return { areas: query.data || EMPTY_AREAS, loading: query.isPending, checking: query.isFetching, error: query.error, retry: query.refetch };
 }

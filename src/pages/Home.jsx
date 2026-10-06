@@ -59,7 +59,7 @@ import { clientRegistrationComplete, clientCompletionUrl } from '@/lib/clientReg
 import IncompleteClientNotice from '@/components/client/IncompleteClientNotice';
 import { claimCpf } from '@/lib/cpfRegistration';
 import useServiceCoverage from '@/hooks/useServiceCoverage';
-import { AREA_UNAVAILABLE } from '@/lib/serviceAreas';
+
 
 export default function Home() {
   const { user } = useAuth();
@@ -479,7 +479,7 @@ export default function Home() {
   };
 
   const handleSearchKey = async () => {
-    if (!serviceCoverage.allowed) { setSearchError(AREA_UNAVAILABLE); return; }
+    if (!serviceCoverage.allowed) { setSearchError(serviceCoverage.message); return; }
     if (programming?.dealerOnly) {
       setSearchError(programming.reason);
       return;
@@ -539,7 +539,7 @@ export default function Home() {
 
   // A prévia e o envio usam o mesmo cálculo; alterações exigem nova confirmação.
   const handleConfirmConfig = async (confirmedPricing) => {
-    if (!serviceCoverage.allowed) { setSearchError(AREA_UNAVAILABLE); return; }
+    if (!serviceCoverage.allowed) { setSearchError(serviceCoverage.message); return; }
     if (!clientRegistrationComplete(user)) { navigate(clientCompletionUrl(serviceId)); return; }
     if (!address || submitting || !confirmedPricing) return;
     if (service?.needsVehicleInfo && !service?.isMotoKey) {
@@ -1112,7 +1112,7 @@ export default function Home() {
         </div>
       )}
 
-      {step === 1 && !activeRequest && <div className="mb-4"><CoverageNotice location={gps.location} known={gps.hasFix} /></div>}
+      {step === 1 && !activeRequest && <div className="mb-4"><CoverageNotice location={locationContext.coordinates_confirmed ? customerLoc : gps.location} known={locationContext.coordinates_confirmed || gps.hasFix} accuracy={locationContext.coordinates_confirmed ? undefined : gps.accuracy} /></div>}
       {!registrationComplete && !activeRequest && <IncompleteClientNotice />}
       {step === 1 && !activeRequest && registrationComplete && (
         <ModuleSelector module={module} setModule={setModule} />
@@ -1140,7 +1140,7 @@ export default function Home() {
               Encontre chaveiros do Modo Livre online nas áreas liberadas e converse diretamente com o profissional para combinar o serviço.
             </p>
           </div>
-          <LiveLocksmithsMap customerLoc={customerLoc} livreOnly locationKnown={gps.hasFix || locationContext.coordinates_confirmed} />
+          <LiveLocksmithsMap customerLoc={customerLoc} livreOnly locationKnown={gps.hasFix || locationContext.coordinates_confirmed} locationAccuracy={locationContext.coordinates_confirmed ? undefined : gps.accuracy} />
         </div>
       )}
 

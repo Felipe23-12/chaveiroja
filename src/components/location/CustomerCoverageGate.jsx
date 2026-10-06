@@ -16,7 +16,7 @@ export default function CustomerCoverageGate() {
   const coverage = useServiceCoverage(location, confirmed);
   return <ServiceQuoteScope location={location} confirmed={confirmed}>
     {coverage.allowed ? <Outlet /> : <div className="mx-auto max-w-2xl space-y-4 px-4 py-6">
-      <CoverageNotice location={location} known={confirmed} />
+      <CoverageNotice location={location} known={confirmed} accuracy={selection ? undefined : gps.accuracy} />
       <label className="block text-sm font-medium">Endereço do atendimento</label>
       <AddressAutocomplete value={address} onChange={value => { setAddress(value); setSelection({ lat: null, lng: null }); }} onSelect={({ lat, lng }) => setSelection({ lat, lng })} allowCurrentLocation />
     </div>}
