@@ -13,6 +13,7 @@ import ProtectedRoute from '@/components/ProtectedRoute';
 import ProfileCompletionGuard from '@/components/ProfileCompletionGuard';
 import PasswordCreationGuard from '@/components/PasswordCreationGuard';
 import RoleGuard from '@/components/RoleGuard';
+import AccountHome from '@/components/AccountHome';
 import TermsGate from '@/components/TermsGate';
 import LoadingCard from '@/components/ui/LoadingCard';
 import Layout from '@/components/Layout';
@@ -124,8 +125,8 @@ const AuthenticatedApp = () => {
             <Route element={<RoleGuard allow={["cliente", "chaveiro"]} />}>
               <Route path="/orcamentos" element={<QuoteMode />} />
             </Route>
+            <Route path="/" element={<AccountHome><Home /></AccountHome>} />
             <Route element={<RoleGuard allow={["cliente"]} />}>
-              <Route path="/" element={<Home />} />
               <Route path="/mapa" element={<Mapa />} />
               <Route path="/historico" element={<History />} />
               <Route path="/pagamentos" element={<Pagamentos />} />
