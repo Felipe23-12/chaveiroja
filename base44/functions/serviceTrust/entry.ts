@@ -338,7 +338,7 @@ export default async function(req) {
       Object.assign(values, pricing.fields || {});
       values.customer_name = customerName;
       values.price = pricing.price;
-      values.discount_type = pricing.discount_type;
+      if (pricing.discount_type) values.discount_type = pricing.discount_type;
       values.discount_amount = pricing.discount;
       values.discount_applied = pricing.discount > 0;
       values.pricing_calculation = pricing.calculation;
