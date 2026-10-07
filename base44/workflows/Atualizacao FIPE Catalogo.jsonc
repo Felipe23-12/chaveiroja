@@ -38,7 +38,8 @@
           "x-base44": {
             "title": "Atualizar preços FIPE",
             "description": "Avançar lote de até 10 consultas a cada 2 horas e conferir revisões vencidas"
-          }
+          },
+          "then": "fontes_alternativas"
         }
       },
       {
