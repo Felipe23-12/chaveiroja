@@ -9,8 +9,7 @@ import { loadServicePricing } from '../../shared/servicePricingSettings.ts';
 import { urgencyServicePrice } from '../../shared/urgencyServicePricing.ts';
 import { clientDebt, confirmedServicePayment } from '../../shared/paymentVerification.ts';
 import { submitTrustedClientReview, submitTrustedReview } from '../../shared/trustedReviews.ts';
-import { clientRegistrationComplete } from '../../shared/registrationEligibility.ts';
-import { verifiedCpf } from '../../shared/verifiedCpf.ts';
+import { clientRequestAccess, requestCustomerName } from '../../shared/clientRequestAccess.ts';
 import { loadServiceAreas, isAreaAvailable } from '../../shared/serviceAreas.ts';
 import { updateLocksmithLocation } from '../../shared/locksmithCoverage.ts';
 import { requireServiceCoverage } from '../../shared/serviceCoverage.ts';
@@ -68,6 +67,8 @@ export default async function(req) {
     if (!user) return Response.json({ error: 'Não autenticado' }, { status: 401 });
     const body = await req.json().catch(() => ({}));
     const action = body.action;
+
+    if (action === 'client_registration_status') return Response.json(await clientRequestAccess(base44, user));
 
     if (action === 'client_block_status') {
       if (user.role === 'admin') return Response.json({ blocked: false, minutesLeft: 0, cancelCount: 0, unlockAt: null, reason: null, message: null });
@@ -304,9 +305,17 @@ export default async function(req) {
     }
 
     if (action === 'create_request') {
-      if (!clientRegistrationComplete(user, await verifiedCpf(base44, user.id))) return Response.json({ code: 'REGISTRATION_REQUIRED', error: 'Complete seu cadastro: CPF, telefone, nome completo, email confirmado, senha e aceite dos termos são obrigatórios antes de solicitar um chamado.' }, { status: 403 });
+      const access = await clientRequestAccess(base44, user);
+      if (!access.allowed) return Response.json({ code: 'REGISTRATION_REQUIRED', error: 'Após cancelar um chamado, complete seu cadastro antes de solicitar outro atendimento.' }, { status: 403 });
       if (await clientDebt(base44, user.id)) return Response.json({ error: 'Quite seu débito pendente antes de solicitar outro atendimento.' }, { status: 409 });
       const data = body.data || {};
+      const customerName = requestCustomerName(data.customer_name || user.legal_name || user.full_name);
+      if (!customerName) return Response.json({ code: 'NAME_REQUIRED', error: 'Informe seu nome para solicitar o atendimento.' }, { status: 400 });
+      if (data.location_context?.coordinates_confirmed !== true || !Number.isFinite(data.customer_lat) || !Number.isFinite(data.customer_lng) || Math.abs(data.customer_lat) > 90 || Math.abs(data.customer_lng) > 180) return Response.json({ error: 'Confirme a localização do atendimento.' }, { status: 400 });
+      if (!access.registration_complete) {
+        const active = await base44.asServiceRole.entities.ServiceRequest.filter({ created_by_id: user.id, status: { $in: ['ringing', 'searching', 'accepted', 'queued', 'on_the_way'] } }, '-created_date', 1);
+        if (active.length) return Response.json({ error: 'Você já possui um chamado em andamento. Acompanhe esse atendimento antes de solicitar outro.' }, { status: 409 });
+      }
       if (!data.service_type || !String(data.address || '').trim()) return Response.json({ error: 'Informe o serviço e o endereço' }, { status: 400 });
       const areas = await requireServiceCoverage(base44, data.customer_lat, data.customer_lng);
       const pricing = await calculateServerServicePrice(base44, user.id, data);
@@ -327,6 +336,7 @@ export default async function(req) {
       const allowed = ['service_type', 'address', 'description', 'urgency', 'customer_lat', 'customer_lng', 'key_value', 'fipe_value', 'key_type', 'vehicle_info', 'labor_cost', 'locomotion_cost', 'distance_km', 'extra_cost', 'discount_applied'];
       const values = Object.fromEntries(allowed.filter((key) => data[key] !== undefined).map((key) => [key, data[key]]));
       Object.assign(values, pricing.fields || {});
+      values.customer_name = customerName;
       values.price = pricing.price;
       values.discount_amount = pricing.discount;
       values.discount_applied = pricing.discount > 0;
@@ -349,6 +359,7 @@ export default async function(req) {
       const location = validatedLocation(data);
       const detail = location.place_type === 'condominium' ? `Bloco/torre: ${location.building} · Unidade: ${location.unit}` : '';
       if (detail) values.description = [values.description, detail].filter(Boolean).join(' — ');
+      if (!access.registration_complete && customerName !== user.full_name) await base44.auth.updateMe({ full_name: customerName });
       const request = await base44.entities.ServiceRequest.create({ ...values, status: 'ringing', payment_status: 'pending', cash_received: false, client_confirmed: false, locksmith_confirmed: false, cancellation_fee: 0, review_claimed: false });
       await base44.asServiceRole.entities.ServiceRequestContext.create({ ...location, request_id: request.id, client_id: user.id });
 
