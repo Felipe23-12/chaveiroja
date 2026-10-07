@@ -74,7 +74,8 @@ jobs:
             -authenticationKeyPath "$ASC_KEY_PATH" \
             -authenticationKeyID "$ASC_KEY_ID" \
             -authenticationKeyIssuerID "$ASC_ISSUER_ID" \
-            clean archive
+            clean archive \
+            CODE_SIGNING_ALLOWED=NO
 
       - name: Export signed IPA
         shell: bash
