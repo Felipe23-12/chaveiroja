@@ -5,7 +5,8 @@ import { useAuth } from "@/lib/AuthContext";
 import useLiveDrivingRoute from '@/hooks/useLiveDrivingRoute';
 import { fetchMyLocksmith, fetchLocksmithFinancials, mergeLocksmithFinancials, preserveFinancials } from "@/lib/myLocksmith";
 import prepareLocksmithProfile from '@/lib/locksmithOnboarding';
-import { Wrench, Bell, Check, X, Power, Loader2, MapPin, WifiOff, CheckCircle2, ArrowLeft, MessageCircle } from "lucide-react";
+import { Wrench, Bell, Check, X, Loader2, MapPin, WifiOff, CheckCircle2, ArrowLeft, MessageCircle } from "lucide-react";
+import LocksmithAvailabilityCard from '@/components/locksmith/LocksmithAvailabilityCard';
 import { Button } from "@/components/ui/button";
 import { usePullToRefresh, PullToRefreshIndicator } from "@/components/ui/PullToRefresh";
 import LightMap from "@/components/map/LightMap";
@@ -26,7 +27,9 @@ import LocksmithCaseStatus from "@/components/locksmith/LocksmithCaseStatus";
 import LocksmithCancellationFlow from "@/components/locksmith/LocksmithCancellationFlow";
 import { useToast } from "@/components/ui/use-toast";
 import DarkModeToggle from "@/components/DarkModeToggle";
-import { haversineKm, getPreciseLocation, locationErrorMessage } from "@/lib/geo";
+import { haversineKm, locationErrorMessage } from "@/lib/geo";
+import getLocksmithLocation from '@/lib/locksmithLocation';
+import ErrorBanner from '@/components/ui/ErrorBanner';
 import { SERVICE_CATALOG } from "@/lib/pricing";
 import { confirmCashReceived } from "@/lib/payments";
 import { saveLastService, getLastService, clearLastService, saveLocksmithProfile, getLocksmithProfile, isOnline, saveLastRoute, getLastRoute, savePendingRequests, getPendingRequests } from "@/lib/offlineCache";
@@ -120,6 +123,8 @@ export default function PainelChaveiro() {
   const [cancelOpen, setCancelOpen] = useState(false);
   const [profileChecked, setProfileChecked] = useState(false);
   const [gpsLoading, setGpsLoading] = useState(false);
+  const [onlineError, setOnlineError] = useState('');
+  const onlineTogglePending = useRef(false);
   const [trustScore, setTrustScore] = useState(null);
   const [completedClientReview, setCompletedClientReview] = useState(null);
   const [acceptError, setAcceptError] = useState(null);
@@ -494,8 +499,9 @@ export default function PainelChaveiro() {
   }, [active?.id, active?.status]);
 
   const toggleOnline = async () => {
-    if (!me || gpsLoading) return;
-    if (trustBlocked) {
+    if (!me || onlineTogglePending.current) return;
+    setOnlineError('');
+    if (trustBlocked && !me.online) {
       toast({ title: "Conta suspensa", description: "Aguarde o fim da análise de segurança.", variant: "destructive" });
       return;
     }
@@ -519,9 +525,12 @@ export default function PainelChaveiro() {
         return;
       }
       // Ao ficar online, exige uma posição GPS real; nunca publica o centro padrão.
+      onlineTogglePending.current = true;
       setGpsLoading(true);
+      let loc;
       try {
-        const sessionUser = await base44.auth.me();
+        const [sessionUser, position] = await Promise.all([base44.auth.me(), getLocksmithLocation()]);
+        loc = position;
         if (sessionUser.id !== user?.id) throw new Error('Sua sessão mudou. Entre novamente com sua conta de chaveiro.');
         // O perfil pode ter sido recriado enquanto o painel estava aberto.
         const existing = await fetchMyLocksmith(sessionUser.id);
@@ -535,21 +544,40 @@ export default function PainelChaveiro() {
         setMe(current);
         setLocksmiths([current]);
         setSelectedId(current.id);
-        const loc = await getPreciseLocation();
         const { data } = await base44.functions.invoke('serviceTrust', { action: 'locksmith_location', locksmith_id: current.id, lat: loc.lat, lng: loc.lng, go_online: true });
         const updated = data.locksmith;
         setMe(preserveFinancials(current, updated));
         saveLocksmithProfile(preserveFinancials(current, updated));
-        await base44.functions.invoke("serviceTrust", { action: "sync_online_requests", locksmith_id: updated.id });
         toast({ title: "Você está online", description: `Localização atualizada via GPS${loc.accuracy ? ` (precisão de ${Math.round(loc.accuracy)} m)` : ""}.` });
+        // A disponibilidade já foi salva; sincronizar pedidos não faz parte da entrada.
+        void base44.functions.invoke("serviceTrust", { action: "sync_online_requests", locksmith_id: updated.id }).catch(() => {
+          toast({ title: 'Você continua online', description: 'Não foi possível buscar chamados anteriores agora. Novos chamados continuam habilitados.' });
+        });
       } catch (error) {
-        toast({ title: error?.response?.data?.code === 'AREA_UNAVAILABLE' ? 'Fora da área de atendimento' : 'Não foi possível ficar online', description: error?.response?.data?.error || locationErrorMessage(error), variant: "destructive" });
-        return;
+        const details = error?.response?.data || error?.data;
+        const approximate = details?.code === 'AREA_UNAVAILABLE' && loc?.accuracy > 100;
+        const message = approximate
+          ? 'Sua localização está aproximada. Ative a localização precisa nas permissões do aplicativo e tente novamente.'
+          : details?.error || ([1, 2, 3].includes(error?.code) ? locationErrorMessage(error) : error.message || 'Não foi possível conectar. Verifique sua internet e tente novamente.');
+        setOnlineError(message);
+        toast({ title: 'Não foi possível ficar online', description: message, variant: 'destructive' });
       } finally {
+        onlineTogglePending.current = false;
         setGpsLoading(false);
       }
     } else {
-      await base44.entities.Locksmith.update(me.id, { online: false, last_activity_at: new Date().toISOString() });
+      onlineTogglePending.current = true;
+      setGpsLoading(true);
+      try {
+        const updated = await base44.entities.Locksmith.update(me.id, { online: false, last_activity_at: new Date().toISOString() });
+        setMe(previous => preserveFinancials(previous, updated));
+        saveLocksmithProfile(preserveFinancials(me, updated));
+      } catch (error) {
+        setOnlineError(error?.response?.data?.error || error.message || 'Não foi possível sair. Tente novamente.');
+      } finally {
+        onlineTogglePending.current = false;
+        setGpsLoading(false);
+      }
     }
   };
 
@@ -893,44 +921,14 @@ export default function PainelChaveiro() {
         <LoadingCard label="Carregando seu perfil..." className="mb-5" />
       )}
 
-      {me && (() => {
-        const isLivre = me.work_mode === "livre";
-        const blockedOnline =
-          me.inactive_deactivated === true ||
-          (isLivre && me.monthly_fee_paid !== true && !me.online);
-        return (
-        <div className="flex items-center justify-between p-4 rounded-xl border border-border bg-card mb-5 fade-in-up">
-          <div>
-            <p className="font-medium text-foreground">{user?.username || user?.full_name || me.name}</p>
-            <p className="text-xs text-muted-foreground">
-              Modo {isLivre ? "Livre" : "Aplicativo"} ·{" "}
-              <span className={me.online ? "text-success" : "text-muted-foreground"}>
-                {me.online ? "Online" : "Offline"}
-              </span>
-            </p>
-            {blockedOnline && (
-              <p className="text-xs text-warning mt-1">
-                {me.inactive_deactivated ? 'Revalide seu cadastro para voltar a receber chamados.' : 'Pague a mensalidade para ficar online e visível no mapa.'}
-              </p>
-            )}
-          </div>
-          <Button
-            onClick={toggleOnline}
-            variant={me.online ? "destructive" : "default"}
-            size="sm"
-            disabled={blockedOnline || trustBlocked || gpsLoading}
-          >
-            {gpsLoading ? <Loader2 className="w-4 h-4 mr-1.5 animate-spin" /> : <Power className="w-4 h-4 mr-1.5" />} {gpsLoading ? "Localizando…" : me.online ? "Sair" : "Entrar"}
-          </Button>
-        </div>
-        );
-      })()}
+      {me && <LocksmithAvailabilityCard locksmith={me} user={user} busy={gpsLoading} trustBlocked={trustBlocked} onToggle={toggleOnline} />}
 
       {user?.role !== 'admin' && !isValidCpf(user?.cpf) && <div className="mb-4 rounded-xl border border-warning/40 bg-warning/10 p-4 space-y-2">
         <p className="text-sm font-medium">CPF pendente: conclua seu cadastro para aceitar chamados.</p>
         <Button asChild variant="outline"><Link to="/meus-dados#cpf">Preencher CPF</Link></Button>
       </div>}
-      {me && <div className="mb-4"><CoverageNotice location={{ lat: me.lat, lng: me.lng }} locksmith /></div>}
+      {onlineError && <div className="mb-4"><ErrorBanner message={onlineError} onRetry={gpsLoading ? undefined : toggleOnline} /></div>}
+      {me?.online && <div className="mb-4"><CoverageNotice location={{ lat: me.lat, lng: me.lng }} locksmith /></div>}
       {me && isAppMode && <LocksmithScoreCard score={trustScore} />}
 
       {trustBlocked && (
