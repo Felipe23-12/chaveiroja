@@ -4,7 +4,8 @@ import { VEHICLE_MODEL_YEARS } from '../../shared/vehicleModelYears.ts';
 
 const BASE = 'https://fipe.parallelum.com.br/api/v2';
 const DAILY_LIMIT = 440; // Reserva 60 das 500 chamadas sem token para consultas ao vivo.
-const BATCH_LIMIT = 18;
+const BATCH_LIMIT = 10; // Inclui referências, montadoras, modelos, anos e preços.
+const MIN_INTERVAL_MS = 2 * 60 * 60 * 1000;
 const NEXT_REVIEW_MS = 20 * 24 * 60 * 60 * 1000;
 const normalize = (v: unknown) => String(v || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
 const priceNumber = (v: unknown) => Number(String(v || '').replace(/[^\d,]/g, '').replace(',', '.'));
@@ -95,6 +96,9 @@ export default async function(req: Request): Promise<Response> {
   if (state.date_key !== dateKey()) state = { ...state, date_key: dateKey(), requests_used: 0 };
   if (state.requests_used >= DAILY_LIMIT) return Response.json({ paused: 'cota diária reservada', phase: state.phase, requests_used: state.requests_used, records_written: state.records_written });
   if (body.dry_run === true) return Response.json({ dry_run: true, catalog_families: families.length, state });
+  const lastRun = Date.parse(state.last_run_at || '');
+  if (Number.isFinite(lastRun) && Date.now() - lastRun < MIN_INTERVAL_MS) return Response.json({ paused: 'intervalo mínimo de 2 horas', calls: 0, next_run_at: new Date(lastRun + MIN_INTERVAL_MS).toISOString(), cursor: [state.brand_index, state.model_index, state.year_index] });
+  state.last_error = '';
   let written = 0, message = '';
   try {
     const budget = Math.min(BATCH_LIMIT, DAILY_LIMIT - state.requests_used);

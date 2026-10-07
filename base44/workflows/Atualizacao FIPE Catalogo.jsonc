@@ -1,13 +1,13 @@
 {
-  "name": "Atualiza\u00e7\u00e3o FIPE do cat\u00e1logo",
-  "description": "Consulta at\u00e9 440 requisi\u00e7\u00f5es di\u00e1rias da API independente, salva c\u00f3digos, vers\u00f5es e anos-modelo e revisa cada registro depois de 20 dias.",
+  "name": "Atualização FIPE do catálogo",
+  "description": "Consulta até 10 requisições a cada 2 horas, incluindo metadados, preserva o cursor e revisa cada registro após 20 dias.",
   "trigger": {
     "condition": null,
     "config": {
       "trigger_type": "scheduled",
       "events": [],
       "schedule_mode": "recurring",
-      "cron_expression": "0 * * * *",
+      "cron_expression": "0 */2 * * *",
       "one_time_date": null,
       "timezone": "UTC",
       "interval_value": null,
@@ -37,8 +37,8 @@
           },
           "then": "end",
           "x-base44": {
-            "title": "Atualizar pre\u00e7os FIPE",
-            "description": "Avan\u00e7ar lote di\u00e1rio e conferir revis\u00f5es vencidas"
+            "title": "Atualizar preços FIPE",
+            "description": "Avançar lote de até 10 consultas a cada 2 horas e conferir revisões vencidas"
           }
         }
       }
