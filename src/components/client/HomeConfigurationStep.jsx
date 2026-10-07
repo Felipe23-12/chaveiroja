@@ -27,7 +27,7 @@ export default function HomeConfigurationStep({ config }) {
   const coverageBlocked = !coverage.allowed;
   const vehicle = service.needsVehicleInfo || service.isCarKey || service.isMotoKey;
   const locationIncomplete = !vehicle && (!locationContext.place_type || (locationContext.place_type === "condominium" && (!locationContext.building?.trim() || !locationContext.unit?.trim())));
-  const disabled = coverageBlocked || !locationContext.coordinates_confirmed || locationIncomplete || !address || !keyBlock || keyBlock.blocked || programming?.dealerOnly ||
+  const disabled = config.customerNameValid === false || coverageBlocked || !locationContext.coordinates_confirmed || locationIncomplete || !address || !keyBlock || keyBlock.blocked || programming?.dealerOnly ||
     (isOpeningService(service) && (openingReason == null || (service.id !== "abertura_automotiva" && brokenKeyInLock == null))) ||
     (service.needsVehicleInfo && !service.isMotoKey && !(service.id === "abertura_automotiva" ? validateOpeningVehicle(vehicleInfo) : validateVehicleModelYear(vehicleInfo.make, vehicleInfo.model, vehicleInfo.year)).valid) ||
     (service.isCarKey && (!validateVehicleModelYear(vehicleInfo.make, vehicleInfo.model, vehicleInfo.year).valid || !fipeValue || !vehicleInfo.doorStatus || (isLandRoverFrom2020(vehicleInfo.make, vehicleInfo.year) && vehicleInfo.alarmLocked == null))) ||

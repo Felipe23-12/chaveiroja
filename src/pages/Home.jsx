@@ -57,6 +57,8 @@ import HomeCompletionPaymentStep from "@/components/client/HomeCompletionPayment
 import { useAuth } from '@/lib/AuthContext';
 import { clientRegistrationComplete, clientCompletionUrl } from '@/lib/clientRegistration';
 import IncompleteClientNotice from '@/components/client/IncompleteClientNotice';
+import { Input } from '@/components/ui/input';
+import { requestCustomerName } from '../../base44/shared/clientRequestAccess';
 import { claimCpf } from '@/lib/cpfRegistration';
 import useServiceCoverage from '@/hooks/useServiceCoverage';
 
@@ -141,6 +143,22 @@ export default function Home() {
   const [failedServiceOpen, setFailedServiceOpen] = useState(false);
   const keyBlock = useAppCancellationBlock(activeRequest?.status);
   const [customerName, setCustomerName] = useState("");
+  const [requestAccess, setRequestAccess] = useState(null);
+  const [accessError, setAccessError] = useState("");
+  const [accessRevision, setAccessRevision] = useState(0);
+  const registrationComplete = clientRegistrationComplete(user);
+  const canRequestService = registrationComplete || requestAccess?.allowed === true;
+  useEffect(() => {
+    let disposed = false;
+    setRequestAccess(null);
+    setAccessError("");
+    base44.functions.invoke('serviceTrust', { action: 'client_registration_status' }).then(({ data }) => {
+      if (!disposed) setRequestAccess(data);
+    }).catch(() => {
+      if (!disposed) setAccessError('Não foi possível verificar seu acesso. Tente novamente.');
+    });
+    return () => { disposed = true; };
+  }, [user?.id, activeRequest?.status, accessRevision]);
   const [canPreviewKeyPrice, setCanPreviewKeyPrice] = useState(false);
   const reqRef = useRef(null);
   const notifiedAccepted = useRef(false);
@@ -540,7 +558,8 @@ export default function Home() {
   // A prévia e o envio usam o mesmo cálculo; alterações exigem nova confirmação.
   const handleConfirmConfig = async (confirmedPricing) => {
     if (!serviceCoverage.allowed) { setSearchError(serviceCoverage.message); return; }
-    if (!clientRegistrationComplete(user)) { navigate(clientCompletionUrl(serviceId)); return; }
+    if (!canRequestService) { navigate(clientCompletionUrl(serviceId)); return; }
+    if (!requestCustomerName(customerName)) { setSearchError('Informe seu nome para solicitar o atendimento.'); return; }
     if (!address || submitting || !confirmedPricing) return;
     if (service?.needsVehicleInfo && !service?.isMotoKey) {
       const yearCheck = service.id === "abertura_automotiva" ? validateOpeningVehicle(vehicleInfo) : validateVehicleModelYear(vehicleInfo.make, vehicleInfo.model, vehicleInfo.year);
@@ -571,7 +590,7 @@ export default function Home() {
     setSearchError("");
     try {
       // Confirma CPFs anteriores à migração pela mesma checagem do cadastro.
-      if (user?.role !== 'admin') await claimCpf(user.cpf);
+      if (registrationComplete && user?.role !== 'admin') await claimCpf(user.cpf);
       // O limite diário vale para todos os serviços do modo aplicativo.
       {
         const user = await base44.auth.me().catch(() => null);
@@ -644,6 +663,7 @@ export default function Home() {
         ? technicalKeyDescription({ origin: keyOrigin, row: requestCatalog })
         : "";
       const base = {
+        customer_name: customerName,
         location_context: locationContext,
         expected_price: expectedPrice,
         pricing_inputs: { ...pricingData.pricing_inputs, vehicle_catalog_id: requestCatalog?.id || null },
@@ -703,7 +723,7 @@ export default function Home() {
         }
       }
 
-      if (req.discount_applied) {
+      if (req.discount_applied && req.discount_type !== 'first_call') {
         setLoyalty((prev) => (prev ? { ...prev, available: prev.available - 1 } : prev));
       }
       setSelectedLocksmith(nearest.l);
@@ -1086,8 +1106,7 @@ export default function Home() {
     setCancelConfirmOpen(false);
   };
 
-  const showAppFlow = module === "app" || step > 1 || activeRequest;
-  const registrationComplete = clientRegistrationComplete(user);
+  const showAppFlow = !registrationComplete || module === "app" || step > 1 || activeRequest;
 
   return (
     <div className="max-w-2xl mx-auto px-4 py-6 md:py-10">
@@ -1113,18 +1132,21 @@ export default function Home() {
       )}
 
       {step === 1 && !activeRequest && <div className="mb-4"><CoverageNotice location={locationContext.coordinates_confirmed ? customerLoc : gps.location} known={locationContext.coordinates_confirmed || gps.hasFix} accuracy={locationContext.coordinates_confirmed ? undefined : gps.accuracy} /></div>}
-      {!registrationComplete && !activeRequest && <IncompleteClientNotice />}
+      {!registrationComplete && !activeRequest && !requestAccess && !accessError && <p role="status" className="mb-4 text-sm">Verificando acesso aos chamados...</p>}
+      {!registrationComplete && !activeRequest && accessError && <ErrorBanner message={accessError} onRetry={() => setAccessRevision(value => value + 1)} />}
+      {!registrationComplete && !activeRequest && requestAccess?.registration_required && <IncompleteClientNotice />}
+      {!activeRequest && requestAccess?.first_call_available && <p className="mb-4 rounded-xl bg-primary/10 p-4 text-sm font-medium">Você tem 10% de desconto no primeiro chamado. O desconto será aplicado automaticamente.</p>}
       {step === 1 && !activeRequest && registrationComplete && (
         <ModuleSelector module={module} setModule={setModule} />
       )}
 
-      {showAppFlow && !cancelFeeData && (registrationComplete || activeRequest) && (
+      {showAppFlow && !cancelFeeData && (canRequestService || activeRequest) && (
         <StepProgress step={step} total={7} />
       )}
 
       <StepTransition stepKey={step}>
       {/* Step 1: Serviço */}
-      {step === 1 && showAppFlow && !cancelFeeData && registrationComplete && (
+      {step === 1 && showAppFlow && !cancelFeeData && canRequestService && (
         <HomeServiceSelectionStep config={{ keyBlock, loyalty, serviceId, setServiceId, setOpeningReason, setBrokenKeyInLock, goToStep }} />
       )}
 
@@ -1145,7 +1167,12 @@ export default function Home() {
       )}
 
       {/* Step 2: Configuração + preço */}
-      {step === 2 && service && registrationComplete && <HomeConfigurationStep config={{
+      {step === 2 && service && canRequestService && !registrationComplete && <div className="mb-5 space-y-2">
+        <label htmlFor="request-customer-name" className="text-sm font-medium">Seu nome</label>
+        <Input id="request-customer-name" value={customerName} onChange={event => setCustomerName(event.target.value)} maxLength={100} autoComplete="name" placeholder="Como podemos chamar você?" />
+        <p className="text-xs text-muted-foreground">Informe seu nome e a localização do atendimento. Se cancelar, será necessário completar o cadastro antes de fazer outro chamado.</p>
+      </div>}
+      {step === 2 && service && canRequestService && <HomeConfigurationStep config={{
         service, pricingService, vehicleInfo, setVehicleInfo, address, setAddress, handleAddressSelect, locationContext, setLocationContext,
         description, setDescription, originalKeyValue, searching, searchError, handleSearchKey,
         carKeyType, setCarKeyType, fipeValue, hasCodedKey, programming, keyOrigin,
@@ -1155,7 +1182,8 @@ export default function Home() {
         searchRadius, setSearchRadius, inRadiusCount, urgency, setUrgency,
         goToStep, handleConfirmConfig, submitting, keyBlock, selectedKeyValue,
         nearestDistance, assumedNearby, pricingData, quoteRevision,
-        requiresRegistration: !registrationComplete,
+        requiresRegistration: !canRequestService,
+        customerNameValid: !!requestCustomerName(customerName),
       }} />}
 
       {/* Step 3: Procurando / tocando no chaveiro */}
