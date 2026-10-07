@@ -1,0 +1,82 @@
+{
+  "name": "FipeSourceSyncState",
+  "type": "object",
+  "properties": {
+    "source": {
+      "type": "string",
+      "enum": [
+        "fipex",
+        "tabelafipe"
+      ]
+    },
+    "period": {
+      "type": "string"
+    },
+    "offset": {
+      "type": "integer"
+    },
+    "family_index": {
+      "type": "integer"
+    },
+    "total_rows": {
+      "type": "integer"
+    },
+    "created_count": {
+      "type": "integer"
+    },
+    "updated_count": {
+      "type": "integer"
+    },
+    "conflicts": {
+      "type": "integer"
+    },
+    "rejected": {
+      "type": "integer"
+    },
+    "calls_used": {
+      "type": "integer"
+    },
+    "date_key": {
+      "type": "string"
+    },
+    "last_run_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "last_error": {
+      "type": "string"
+    },
+    "next_cycle_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "required": [
+    "source",
+    "period",
+    "offset",
+    "family_index"
+  ],
+  "rls": {
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}
