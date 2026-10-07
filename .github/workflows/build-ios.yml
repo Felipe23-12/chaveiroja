@@ -1,0 +1,123 @@
+name: Build corrected iOS IPA
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build and sign IPA
+    runs-on: macos-26
+    timeout-minutes: 45
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Validate iOS permissions
+        run: npm run ios:validate
+
+      - name: Build web application and sync iOS
+        run: npm run ios:sync
+
+      - name: Prepare App Store icon
+        shell: bash
+        run: |
+          set -euo pipefail
+          SOURCE_ICON="resources/app-icon-source.png"
+          TARGET_ICON="ios/App/App/Assets.xcassets/AppIcon.appiconset/AppIcon-512@2x.png"
+          sips -s format jpeg "$SOURCE_ICON" --out "$RUNNER_TEMP/app-icon.jpg" >/dev/null
+          sips -z 1024 1024 -s format png "$RUNNER_TEMP/app-icon.jpg" --out "$TARGET_ICON" >/dev/null
+
+      - name: Install App Store Connect API key
+        shell: bash
+        env:
+          ASC_KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
+          ASC_PRIVATE_KEY: ${{ secrets.APP_STORE_CONNECT_PRIVATE_KEY }}
+        run: |
+          set -euo pipefail
+          test -n "$ASC_KEY_ID"
+          test -n "$ASC_ISSUER_ID"
+          test -n "$ASC_PRIVATE_KEY"
+          KEY_DIRECTORY="$RUNNER_TEMP/private_keys"
+          KEY_PATH="$KEY_DIRECTORY/AuthKey_${ASC_KEY_ID}.p8"
+          mkdir -p "$KEY_DIRECTORY"
+          printf '%s' "$ASC_PRIVATE_KEY" > "$KEY_PATH"
+          chmod 600 "$KEY_PATH"
+          echo "ASC_KEY_ID=$ASC_KEY_ID" >> "$GITHUB_ENV"
+          echo "ASC_ISSUER_ID=$ASC_ISSUER_ID" >> "$GITHUB_ENV"
+          echo "ASC_KEY_PATH=$KEY_PATH" >> "$GITHUB_ENV"
+
+      - name: Archive application
+        shell: bash
+        run: |
+          set -euo pipefail
+          xcodebuild \
+            -project ios/App/App.xcodeproj \
+            -scheme App \
+            -configuration Release \
+            -destination 'generic/platform=iOS' \
+            -archivePath "$RUNNER_TEMP/ChaveiroJa.xcarchive" \
+            -allowProvisioningUpdates \
+            -authenticationKeyPath "$ASC_KEY_PATH" \
+            -authenticationKeyID "$ASC_KEY_ID" \
+            -authenticationKeyIssuerID "$ASC_ISSUER_ID" \
+            clean archive
+
+      - name: Export signed IPA
+        shell: bash
+        run: |
+          set -euo pipefail
+          xcodebuild \
+            -exportArchive \
+            -archivePath "$RUNNER_TEMP/ChaveiroJa.xcarchive" \
+            -exportPath "$RUNNER_TEMP/export" \
+            -exportOptionsPlist ios/ExportOptions.plist \
+            -allowProvisioningUpdates \
+            -authenticationKeyPath "$ASC_KEY_PATH" \
+            -authenticationKeyID "$ASC_KEY_ID" \
+            -authenticationKeyIssuerID "$ASC_ISSUER_ID"
+
+      - name: Verify signed permissions and package
+        shell: bash
+        run: |
+          set -euo pipefail
+          IPA_PATH="$(find "$RUNNER_TEMP/export" -maxdepth 1 -name '*.ipa' -print -quit)"
+          test -n "$IPA_PATH"
+          VERIFY_DIR="$RUNNER_TEMP/verify"
+          mkdir -p "$VERIFY_DIR"
+          unzip -q "$IPA_PATH" -d "$VERIFY_DIR"
+          APP_PATH="$(find "$VERIFY_DIR/Payload" -maxdepth 1 -name '*.app' -print -quit)"
+          codesign -d --entitlements :- "$APP_PATH" > "$RUNNER_TEMP/signed-entitlements.plist" 2>&1
+          if grep -q 'com.apple.developer.calling-app' "$RUNNER_TEMP/signed-entitlements.plist"; then
+            echo 'Forbidden calling-app entitlement found in signed IPA.' >&2
+            exit 1
+          fi
+          if /usr/libexec/PlistBuddy -c 'Print :UIBackgroundModes' "$APP_PATH/Info.plist" 2>/dev/null | grep -q 'voip'; then
+            echo 'Forbidden voip background mode found in signed IPA.' >&2
+            exit 1
+          fi
+          test "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$APP_PATH/Info.plist")" = '2.131675.3'
+          test "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleVersion' "$APP_PATH/Info.plist")" = '3'
+          mkdir -p artifacts
+          cp "$IPA_PATH" artifacts/ChaveiroJa-2.131675.3-3.ipa
+
+      - name: Upload IPA artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ChaveiroJa-2.131675.3-3
+          path: artifacts/ChaveiroJa-2.131675.3-3.ipa
+          if-no-files-found: error
+          retention-days: 7
