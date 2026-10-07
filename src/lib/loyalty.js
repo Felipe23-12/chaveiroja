@@ -20,7 +20,7 @@ export async function getClientLoyalty(userId) {
 
   const completedCount = completed.length;
   const earned = Math.floor(completedCount / POINTS_PER_DISCOUNT);
-  const usedCount = used.length;
+  const usedCount = used.filter(row => row.discount_type !== 'first_call').length;
   const available = Math.max(0, earned - usedCount);
   const progress = completedCount % POINTS_PER_DISCOUNT;
 

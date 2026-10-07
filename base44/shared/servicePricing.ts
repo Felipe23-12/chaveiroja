@@ -138,7 +138,7 @@ async function loyaltyAvailable(base44, userId) {
       })).map((p) => p.service_request_id))
     : new Set();
   const verifiedCompleted = completed.filter((r) => paidRequestIds.has(r.id));
-  return Math.max(0, Math.floor(verifiedCompleted.length / 5) - used.length) > 0;
+  return Math.max(0, Math.floor(verifiedCompleted.length / 5) - used.filter(row => row.discount_type !== 'first_call').length) > 0;
 }
 
 export async function calculateServerServicePrice(base44, userId, data) {
@@ -238,23 +238,31 @@ export async function calculateServerServicePrice(base44, userId, data) {
     };
   }
 
-  const useDiscount = data.discount_applied === true && await loyaltyAvailable(base44, userId);
+  const history = await base44.asServiceRole.entities.ServiceRequest.filter({ created_by_id: userId }, '-created_date', 1);
+  const firstCall = history.length === 0;
+  const useDiscount = !firstCall && data.discount_applied === true && await loyaltyAvailable(base44, userId);
   const discountBase = Math.max(0, calculation.total - calculation.protectedFees);
   const discount = useDiscount ? round(discountBase * settings.loyalty / 100) : 0;
   const minimum = rule.carKey ? settings.minimum + calculation.protectedFees : 0;
   const simplePrice = Math.max(minimum, round(calculation.total - discount));
-  const actualDiscount = round(calculation.total - simplePrice);
+  let actualDiscount = round(calculation.total - simplePrice);
   const lishiFee = carOpening && method === 'lishi' ? round(simplePrice * lishiPercent / 100) : 0;
-  const price = round(simplePrice + lishiFee);
+  let price = round(simplePrice + lishiFee);
   if (lishiFee) {
     calculation.total = round(calculation.total + lishiFee);
     calculation.fields.extra_cost = round((calculation.fields.extra_cost || 0) + lishiFee);
     calculation.lines.push({ label: `Abertura Lishi profissional (+${lishiPercent}% sobre o total final da abertura simples)`, value: lishiFee });
   }
+  if (firstCall) {
+    actualDiscount = round(price * 0.10);
+    price = round(price - actualDiscount);
+    calculation.lines.push({ label: 'Desconto no primeiro chamado (10%)', value: -actualDiscount });
+  }
   return {
     price,
     discount: actualDiscount,
-    minimum,
+    discount_type: firstCall ? 'first_call' : useDiscount ? 'loyalty' : null,
+    minimum: firstCall ? round(minimum * 0.90) : minimum,
     fields: calculation.fields,
     calculation: { ...(carOpening ? { opening_method: method, lishi_percent: lishiPercent, simple_opening_price: simplePrice } : {}), total: calculation.total, lines: calculation.lines, notes: [
       'Preço recalculado e validado pelo servidor.',

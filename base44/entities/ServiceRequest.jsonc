@@ -103,6 +103,7 @@
       "type": "boolean",
       "default": false
     },
+    "discount_type": { "type": "string", "enum": ["first_call", "loyalty"] },
     "customer_name": {
       "type": "string",
       "description": "Nome informado pelo cliente ao solicitar o atendimento"
