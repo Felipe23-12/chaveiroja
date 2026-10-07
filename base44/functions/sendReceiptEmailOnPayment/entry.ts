@@ -75,7 +75,7 @@ export default async function(req) {
     if (request.labor_cost) rows.push(`<tr><td style="padding:6px 0;color:#666;">Mão de obra</td><td style="padding:6px 0;">R$ ${Number(request.labor_cost).toFixed(2).replace('.', ',')}</td></tr>`);
     if (request.locomotion_cost) rows.push(`<tr><td style="padding:6px 0;color:#666;">Locomoção</td><td style="padding:6px 0;">R$ ${Number(request.locomotion_cost).toFixed(2).replace('.', ',')}</td></tr>`);
     if (request.extra_cost) rows.push(`<tr><td style="padding:6px 0;color:#666;">Custos adicionais</td><td style="padding:6px 0;">R$ ${Number(request.extra_cost).toFixed(2).replace('.', ',')}</td></tr>`);
-    if (request.discount_amount) rows.push(`<tr><td style="padding:6px 0;color:#666;">Desconto de fidelidade</td><td style="padding:6px 0;color:#15803d;">- R$ ${Number(request.discount_amount).toFixed(2).replace('.', ',')}</td></tr>`);
+    if (request.discount_amount) rows.push(`<tr><td style="padding:6px 0;color:#666;">${request.discount_type === 'first_call' ? 'Desconto do primeiro chamado (10%)' : 'Desconto de fidelidade'}</td><td style="padding:6px 0;color:#15803d;">- R$ ${Number(request.discount_amount).toFixed(2).replace('.', ',')}</td></tr>`);
     const breakdownBlock = rows.length
       ? `<table style="width:100%;border-collapse:collapse;margin:12px 0;">${rows.join('')}</table>`
       : '';

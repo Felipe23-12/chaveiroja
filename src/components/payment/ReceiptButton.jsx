@@ -176,7 +176,7 @@ export default function ReceiptButton({ serviceRequest, locksmith, customerName,
 
       if (sr.discount_applied && !totalOnly) {
         doc.setTextColor(22, 163, 74);
-        doc.text(`Desconto de fidelidade (10%)`, colLabel, vy);
+        doc.text(sr.discount_type === 'first_call' ? 'Desconto do primeiro chamado (10%)' : 'Desconto de fidelidade (10%)', colLabel, vy);
         doc.text(`- ${formatCurrency(sr.discount_amount)}`, colValue, vy, { align: "right" });
         vy += 6;
       }
