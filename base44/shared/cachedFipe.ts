@@ -18,7 +18,7 @@ export async function fipeFromDatabase(base44: any, make: string, model: string,
   if (matchesRows.length > 1) throw new Error('Há várias versões FIPE para este modelo e ano. Informe a versão exata: ' + matchesRows.slice(0, 6).map((row: any) => row.model).join('; '));
   if (matchesRows.length === 1 && (version || complete)) {
     const row = matchesRows[0];
-    return { value: row.price, code: row.code_fipe, month: row.reference_month, model: row.model, sourceUrl: row.source_url, provider: 'Banco local · origem Parallelum' };
+    return { value: row.price, code: row.code_fipe, month: row.reference_month, model: row.model, sourceUrl: row.source_url, provider: row.source_url?.includes('tabelafipe.info') ? 'Banco local · dados via tabelafipe.info' : row.source_url?.includes('huggingface.co') ? 'Banco local · dados via fipeX' : 'Banco local · origem Parallelum' };
   }
   // Primeira consulta de uma combinação ausente: consulta externa uma vez e guarda no banco.
   const fresh = await lookupExactFipe(make, model, year, version);

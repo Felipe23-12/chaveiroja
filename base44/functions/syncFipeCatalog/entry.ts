@@ -4,7 +4,7 @@ import { VEHICLE_MODEL_YEARS } from '../../shared/vehicleModelYears.ts';
 
 const BASE = 'https://fipe.parallelum.com.br/api/v2';
 const DAILY_LIMIT = 440; // Reserva 60 das 500 chamadas sem token para consultas ao vivo.
-const BATCH_LIMIT = 10; // Inclui referências, montadoras, modelos, anos e preços.
+const BATCH_LIMIT = 6; // Inclui referências, montadoras, modelos, anos e preços.
 const MIN_INTERVAL_MS = 2 * 60 * 60 * 1000;
 const NEXT_REVIEW_MS = 20 * 24 * 60 * 60 * 1000;
 const normalize = (v: unknown) => String(v || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();

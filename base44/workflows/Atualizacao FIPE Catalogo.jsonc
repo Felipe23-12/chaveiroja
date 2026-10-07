@@ -1,6 +1,6 @@
 {
   "name": "Atualização FIPE do catálogo",
-  "description": "Consulta até 10 requisições a cada 2 horas, incluindo metadados, preserva o cursor e revisa cada registro após 20 dias.",
+  "description": "Até 10 consultas a cada 2h distribuídas entre Parallelum (6), arquivo mensal fipeX (1) e TabelaFIPE.info (até 3), com cursores independentes.",
   "trigger": {
     "condition": null,
     "config": {
@@ -35,10 +35,25 @@
               "_internal_token": "${ .secrets.INTERNAL_CALL_TOKEN }"
             }
           },
-          "then": "end",
           "x-base44": {
             "title": "Atualizar preços FIPE",
             "description": "Avançar lote de até 10 consultas a cada 2 horas e conferir revisões vencidas"
+          }
+        }
+      },
+      {
+        "fontes_alternativas": {
+          "call": "invoke_backend_function",
+          "with": {
+            "function_name": "syncFipeAlternatives",
+            "args": {
+              "_internal_token": "${ .secrets.INTERNAL_CALL_TOKEN }"
+            }
+          },
+          "then": "end",
+          "x-base44": {
+            "title": "Complementar FIPE por fontes alternativas",
+            "description": "Importar arquivo mensal e preços por família sem disputar o cursor Parallelum"
           }
         }
       }
