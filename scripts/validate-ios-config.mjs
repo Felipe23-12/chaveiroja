@@ -25,6 +25,7 @@ reject(!project.includes('MARKETING_VERSION = 2.131675.3;'), 'marketing version 
 reject(!project.includes('CURRENT_PROJECT_VERSION = 3;'), 'build number must be 3');
 reject(!project.includes('DEVELOPMENT_TEAM = TM2BBSKJ6L;'), 'Apple development team is missing');
 reject(!project.includes('CODE_SIGN_ENTITLEMENTS = App/App.entitlements;'), 'entitlements file is not assigned');
+reject(!project.includes('CODE_SIGN_IDENTITY = "Apple Distribution";'), 'release distribution identity is missing');
 reject(!capacitor.includes('https://woodoo-quick-lock-link.base44.app'), 'published Base44 URL is missing');
 
 if (failures.length) {
