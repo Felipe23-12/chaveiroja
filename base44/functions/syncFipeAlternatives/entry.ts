@@ -52,7 +52,7 @@ export default async function(req: Request): Promise<Response> {
   async function request(url: string, text=false) {
     if(calls>=MAX_CALLS) throw new Error('Orçamento do lote atingido.');
     calls++;
-    const response=await fetch(url,{headers:{accept:text?'text/plain':'application/json'},signal:AbortSignal.timeout(20000)});
+    const response=await fetch(url,{headers:{accept:text?'text/plain':'application/json','User-Agent':'ChaveiroJa-Catalog/1.0'},signal:AbortSignal.timeout(20000)});
     if(!response.ok) throw Object.assign(new Error('HTTP '+response.status+' na fonte alternativa.'),{status:response.status});
     return text ? response.text() : response.json();
   }
