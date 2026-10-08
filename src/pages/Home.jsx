@@ -159,7 +159,9 @@ export default function Home() {
     });
     return () => { disposed = true; };
   }, [user?.id, activeRequest?.status, accessRevision]);
-  const [canPreviewKeyPrice, setCanPreviewKeyPrice] = useState(false);
+  // A prévia de 67% é exclusiva dos serviços de abertura. Outros serviços
+  // não exibem essa prévia parcial antes da solicitação.
+  const canPreviewKeyPrice = false;
   const reqRef = useRef(null);
   const notifiedAccepted = useRef(false);
   const notifiedMoving = useRef(false);
@@ -247,7 +249,6 @@ export default function Home() {
   useEffect(() => {
     base44.auth.me().then((u) => {
       setCustomerName(u?.legal_name || u?.full_name || "");
-      setCanPreviewKeyPrice(u?.email?.toLowerCase() === "felipemotacs1@gmail.com");
     }).catch(() => {});
   }, []);
 
