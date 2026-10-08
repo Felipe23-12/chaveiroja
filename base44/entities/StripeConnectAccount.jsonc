@@ -1,0 +1,113 @@
+{
+  "name": "StripeConnectAccount",
+  "type": "object",
+  "properties": {
+    "locksmith_id": {
+      "type": "string"
+    },
+    "stripe_account_id": {
+      "type": "string"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "created",
+        "onboarding",
+        "active",
+        "restricted",
+        "disabled"
+      ],
+      "default": "created"
+    },
+    "charges_enabled": {
+      "type": "boolean",
+      "default": false
+    },
+    "payouts_enabled": {
+      "type": "boolean",
+      "default": false
+    },
+    "pix_payments_status": {
+      "type": "string",
+      "enum": [
+        "active",
+        "pending",
+        "inactive",
+        "unrequested",
+        "unknown"
+      ],
+      "default": "unknown"
+    },
+    "details_submitted": {
+      "type": "boolean",
+      "default": false
+    },
+    "onboarding_completed_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Primeira conclus\u00e3o do cadastro inicial no Stripe; n\u00e3o depende de aprova\u00e7\u00f5es posteriores."
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "updated_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "description": {
+      "type": "string",
+      "maxLength": 1000
+    }
+  },
+  "required": [
+    "locksmith_id",
+    "stripe_account_id"
+  ],
+  "rls": {
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "read": {
+      "$or": [
+        {
+          "created_by_id": "{{user.id}}"
+        },
+        {
+          "data.locksmith_id": "{{user.id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "created_by_id": "{{user.id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "$or": [
+        {
+          "created_by_id": "{{user.id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    }
+  }
+}
