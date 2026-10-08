@@ -1,16 +1,17 @@
 import React from "react";
+import { getServiceDeductions } from "@/lib/paymentDeductions";
 
 export default function VehicleKeyServiceSummary({ request, clientName, keyType, origin, technical, customerNote }) {
   const parallel = origin?.toLowerCase() === "chave paralela";
   const files = technical.arquivos?.split(/;\s*/).filter((file) => /^(VVDI|KD|KM100)\b/i.test(file.trim())).join("; ");
   const alarm = parallel ? files || "Marca e arquivo não informados no chamado" : origin ? "Sim" : technical.alarme || "Não informado";
   const machine = technical["máquina de codificação"]?.split(/\s+—\s+/).filter((part) => !/^programação de chaves$/i.test(part.trim())).join(" — ");
-  const total = request?.price != null ? Number(request.price).toLocaleString("pt-BR", { style: "currency", currency: "BRL" }) : "Não informado";
+  const total = request?.price != null ? getServiceDeductions(request, null, true).netAmount.toLocaleString("pt-BR", { style: "currency", currency: "BRL" }) : "Não informado";
 
   return (
     <div className="rounded-xl border border-border bg-card p-4 text-sm text-foreground space-y-4 break-words">
       <p><strong>Cliente:</strong> {clientName}</p>
-      <p><strong>Valor total do serviço:</strong> <span className="font-semibold text-primary">{total}</span></p>
+      <p><strong>Valor que você recebe:</strong> <span className="font-semibold text-primary">{total}</span></p>
       <p>{request?.vehicle_info || "Veículo não informado no chamado"}</p>
       <p><strong>Tipo de chave:</strong> {keyType || "Não informado"}</p>
       <div className="space-y-2 whitespace-pre-wrap">
