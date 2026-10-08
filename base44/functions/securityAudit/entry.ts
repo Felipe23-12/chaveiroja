@@ -58,7 +58,7 @@ export default async function (req) {
       `Atendimentos verificados: ${requests.length}`,
       `Mensagens verificadas: ${messages.length}`,
       `Pagamentos verificados: ${payments.length}`,
-      `Usuários verificados: ${users.length`,
+      `Usuários verificados: ${users.length}`,
       '',
       'Resultado:',
       ...findings.map((f) => `• ${f}`),
