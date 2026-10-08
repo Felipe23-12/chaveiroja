@@ -15,7 +15,8 @@ assert.throws(() => api.validatePricing('Abertura Automotiva', { ...defaults, se
 let settings = { ...defaults, tier_day: 0, tier_night: 0, tier_weekend: 0, tier_normal_cap: 0, supply_none: 0, saturday: 0, sunday: 0, holiday: 0, night: 0, opening_2020: 0 };
 const pcx = { id: 'pcx', make: 'Honda', model: 'PCX 150 DLX/SPORT (presença)', year_start: 2019, year_end: 2022, original_proximity_price: 641.99, key_style: 'presenca' };
 const adv = { id: 'adv', make: 'Honda', model: 'ADV 150', year_start: 2021, year_end: 2024, original_proximity_price: 641.99, key_style: 'presenca' };
-const client = { asServiceRole: { entities: new Proxy({}, { get: (_, name) => ({ filter: async () => name === 'ServicePricingConfig' ? [{ values: settings }] : name === 'VehicleKeyCatalog' ? [pcx, adv] : [] }) }) } };
+let history = [{ id: 'previous-request' }];
+const client = { asServiceRole: { entities: new Proxy({}, { get: (_, name) => ({ filter: async () => name === 'ServicePricingConfig' ? [{ values: settings }] : name === 'VehicleKeyCatalog' ? [pcx, adv] : name === 'ServiceRequest' ? history : [] }) }) } };
 const vehicle = { opening_target: 'moto_seat', make: 'BMW', model: 'R 1250 GS', year: 2022, factory_seat_opening: true, complexity: 'simples' };
 const data = { service_type: 'Abertura Automotiva', urgency: 'normal', customer_lat: -23, customer_lng: -46, pricing_inputs: { vehicle } };
 assert.equal(api.validateOpeningVehicle(vehicle).valid, true);
@@ -24,7 +25,8 @@ assert.equal(api.validateOpeningVehicle({ ...vehicle, year: 2500 }).valid, false
 assert.equal(api.validateOpeningVehicle({ make: 'Chevrolet', model: 'Celta', year: 2015 }).valid, true);
 let quote = await api.calculateServerServicePrice(client, 'test', data);
 assert.equal(quote.fields.base_labor_cost, 150, 'car regional range must not overwrite seat range');
-assert.equal(quote.price, 187.5, 'existing 25% rain applies');
+assert.equal(quote.calculation.total, 187.5, 'technical price keeps existing 25% rain');
+assert.equal(quote.price, 187.5, 'non-first call has no first-call discount');
 quote = await api.calculateServerServicePrice(client, 'test', { ...data, pricing_inputs: { vehicle: { ...vehicle, complexity: 'alta' }, broken_key_in_lock: true } });
 assert.equal(quote.price, 262.5, 'complexity and condition extras apply');
 settings = { ...settings, seat_base_min: 200, seat_base_max: 400 };
@@ -38,4 +40,9 @@ for (const row of [pcx, adv]) {
   assert.equal(await api.catalogKeyPrice(client, found, 0, 'presenca', 'original', {}, row.year_start), 641.99);
   assert.equal(await api.currentVehicleCatalog(client, { make: row.make, model: row.model, year: row.year_start - 1 }, 'moto', 'presenca'), null);
 }
-console.log('PASS: seat eligibility, server pricing, rain, complexity, condition, admin overrides, copy rejection, PCX/ADV catalog and year bounds');
+history = [];
+const firstCallQuote = await api.calculateServerServicePrice(client, 'test', data);
+assert.equal(firstCallQuote.calculation.total, 187.5, 'first-call technical price remains 187.50');
+assert.equal(firstCallQuote.price, 168.75, 'first call applies 10% discount');
+assert.equal(firstCallQuote.discount, 18.75, 'first-call discount is 10% of technical price');
+console.log('PASS: seat eligibility, technical price, first-call 10% discount, rain, complexity, condition, admin overrides, copy rejection, PCX/ADV catalog and year bounds');
