@@ -73,7 +73,7 @@ export const LONG_DISTANCE_KM_FEE = 0.90;
 export function calculateLongDistanceFee(distanceKm) {
   const dist = Number(distanceKm) || 0;
   if (dist <= LONG_DISTANCE_THRESHOLD_KM) return 0;
-  return Math.round(LONG_DISTANCE_KM_FEE * dist * 100) / 100;
+  return Math.round(LONG_DISTANCE_KM_FEE * (dist - LONG_DISTANCE_THRESHOLD_KM) * 100) / 100;
 }
 
 // Acréscimo fixo quando a chave está quebrada dentro da fechadura (aberturas)
