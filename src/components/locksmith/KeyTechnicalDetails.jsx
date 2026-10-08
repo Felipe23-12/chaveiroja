@@ -18,7 +18,7 @@ export default function KeyTechnicalDetails({ description, request }) {
     .replace(/(?:^|\s)—(?:\s|$)/g, " ")
     .trim();
 
-  if (!isVehicleKey && !customerNote && !clientName) return null;
+  if (!isVehicleKey && !request?.vehicle_info && request?.service_type !== "Abertura Automotiva" && !customerNote && !clientName) return null;
   const origin = raw.match(/(?:^|—\s*)(Chave original|Chave paralela)(?=\s*—|$)/i)?.[1];
   const keyType = ({ simples: "Simples", canivete: "Canivete", telecomando: "Telecomando", presenca: "Presença (Smart Key)" })[request?.key_type] || request?.key_type;
   if (isVehicleKey) return <VehicleKeyServiceSummary request={request} clientName={clientName || clientNameFromRequest(request)} keyType={keyType} origin={origin} technical={technical} customerNote={customerNote} />;
@@ -27,6 +27,7 @@ export default function KeyTechnicalDetails({ description, request }) {
     <div className="rounded-xl border border-border bg-card p-4 space-y-3">
       <div><p className="font-heading font-semibold text-foreground">{isVehicleKey ? "Ficha de confecção de chave" : "Ficha técnica do serviço"}</p><p className="text-xs text-muted-foreground">Informações liberadas após o aceite</p></div>
       {!isVehicleKey && clientName && <p className="text-sm"><span className="text-muted-foreground">Cliente:</span> <strong>{clientName}</strong></p>}
+      {(request?.vehicle_info || request?.service_type === "Abertura Automotiva") && <div className="rounded-lg border border-border p-3"><p className="text-xs font-medium text-muted-foreground">Veículo · modelo e ano</p><p className="mt-1 text-sm font-semibold text-foreground whitespace-pre-wrap break-words">{request.vehicle_info || "Modelo e ano não informados neste chamado"}</p></div>}
 
       {technical.arquitetura && <p className="text-xs text-muted-foreground"><strong className="text-foreground">Arquitetura:</strong> {technical.arquitetura}</p>}
       {technical.codificação && <p className="text-xs text-muted-foreground"><strong className="text-foreground">Codificação:</strong> {technical.codificação}</p>}

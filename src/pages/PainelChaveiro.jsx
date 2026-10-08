@@ -121,6 +121,7 @@ export default function PainelChaveiro() {
   const promotingQueuedId = useRef(null);
   const { toast } = useToast();
   const [chatFocus, setChatFocus] = useState(false);
+  const [chatClient, setChatClient] = useState(null);
   const [cancelOpen, setCancelOpen] = useState(false);
   const [profileChecked, setProfileChecked] = useState(false);
   const [gpsLoading, setGpsLoading] = useState(false);
@@ -178,6 +179,7 @@ export default function PainelChaveiro() {
   // Abre a conversa de chat em tela cheia ao chegar no painel via alerta de mensagem
   useEffect(() => {
     if (location.state?.openChat) {
+      setChatClient(null);
       setChatFocus(true);
       window.history.replaceState({}, "");
     }
@@ -1022,10 +1024,13 @@ export default function PainelChaveiro() {
             <p className="text-xs text-muted-foreground mt-0.5">{active.address}</p>
           </div>
 
-          <div className="flex items-center justify-between gap-3 rounded-xl border border-border bg-card p-4">
+          <div className="flex flex-col gap-3 rounded-xl border border-border bg-card p-4">
             <LocksmithNetAmount request={active} />
-            <Button onClick={() => setChatFocus(true)} size="icon" aria-label="Abrir mensagens do cliente">
-              <MessageCircle className="h-5 w-5" />
+            <Button disabled={!active.created_by_id} onClick={() => {
+              setChatClient({ id: active.created_by_id, name: active.customer_name || active.description?.match(/Cliente:\s*([^—\n]+)/i)?.[1]?.trim() || "Cliente" });
+              setChatFocus(true);
+            }} className="w-full">
+              <MessageCircle className="h-5 w-5" /> Enviar mensagem ao cliente
             </Button>
           </div>
 
@@ -1272,7 +1277,7 @@ export default function PainelChaveiro() {
             <h2 className="font-heading font-semibold text-foreground">Conversas</h2>
           </div>
           <div className="flex-1 overflow-y-auto p-3">
-            <LocksmithChatConversations me={me} />
+            <LocksmithChatConversations key={chatClient?.id || "conversations"} me={me} initialClient={chatClient} />
           </div>
         </div>
       )}

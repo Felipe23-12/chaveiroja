@@ -20,9 +20,11 @@ import { containsLink } from "@/lib/chatMessageValidation";
  * Extraído do LivreModeDashboard para permitir uso mesmo com a mensalidade
  * pendente — assim o chaveiro sempre consegue verificar e responder clientes.
  */
-export default function LocksmithChatConversations({ me }) {
+export default function LocksmithChatConversations({ me, initialClient = null }) {
   const [conversations, setConversations] = useState([]);
-  const [activeTab, setActiveTab] = useState(null);
+  const [activeTab, setActiveTab] = useState(initialClient?.id || null);
+  const [loadingMessages, setLoadingMessages] = useState(false);
+  const [messageError, setMessageError] = useState("");
   const [messages, setMessages] = useState([]);
   const [text, setText] = useState("");
   const [sending, setSending] = useState(false);
@@ -65,18 +67,26 @@ export default function LocksmithChatConversations({ me }) {
   // Carrega mensagens da conversa ativa
   useEffect(() => {
     if (!me?.id || !activeTab) return;
+    let cancelled = false;
+    setMessages([]);
+    setLoadingMessages(true);
+    setMessageError("");
     const load = () => Promise.all([
       base44.entities.ChatMessage.filter({ locksmith_id: me.id, client_id: activeTab }, "created_date"),
       loadHiddenMessageIds(me.created_by_id),
     ]).then(([list, hidden]) => {
+      if (cancelled) return;
+      setMessageError("");
       setMessages(list.filter((message) => !blockedIds.has(message.client_id) && !hidden.has(message.id)));
       const latest = list[list.length - 1]?.created_date;
       if (latest) markChatConversationRead(me.created_by_id, me.id, activeTab, latest).catch(() => {});
-    }).catch(() => {});
+    }).catch(() => {
+      if (!cancelled) setMessageError("Não foi possível carregar as mensagens. Feche e abra a conversa para tentar novamente.");
+    }).finally(() => { if (!cancelled) setLoadingMessages(false); });
     load();
     const unsubscribeMessages = safeUnsubscribe(base44.entities.ChatMessage.subscribe(load));
     const unsubscribeVisibility = safeUnsubscribe(base44.entities.ChatMessageVisibility.subscribe(load));
-    return () => { unsubscribeMessages(); unsubscribeVisibility(); };
+    return () => { cancelled = true; unsubscribeMessages(); unsubscribeVisibility(); };
   }, [me?.id, me?.created_by_id, activeTab, blockedIds]);
 
   useEffect(() => {
@@ -139,6 +149,8 @@ export default function LocksmithChatConversations({ me }) {
     }
   };
 
+  const activeClientName = conversations.find((c) => c.id === activeTab)?.name || (initialClient?.id === activeTab ? initialClient.name : null) || "Cliente";
+
   return (
     <div id="chat-conversas">
       <div className="flex items-center gap-2 mb-3">
@@ -150,7 +162,7 @@ export default function LocksmithChatConversations({ me }) {
           <MessageCircle className="w-4 h-4 text-primary" />
         )}
         <h3 className="font-heading font-semibold text-foreground">
-          {activeTab ? conversations.find((c) => c.id === activeTab)?.name || "Conversa" : "Conversas com clientes"}
+          {activeTab ? activeClientName : "Conversas com clientes"}
         </h3>
         {activeTab && <Button variant="ghost" size="sm" onClick={handleHideConversation} aria-label="Excluir conversa da minha visualização"><Trash2 className="w-4 h-4 mr-1" /> Excluir conversa</Button>}
         {!activeTab && conversations.length > 0 && (
@@ -160,9 +172,9 @@ export default function LocksmithChatConversations({ me }) {
         )}
       </div>
 
-      {activeTab && <div className="mb-3"><ModerationActions targetUserId={activeTab} targetType="cliente" targetName={conversations.find((c) => c.id === activeTab)?.name} contextType="chat" locksmithId={me.id} onBlocked={() => setActiveTab(null)} /></div>}
+      {activeTab && <div className="mb-3"><ModerationActions targetUserId={activeTab} targetType="cliente" targetName={activeClientName} contextType="chat" locksmithId={me.id} onBlocked={() => setActiveTab(null)} /></div>}
 
-      {conversations.length === 0 ? (
+      {!activeTab && conversations.length === 0 ? (
         <div className="text-center py-10 rounded-xl border border-dashed border-border">
           <MessageCircle className="w-8 h-8 text-muted-foreground mx-auto mb-2" />
           <p className="text-sm text-muted-foreground">
@@ -176,6 +188,9 @@ export default function LocksmithChatConversations({ me }) {
           {/* Mensagens da conversa ativa */}
           <div className="flex flex-col" style={{ height: 360 }}>
             <div className="flex-1 overflow-y-auto space-y-2 p-3">
+              {loadingMessages && <p role="status" className="text-sm text-muted-foreground">Carregando mensagens...</p>}
+              {messageError && <p role="alert" className="text-sm text-destructive">{messageError}</p>}
+              {!loadingMessages && !messageError && messages.length === 0 && <p className="text-sm text-muted-foreground">Envie a primeira mensagem ao cliente deste atendimento.</p>}
               {messages.map((m) => {
                 if (m.sender_type === "system") {
                   return (
@@ -198,7 +213,7 @@ export default function LocksmithChatConversations({ me }) {
               <Input
                 value={text}
                 onChange={(e) => setText(e.target.value)}
-                placeholder={`Responder para ${conversations.find((c) => c.id === activeTab)?.name || ""}...`}
+                placeholder={`Mensagem para ${activeClientName}...`}
                 disabled={sending}
               />
               <Button type="submit" size="icon" disabled={!text.trim() || sending}>
