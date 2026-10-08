@@ -58,8 +58,8 @@ import { useAuth } from '@/lib/AuthContext';
 import { clientRegistrationComplete, clientCompletionUrl } from '@/lib/clientRegistration';
 import IncompleteClientNotice from '@/components/client/IncompleteClientNotice';
 import { Input } from '@/components/ui/input';
-import { requestCustomerName } from '../../base44/shared/clientRequestAccess';
-import { claimCpf } from '@/lib/cpfRegistration';
+import { requestCustomerName } from '@/lib/clientName';
+
 import useServiceCoverage from '@/hooks/useServiceCoverage';
 
 
@@ -589,8 +589,6 @@ export default function Home() {
     setSubmitting(true);
     setSearchError("");
     try {
-      // Confirma CPFs anteriores à migração pela mesma checagem do cadastro.
-      if (registrationComplete && user?.role !== 'admin') await claimCpf(user.cpf);
       // O limite diário vale para todos os serviços do modo aplicativo.
       {
         const user = await base44.auth.me().catch(() => null);
@@ -1170,7 +1168,7 @@ export default function Home() {
       {step === 2 && service && canRequestService && !registrationComplete && <div className="mb-5 space-y-2">
         <label htmlFor="request-customer-name" className="text-sm font-medium">Seu nome</label>
         <Input id="request-customer-name" value={customerName} onChange={event => setCustomerName(event.target.value)} maxLength={100} autoComplete="name" placeholder="Como podemos chamar você?" />
-        <p className="text-xs text-muted-foreground">Informe seu nome e a localização do atendimento. Se cancelar, será necessário completar o cadastro antes de fazer outro chamado.</p>
+        <p className="text-xs text-muted-foreground">No modo aplicativo, basta informar seu nome e o endereço deste atendimento. CPF, telefone e endereço de cadastro não são obrigatórios.</p>
       </div>}
       {step === 2 && service && canRequestService && <HomeConfigurationStep config={{
         service, pricingService, vehicleInfo, setVehicleInfo, address, setAddress, handleAddressSelect, locationContext, setLocationContext,

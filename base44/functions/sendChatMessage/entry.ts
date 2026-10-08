@@ -1,6 +1,8 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.46';
 import { requireServiceCoverage, coverageError } from '../../shared/serviceCoverage.ts';
 import { isAreaAvailable } from '../../shared/serviceAreas.ts';
+import { clientRegistrationComplete } from '../../shared/registrationEligibility.ts';
+import { verifiedCpf } from '../../shared/verifiedCpf.ts';
 
 export default async function(req) {
   try {
@@ -15,6 +17,13 @@ export default async function(req) {
     if (!locksmith) return Response.json({ error: 'Chaveiro não encontrado.' }, { status: 404 });
     const isLocksmith = locksmith.created_by_id === user.id;
     if (!isLocksmith) {
+      if (user.role !== 'admin' && !clientRegistrationComplete(user, await verifiedCpf(base44, user.id))) {
+        const appCalls = await base44.asServiceRole.entities.ServiceRequest.filter({
+          created_by_id: user.id, locksmith_id,
+          status: { $in: ['queued', 'accepted', 'on_the_way', 'completed'] },
+        }, '-created_date', 1);
+        if (!appCalls.length) return Response.json({ code: 'REGISTRATION_REQUIRED', error: 'Complete seu cadastro para conversar no Modo Livre. O chat dos seus atendimentos pelo aplicativo continua disponível.' }, { status: 403 });
+      }
       const areas = await requireServiceCoverage(base44, customer_lat, customer_lng);
       if (!isAreaAvailable(areas, locksmith.lat, locksmith.lng)) throw coverageError();
     }

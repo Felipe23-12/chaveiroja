@@ -135,7 +135,7 @@ export default function GoogleComplete() {
     <AuthLayout
       icon={tipo === "chaveiro" ? Wrench : UserPlus}
       title="Complete seu cadastro"
-      subtitle={tipo === "chaveiro" ? "Finalize seu perfil de chaveiro" : "Finalize seu perfil de cliente"}
+      subtitle={tipo === "chaveiro" ? "Finalize seu perfil de chaveiro" : "Cadastro completo para usar o Modo Livre; opcional no modo aplicativo"}
     >
       {error && (
         <div className="mb-4 p-3 rounded-lg bg-destructive/10 text-destructive text-sm">{error}</div>
@@ -212,7 +212,7 @@ export default function GoogleComplete() {
 
       <div className="mt-6 pt-5 border-t border-border space-y-3">
         <p className="text-center text-sm text-muted-foreground">Não consegue finalizar agora?</p>
-        {tipo === 'cliente' && !securityStep && <Button asChild variant="outline" className="w-full h-12"><Link to="/">Voltar ao app sem concluir cadastro</Link></Button>}
+        {tipo === 'cliente' && <Button asChild variant="outline" className="w-full h-12"><Link to="/">Usar modo aplicativo sem concluir cadastro</Link></Button>}
         {tipo === 'cliente' && <Button type="button" variant="outline" className="w-full h-12" disabled={saving || leaving} onClick={() => leaveRegistration(true)}>
           {leaving ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <GoogleIcon className="w-5 h-5 mr-2" />}
           Tentar com outra conta Google

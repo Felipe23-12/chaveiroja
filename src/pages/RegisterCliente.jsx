@@ -178,7 +178,7 @@ export default function RegisterCliente() {
         Continuar com Google
       </Button>
       <AppleSignInButton returnTo={returnTo} disabled={loading} />
-      <p className="mb-4 text-xs text-muted-foreground">Você pode explorar o aplicativo agora e completar CPF, telefone, confirmação de email e senha antes do primeiro chamado.</p>
+      <p className="mb-4 text-xs text-muted-foreground">Com Google, você pode solicitar no modo aplicativo sem CPF, telefone ou endereço de cadastro. O formulário abaixo é o cadastro completo, necessário para usar o Modo Livre.</p>
 
       <div className="relative mb-6">
         <div className="absolute inset-0 flex items-center">

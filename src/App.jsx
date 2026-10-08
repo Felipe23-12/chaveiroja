@@ -11,6 +11,7 @@ import UserNotRegisteredError from '@/components/UserNotRegisteredError';
 import ScrollToTop from './components/ScrollToTop';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import ProfileCompletionGuard from '@/components/ProfileCompletionGuard';
+import ClientLivreAccessGuard from '@/components/ClientLivreAccessGuard';
 import PasswordCreationGuard from '@/components/PasswordCreationGuard';
 import RoleGuard from '@/components/RoleGuard';
 import AccountHome from '@/components/AccountHome';
@@ -131,8 +132,12 @@ const AuthenticatedApp = () => {
               <Route path="/historico" element={<History />} />
               <Route path="/pagamentos" element={<Pagamentos />} />
               <Route element={<CustomerCoverageGate />}>
-                <Route path="/chat/:locksmithId" element={<Chat />} />
-                <Route path="/chaveiro/:id" element={<LocksmithPublicProfile />} />
+                <Route element={<ClientLivreAccessGuard allowAppChat />}>
+                  <Route path="/chat/:locksmithId" element={<Chat />} />
+                </Route>
+                <Route element={<ClientLivreAccessGuard allowAppChat />}>
+                  <Route path="/chaveiro/:id" element={<LocksmithPublicProfile />} />
+                </Route>
               </Route>
               <Route path="/acompanhamento/:requestId" element={<Acompanhamento />} />
             </Route>

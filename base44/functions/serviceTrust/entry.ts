@@ -306,7 +306,7 @@ export default async function(req) {
 
     if (action === 'create_request') {
       const access = await clientRequestAccess(base44, user);
-      if (!access.allowed) return Response.json({ code: 'REGISTRATION_REQUIRED', error: 'Após cancelar um chamado, complete seu cadastro antes de solicitar outro atendimento.' }, { status: 403 });
+      if (!access.allowed) return Response.json({ code: 'REGISTRATION_REQUIRED', error: 'Entre na sua conta para solicitar pelo modo aplicativo.' }, { status: 403 });
       if (await clientDebt(base44, user.id)) return Response.json({ error: 'Quite seu débito pendente antes de solicitar outro atendimento.' }, { status: 409 });
       const data = body.data || {};
       const customerName = requestCustomerName(data.customer_name || user.legal_name || user.full_name);

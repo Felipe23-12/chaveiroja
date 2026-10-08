@@ -10,12 +10,8 @@ export function requestCustomerName(value) {
 export async function clientRequestAccess(base44, user) {
   if (!user?.id) return { allowed: false, registration_required: true };
   const history = await base44.asServiceRole.entities.ServiceRequest.filter({ created_by_id: user.id }, '-created_date', 1);
-  const first_call_available = !history.length;
   const complete = clientRegistrationComplete(user, await verifiedCpf(base44, user.id));
-  if (complete) return { allowed: true, registration_complete: true, registration_required: false, first_call_available };
-  const events = await base44.asServiceRole.entities.ClientCancellationEvent.filter({ client_id: user.id }, '-created_date', 1);
-  const cancelled = events.length ? events : await base44.asServiceRole.entities.ServiceRequest.filter({
-    created_by_id: user.id, status: 'cancelled', cancelled_by: 'cliente',
-  }, '-created_date', 1);
-  return { allowed: !cancelled.length, registration_complete: false, registration_required: !!cancelled.length, first_call_available };
+  // O modo aplicativo exige login, não CPF, telefone, endereço de cadastro ou senha local.
+  // Cadastro completo permanece exclusivo do modo livre; débitos e bloqueios são verificados no fluxo do chamado.
+  return { allowed: true, registration_complete: complete, registration_required: false, first_call_available: history.length === 0 };
 }
