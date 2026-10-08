@@ -159,9 +159,10 @@ export default function Home() {
     });
     return () => { disposed = true; };
   }, [user?.id, activeRequest?.status, accessRevision]);
-  // A prévia de 67% é exclusiva dos serviços de abertura. Outros serviços
-  // não exibem essa prévia parcial antes da solicitação.
-  const canPreviewKeyPrice = false;
+  // Somente o perfil administrador principal pode visualizar o detalhamento completo do cálculo.
+  // Para os demais usuários, a tela continua mostrando apenas a prévia pública.
+  const isAdminProfile = user?.email?.toLowerCase() === "felipemotacs1@gmail.com";
+  const canPreviewKeyPrice = isAdminProfile;
   const reqRef = useRef(null);
   const notifiedAccepted = useRef(false);
   const notifiedMoving = useRef(false);
@@ -1184,6 +1185,7 @@ export default function Home() {
         nearestDistance, assumedNearby, pricingData, quoteRevision,
         requiresRegistration: !canRequestService,
         customerNameValid: !!requestCustomerName(customerName),
+        isAdminProfile,
       }} />}
 
       {/* Step 3: Procurando / tocando no chaveiro */}
