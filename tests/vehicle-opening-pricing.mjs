@@ -67,6 +67,7 @@ assert.equal(firstCall.calculation.total,375,'first-call technical price remains
 assert.equal(firstCall.price,337.5,'first call applies 10% discount');
 assert.equal(firstCall.discount,37.5,'first-call discount is 10% of technical price');
 console.log('PASS: legacy fallback, technical price, first-call 10% discount, rain, vehicle/year/version isolation, 40% final total, custom/zero Lishi percent, loyalty, conditions, roundtrip, admin authorization, conflict and validation.');
+history=[{id:'prior-request'}];
 
 const availabilityOnly = { make:'Chevrolet', model:'Celta', year_start:2015, year_end:2015, simple_unavailable:true, lishi_unavailable:false };
 res=await api.manage(request({action:'save',version:record.id,values,vehicle_opening_rules:[availabilityOnly]}));
