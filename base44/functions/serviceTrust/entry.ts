@@ -13,6 +13,8 @@ import { clientRequestAccess, requestCustomerName } from '../../shared/clientReq
 import { loadServiceAreas, isAreaAvailable } from '../../shared/serviceAreas.ts';
 import { updateLocksmithLocation } from '../../shared/locksmithCoverage.ts';
 import { requireServiceCoverage } from '../../shared/serviceCoverage.ts';
+import { clientRegistrationComplete } from '../../shared/registrationEligibility.ts';
+import { verifiedCpf } from '../../shared/verifiedCpf.ts';
 
 const waitMinutes = (minutes) => new Date(Date.now() + minutes * 60000).toISOString();
 const SECOND_JOB_MAX_DISTANCE_KM = 20;
@@ -220,6 +222,10 @@ export default async function(req) {
       const request = await base44.asServiceRole.entities.ServiceRequest.get(body.request_id);
       if (!request) return Response.json({ error: 'Chamado não encontrado' }, { status: 404 });
       if (request.created_by_id !== user.id && user.role !== 'admin') return Response.json({ error: 'Acesso negado' }, { status: 403 });
+      const client = request.created_by_id === user.id ? user : await base44.asServiceRole.entities.User.get(request.created_by_id);
+      if (!clientRegistrationComplete(client, await verifiedCpf(base44, request.created_by_id))) {
+        return Response.json({ code: 'CASH_REQUIRES_COMPLETE_REGISTRATION', error: 'Com cadastro incompleto, pague somente pelo aplicativo.' }, { status: 403 });
+      }
       if (request.client_confirmed !== true || !(request.end_photos || []).length) return Response.json({ error: 'Confirme primeiro a conclusão do serviço' }, { status: 409 });
       const updated = await base44.asServiceRole.entities.ServiceRequest.update(request.id, { payment_method: 'dinheiro', payment_status: 'pending', cash_received: false });
       return Response.json({ request: updated });

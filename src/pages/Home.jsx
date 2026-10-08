@@ -776,6 +776,7 @@ export default function Home() {
   // Nesse momento, a comissão de 15% é compensada no saldo dele ou fica pendente.
   const handleCashPayment = async () => {
     if (!activeRequest || paying) return;
+    if (!registrationComplete) return setSearchError('Com cadastro incompleto, pague somente pelo aplicativo.');
     setPaying(true);
     setSearchError("");
     try {

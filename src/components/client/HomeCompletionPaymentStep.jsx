@@ -6,9 +6,13 @@ import ReceiptButton from "@/components/payment/ReceiptButton";
 import PaymentStep from "@/components/payment/PaymentStep";
 import ErrorBanner from "@/components/ui/ErrorBanner";
 import { getOpeningConditionFee } from "@/lib/openingCondition";
+import { useAuth } from '@/lib/AuthContext';
+import { clientRegistrationComplete } from '@/lib/clientRegistration';
 
 /** Etapa 6: serviço concluído pelo chaveiro — confirmação e pagamento. */
 export default function HomeCompletionPaymentStep({ config }) {
+  const { user } = useAuth();
+  const cashAllowed = clientRegistrationComplete(user);
   const { activeRequest, selectedLocksmith, handleConfirmService, navigate, handleServicePayment, handleCashPayment, paying, searchError, customerName, goToStep, onReturnHome } = config;
   return (
     <div className="space-y-3 step-enter">
@@ -34,7 +38,7 @@ export default function HomeCompletionPaymentStep({ config }) {
             </Button>
           </div>
         </div>
-      ) : activeRequest.payment_method === "dinheiro" && !activeRequest.cash_received ? (
+      ) : cashAllowed && activeRequest.payment_method === "dinheiro" && !activeRequest.cash_received ? (
         <div className="flex flex-col items-center text-center py-6">
           <div className="w-14 h-14 rounded-full bg-warning/15 flex items-center justify-center mb-3">
             <Loader2 className="w-7 h-7 text-warning animate-spin" />
