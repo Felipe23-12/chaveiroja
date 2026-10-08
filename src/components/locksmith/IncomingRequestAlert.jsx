@@ -83,26 +83,8 @@ export default function IncomingRequestAlert({ request, onAccept, onReject }) {
 
         <KeyTechnicalDetails description={request.description} request={request} />
 
-        {/* Resumo financeiro */}
-        {hasCarKey ? (
-          <div className="space-y-1 text-sm bg-card rounded-lg p-3 border border-border">
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">Valor da chave</span>
-              <span className="font-medium">R$ {request.key_value?.toFixed(2)}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">Mão de obra</span>
-              <span className="font-medium">R$ {request.labor_cost?.toFixed(2)}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">Locomoção ({request.distance_km?.toFixed(1)} km)</span>
-              <span className="font-medium">R$ {request.locomotion_cost?.toFixed(2)}</span>
-            </div>
-            <LocksmithNetAmount request={request} className="border-t border-border pt-2" />
-          </div>
-        ) : (
-          <LocksmithNetAmount request={request} className="bg-card rounded-lg p-3 border border-border" />
-        )}
+        {/* Para o chaveiro, mostrar somente o valor líquido que ele receberá. */}
+        <LocksmithNetAmount request={request} className="bg-card rounded-lg p-3 border border-border" />
 
         {/* Aviso de tempo limite */}
         {isUrgent && (
