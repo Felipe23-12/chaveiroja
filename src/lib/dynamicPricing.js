@@ -46,10 +46,6 @@ export function calculateSupplyDemandMultiplier(supply = 0, demand = 0) {
 
 export const URGENCY_MULTIPLIER = 1.3;
 
-// Limites do multiplicador combinado para evitar preços extremos
-const MIN_COMBINED = 0.70;
-const MAX_COMBINED = 1.60;
-
 // --- Detecção de região por coordenadas + endereço ---
 export function determineRegion(lat, lng, address = "") {
   const addr = (address || "").toLowerCase();
@@ -188,12 +184,10 @@ export function calculateDynamicPrice({
   const region = determineRegion(customerLat, customerLng, address);
   const neighborhood = detectNeighborhoodTier(address);
 
-  // 3. Multiplicador combinado (com limites)
+  // 3. Multiplicador combinado, sem limites de oferta/demanda e urgência.
   let combinedMultiplier =
     supplyDemand.multiplier * urgencyMult * region.multiplier * neighborhood.multiplier;
-  combinedMultiplier = Math.min(Math.max(combinedMultiplier, MIN_COMBINED), MAX_COMBINED);
-  // Chuva é aplicada por fora do limite: garoa acrescenta pouco e tempestade
-  // acrescenta o máximo de 70%.
+  // Chuva é aplicada após os demais fatores.
   const weatherMult = weather?.multiplier || 1.0;
   combinedMultiplier = combinedMultiplier * weatherMult;
   combinedMultiplier = Math.round(combinedMultiplier * 100) / 100;

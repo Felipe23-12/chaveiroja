@@ -19,9 +19,7 @@ export function pricingFactors(settings, supply, demand, urgent, calendar, weath
   const ratio = supply ? demand / supply : Infinity;
   const key = !supply ? 'supply_none' : ratio >= 2 ? 'supply_very_high' : ratio >= 1.5 ? 'supply_high' : ratio >= 1 ? 'supply_moderate' : ratio >= 0.5 ? 'supply_balanced' : ratio >= 0.25 ? 'supply_low' : 'supply_abundant';
   const factors = [{ label: `Oferta/demanda (${demand} pedidos / ${supply} chaveiros)`, percent: settings[key] }, { label: 'Urgência', percent: urgent ? settings.urgent : 0 }];
-  const raw = factors.reduce((n, f) => n * (1 + f.percent / 100), 1);
-  const capped = Math.min(1 + settings.combined_max / 100, Math.max(1 + settings.combined_min / 100, raw));
-  if (raw !== capped) factors.push({ label: 'Limite de oferta/demanda e urgência', percent: (capped / raw - 1) * 100 });
+
   return [...factors, ...calendar.factors, { label: weather.label, percent: weather.key ? settings[weather.key] : 0 }];
 }
 export function adjustedCharge(base, factors, label) {
