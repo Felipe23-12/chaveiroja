@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { Bell, Check, X, MapPin, Clock, AlertCircle } from "lucide-react";
 import KeyTechnicalDetails from "./KeyTechnicalDetails";
 import { clientNameFromRequest } from "@/lib/clientName";
+import LocksmithNetAmount from '@/components/locksmith/LocksmithNetAmount';
 
 function formatElapsed(seconds) {
   const m = Math.floor(seconds / 60);
@@ -97,18 +98,10 @@ export default function IncomingRequestAlert({ request, onAccept, onReject }) {
               <span className="text-muted-foreground">Locomoção ({request.distance_km?.toFixed(1)} km)</span>
               <span className="font-medium">R$ {request.locomotion_cost?.toFixed(2)}</span>
             </div>
-            <div className="flex justify-between border-t border-border pt-1">
-              <span className="font-semibold text-foreground">Total</span>
-              <span className="font-bold text-foreground">R$ {request.price?.toFixed(2)}</span>
-            </div>
+            <LocksmithNetAmount request={request} className="border-t border-border pt-2" />
           </div>
         ) : (
-          <div className="flex items-center justify-between bg-card rounded-lg p-3 border border-border">
-            <span className="text-sm text-muted-foreground">Valor do serviço</span>
-            <span className="font-heading font-bold text-lg text-foreground">
-              R$ {request.price?.toFixed(2)}
-            </span>
-          </div>
+          <LocksmithNetAmount request={request} className="bg-card rounded-lg p-3 border border-border" />
         )}
 
         {/* Aviso de tempo limite */}

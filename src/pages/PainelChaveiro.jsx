@@ -20,6 +20,7 @@ import WithdrawalSection from "@/components/locksmith/WithdrawalSection";
 import MercadoPagoConnectSetup from "@/components/locksmith/MercadoPagoConnectSetup";
 import PendingCreditsCard from "@/components/payment/PendingCreditsCard";
 import PendingRequestsList from "@/components/locksmith/PendingRequestsList";
+import LocksmithNetAmount from '@/components/locksmith/LocksmithNetAmount';
 import NearbyRequestsList from "@/components/locksmith/NearbyRequestsList";
 import InactivityRevalidationCard from "@/components/locksmith/InactivityRevalidationCard";
 import LocksmithScoreCard from "@/components/locksmith/LocksmithScoreCard";
@@ -1022,10 +1023,7 @@ export default function PainelChaveiro() {
           </div>
 
           <div className="flex items-center justify-between gap-3 rounded-xl border border-border bg-card p-4">
-            <div>
-              <p className="text-xs text-muted-foreground">Valor do atendimento</p>
-              <p className="font-heading text-2xl font-bold text-foreground">R$ {Number(active.price || 0).toFixed(2)}</p>
-            </div>
+            <LocksmithNetAmount request={active} />
             <Button onClick={() => setChatFocus(true)} size="icon" aria-label="Abrir mensagens do cliente">
               <MessageCircle className="h-5 w-5" />
             </Button>
@@ -1176,8 +1174,7 @@ export default function PainelChaveiro() {
           {active.status === "completed" && (
             <div className="space-y-3">
               <div className="p-4 rounded-xl border border-border bg-muted/50">
-                <p className="text-xs text-muted-foreground mb-1">Valor do serviço</p>
-                <p className="font-heading font-bold text-2xl text-foreground">R$ {active.price?.toFixed(2)}</p>
+                <LocksmithNetAmount request={active} />
                 {active.payment_method && (
                   <p className="text-sm text-muted-foreground mt-1">
                     Forma de pagamento: <span className="font-medium text-foreground">

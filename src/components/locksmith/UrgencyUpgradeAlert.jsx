@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { Zap, Check, X } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { playNotificationSound } from "@/lib/notificationSound";
+import { getServiceDeductions } from '@/lib/paymentDeductions';
 
 const RESPONSE_MS = 60000;
 
@@ -66,8 +67,8 @@ export default function UrgencyUpgradeAlert({ request, onResolved }) {
         <span className="text-xs font-bold tabular-nums">{sec}s</span>
       </div>
       <p className="text-sm text-foreground">
-        Prazo de chegada passa a ser de 35 minutos e o valor vai para{" "}
-        <strong>R$ {newPrice.toFixed(2)}</strong>. Sem resposta em 1 minuto, o pedido é aceito
+        Prazo de chegada passa a ser de 35 minutos e seu valor, já descontada a taxa de 15%, vai para{" "}
+        <strong>R$ {getServiceDeductions({ price: newPrice }, null, true).netAmount.toFixed(2)}</strong>. Sem resposta em 1 minuto, o pedido é aceito
         automaticamente.
       </p>
       <div className="flex gap-2">

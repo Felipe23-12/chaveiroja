@@ -3,6 +3,7 @@ import { Check, X } from "lucide-react";
 import IncomingRequestAlert from "@/components/locksmith/IncomingRequestAlert";
 import KeyTechnicalDetails from "@/components/locksmith/KeyTechnicalDetails";
 import { clientNameFromRequest } from "@/lib/clientName";
+import LocksmithNetAmount from '@/components/locksmith/LocksmithNetAmount';
 
 // Renderiza a fila de solicitações pendentes. A primeira (mais recente)
 // recebe o alerta completo com som/vibração; as demais aparecem em cards
@@ -61,9 +62,7 @@ function CompactRequestCard({ request, onAccept, onReject }) {
             <span className="w-1.5 h-1.5 rounded-full bg-warning shrink-0" />
             {request.address}
           </p>
-          <p className="text-sm font-bold text-foreground mt-1">
-            R$ {request.price?.toFixed(2)}
-          </p>
+          <LocksmithNetAmount request={request} className="mt-2" />
         </div>
         <button
           onClick={() => setExpanded((e) => !e)}

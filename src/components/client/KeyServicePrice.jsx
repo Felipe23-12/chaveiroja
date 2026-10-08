@@ -1,5 +1,6 @@
 import React from "react";
 import { Info } from "lucide-react";
+import ClientRequestPrice from '@/components/client/ClientRequestPrice';
 
 const KEY_SERVICES = ["Confecção de Chave de Carro", "Confecção de Chave de Moto"];
 const ACCEPTED_STATUSES = ["queued", "accepted", "on_the_way", "completed"];
@@ -17,10 +18,5 @@ export default function KeyServicePrice({ request, pending = false }) {
   const accepted = request?.accepted_at || ACCEPTED_STATUSES.includes(request?.status);
   if (!KEY_SERVICES.includes(request?.service_type) || !accepted) return null;
 
-  return (
-    <div className="flex items-center justify-between rounded-2xl bg-muted p-4">
-      <span className="text-sm text-muted-foreground">Valor do serviço</span>
-      <span className="font-heading text-lg font-bold text-foreground">R$ {Number(request.price || 0).toFixed(2)}</span>
-    </div>
-  );
+  return <ClientRequestPrice request={request} />;
 }
