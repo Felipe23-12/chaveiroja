@@ -190,7 +190,7 @@ export async function calculateServerServicePrice(base44, userId, data) {
     ? online.filter((item) => Number.isFinite(Number(item.lat)) && Number.isFinite(Number(item.lng))).map((item) => distanceKm(customer, { lat: Number(item.lat), lng: Number(item.lng) }))
     : [];
   const nearest = distances.length ? Math.min(...distances) : 0;
-  const distanceFee = !rule.fixed && nearest > settings.distance_threshold ? round(nearest * settings.distance_rate) : 0;
+  const distanceFee = !rule.fixed && nearest > settings.distance_threshold ? round((nearest - settings.distance_threshold) * settings.distance_rate) : 0;
 
   let calculation;
   if (rule.fixed) {
@@ -264,8 +264,9 @@ export async function calculateServerServicePrice(base44, userId, data) {
     discount_type: firstCall ? 'first_call' : useDiscount ? 'loyalty' : null,
     minimum: firstCall ? round(minimum * 0.90) : minimum,
     fields: calculation.fields,
-    calculation: { ...(carOpening ? { opening_method: method, lishi_percent: lishiPercent, simple_opening_price: simplePrice } : {}), total: calculation.total, lines: calculation.lines, notes: [
+    calculation: { distance_pricing: { distance_km: round(nearest), threshold_km: settings.distance_threshold, rate_per_km: settings.distance_rate, excess_km: round(Math.max(0, nearest - settings.distance_threshold)), fee: distanceFee }, ...(carOpening ? { opening_method: method, lishi_percent: lishiPercent, simple_opening_price: simplePrice } : {}), total: calculation.total, lines: calculation.lines, notes: [
       'Preço recalculado e validado pelo servidor.',
+      ...(!rule.fixed && !rule.carKey && openingRule?.base_price == null ? [`Horário de Brasília: ${calendar.businessHours ? 'horário comercial' : 'fora do horário comercial / fim de semana / feriado'}. Posição aplicada na faixa base: ${round(tierFactor * 100)}%. O ajuste de horário já está incluído na mão de obra, antes dos demais fatores.`] : []),
       `${neighborhood.label}. ${neighborhood.source || "Identificação inconclusiva: sem ajuste."} Ajuste sobre a mão de obra.`,
       config.version ? `Tabela de cobranças: ${config.version}` : 'Tabela de cobranças inicial.',
       ...(!seatOpening && openingRule?.base_price == null && regional?.note ? [regional.note] : []),
