@@ -51,6 +51,7 @@ record.vehicle_opening_rules=[];
 assert.equal((await quote()).price,375,'removal restores legacy price');
 record.values.lishi_percent=0; assert.equal((await quote({...vehicle,opening_method:'lishi'})).price,375,'zero surcharge supported');
 record.values.lishi_percent=40;
+history=[];
 simple=await quote(vehicle,{discount_applied:true,pricing_inputs:{broken_key_in_lock:true}});
 lishi=await quote({...vehicle,opening_method:'lishi'},{discount_applied:true,pricing_inputs:{broken_key_in_lock:true}});
 assert.equal(simple.price,362.5); assert.equal(lishi.price,507.5,'40% on total after loyalty and condition');
