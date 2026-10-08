@@ -41,6 +41,7 @@ for (const row of [pcx, adv]) {
   assert.equal(await api.currentVehicleCatalog(client, { make: row.make, model: row.model, year: row.year_start - 1 }, 'moto', 'presenca'), null);
 }
 history = [];
+settings = { ...settings, seat_base_min: 150, seat_base_max: 300 };
 const firstCallQuote = await api.calculateServerServicePrice(client, 'test', data);
 assert.equal(firstCallQuote.calculation.total, 187.5, 'first-call technical price remains 187.50');
 assert.equal(firstCallQuote.price, 168.75, 'first call applies 10% discount');
