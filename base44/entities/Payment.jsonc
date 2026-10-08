@@ -76,8 +76,7 @@
     "provider": {
       "type": "string",
       "enum": [
-        "mercado_pago",
-        "stripe"
+        "mercado_pago"
       ],
       "default": "mercado_pago"
     },
@@ -131,9 +130,6 @@
       "type": "string"
     },
     "mercado_pago_payment_id": {
-      "type": "string"
-    },
-    "stripe_payment_intent_id": {
       "type": "string"
     },
     "pre_authorized_at": {
