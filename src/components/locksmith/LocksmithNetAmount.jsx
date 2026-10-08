@@ -14,6 +14,6 @@ export default function LocksmithNetAmount({ request, className = '' }) {
       <p className="font-semibold">Adicional de deslocamento incluído no chamado</p>
       {travel ? <p>{Number(travel.excess_km).toLocaleString('pt-BR')} km excedentes ao limite de {Number(travel.threshold_km).toLocaleString('pt-BR')} km · cobrança de {money(travel.rate_per_km)} por km excedente.</p> : <p>Consulte a distância e a tarifa na tabela vigente; este chamado foi criado antes do detalhamento por km.</p>}
       <p>Adicional calculado: {money(travelFee)}. Já integra o serviço; não somar novamente. A comissão e os descontos do chamado também se aplicam a esse valor.</p>
-    </div>
+    </div>}
   </div>;
 }
