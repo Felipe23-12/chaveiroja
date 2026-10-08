@@ -9,7 +9,7 @@ export default function VehicleKeyLaborPreview({ pricing }) {
     <section aria-label="Prévia da mão de obra" className="rounded-2xl border border-primary/30 bg-primary/5 p-4 space-y-2">
       <p className="text-sm text-muted-foreground">Valor médio da mão de obra</p>
       <p className="font-heading text-2xl font-bold text-primary">{money(labor)}</p>
-      <p className="text-sm text-foreground">Atenção: este é o valor médio do serviço. Após confirmar o chamado, o valor final poderá sofrer alterações devido a custos adicionais.</p>
+      <p className="text-sm text-foreground">Atenção: este valor é apenas uma prévia da mão de obra, não é o valor final do serviço. O total pode variar conforme as condições do serviço e custos adicionais.</p>
     </section>
   );
 }
