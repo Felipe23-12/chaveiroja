@@ -11,7 +11,15 @@ export async function clientRequestAccess(base44, user) {
   if (!user?.id) return { allowed: false, registration_required: true };
   const history = await base44.asServiceRole.entities.ServiceRequest.filter({ created_by_id: user.id }, '-created_date', 1);
   const complete = clientRegistrationComplete(user, await verifiedCpf(base44, user.id));
-  // O modo aplicativo exige login, não CPF, telefone, endereço de cadastro ou senha local.
-  // Cadastro completo permanece exclusivo do modo livre; débitos e bloqueios são verificados no fluxo do chamado.
-  return { allowed: true, registration_complete: complete, registration_required: false, first_call_available: history.length === 0 };
+  const firstCall = history.length === 0;
+  // O primeiro chamado pode ser feito apenas com o login e o nome/localização exigidos
+  // pelo fluxo simplificado. Depois que existe qualquer chamado no histórico — inclusive
+  // um chamado cancelado — o cliente precisa concluir o cadastro antes de solicitar outro.
+  // Clientes já completos continuam liberados normalmente.
+  return {
+    allowed: complete || firstCall,
+    registration_complete: complete,
+    registration_required: !complete && !firstCall,
+    first_call_available: firstCall,
+  };
 }
