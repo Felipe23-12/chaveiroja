@@ -14,6 +14,7 @@ import useBlockedUsers from "@/hooks/useBlockedUsers";
 import { filterRingableWhileBusy, getLocksmithQueueState } from "@/lib/serviceQueue";
 import { clientNameFromRequest } from "@/lib/clientName";
 import AcceptRequestError from "@/components/locksmith/AcceptRequestError";
+import LocksmithNetAmount from "@/components/locksmith/LocksmithNetAmount";
 
 function formatElapsed(seconds) {
   const m = Math.floor(seconds / 60);
@@ -336,36 +337,8 @@ function RequestCard({ request, onAccept, onReject, accepting, showDivider }) {
         </div>
       )}
 
-      {/* Resumo financeiro */}
-      <div className="bg-muted/50 rounded-lg p-2.5 border border-border mb-2">
-        {hasCarKey ? (
-          <div className="space-y-0.5 text-xs">
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">Valor da chave</span>
-              <span className="font-medium">R$ {request.key_value?.toFixed(2)}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">Mão de obra</span>
-              <span className="font-medium">R$ {request.labor_cost?.toFixed(2)}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">Locomoção ({request.distance_km?.toFixed(1)} km)</span>
-              <span className="font-medium">R$ {request.locomotion_cost?.toFixed(2)}</span>
-            </div>
-            <div className="flex justify-between border-t border-border pt-1 mt-1">
-              <span className="font-semibold text-foreground">Total</span>
-              <span className="font-bold text-foreground">R$ {request.price?.toFixed(2)}</span>
-            </div>
-          </div>
-        ) : (
-          <div className="flex items-center justify-between">
-            <span className="text-xs text-muted-foreground">Valor do serviço</span>
-            <span className="font-heading font-bold text-base text-foreground">
-              R$ {request.price?.toFixed(2)}
-            </span>
-          </div>
-        )}
-      </div>
+      {/* Para o chaveiro, mostrar somente o valor líquido que ele receberá. */}
+      <LocksmithNetAmount request={request} className="bg-muted/50 rounded-lg p-2.5 border border-border mb-2" />
 
       {isUrgent && (
         <div className="flex items-center gap-1.5 text-xs text-destructive bg-destructive/15 p-2 rounded-lg mb-2 animate-alert-blink">
