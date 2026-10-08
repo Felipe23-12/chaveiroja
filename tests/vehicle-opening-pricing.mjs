@@ -15,10 +15,10 @@ const api=await import('data:text/javascript;base64,'+Buffer.from(result.outputF
 const service='Abertura Automotiva';
 const defaults=api.defaultPricing(service);
 const values={...defaults,tier_day:0,tier_night:0,tier_weekend:0,tier_normal_cap:0,supply_none:0,saturday:0,sunday:0,holiday:0,night:0,opening_2020:0};
-let record={id:'initial',values,vehicle_opening_rules:[]};let role='admin';let writes=0;
+let record={id:'initial',values,vehicle_opening_rules:[]};let role='admin';let writes=0;let history=[{id:'prior-request'}];
 const paid=Array.from({length:5},(_,i)=>({id:`paid${i}`}));
 const entities=new Proxy({}, {get:(_,name)=>({
- filter:async query=>name==='ServicePricingConfig'?[record]:name==='ServiceRequest'&&query.status==='completed'?paid:name==='Payment'?paid.map(r=>({service_request_id:r.id})):[],
+ filter:async query=>name==='ServicePricingConfig'?[record]:name==='ServiceRequest'&&query.status==='completed'?paid:name==='ServiceRequest'&&query.created_by_id?history:name==='Payment'?paid.map(r=>({service_request_id:r.id})):[],
  create:async data=>{assert.equal(name,'ServicePricingConfig');writes++;record={...data,id:`save${writes}`,created_date:'2026-09-28T00:00:00Z'};return record;}
 })});
 globalThis.testClient={auth:{me:async()=>({id:'admin',role})},entities,asServiceRole:{entities}};
@@ -27,7 +27,7 @@ const vehicle={make:'Chevrolet',model:'Celta',year:2015,opening_method:'simples'
 const data={service_type:service,customer_lat:-23,customer_lng:-46,pricing_inputs:{vehicle}};
 const quote=(v=vehicle,extras={})=>api.calculateServerServicePrice(client,'client',{...data,...extras,pricing_inputs:{...data.pricing_inputs,...extras.pricing_inputs,vehicle:v}});
 const request=body=>new Request('https://test.invalid',{method:'POST',body:JSON.stringify({service_type:service,...body})});
-let simple=await quote(); assert.equal(simple.price,375,'legacy regional price and 25% rain preserved');
+let simple=await quote(); assert.equal(simple.calculation.total,375,'technical price preserves regional price and 25% rain'); assert.equal(simple.price,375,'non-first call has no first-call discount');
 let lishi=await quote({...vehicle,opening_method:'lishi'}); assert.equal(lishi.price,525,'40% on final simple price');
 assert.equal(lishi.calculation.lines.filter(l=>l.label.startsWith('Abertura Lishi')).length,1);
 assert.equal((await quote({...vehicle,complexity:'alta'})).price,375,'client complexity no longer charges car');
@@ -59,7 +59,12 @@ assert.equal(Math.round((lishi.calculation.total-lishi.discount)*100)/100,lishi.
 res=await api.manage(request({action:'save',version:'stale',values,vehicle_opening_rules:rules}));assert.equal(res.status,409);assert.equal(writes,1,'stale config not written');
 role='cliente';res=await api.manage(request({action:'save',version:record.id,values,vehicle_opening_rules:rules}));assert.equal(res.status,403);assert.equal(writes,1,'client cannot change admin prices');
 role='admin';res=await api.manage(request({action:'save',version:record.id,values,vehicle_opening_rules:[...rules,...rules]}));assert.equal(res.status,400);assert.equal(writes,1,'invalid rules not written');
-console.log('PASS: legacy fallback, rain, vehicle/year/version isolation, 40% final total, custom/zero Lishi percent, loyalty, conditions, roundtrip, admin authorization, conflict and validation.');
+history=[];
+const firstCall = await quote();
+assert.equal(firstCall.calculation.total,375,'first-call technical price remains 375.00');
+assert.equal(firstCall.price,337.5,'first call applies 10% discount');
+assert.equal(firstCall.discount,37.5,'first-call discount is 10% of technical price');
+console.log('PASS: legacy fallback, technical price, first-call 10% discount, rain, vehicle/year/version isolation, 40% final total, custom/zero Lishi percent, loyalty, conditions, roundtrip, admin authorization, conflict and validation.');
 
 const availabilityOnly = { make:'Chevrolet', model:'Celta', year_start:2015, year_end:2015, simple_unavailable:true, lishi_unavailable:false };
 res=await api.manage(request({action:'save',version:record.id,values,vehicle_opening_rules:[availabilityOnly]}));
