@@ -11,10 +11,10 @@ export default async function (req) {
     }
     const sr = base44.asServiceRole;
 
-    const [requests, messages, stripeAccounts, users] = await Promise.all([
+    const [requests, messages, payments, users] = await Promise.all([
       sr.entities.ServiceRequest.list('-created_date', 500),
       sr.entities.ChatMessage.list('-created_date', 500),
-      sr.entities.StripeConnectAccount.list('-created_date', 500),
+      sr.entities.Payment.list('-created_date', 500),
       sr.entities.User.list('-created_date', 500),
     ]);
 
@@ -38,15 +38,10 @@ export default async function (req) {
       );
     }
 
-    const seen = {};
-    let duplicateStripe = 0;
-    for (const acc of stripeAccounts) {
-      if (seen[acc.stripe_account_id]) duplicateStripe += 1;
-      else seen[acc.stripe_account_id] = true;
-    }
-    if (duplicateStripe) {
+    const invalidProviders = payments.filter((p) => p.provider && p.provider !== 'mercado_pago');
+    if (invalidProviders.length) {
       findings.push(
-        `${duplicateStripe} conta(s) Stripe duplicada(s) — o mesmo recebedor está ligado a mais de um perfil.`
+        invalidProviders.length + ' pagamento(s) com provedor diferente de Mercado Pago — revisar registros legados.'
       );
     }
 
@@ -62,7 +57,7 @@ export default async function (req) {
       '',
       `Atendimentos verificados: ${requests.length}`,
       `Mensagens verificadas: ${messages.length}`,
-      `Contas Stripe verificadas: ${stripeAccounts.length}`,
+      `Pagamentos verificados: ${payments.length}`
       `Usuários verificados: ${users.length}`,
       '',
       'Resultado:',
