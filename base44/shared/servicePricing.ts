@@ -100,8 +100,8 @@ async function carKeyPrice(base44, userId, data, inputs, factors, distanceFee, s
   const coded = catalog?.transponder_status === 'presente' || (catalog?.transponder_status !== 'ausente' && quote.hasCodedKey);
   if (keyOrigin === 'paralela' && keyValue <= 0 && manualKey === null) throw new Error('Preço da chave paralela não confirmado no catálogo');
   const fipeRate = vehicleFipeRate(make, model, year, coded, settings, vehicleFipeRates);
-  const labor = round(fipe * fipeRate.percent / 100);
-  const adjusted = adjustedCharge(labor, factors, `Mão de obra: ${fipeRate.percent}% da FIPE${fipeRate.label ? ` (${fipeRate.label})` : ''}`);
+  const labor = quote.fipeFallback === true ? settings.minimum : round(fipe * fipeRate.percent / 100);
+  const adjusted = adjustedCharge(labor, factors, quote.fipeFallback === true ? 'Mão de obra estimada: base administrativa (FIPE não confirmada)' : `Mão de obra: ${fipeRate.percent}% da FIPE${fipeRate.label ? ` (${fipeRate.label})` : ''}`);
   const chargedKey = keyValue;
   const onlineFee = serverProgrammingFee(make, model, year, settings, catalog?.transponder);
   const complexityFee = vehicleComplexity(make, model, year, settings);
@@ -115,6 +115,7 @@ async function carKeyPrice(base44, userId, data, inputs, factors, distanceFee, s
     protectedFees: complexityFee + alarmFee,
     fields: { base_labor_cost: labor, key_value: chargedKey, fipe_value: fipe, fipe_code: quote.fipeCode || '', fipe_reference_month: quote.fipeMonth || '', fipe_model: quote.fipeModel || '', fipe_source_url: quote.fipeSourceUrl || '', labor_cost: adjusted.total, locomotion_cost: distanceFee, extra_cost: onlineFee + complexityFee + alarmFee },
     lines: [
+      ...(quote.fipeFallback === true ? [{ label: 'FIPE não confirmada: orçamento estimado pela base administrativa, sujeito à confirmação', value: 0 }] : []),
       { label: 'Valor da chave', value: chargedKey },
       ...adjusted.lines,
       ...(base > raw ? [{ label: 'Ajuste ao piso mínimo', value: round(base - raw) }] : []),

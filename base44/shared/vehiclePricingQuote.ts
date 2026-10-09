@@ -39,6 +39,7 @@ export async function createVehiclePricingQuote(userId, values) {
     model: normalize(values.model),
     year: Number(values.year),
     fipeValue: Number(values.fipeValue),
+    fipeFallback: values.fipeFallback === true,
     fipeCode: String(values.fipeCode || ''),
     fipeMonth: String(values.fipeMonth || ''),
     fipeModel: String(values.fipeModel || ''),
@@ -57,7 +58,7 @@ export async function verifyVehiclePricingQuote(token, userId, vehicle) {
   if (data.userId !== userId || data.expiresAt < Date.now() || data.make !== normalize(vehicle.make) || data.model !== normalize(vehicle.model) || data.year !== Number(vehicle.year)) {
     throw new Error('Consulta de preço do veículo inválida ou expirada');
   }
-  if (!Number.isFinite(data.fipeValue) || data.fipeValue < 1000 || data.fipeValue > 3000000 || !Number.isFinite(data.keyValue) || data.keyValue < 0 || data.keyValue > 20000) {
+  if (!Number.isFinite(data.fipeValue) || (data.fipeFallback === true ? data.fipeValue !== 0 : data.fipeValue < 1000 || data.fipeValue > 3000000) || !Number.isFinite(data.keyValue) || data.keyValue < 0 || data.keyValue > 20000) {
     throw new Error('Dados de preço do veículo inválidos');
   }
   return data;

@@ -30,7 +30,7 @@ export default function HomeConfigurationStep({ config }) {
   const disabled = config.customerNameValid === false || coverageBlocked || !locationContext.coordinates_confirmed || locationIncomplete || !address || !keyBlock || keyBlock.blocked || programming?.dealerOnly ||
     (isOpeningService(service) && (openingReason == null || (service.id !== "abertura_automotiva" && brokenKeyInLock == null))) ||
     (service.needsVehicleInfo && !service.isMotoKey && !(service.id === "abertura_automotiva" ? validateOpeningVehicle(vehicleInfo) : validateVehicleModelYear(vehicleInfo.make, vehicleInfo.model, vehicleInfo.year)).valid) ||
-    (service.isCarKey && (!validateVehicleModelYear(vehicleInfo.make, vehicleInfo.model, vehicleInfo.year).valid || !fipeValue || !vehicleInfo.doorStatus || (isLandRoverFrom2020(vehicleInfo.make, vehicleInfo.year) && vehicleInfo.alarmLocked == null))) ||
+    (service.isCarKey && (!validateVehicleModelYear(vehicleInfo.make, vehicleInfo.model, vehicleInfo.year).valid || fipeValue == null || !vehicleInfo.doorStatus || (isLandRoverFrom2020(vehicleInfo.make, vehicleInfo.year) && vehicleInfo.alarmLocked == null))) ||
     (service.isCarKey && requiresParallelKey(keyCatalog) && keyOrigin !== "paralela") ||
     ((service.isCarKey || service.isMotoKey) && keyOrigin === "paralela" && selectedKeyValue <= 0) ||
     (service.isMotoKey && !motoRule?.range);

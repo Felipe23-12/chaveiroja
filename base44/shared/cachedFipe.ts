@@ -15,7 +15,7 @@ export async function fipeFromDatabase(base44: any, make: string, model: string,
   // Durante a carga inicial, um único registro não prova que não há outras versões.
   const state = (await base44.asServiceRole.entities.FipeSyncState.list('-created_date', 1))[0];
   const complete = state?.phase === 'refresh';
-  if (matchesRows.length > 1) throw new Error('Há várias versões FIPE para este modelo e ano. Informe a versão exata: ' + matchesRows.slice(0, 6).map((row: any) => row.model).join('; '));
+  // Sem versão FIPE única, o chamado poderá usar a base administrativa de mão de obra.
   if (matchesRows.length === 1 && (version || complete)) {
     const row = matchesRows[0];
     return { value: row.price, code: row.code_fipe, month: row.reference_month, model: row.model, sourceUrl: row.source_url, provider: row.source_url?.includes('tabelafipe.info') ? 'Banco local · dados via tabelafipe.info' : row.source_url?.includes('huggingface.co') ? 'Banco local · dados via fipeX' : 'Banco local · origem Parallelum' };
@@ -26,7 +26,7 @@ export async function fipeFromDatabase(base44: any, make: string, model: string,
     fresh = await lookupExactFipe(make, model, year, version);
   } catch (error) {
     const unavailable = ['FIPE_RATE_LIMIT', 'FIPE_UNAVAILABLE'].includes(error?.code) || ['TimeoutError', 'AbortError', 'TypeError', 'SyntaxError'].includes(error?.name);
-    if (!unavailable || matchesRows.length !== 1) throw error;
+    if (!unavailable || matchesRows.length !== 1) return { value: 0, code: '', month: '', model: `${make} ${model} ${year}`, sourceUrl: '', provider: 'FIPE não confirmada · base administrativa de mão de obra', laborFallback: true };
     const row = matchesRows[0];
     return { value: Number(row.price), code: row.code_fipe, yearCode: row.year_code, month: row.reference_month, model: row.model, sourceUrl: row.source_url, provider: 'Banco local · último valor gravado; fonte temporariamente indisponível', fallback: true };
   }

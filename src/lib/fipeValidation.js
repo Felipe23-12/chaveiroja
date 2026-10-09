@@ -52,10 +52,11 @@ export function validateVehicleQuery(model, year) {
  */
 export function validateFipeResult(raw) {
   const fipeValue = parseCurrencyNumber(raw?.fipe_value);
-  if (fipeValue == null || fipeValue <= 0) {
+  const laborFallback = raw?.fipe_fallback === true && Boolean(raw?.pricing_quote) && fipeValue === 0;
+  if (!laborFallback && (fipeValue == null || fipeValue <= 0)) {
     return { valid: false, error: "Não foi possível consultar os dados deste veículo. Revise o modelo e o ano." };
   }
-  if (fipeValue < FIPE_MIN || fipeValue > FIPE_MAX) {
+  if (!laborFallback && (fipeValue < FIPE_MIN || fipeValue > FIPE_MAX)) {
     return {
       valid: false,
       error: "Não foi possível validar os dados deste veículo. Informe o modelo com mais detalhes (versão e motor).",
@@ -66,7 +67,7 @@ export function validateFipeResult(raw) {
   // propagar um número errado para o preço final.
   let keyValue = parseCurrencyNumber(raw?.key_value);
   let keyValueTrusted = true;
-  if (keyValue == null || keyValue < 0 || keyValue > KEY_VALUE_MAX || keyValue > fipeValue * 0.5) {
+  if (keyValue == null || keyValue < 0 || keyValue > KEY_VALUE_MAX || (!laborFallback && keyValue > fipeValue * 0.5)) {
     keyValue = 0;
     keyValueTrusted = false;
   }

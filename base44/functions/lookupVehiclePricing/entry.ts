@@ -149,7 +149,7 @@ Retorne cada oferta aceita com fonte, categoria, preço em BRL, URL e original_c
     const fallbackUsed = !highest;
     const validatedFipe = Number(fipeExact?.value);
     const validatedKeyValue = fallbackUsed ? 250 : Number(highest.price);
-    if (!keyOnly && (!Number.isFinite(validatedFipe) || validatedFipe < 1000 || validatedFipe > 3000000)) {
+    if (!keyOnly && !fipeExact?.laborFallback && (!Number.isFinite(validatedFipe) || validatedFipe < 1000 || validatedFipe > 3000000)) {
       return Response.json({ error: 'Não foi possível validar o valor FIPE do veículo' }, { status: 422 });
     }
     const pricingQuote = keyOnly ? null : await createVehiclePricingQuote(user.id, {
@@ -157,6 +157,7 @@ Retorne cada oferta aceita com fonte, categoria, preço em BRL, URL e original_c
       model,
       year,
       fipeValue: validatedFipe,
+      fipeFallback: fipeExact?.laborFallback === true,
       fipeCode: fipeExact?.code,
       fipeMonth: fipeExact?.month,
       fipeModel: fipeExact?.model,
@@ -167,6 +168,7 @@ Retorne cada oferta aceita com fonte, categoria, preço em BRL, URL e original_c
 
     return Response.json({
       fipe_value: validatedFipe,
+      fipe_fallback: fipeExact?.laborFallback === true,
       has_coded_key: result.has_coded_key === true,
       key_value: validatedKeyValue,
       pricing_quote: pricingQuote,
