@@ -12,7 +12,7 @@ const MONTHS = ['janeiro','fevereiro','março','abril','maio','junho','julho','a
 const norm = (v: unknown) => String(v || '').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,' ').trim();
 const slug = (v: unknown) => norm(v).replace(/ /g,'-');
 const families = prioritizeFipeFamilies(VEHICLE_MODEL_YEARS.filter(x => x.min && x.max));
-const fuelCodes: Record<string,string> = { gasolina:'1', alcool:'2', diesel:'3', flex:'5' };
+const fuelCodes: Record<string,string> = { gasolina:'1', alcool:'2', diesel:'3', eletrico:'4', flex:'5' };
 
 function localPeriod() {
   const parts = new Intl.DateTimeFormat('en-CA',{timeZone:'America/Sao_Paulo',year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(new Date());
