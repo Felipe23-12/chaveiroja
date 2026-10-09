@@ -1,5 +1,6 @@
 // Acumulado 2016–2025, automóveis e comerciais leves, tabelas anuais AUTOO.
 // https://www.autoo.com.br/emplacamentos/veiculos-mais-vendidos/{ano}/
+import { VEHICLE_MODEL_YEARS } from './vehicleModelYears.ts';
 export const FIPE_PRIORITY_MODELS = [
   {
     "rank": 1,
@@ -216,7 +217,8 @@ const norm = value => String(value || '').normalize('NFD').replace(/[\u0300-\u03
 const brand = value => ({'gm chevrolet':'chevrolet','gm':'chevrolet','vw volkswagen':'volkswagen','vw':'volkswagen'}[norm(value)] || norm(value));
 export function fipePriority(make, model) {
   const text = norm(model);
-  const matches = FIPE_PRIORITY_MODELS.filter(item => brand(item.make) === brand(make) && (text === norm(item.model) || text.startsWith(norm(item.model) + ' ')));
+  const knownFamily = VEHICLE_MODEL_YEARS.filter(item => brand(item.make) === brand(make) && (text === norm(item.model) || text.startsWith(norm(item.model) + ' '))).sort((a,b) => norm(b.model).length - norm(a.model).length)[0];
+  const matches = FIPE_PRIORITY_MODELS.filter(item => brand(item.make) === brand(make) && (knownFamily ? norm(item.model) === norm(knownFamily.model) : text === norm(item.model) || text.startsWith(norm(item.model) + ' ')));
   matches.sort((a,b) => norm(b.model).length - norm(a.model).length);
   return matches[0]?.rank ?? 10000;
 }
