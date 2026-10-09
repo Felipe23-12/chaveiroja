@@ -1,6 +1,7 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.46';
 import { verifyInternalCall } from '../../shared/internalCall.ts';
 import { VEHICLE_MODEL_YEARS } from '../../shared/vehicleModelYears.ts';
+import { fipePriority, prioritizeFipeFamilies } from '../../shared/fipePriority.ts';
 
 const INTERVAL = 2 * 60 * 60 * 1000;
 const REVIEW = 20 * 86400000;
@@ -10,7 +11,7 @@ const API = 'https://api.tabelafipe.info/api/v1';
 const MONTHS = ['janeiro','fevereiro','março','abril','maio','junho','julho','agosto','setembro','outubro','novembro','dezembro'];
 const norm = (v: unknown) => String(v || '').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,' ').trim();
 const slug = (v: unknown) => norm(v).replace(/ /g,'-');
-const families = VEHICLE_MODEL_YEARS.filter(x => x.min && x.max);
+const families = prioritizeFipeFamilies(VEHICLE_MODEL_YEARS.filter(x => x.min && x.max));
 const fuelCodes: Record<string,string> = { gasolina:'1', alcool:'2', diesel:'3', flex:'5' };
 
 function localPeriod() {
@@ -94,7 +95,7 @@ export default async function(req: Request): Promise<Response> {
         const url='https://huggingface.co/datasets/alanwgt/fipex-veiculos-brasil/resolve/main/'+now.year+'/'+String(now.month).padStart(2,'0')+'/fipex-prices.csv';
         const rows=parseTsv(await request(url,true));
         if(rows.some(r=>Number(r.ano_referencia)!==now.year || Number(r.mes_referencia)!==now.month)) throw new Error('Referência do arquivo fipeX divergente do mês atual.');
-        const cars=rows.filter(r=>r.tipo_veiculo==='carro' && r.zero_km==='false');
+        const cars=rows.filter(r=>r.tipo_veiculo==='carro' && r.zero_km==='false').sort((a,b)=>fipePriority(a.nome_marca,a.nome_modelo)-fipePriority(b.nome_marca,b.nome_modelo));
         s.total_rows=cars.length;
         const stop=Math.min(cars.length,s.offset+PAGE);
         while(s.offset<stop) {
