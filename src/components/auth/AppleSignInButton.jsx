@@ -1,5 +1,6 @@
 import React, { useRef, useState } from 'react';
 import { appParams } from '@/lib/app-params';
+import { isNativeIOS } from '@/lib/nativeAuthEnvironment';
 import { markAuthProvider, clearAuthProvider } from '@/lib/authProvider';
 
 export default function AppleSignInButton({ returnTo = '/', rememberMe = true, disabled = false }) {
@@ -8,7 +9,7 @@ export default function AppleSignInButton({ returnTo = '/', rememberMe = true, d
   const redirectTimer = useRef(null);
 
   const signIn = () => {
-    if (loading || disabled) return;
+    if (isNativeIOS() || loading || disabled) return;
     setError('');
     setLoading(true);
     try {
@@ -40,6 +41,8 @@ export default function AppleSignInButton({ returnTo = '/', rememberMe = true, d
       setLoading(false);
     }
   };
+
+  if (isNativeIOS()) return null;
 
   const appleButtonUrl = 'https://appleid.cdn-apple.com/appleid/button?height=48&width=375&color=black&border=false&type=continue&border_radius=8&scale=2&locale=pt_BR';
 

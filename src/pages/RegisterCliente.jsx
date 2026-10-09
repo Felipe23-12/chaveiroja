@@ -23,6 +23,7 @@ import ExistingAccountNotice from "@/components/auth/ExistingAccountNotice";
 import { saveClientOnboarding, resumeClientOnboarding } from '@/lib/clientOnboarding';
 import { clientRegistrationComplete } from '@/lib/clientRegistration';
 import { isFullName } from "@/lib/fullName";
+import { isNativeIOS } from '@/lib/nativeAuthEnvironment';
 
 // Campos que recebem foco além do scroll.
 const FOCUS_FIELDS = new Set(["fullName", "phone", "password", "confirmPassword"]);
@@ -66,6 +67,7 @@ export default function RegisterCliente() {
   }, [fieldError]);
 
   const returnTo = safeReturnTo();
+  const nativeIOS = isNativeIOS();
   const qs = returnTo !== "/" ? "?returnTo=" + encodeURIComponent(returnTo) : "";
   useEffect(() => {
     let cancelled = false;
@@ -144,7 +146,7 @@ export default function RegisterCliente() {
   };
 
   const handleGoogle = async () => {
-    if (loading) return;
+    if (nativeIOS || loading) return;
     setLoading(true); setError('');
     try {
       markAuthProvider('google');
@@ -179,7 +181,7 @@ export default function RegisterCliente() {
       }
     >
       <ExistingAccountNotice query={qs} />
-      <Button
+      {!nativeIOS && <><Button
         variant="outline"
         className="w-full h-12 text-sm font-medium mb-6"
         onClick={handleGoogle}
@@ -198,7 +200,7 @@ export default function RegisterCliente() {
         <div className="relative flex justify-center text-xs uppercase">
           <span className="bg-card px-3 text-muted-foreground">ou</span>
         </div>
-      </div>
+      </div></>}
 
       {error && (
         <div className="mb-4 p-3 rounded-lg bg-destructive/10 text-destructive text-sm">{error}</div>

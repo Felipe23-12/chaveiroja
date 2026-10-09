@@ -21,6 +21,7 @@ import finishAuthWindow from '@/lib/finishAuthWindow';
 import GoogleAppHandoff from '@/components/auth/GoogleAppHandoff';
 import { needsAppHandoff } from '@/lib/authHandoff';
 import AccountChoice from '@/components/auth/AccountChoice';
+import { isNativeIOS } from '@/lib/nativeAuthEnvironment';
 
 export default function Login() {
   const [handoff, setHandoff] = useState(null);
@@ -33,6 +34,7 @@ export default function Login() {
   const googleRetryStarted = useRef(false);
   const location = useLocation();
   const returnTo = safeReturnTo();
+  const nativeIOS = isNativeIOS();
   const selectedType = location.pathname === '/login/cliente' ? 'cliente' : location.pathname === '/login/chaveiro' ? 'chaveiro' : new URLSearchParams(location.search).get('tipo');
   const professional = selectedType === 'chaveiro' || (!selectedType && ['/painel-chaveiro', '/cadastro/recebimentos', '/modo-trabalho', '/painel-financeiro'].includes(returnTo.split('?')[0]));
 
@@ -48,7 +50,8 @@ export default function Login() {
     localStorage.setItem("remember_login", String(rememberMe));
     sessionStorage.setItem("active_login_session", "true");
     const token = localStorage.getItem('base44_access_token');
-    if (token && needsAppHandoff()) setHandoff({ destination: dest, token });
+    if (nativeIOS) window.location.replace(dest);
+    else if (token && needsAppHandoff()) setHandoff({ destination: dest, token });
     else finishAuthWindow(dest);
   };
 
@@ -71,7 +74,7 @@ export default function Login() {
   };
 
   const handleGoogle = async () => {
-    if (loading || professional) return;
+    if (nativeIOS || loading || professional) return;
     setError("");
     setLoading(true);
     try {
@@ -89,6 +92,7 @@ export default function Login() {
   };
 
   useEffect(() => {
+    if (isNativeIOS()) return;
     // O callback da Apple retorna para /login. Se a sessão acabou de ser
     // autenticada pelo provedor, conclua a entrada em vez de mostrar a tela
     // de login novamente para um usuário já autenticado.
@@ -138,7 +142,7 @@ export default function Login() {
       </>}
     >
       <div className="mb-5 grid grid-cols-2 gap-2"><Link to={'/login/cliente?returnTo=' + encodeURIComponent(professional ? '/' : returnTo)} className={`rounded-lg border p-3 text-center text-sm ${!professional ? 'border-primary bg-primary/10' : 'border-border'}`}>Sou cliente</Link><Link to={'/login/chaveiro?returnTo=' + encodeURIComponent(professional ? returnTo : '/')} className={`rounded-lg border p-3 text-center text-sm ${professional ? 'border-primary bg-primary/10' : 'border-border'}`}>Sou chaveiro</Link></div>
-      {!professional && <><Button
+      {!nativeIOS && !professional && <><Button
         variant="outline"
         className="w-full h-12 text-sm font-medium mb-6"
         onClick={handleGoogle}

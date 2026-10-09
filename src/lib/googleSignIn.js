@@ -1,8 +1,10 @@
 import { appParams } from '@/lib/app-params';
+import { isNativeIOS } from '@/lib/nativeAuthEnvironment';
 
 // Use o mesmo endpoint de Google do SDK, mas com navegação de página inteira
 // para não abrir um popup bloqueado pelo WebView ou pelo navegador móvel.
 export function loginWithGoogle(returnTo = '/') {
+  if (isNativeIOS()) return;
   const redirectUrl = new URL(returnTo, window.location.origin).toString();
   const base = appParams.appBaseUrl || window.location.origin;
   const loginUrl = new URL('/api/apps/auth/login', base);

@@ -3,13 +3,14 @@ import { Button } from '@/components/ui/button';
 import GoogleIcon from '@/components/GoogleIcon';
 import { markAuthProvider, clearAuthProvider } from '@/lib/authProvider';
 import { loginWithGoogle } from '@/lib/googleSignIn';
+import { isNativeIOS } from '@/lib/nativeAuthEnvironment';
 
 export default function GoogleSignInButton({ returnTo = '/' }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
   const signIn = async () => {
-    if (loading) return;
+    if (isNativeIOS() || loading) return;
     setLoading(true);
     setError('');
     try {
@@ -23,6 +24,8 @@ export default function GoogleSignInButton({ returnTo = '/' }) {
       setLoading(false);
     }
   };
+
+  if (isNativeIOS()) return null;
 
   return <>
     <Button type="button" variant="outline" className="w-full h-12 text-sm font-medium" onClick={signIn} disabled={loading}>
