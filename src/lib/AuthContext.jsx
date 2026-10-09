@@ -141,6 +141,7 @@ export const AuthProvider = ({ children }) => {
       return currentUser;
     } catch (error) {
       console.error('User auth check failed:', error);
+      setAppleReview({ enabled: false, role: null });
       if (isInvalidSessionError(error)) clearInvalidStoredSession();
       setIsLoadingAuth(false);
       setIsAuthenticated(false);
