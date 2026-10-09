@@ -160,15 +160,16 @@ export async function calculateServerServicePrice(base44, userId, data) {
     const unavailable = carKeyUnavailableReason(vehicle.make, vehicle.model, vehicle.year);
     if (unavailable) throw new Error(unavailable);
   }
-  const [profiles, searching, ringing, config, weather, regional, areas] = await Promise.all([
-    base44.asServiceRole.entities.Locksmith.filter({ online: true }, '-updated_date', 500),
-    base44.asServiceRole.entities.ServiceRequest.filter({ status: 'searching' }, '-created_date', 500),
-    base44.asServiceRole.entities.ServiceRequest.filter({ status: 'ringing' }, '-created_date', 500),
+  const [profiles, searching, ringing, config, weather, regional, areas, history] = await Promise.all([
+    base44.asServiceRole.entities.Locksmith.filter({ online: true }, '-updated_date', 500, 0, ['id', 'lat', 'lng']),
+    base44.asServiceRole.entities.ServiceRequest.filter({ status: 'searching' }, '-created_date', 500, 0, ['id']),
+    base44.asServiceRole.entities.ServiceRequest.filter({ status: 'ringing' }, '-created_date', 500, 0, ['id']),
     loadServicePricing(base44, data.service_type),
 
     rule.fixed ? Promise.resolve({ key: null, label: 'Preço fixo: sem ajuste climático' }) : pricingWeather(data.customer_lat == null ? NaN : Number(data.customer_lat), data.customer_lng == null ? NaN : Number(data.customer_lng)),
     regionalPriceForLocation(base44, data.service_type, data.customer_lat, data.customer_lng),
     Promise.resolve(permittedAreas),
+    base44.asServiceRole.entities.ServiceRequest.filter({ created_by_id: userId }, '-created_date', 1, 0, ['id']),
   ]);
   const online = profiles.filter(l => isAreaAvailable(areas, l.lat, l.lng));
   const settings = config.values;
@@ -238,7 +239,6 @@ export async function calculateServerServicePrice(base44, userId, data) {
     };
   }
 
-  const history = await base44.asServiceRole.entities.ServiceRequest.filter({ created_by_id: userId }, '-created_date', 1);
   const firstCall = history.length === 0;
   const useDiscount = !firstCall && data.discount_applied === true && await loyaltyAvailable(base44, userId);
   const discountBase = Math.max(0, calculation.total - calculation.protectedFees);

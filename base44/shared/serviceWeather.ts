@@ -1,8 +1,10 @@
 const cache = new Map();
+const inFlight = new Map();
 async function weatherJson(url, headers = {}) {
-  let timer;
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 2500);
   try {
-    const response = await Promise.race([fetch(url, { headers }), new Promise((_, reject) => { timer = setTimeout(() => reject(new Error('Tempo limite do clima')), 5000); })]);
+    const response = await fetch(url, { headers, signal: controller.signal });
     if (!response.ok) throw new Error(`Consulta climática HTTP ${response.status}`);
     return await response.json();
   } finally { clearTimeout(timer); }
@@ -27,6 +29,12 @@ export async function pricingWeather(lat, lng) {
   if (!Number.isFinite(lat) || !Number.isFinite(lng) || Math.abs(lat) > 90 || Math.abs(lng) > 180) return { key: null, label: 'Clima não consultado: localização indisponível' };
   const latitude = lat.toFixed(2), longitude = lng.toFixed(2), key = `${latitude},${longitude}`, cached = cache.get(key);
   if (cached && cached.until > Date.now()) return cached.value;
+  if (inFlight.has(key)) return inFlight.get(key);
+  const pending = readPricingWeather(latitude, longitude, key).finally(() => inFlight.delete(key));
+  inFlight.set(key, pending);
+  return pending;
+}
+async function readPricingWeather(latitude, longitude, key) {
   let value;
   try {
     const { rain, storm, source } = await weatherReading(latitude, longitude);
