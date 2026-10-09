@@ -36,11 +36,11 @@ export default function AccountCpfForm({ user, onSaved }) {
   };
   return <section id="cpf" className="rounded-xl border border-border bg-card p-4 space-y-3 scroll-mt-20">
     <h2 className="font-heading font-semibold">Conclusão de cadastro · CPF</h2>
-    {saved && <p className={`text-sm ${linked ? 'text-success' : 'text-muted-foreground'}`}>CPF cadastrado: {formatCpf(user.cpf)}. {linked === null ? 'Verificando confirmação...' : linked ? 'CPF confirmado.' : 'Confirmação pendente. Confirme abaixo para aceitar chamados.'} Por segurança, não é possível substituí-lo por outro CPF neste formulário.</p>}
+    {saved && <p className={`text-sm ${linked ? 'text-success' : 'text-muted-foreground'}`}>CPF cadastrado: {formatCpf(user.cpf)}. {linked === null ? 'Verificando confirmação...' : linked ? 'CPF confirmado.' : 'Aprovação administrativa pendente, com comprovação de titularidade.'} Por segurança, não é possível substituí-lo por outro CPF neste formulário.</p>}
     {!linked && <form onSubmit={save} className="space-y-3">
-      <p className="text-sm text-muted-foreground">{saved ? 'Confirme o CPF já cadastrado para liberar a aceitação de chamados.' : 'Informe seu CPF para liberar a aceitação de chamados.'}</p>
+      <p className="text-sm text-muted-foreground">{saved ? 'Envie o CPF já cadastrado para análise administrativa de titularidade.' : 'Informe seu CPF para análise administrativa de titularidade.'}</p>
       <CpfInput value={cpf} onChange={setCpf} email={user.email} />
-      <Button type="submit" disabled={busy || linked === null}>{busy ? 'Validando...' : 'Validar e salvar CPF'}</Button>
+      <Button type="submit" disabled={busy || linked === null}>{busy ? 'Enviando...' : 'Solicitar análise do CPF'}</Button>
     </form>}
     {message && <p role="status" className="text-sm text-foreground">{message}</p>}
   </section>;

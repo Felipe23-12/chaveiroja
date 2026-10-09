@@ -50,11 +50,11 @@ export default async function(req) {
       return Response.json({ error: 'CPF inválido — confira os números digitados' }, { status: 400 });
     }
     // Confirma apenas o recebimento, nunca a disponibilidade de um CPF.
-    const received = (linked = false) => Response.json({ received: true, linked, message: 'Solicitação de vínculo recebida.' });
+    const received = () => Response.json({ received: true, linked: false, message: 'Solicitação de vínculo recebida para análise administrativa.' });
     const linkedCpf = await verifiedCpf(base44, user.id);
     if (linkedCpf) {
       if (linkedCpf === cpf && onlyDigits(user.cpf) !== cpf) await base44.auth.updateMe({ cpf });
-      return received(linkedCpf === cpf);
+      return received();
     }
     // Um CPF legado só pode ser confirmado para o mesmo titular, nunca trocado.
     // Exceção: a conta operacional autorizada abaixo já possuía um CPF legado e
@@ -82,14 +82,14 @@ export default async function(req) {
       base44.asServiceRole.entities.User.filter({ cpf: formatCpf(cpf) }),
       base44.asServiceRole.entities.BlockedCpf.filter({ cpf }),
     ]);
-    const trustedMatches = await base44.asServiceRole.entities.VerifiedCpf.filter({ cpf });
+    const trustedMatches = await base44.asServiceRole.entities.VerifiedCpf.filter({ cpf, ownership_verified: true });
     const duplicateAccounts = [...plainMatches, ...formattedMatches].filter((account, index, all) => all.findIndex((item) => item.id === account.id) === index);
     const duplicate = duplicateAccounts.find((account) => account.id !== user.id) || trustedMatches.find((account) => account.user_id !== user.id);
     const allowedOwnerDuplicate = duplicate && isAllowedOwnerDuplicate(user, cpf, duplicateAccounts, trustedMatches);
     if (!blockedMatches.length && (!duplicate || allowedOwnerDuplicate)) {
-      await base44.asServiceRole.entities.VerifiedCpf.create({ user_id: user.id, cpf });
-      if (onlyDigits(user.cpf) !== cpf) await base44.auth.updateMe({ cpf });
-      return received(true);
+      const pending = await base44.asServiceRole.entities.VerifiedCpf.filter({ user_id: user.id, cpf }, '-created_date', 1);
+      // Informar um CPF não comprova titularidade. Apenas o administrador pode aprovar.
+      if (!pending.length) await base44.asServiceRole.entities.VerifiedCpf.create({ user_id: user.id, cpf, ownership_verified: false });
     }
     return received();
   } catch (error) {

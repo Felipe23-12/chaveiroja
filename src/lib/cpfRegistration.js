@@ -3,8 +3,10 @@ import { base44 } from "@/api/base44Client";
 export async function claimCpf(cpf) {
   try {
     const response = await base44.functions.invoke("claimCpf", { cpf });
-    if (!response.data?.linked) throw new Error("Não foi possível vincular o CPF. Se você já tem uma conta, entre nela e exclua-a antes de se cadastrar com outro tipo de perfil.");
-    // Recebimento não significa vínculo: não avance o cadastro sem persistência.
+    if (!response.data?.received) throw new Error("Não foi possível enviar a solicitação de CPF.");
+    const { data: status } = await base44.functions.invoke("claimCpf", { action: "status" });
+    if (!status?.linked) throw new Error("Solicitação recebida. A confirmação do CPF depende de análise administrativa com comprovação de titularidade.");
+    // Apenas aprovação administrativa permite avançar, nunca o recebimento.
     const user = await base44.auth.me();
     const digits = (value) => String(value || "").replace(/\D/g, "");
     if (!digits(user.cpf) || digits(user.cpf) !== digits(cpf)) {
