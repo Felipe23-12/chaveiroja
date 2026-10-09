@@ -19,14 +19,15 @@ export async function appleReviewUserIds(base44) {
 // Shared read-only exclusion for reports, including legacy requests without the marker.
 export async function nonAppleReviewRequestQuery(base44) {
   const userIds = await appleReviewUserIds(base44);
+  // These report functions use SDK versions with positional filter arguments and array results.
   const profiles = userIds.length
-    ? await base44.asServiceRole.entities.Locksmith.filter({ created_by_id: { $in: userIds } }, { fields: ['id'], limit: 100 })
-    : { items: [] };
+    ? await base44.asServiceRole.entities.Locksmith.filter({ created_by_id: { $in: userIds } }, '-created_date', 100, 0, ['id'])
+    : [];
   return {
     apple_review: { $ne: true },
     created_by_id: { $nin: userIds },
     locksmith_user_id: { $nin: userIds },
-    locksmith_id: { $nin: profiles.items.map(profile => profile.id) },
+    locksmith_id: { $nin: profiles.map(profile => profile.id) },
   };
 }
 export async function reviewPairAllowed(base44, clientId, locksmithUserId) {
