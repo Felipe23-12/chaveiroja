@@ -1,4 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.46';
+import { secrets } from 'base44:runtime';
 import { requireServiceCoverage, coverageError } from '../../shared/serviceCoverage.ts';
 import { isAreaAvailable } from '../../shared/serviceAreas.ts';
 import { clientRegistrationComplete } from '../../shared/registrationEligibility.ts';
