@@ -20,6 +20,8 @@ import TermsAcceptance from "@/components/auth/TermsAcceptance";
 import { termsPayload } from "@/lib/termsVersion";
 import { registerEmailAccount, registrationErrorMessage } from "@/lib/emailRegistration";
 import ExistingAccountNotice from "@/components/auth/ExistingAccountNotice";
+import { saveClientOnboarding, resumeClientOnboarding } from '@/lib/clientOnboarding';
+import { clientRegistrationComplete } from '@/lib/clientRegistration';
 import { isFullName } from "@/lib/fullName";
 
 // Campos que recebem foco além do scroll.
@@ -65,6 +67,14 @@ export default function RegisterCliente() {
 
   const returnTo = safeReturnTo();
   const qs = returnTo !== "/" ? "?returnTo=" + encodeURIComponent(returnTo) : "";
+  useEffect(() => {
+    let cancelled = false;
+    base44.auth.me().then(resumeClientOnboarding).then(user => {
+      if (!cancelled && clientRegistrationComplete(user)) window.location.replace(returnTo);
+    }).catch(() => {});
+    return () => { cancelled = true; };
+  }, [returnTo]);
+
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -107,7 +117,7 @@ export default function RegisterCliente() {
       const normalizedEmail = email.trim().toLowerCase();
       await registerEmailAccount(normalizedEmail, password);
       setEmail(normalizedEmail);
-      sessionStorage.setItem("cliente_onboarding", JSON.stringify({ fullName, phone, cpf }));
+      saveClientOnboarding({ email: normalizedEmail, fullName, phone, cpf });
       setShowOtp(true);
     } catch (err) {
       setError(registrationErrorMessage(err));
@@ -128,6 +138,7 @@ export default function RegisterCliente() {
     });
     localStorage.setItem("remember_login", "true");
     sessionStorage.setItem("active_login_session", "true");
+    localStorage.removeItem("cliente_onboarding");
     sessionStorage.removeItem("cliente_onboarding");
     window.location.assign(returnTo !== "/" ? returnTo : "/");
   };

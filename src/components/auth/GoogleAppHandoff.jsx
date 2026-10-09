@@ -13,7 +13,7 @@ export default function GoogleAppHandoff({ destination, token }) {
 
   return <main className="min-h-[100dvh] flex items-center justify-center bg-background px-4 pt-safe">
     <div className="w-full max-w-md rounded-xl border border-border bg-card p-6 text-center">
-      <h1 className="font-heading text-xl font-bold">Conta Google conectada</h1>
+      <h1 className="font-heading text-xl font-bold">Entrada concluída</h1>
       <p className="mt-2 mb-5 text-sm text-muted-foreground">A entrada foi concluída no navegador. Toque abaixo para continuar no aplicativo.</p>
       <Button asChild className="w-full"><a href={intent}>Abrir aplicativo</a></Button>
       <Button asChild variant="ghost" className="mt-3 w-full"><a href={destination}>Continuar no navegador</a></Button>

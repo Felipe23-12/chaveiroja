@@ -16,9 +16,14 @@ import { loginWithGoogle } from "@/lib/googleSignIn";
 import { requiresEmailVerification } from "@/lib/emailRegistration";
 import InlineOtpInput from "@/components/auth/InlineOtpInput";
 import AppleSignInButton from '@/components/auth/AppleSignInButton';
+import { resumeClientOnboarding } from '@/lib/clientOnboarding';
+import finishAuthWindow from '@/lib/finishAuthWindow';
+import GoogleAppHandoff from '@/components/auth/GoogleAppHandoff';
+import { needsAppHandoff } from '@/lib/authHandoff';
 import AccountChoice from '@/components/auth/AccountChoice';
 
 export default function Login() {
+  const [handoff, setHandoff] = useState(null);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -38,10 +43,13 @@ export default function Login() {
     if (passwordAuthenticated && me.password_created !== true) {
       me = await base44.auth.updateMe({ password_created: true });
     }
+    me = await resumeClientOnboarding(me);
     const dest = returnTo !== "/" ? returnTo : me.role === "admin" ? "/painel-admin" : me.account_type === "chaveiro" ? "/painel-chaveiro" : "/";
     localStorage.setItem("remember_login", String(rememberMe));
     sessionStorage.setItem("active_login_session", "true");
-    window.location.href = dest;
+    const token = localStorage.getItem('base44_access_token');
+    if (token && needsAppHandoff()) setHandoff({ destination: dest, token });
+    else finishAuthWindow(dest);
   };
 
   const handleSubmit = async (e) => {
@@ -106,6 +114,8 @@ export default function Login() {
     // Executado uma única vez ao voltar do cadastro incompleto.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  if (handoff) return <GoogleAppHandoff {...handoff} />;
 
   if (!selectedType && !professional) return <AccountChoice returnTo={returnTo} />;
 

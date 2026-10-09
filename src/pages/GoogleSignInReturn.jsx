@@ -1,6 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
+import { resumeClientOnboarding } from '@/lib/clientOnboarding';
+import { clientRegistrationComplete } from '@/lib/clientRegistration';
+import { needsAppHandoff } from '@/lib/authHandoff';
 import { safeReturnTo } from '@/lib/authReturnTo';
 import restoreGoogleSession from '@/lib/restoreGoogleSession';
 import { loginWithGoogle } from '@/lib/googleSignIn';
@@ -20,13 +23,12 @@ export default function GoogleSignInReturn() {
       for (let attempt = 0; attempt < 5 && !cancelled; attempt++) {
         try {
           if (await restoreGoogleSession()) {
-            const user = await base44.auth.me();
+            const user = await resumeClientOnboarding(await base44.auth.me());
             if (cancelled) return;
             const fallback = user.role === 'admin' ? '/painel-admin' : user.account_type === 'chaveiro' ? '/painel-chaveiro' : '/';
-            const destination = returnTo === '/' ? fallback : returnTo;
-            const params = new URLSearchParams(window.location.search);
-            const isAndroidBrowser = /Android/i.test(navigator.userAgent) && !/; wv\b/i.test(navigator.userAgent);
-            if (isAndroidBrowser && !params.has('native_return') && !window.opener) {
+            const completedRegistrationRoute = clientRegistrationComplete(user) && ['/google-complete', '/cadastro/cliente'].includes(returnTo.split('?')[0]);
+            const destination = returnTo === '/' || completedRegistrationRoute ? fallback : returnTo;
+            if (needsAppHandoff()) {
               const token = localStorage.getItem('base44_access_token');
               if (token) {
                 setHandoff({ destination, token });
