@@ -13,8 +13,7 @@ export const ONLINE_PROGRAMMING_FEE = 250;
 const VW_DEALER_ONLY = ["amarok", "touareg", "tiguan", "taos", "jetta gli", "golf gti"];
 
 // VW novos com programação online paga (a partir da geração MQB / 2018)
-const VW_ONLINE_MODELS = ["polo", "virtus", "t-cross", "tcross", "nivus", "jetta", "golf", "saveiro", "gol", "voyage"];
-const VW_ONLINE_FROM_YEAR = 2018;
+// VW: adicional apenas com transponder MQB confirmado no catálogo.
 
 // GM/Chevrolet com imobilizador 4A (programação online paga)
 const GM_ONLINE_MODELS = ["onix", "onix plus", "tracker", "spin", "s10", "cruze", "montana", "trailblazer", "equinox"];
@@ -34,7 +33,7 @@ const isGM = (m) =>
  * Detecta a necessidade de programação online paga ou exclusiva de concessionária.
  * @returns {{ onlineFee: number, dealerOnly: boolean, reason: string }}
  */
-export function detectCarKeyProgramming(model, year) {
+export function detectCarKeyProgramming(model, year, transponder = "") {
   const m = (model || "").toLowerCase().trim();
   const y = Number(String(year ?? "").trim()) || 0;
   if (!m) return { onlineFee: 0, dealerOnly: false, reason: "" };
@@ -75,11 +74,11 @@ export function detectCarKeyProgramming(model, year) {
     };
   }
 
-  if (vw && y >= VW_ONLINE_FROM_YEAR && VW_ONLINE_MODELS.some((k) => m.includes(k))) {
+  if (vw && /\bmqb\b/i.test(String(transponder)) && !/(?:id\s*48|\b5c\b|conforme|\bou\b|\/)/i.test(String(transponder))) {
     return {
       onlineFee: ONLINE_PROGRAMMING_FEE,
       dealerOnly: false,
-      reason: "Volkswagen de nova geração: programação exige acesso online pago à montadora (adicional de R$ 250).",
+      reason: "Volkswagen com MQB confirmado no catálogo: programação online (adicional de R$ 250).",
     };
   }
 

@@ -69,13 +69,12 @@ export function serverProgrammingFee(make, model, year, settings, transponder) {
   const gm = /\b(gm|chevrolet)\b/.test(text);
   const dealerOnly = ['amarok', 'touareg', 'tiguan', 'taos', 'jetta gli', 'golf gti'];
   if (vw && dealerOnly.some((item) => text.includes(item))) throw new Error('Este veículo só pode ser programado na concessionária');
-  const vwOnline = ['polo', 'virtus', 't cross', 'tcross', 'nivus', 'jetta', 'golf', 'saveiro', 'gol', 'voyage'];
   const gmOnline = ['onix', 'onix plus', 'tracker', 'spin', 's10', 'cruze', 'montana', 'trailblazer', 'equinox'];
   // A regra Chevrolet depende do transponder identificado, não apenas do ano-modelo.
   const chip = String(transponder || '').trim();
   const gm4a = /(?:^|[^a-z0-9])(?:id\s*)?4a(?:$|[^a-z0-9])/i.test(chip)
     && !/(?:id\s*46|\b1d46\b|conforme|\bou\b|\/)/i.test(chip);
-  if ((gm && gm4a && gmOnline.some((item) => text.includes(item))) || (vw && year >= 2018 && vwOnline.some((item) => text.includes(item)))) return settings.online_fee;
+  if ((gm && gm4a && gmOnline.some((item) => text.includes(item))) || (vw && /\bmqb\b/i.test(chip) && !/(?:id\s*48|\b5c\b|conforme|\bou\b|\/)/i.test(chip))) return settings.online_fee;
   return 0;
 }
 

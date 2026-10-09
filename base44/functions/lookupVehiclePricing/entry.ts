@@ -34,7 +34,7 @@ export default async function(req: Request): Promise<Response> {
     const make = String(body.make || '').trim().slice(0, 80);
     const model = String(body.model || '').trim().slice(0, 100);
     const year = String(body.year || '').trim();
-    const version = String(body.version || '').trim().slice(0, 80).replace(/[<>]/g, '');
+    const version = ''; // FIPE por média do modelo/ano, sem seleção de versão.
     const keyOnly = body.mode === 'key_only';
     if (!model || !/^\d{4}$/.test(year)) {
       return Response.json({ error: 'Modelo e ano válido são obrigatórios' }, { status: 400 });
@@ -125,12 +125,12 @@ Retorne cada oferta aceita com fonte, categoria, preço em BRL, URL e original_c
       required: keyOnly ? ['original_key_offers'] : ['has_coded_key', 'original_key_offers'],
     };
     const fipeExact = keyOnly ? null : await fipeFromDatabase(base44, make, model, year, version);
-    const result = await base44.asServiceRole.integrations.Core.InvokeLLM({
+    const result = await Promise.race([base44.asServiceRole.integrations.Core.InvokeLLM({
       prompt,
       add_context_from_internet: true,
       model: 'gemini_3_flash',
       response_json_schema: responseSchema,
-    });
+    }), new Promise((_, reject) => setTimeout(() => reject(new Error("Pesquisa de chave excedeu o prazo")), 10000))]).catch(() => ({ original_key_offers: [], has_coded_key: Number(year) >= 2000, notes: "Pesquisa externa indisponível: usando catálogo ou valor padrão de chave." }));
 
     const webOffers = (result.original_key_offers || []).filter((offer) =>
       offer.original_confirmed === true &&

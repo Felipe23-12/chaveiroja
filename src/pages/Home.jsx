@@ -191,8 +191,8 @@ export default function Home() {
 
   // Regras de programação (acesso online pago / somente concessionária)
   const programming = useMemo(
-    () => (service?.isCarKey ? detectCarKeyProgramming(`${vehicleInfo.make} ${vehicleInfo.model}`.trim(), vehicleInfo.year) : null),
-    [service, vehicleInfo.make, vehicleInfo.model, vehicleInfo.year]
+    () => (service?.isCarKey ? detectCarKeyProgramming(`${vehicleInfo.make} ${vehicleInfo.model}`.trim(), vehicleInfo.year, keyCatalog?.transponder) : null),
+    [service, vehicleInfo.make, vehicleInfo.model, vehicleInfo.year, keyCatalog?.transponder]
   );
 
   const catalogOriginalValue = Number(keyCatalog?.original_price) || 0;
