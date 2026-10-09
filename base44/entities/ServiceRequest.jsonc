@@ -2,6 +2,11 @@
   "name": "ServiceRequest",
   "type": "object",
   "properties": {
+    "apple_review": {
+      "type": "boolean",
+      "default": false,
+      "description": "Definido exclusivamente pelo servidor para pedidos isolados de revis\u00e3o Apple, sem efeitos financeiros."
+    },
     "service_type": {
       "type": "string",
       "enum": [
@@ -103,7 +108,13 @@
       "type": "boolean",
       "default": false
     },
-    "discount_type": { "type": "string", "enum": ["first_call", "loyalty"] },
+    "discount_type": {
+      "type": "string",
+      "enum": [
+        "first_call",
+        "loyalty"
+      ]
+    },
     "customer_name": {
       "type": "string",
       "description": "Nome informado pelo cliente ao solicitar o atendimento"
@@ -343,32 +354,9 @@
   ],
   "rls": {
     "create": {
-      "$and": [
-        {
-          "created_by_id": "{{user.id}}"
-        },
-        {
-          "data.status": "ringing"
-        },
-        {
-          "data.payment_status": "pending"
-        },
-        {
-          "data.cash_received": false
-        },
-        {
-          "data.client_confirmed": false
-        },
-        {
-          "data.locksmith_confirmed": false
-        },
-        {
-          "data.cancellation_fee": 0
-        },
-        {
-          "data.review_claimed": false
-        }
-      ]
+      "user_condition": {
+        "role": "admin"
+      }
     },
     "read": {
       "$or": [
