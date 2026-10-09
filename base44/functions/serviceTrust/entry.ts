@@ -16,7 +16,7 @@ import { requireServiceCoverage } from '../../shared/serviceCoverage.ts';
 import { clientRegistrationComplete } from '../../shared/registrationEligibility.ts';
 import { verifiedCpf } from '../../shared/verifiedCpf.ts';
 import { handleAppleReview } from '../../shared/appleReviewOperations.ts';
-import { appleReviewUserIds, isAppleReviewRequest } from '../../shared/appleReviewPolicy.ts';
+import { appleReviewUserIds, isAppleReviewRequest, nonAppleReviewRequestQuery } from '../../shared/appleReviewPolicy.ts';
 
 const waitMinutes = (minutes) => new Date(Date.now() + minutes * 60000).toISOString();
 const SECOND_JOB_MAX_DISTANCE_KM = 20;
@@ -73,6 +73,10 @@ export default async function(req) {
     const action = body.action;
     const reviewResponse = await handleAppleReview(base44, user, body);
     if (reviewResponse) return reviewResponse;
+    if (action === 'admin_reporting_scope') {
+      if (user.role !== 'admin') return Response.json({ error: 'Forbidden' }, { status: 403 });
+      return Response.json({ query: await nonAppleReviewRequestQuery(base44) });
+    }
     if (action === 'public_locksmiths') {
       const reviewIds = await appleReviewUserIds(base44);
       const query = body.surface === 'map' ? { $or: [{ online: true }, { available: false }] } : { online: true };

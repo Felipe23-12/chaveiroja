@@ -30,8 +30,9 @@ export default function FinanceCharts() {
     const load = async () => {
       setLoading(true);
       try {
+        const { data: scope } = await base44.functions.invoke('serviceTrust', { action: 'admin_reporting_scope' });
         const [reqs, pays] = await Promise.all([
-          base44.entities.ServiceRequest.list("-created_date", 1000),
+          base44.entities.ServiceRequest.filter(scope.query, "-created_date", 1000),
           base44.entities.Payment.list("-created_date", 1000),
         ]);
         setRequests(reqs);

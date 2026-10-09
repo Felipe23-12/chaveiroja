@@ -60,10 +60,11 @@ export default function PainelAdmin() {
   const load = async () => {
     setLoading(true);
     try {
+      const { data: scope } = await base44.functions.invoke('serviceTrust', { action: 'admin_reporting_scope' });
       const [u, l, r, s, w] = await Promise.all([
         base44.entities.User.list(),
         base44.entities.Locksmith.list(),
-        base44.entities.ServiceRequest.list("-created_date", 1000),
+        base44.entities.ServiceRequest.filter(scope.query, "-created_date", 1000),
         base44.entities.LocksmithScore.list("-updated_date", 1000),
         base44.entities.Withdrawal.list("-created_date", 100),
       ]);

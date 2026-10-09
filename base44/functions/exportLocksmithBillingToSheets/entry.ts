@@ -1,4 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.44';
+import { nonAppleReviewRequestQuery } from '../../shared/appleReviewPolicy.ts';
 
 const SPREADSHEET_ID = "1OKEypS7Y593A1QTB5LbI7ja-4QN1P1yDfsqAuLabpXI";
 const COMMISSION_RATE = 0.15;
@@ -37,9 +38,10 @@ export default async function(req) {
     const isAppMode = me.work_mode === "app";
     const rate = isAppMode ? COMMISSION_RATE : 0;
 
+    const reportingQuery = await nonAppleReviewRequestQuery(base44);
     const [completedAll, cancelledAll] = await Promise.all([
-      base44.entities.ServiceRequest.filter({ locksmith_id: me.id, status: "completed" }, "-created_date", 1000),
-      base44.entities.ServiceRequest.filter({ locksmith_id: me.id, status: "cancelled" }, "-created_date", 1000),
+      base44.entities.ServiceRequest.filter({ $and: [reportingQuery, { locksmith_id: me.id, status: "completed" }] }, "-created_date", 1000),
+      base44.entities.ServiceRequest.filter({ $and: [reportingQuery, { locksmith_id: me.id, status: "cancelled" }] }, "-created_date", 1000),
     ]);
     const completed = completedAll.filter((r) => monthKey(r.created_date) === targetMonth);
     const cancelled = cancelledAll.filter(

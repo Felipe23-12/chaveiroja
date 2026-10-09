@@ -1,4 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.44';
+import { nonAppleReviewRequestQuery } from '../../shared/appleReviewPolicy.ts';
 
 const SPREADSHEET_ID = "1OKEypS7Y593A1QTB5LbI7ja-4QN1P1yDfsqAuLabpXI";
 const SHEET_NAME = "Faturamento Mensal";
@@ -19,7 +20,8 @@ export default async function(req) {
     const targetMonth = month || `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
 
     // Busca todos os ServiceRequests pagos do mês
-    const allRequests = await base44.asServiceRole.entities.ServiceRequest.list("-created_date", 2000);
+    const reportingQuery = await nonAppleReviewRequestQuery(base44);
+    const allRequests = await base44.asServiceRole.entities.ServiceRequest.filter(reportingQuery, "-created_date", 2000);
     const monthRequests = allRequests.filter((r) => {
       if (r.payment_status !== "paid") return false;
       const d = new Date(r.created_date);
