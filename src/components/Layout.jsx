@@ -221,14 +221,11 @@ function MobileDrawer({ open, onClose, onNavigate }) {
 export default function Layout() {
   const location = useLocation();
   const isRootPath = rootPaths.includes(location.pathname);
+  const { appleReview } = useAuth();
   const { open, openMenu, closeMenu, navigateFromMenu } = useMobileMenuHistory();
   return (
     <div className="flex min-h-[100dvh] flex-col bg-background md:flex-row">
-      <GlobalLocksmithRequestAlert />
-      <GlobalChatAlert />
-      <LocksmithChatFab />
-      <ReportCaseCenter />
-      <ServiceFinishAlert />
+      {!appleReview?.enabled && <><GlobalLocksmithRequestAlert /><GlobalChatAlert /><LocksmithChatFab /><ReportCaseCenter /><ServiceFinishAlert /></>}
       <MobileTopBar onMenu={openMenu} />
       <MobileDrawer open={open} onClose={closeMenu} onNavigate={navigateFromMenu} />
       <aside className="hidden md:flex md:w-64 md:min-h-screen bg-card border-r border-border flex-col sticky top-0 md:h-screen">

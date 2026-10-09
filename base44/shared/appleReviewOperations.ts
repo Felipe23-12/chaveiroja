@@ -1,4 +1,5 @@
 import { appleReviewRole, appleReviewAccounts, isAppleReviewRequest } from './appleReviewPolicy.ts';
+import { secrets } from 'base44:runtime';
 const SERVICES = ['Abertura Residencial', 'Abertura Automotiva', 'Abertura Fechadura Tetra', 'Abertura Fechadura Eletrônica', 'Confecção de Chave de Carro', 'Confecção de Chave de Moto', 'Cópia de Chave'];
 const deny = (error, status = 403) => Response.json({ error }, { status });
 const pricing = { price: 0, minimum: 0, discount: 0, fields: {}, calculation: { total: 0, lines: [{ label: 'Pagamento simulado para revisão Apple', value: 0 }], notes: ['Sem cobrança, comissão ou repasse real.'] } };
@@ -78,7 +79,9 @@ export async function handleAppleReview(base44, user, body) {
     const data = body.data || {};
     for (const field of ['start_photos', 'end_photos']) {
       if (data[field] !== undefined) {
-        if (!Array.isArray(data[field]) || !data[field].length || data[field].length > 10 || data[field].some(url => typeof url !== 'string' || url.length > 2000 || !/^https:\/\/(base44\.app|media\.base44\.com)\//.test(url))) return deny('Envie fotos pelo aplicativo.', 400);
+        const appId = secrets.get('BASE44_APP_ID');
+        const prefixes = [`https://base44.app/api/apps/${appId}/files/mp/public/${appId}/`, `https://media.base44.com/images/public/${appId}/`];
+        if (!appId || !Array.isArray(data[field]) || !data[field].length || data[field].length > 10 || data[field].some(url => typeof url !== 'string' || url.length > 2000 || url.includes('..') || !prefixes.some(prefix => url.startsWith(prefix)))) return deny('Envie fotos pelo aplicativo.', 400);
         if (field === 'start_photos' && !request.client_arrived_confirmed) return deny('Aguarde o cliente confirmar sua chegada.', 409);
         if (field === 'end_photos' && !request.start_photos?.length) return deny('Registre primeiro o início.', 409);
         update[field] = data[field];

@@ -73,6 +73,14 @@ export default async function(req) {
     const action = body.action;
     const reviewResponse = await handleAppleReview(base44, user, body);
     if (reviewResponse) return reviewResponse;
+    if (action === 'public_locksmiths') {
+      const reviewIds = await appleReviewUserIds(base44);
+      const query = body.surface === 'map' ? { $or: [{ online: true }, { available: false }] } : { online: true };
+      query.created_by_id = { $nin: reviewIds };
+      if (body.livre_only === true) query.work_mode = 'livre';
+      const page = await base44.entities.Locksmith.filter(query, { sort: '-updated_date', limit: 50 });
+      return Response.json(page);
+    }
 
     if (action === 'client_registration_status') return Response.json(await clientRequestAccess(base44, user));
 

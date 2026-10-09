@@ -158,6 +158,7 @@ export const AuthProvider = ({ children }) => {
   };
 
   const logout = (shouldRedirect = true) => {
+    setAppleReview({ enabled: false, role: null });
     setUser(null);
     setIsAuthenticated(false);
     localStorage.removeItem('remember_login');

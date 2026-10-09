@@ -16,8 +16,8 @@ export default function RealLocksmithsMap({ me }) {
   useEffect(() => {
     let active = true;
     const load = () =>
-      base44.entities.Locksmith.filter({ work_mode: "livre", online: true }).then((list) => {
-        if (active) setLocksmiths(list);
+      base44.functions.invoke('serviceTrust', { action: 'public_locksmiths', livre_only: true }).then(({ data }) => {
+        if (active) setLocksmiths(data.items);
       });
     load().finally(() => active && setLoading(false));
     const unsub = base44.entities.Locksmith.subscribe(() => load());

@@ -12,23 +12,15 @@ export default function useLiveLocksmiths() {
     let active = true;
 
     const load = async () => {
-      const profiles = await base44.entities.Locksmith.filter({ online: true }, "-updated_date", 500);
+      const { data } = await base44.functions.invoke('serviceTrust', { action: 'public_locksmiths' });
+      const profiles = data.items;
       if (!active) return;
       setLocksmiths(withScores(profiles, new Map()));
       const scores = await loadScoreMap().catch(() => new Map());
       if (active) setLocksmiths(withScores(profiles, scores));
     };
 
-    const onEvent = (event) => {
-      const profile = event.data;
-      if (!profile?.id) return;
-      setLocksmiths((current) => {
-        const withoutCurrent = current.filter((item) => item.id !== profile.id);
-        if (event.type === "delete" || profile.online !== true) return withoutCurrent;
-        const previous = current.find((item) => item.id === profile.id);
-        return [{ ...previous, ...profile }, ...withoutCurrent];
-      });
-    };
+    const onEvent = () => load().catch(() => {});
 
     const refresh = () => load().catch(() => {});
     refresh();

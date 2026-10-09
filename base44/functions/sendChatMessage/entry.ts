@@ -4,6 +4,7 @@ import { requireServiceCoverage, coverageError } from '../../shared/serviceCover
 import { isAreaAvailable } from '../../shared/serviceAreas.ts';
 import { clientRegistrationComplete } from '../../shared/registrationEligibility.ts';
 import { verifiedCpf } from '../../shared/verifiedCpf.ts';
+import { appleReviewRole, reviewPairAllowed } from '../../shared/appleReviewPolicy.ts';
 
 export default async function(req) {
   try {
@@ -29,7 +30,10 @@ export default async function(req) {
     const locksmith = await base44.asServiceRole.entities.Locksmith.get(locksmith_id).catch(() => null);
     if (!locksmith) return Response.json({ error: 'Chaveiro não encontrado.' }, { status: 404 });
     const isLocksmith = locksmith.created_by_id === user.id;
-    if (!isLocksmith) {
+    const pairClientId = isLocksmith ? client_id : user.id;
+    if (!await reviewPairAllowed(base44, pairClientId, locksmith.created_by_id)) return Response.json({ error: 'Contas de revisão só podem conversar entre si.' }, { status: 403 });
+    const review = appleReviewRole(user);
+    if (!isLocksmith && !review) {
       if (user.role !== 'admin' && !clientRegistrationComplete(user, await verifiedCpf(base44, user.id))) {
         const appCalls = await base44.asServiceRole.entities.ServiceRequest.filter({
           created_by_id: user.id, locksmith_id,

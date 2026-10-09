@@ -40,19 +40,11 @@ export default function LiveLocksmithsMap({ customerLoc, livreOnly = false, loca
     const isVisible = (profile) =>
       (profile?.online === true || profile?.available === false) && (!livreOnly || profile.work_mode === "livre");
     const load = () =>
-      base44.entities.Locksmith.list("-updated_date", 500).then((list) => {
+      base44.functions.invoke('serviceTrust', { action: 'public_locksmiths', surface: 'map', livre_only: livreOnly }).then(({ data }) => {
+        const list = data.items;
         if (active) setLocksmiths(list.filter(isVisible));
       });
-    const onEvent = (event) => {
-      const profile = event.data;
-      if (!active || !profile?.id) return;
-      setLocksmiths((current) => {
-        const others = current.filter((item) => item.id !== profile.id);
-        if (event.type === "delete" || !isVisible(profile)) return others;
-        const previous = current.find((item) => item.id === profile.id);
-        return [{ ...previous, ...profile }, ...others];
-      });
-    };
+    const onEvent = () => load();
     load().finally(() => active && setLoading(false));
     const unsub = safeUnsubscribe(base44.entities.Locksmith.subscribe(onEvent));
     return () => {
