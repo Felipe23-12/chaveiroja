@@ -8,6 +8,7 @@ const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
+  const [appleReview, setAppleReview] = useState({ enabled: false, role: null });
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isLoadingAuth, setIsLoadingAuth] = useState(true);
   const [isLoadingPublicSettings, setIsLoadingPublicSettings] = useState(true);
@@ -130,6 +131,8 @@ export const AuthProvider = ({ children }) => {
       // Now check if the user is authenticated
       setIsLoadingAuth(true);
       const currentUser = await base44.auth.me();
+      const review = await base44.functions.invoke('serviceTrust', { action: 'review_status' }).catch(() => ({ data: { enabled: false, role: null } }));
+      setAppleReview(review.data);
       setAuthError(null);
       setUser(currentUser);
       setIsAuthenticated(true);
@@ -177,7 +180,8 @@ export const AuthProvider = ({ children }) => {
 
   return (
     <AuthContext.Provider value={{ 
-      user, 
+      user,
+      appleReview,
       isAuthenticated, 
       isLoadingAuth,
       isLoadingPublicSettings,

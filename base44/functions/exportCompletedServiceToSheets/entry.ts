@@ -20,6 +20,7 @@ export default async function(req) {
     }
 
     const sr = await base44.asServiceRole.entities.ServiceRequest.get(serviceRequestId);
+    if (sr?.apple_review === true) return Response.json({ skipped: true, reason: 'Revisão Apple sem registro financeiro real' });
 
     // Dados de contato do cliente
     const userId = sr.created_by_id;

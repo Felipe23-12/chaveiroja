@@ -6,12 +6,12 @@ import LoadingCard from "@/components/ui/LoadingCard";
 import { Button } from "@/components/ui/button";
 
 export default function MercadoPagoOnboardingGuard() {
-  const { user } = useAuth();
+  const { user, appleReview } = useAuth();
   const { pathname } = useLocation();
   const [policy, setPolicy] = useState(null);
   const [error, setError] = useState("");
   const [retry, setRetry] = useState(0);
-  const eligible = user?.account_type === "chaveiro" && user?.role !== "admin" && Date.parse(user.created_date) >= Date.parse("2026-10-05T00:00:00-03:00");
+  const eligible = !appleReview?.enabled && user?.account_type === "chaveiro" && user?.role !== "admin" && Date.parse(user.created_date) >= Date.parse("2026-10-05T00:00:00-03:00");
   const onboardingPage = pathname === "/cadastro/recebimentos";
   useEffect(() => {
     if (!eligible || onboardingPage) return;

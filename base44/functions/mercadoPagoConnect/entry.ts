@@ -2,6 +2,7 @@ import { createClientFromRequest } from "npm:@base44/sdk@0.8.44";
 import { secrets } from "base44:runtime";
 import { createOAuthState, MP_CALLBACK_URL } from "../../shared/mercadoPago.ts";
 import { ensureLocksmithProfile } from "../../shared/locksmithProfile.ts";
+import { appleReviewRole } from '../../shared/appleReviewPolicy.ts';
 
 export default async function(req) {
   try {
@@ -10,6 +11,10 @@ export default async function(req) {
     if (!user) return Response.json({ error: "Unauthorized" }, { status: 401 });
     if (user.account_type !== "chaveiro" && user.role !== "admin") return Response.json({ error: "Acesso exclusivo para chaveiros" }, { status: 403 });
     const body = await req.json();
+    if (appleReviewRole(user)) {
+      if (['get_status', 'onboarding_policy'].includes(body.action)) return Response.json({ connected: false, required: false, completed: true, onboarding_required: false, onboarding_completed: true, apple_review: true });
+      if (body.action === 'connect') return Response.json({ error: 'Conexões financeiras reais estão desativadas no modo de revisão.' }, { status: 403 });
+    }
     if (!['prepare_profile', 'get_status', 'onboarding_policy', 'connect'].includes(body.action)) return Response.json({ error: 'Ação inválida' }, { status: 400 });
     if (body.action === 'prepare_profile') {
       const locksmith = await ensureLocksmithProfile(base44, user, body.profile);

@@ -15,6 +15,7 @@ import ClientLivreAccessGuard from '@/components/ClientLivreAccessGuard';
 import PasswordCreationGuard from '@/components/PasswordCreationGuard';
 import RoleGuard from '@/components/RoleGuard';
 import AccountHome from '@/components/AccountHome';
+import ReviewModeGate from '@/components/review/ReviewModeGate';
 import TermsGate from '@/components/TermsGate';
 import LoadingCard from '@/components/ui/LoadingCard';
 import Layout from '@/components/Layout';
@@ -126,7 +127,7 @@ const AuthenticatedApp = () => {
             <Route element={<RoleGuard allow={["cliente", "chaveiro"]} />}>
               <Route path="/orcamentos" element={<QuoteMode />} />
             </Route>
-            <Route path="/" element={<AccountHome><Home /></AccountHome>} />
+            <Route path="/" element={<AccountHome><ReviewModeGate><Home /></ReviewModeGate></AccountHome>} />
             <Route element={<RoleGuard allow={["cliente"]} />}>
               <Route path="/mapa" element={<Mapa />} />
               <Route path="/historico" element={<History />} />
@@ -143,7 +144,7 @@ const AuthenticatedApp = () => {
             </Route>
             <Route element={<RoleGuard allow={["chaveiro"]} />}>
               <Route path="/cadastro/recebimentos" element={<CadastroRecebimentos />} />
-              <Route path="/painel-chaveiro" element={<PainelChaveiro />} />
+              <Route path="/painel-chaveiro" element={<ReviewModeGate><PainelChaveiro /></ReviewModeGate>} />
               <Route path="/painel-financeiro" element={<PainelFinanceiro />} />
               <Route path="/modo-trabalho" element={<LocksmithProfile />} />
             </Route>

@@ -15,6 +15,8 @@ import { updateLocksmithLocation } from '../../shared/locksmithCoverage.ts';
 import { requireServiceCoverage } from '../../shared/serviceCoverage.ts';
 import { clientRegistrationComplete } from '../../shared/registrationEligibility.ts';
 import { verifiedCpf } from '../../shared/verifiedCpf.ts';
+import { handleAppleReview } from '../../shared/appleReviewOperations.ts';
+import { appleReviewUserIds, isAppleReviewRequest } from '../../shared/appleReviewPolicy.ts';
 
 const waitMinutes = (minutes) => new Date(Date.now() + minutes * 60000).toISOString();
 const SECOND_JOB_MAX_DISTANCE_KM = 20;
@@ -69,6 +71,8 @@ export default async function(req) {
     if (!user) return Response.json({ error: 'Não autenticado' }, { status: 401 });
     const body = await req.json().catch(() => ({}));
     const action = body.action;
+    const reviewResponse = await handleAppleReview(base44, user, body);
+    if (reviewResponse) return reviewResponse;
 
     if (action === 'client_registration_status') return Response.json(await clientRequestAccess(base44, user));
 
@@ -100,6 +104,7 @@ export default async function(req) {
       const requests = await base44.asServiceRole.entities.ServiceRequest.filter({ status: 'ringing' }, '-created_date', 100);
       let added = 0;
       for (const item of requests) {
+        if (isAppleReviewRequest(item)) continue;
         if (!isAreaAvailable(areas, item.customer_lat, item.customer_lng)) continue;
         if ((item.ringing_locksmith_ids || []).includes(locksmith.id) || !item.customer_lat || !item.customer_lng || !canReceiveRequest(locksmith, item)) continue;
         const distance = distanceKm({ lat: locksmith.lat, lng: locksmith.lng }, { lat: item.customer_lat, lng: item.customer_lng });
@@ -354,8 +359,9 @@ export default async function(req) {
       const online = Number.isFinite(customerLat) && Number.isFinite(customerLng)
         ? await base44.asServiceRole.entities.Locksmith.filter({ online: true }, '-updated_date', 500)
         : [];
+      const reviewIds = await appleReviewUserIds(base44);
       const candidates = online
-        .filter((locksmith) => locksmith.created_by_id && isAreaAvailable(areas, locksmith.lat, locksmith.lng) && canReceiveRequest(locksmith, data))
+        .filter((locksmith) => !reviewIds.includes(locksmith.created_by_id) && locksmith.created_by_id && isAreaAvailable(areas, locksmith.lat, locksmith.lng) && canReceiveRequest(locksmith, data))
         .map((locksmith) => ({ locksmith, distance: distanceKm({ lat: Number(locksmith.lat), lng: Number(locksmith.lng) }, { lat: customerLat, lng: customerLng }) }))
         .filter((item) => Number.isFinite(item.distance) && item.distance <= Math.min(Number(item.locksmith.service_radius_km || 15), 100))
         .sort((a, b) => a.distance - b.distance)
@@ -367,7 +373,7 @@ export default async function(req) {
       const detail = location.place_type === 'condominium' ? `Bloco/torre: ${location.building} · Unidade: ${location.unit}` : '';
       if (detail) values.description = [values.description, detail].filter(Boolean).join(' — ');
       if (!access.registration_complete && customerName !== user.full_name) await base44.auth.updateMe({ full_name: customerName });
-      const request = await base44.entities.ServiceRequest.create({ ...values, status: 'ringing', payment_status: 'pending', cash_received: false, client_confirmed: false, locksmith_confirmed: false, cancellation_fee: 0, review_claimed: false });
+      const request = await base44.asServiceRole.entities.ServiceRequest.create({ ...values, created_by_id: user.id, apple_review: false, status: 'ringing', payment_status: 'pending', cash_received: false, client_confirmed: false, locksmith_confirmed: false, cancellation_fee: 0, review_claimed: false });
       await base44.asServiceRole.entities.ServiceRequestContext.create({ ...location, request_id: request.id, client_id: user.id });
 
       // O backend é a autoridade da distribuição. Assim que o chamado é criado,

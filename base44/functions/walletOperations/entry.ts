@@ -2,6 +2,7 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.44';
 import { getOrCreateFinancials } from '../../shared/locksmithFinancials.ts';
 import { clientRegistrationComplete } from '../../shared/registrationEligibility.ts';
 import { verifiedCpf } from '../../shared/verifiedCpf.ts';
+import { appleReviewRole, isAppleReviewRequest } from '../../shared/appleReviewPolicy.ts';
 
 export default async function(req) {
   try {
@@ -11,6 +12,8 @@ export default async function(req) {
 
     const body = await req.json();
     const action = body.action;
+    const reviewRole = appleReviewRole(user);
+    if (reviewRole && action !== 'confirm_cash') return Response.json({ error: 'Operações financeiras reais desativadas no modo de revisão.' }, { status: 403 });
 
     // Confirma pagamento recebido fora do aplicativo e compensa a comissão.
     if (action === "confirm_cash") {
@@ -18,6 +21,12 @@ export default async function(req) {
       const locksmith = await base44.asServiceRole.entities.Locksmith.get(body.locksmith_id).catch(() => null);
       if (!service || !locksmith || service.locksmith_id !== locksmith.id || locksmith.created_by_id !== user.id) {
         return Response.json({ error: "Atendimento não encontrado" }, { status: 404 });
+      }
+      if (reviewRole || isAppleReviewRequest(service)) {
+        if (reviewRole !== 'chaveiro' || !isAppleReviewRequest(service) || service.locksmith_user_id !== user.id) return Response.json({ error: 'Revisão e atendimentos reais não podem ser misturados.' }, { status: 403 });
+        if (!service.client_confirmed || !service.end_photos?.length || service.payment_method !== 'dinheiro' || !['accepted', 'on_the_way'].includes(service.status)) return Response.json({ error: 'Confirme primeiro a conclusão do serviço simulado.' }, { status: 409 });
+        const updated = await base44.asServiceRole.entities.ServiceRequest.update(service.id, { cash_received: true, payment_status: 'paid' });
+        return Response.json({ success: true, simulated: true, request: updated });
       }
       if (service.cash_received === true) {
         return Response.json({ success: true, already_confirmed: true });

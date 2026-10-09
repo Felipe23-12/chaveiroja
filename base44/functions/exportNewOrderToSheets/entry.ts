@@ -20,6 +20,7 @@ export default async function(req) {
 
     // Busca o pedido recém-criado
     const sr = await base44.asServiceRole.entities.ServiceRequest.get(serviceRequestId);
+    if (sr?.apple_review === true) return Response.json({ skipped: true, reason: 'Pedido isolado de revisão Apple' });
 
     // Busca dados de contato do cliente
     let customerName = "";

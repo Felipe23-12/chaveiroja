@@ -35,15 +35,6 @@ export function formatCpf(value) {
     .replace(/^(\d{3})\.(\d{3})\.(\d{3})(\d)/, "$1.$2.$3-$4");
 }
 
-const TEST_ACCOUNT_EMAILS = new Set([
-  "felipemotacs1+cliente@gmail.com",
-  "felipemotacs1+chaveiro@gmail.com",
-]);
-
-export function isTestAccountEmail(email) {
-  return TEST_ACCOUNT_EMAILS.has(String(email || "").trim().toLowerCase());
-}
-
 export function generateValidCpf() {
   let base = "";
   do {

@@ -6,6 +6,7 @@ import { getOrCreateFinancials } from "../../shared/locksmithFinancials.ts";
 import { verifyInternalCall } from "../../shared/internalCall.ts";
 import { reconcilePendingMercadoPago } from "../../shared/reconcilePendingMercadoPago.ts";
 
+import { appleReviewRole, isAppleReviewRequest } from '../../shared/appleReviewPolicy.ts';
 const MP_API = "https://api.mercadopago.com";
 
 export default async function(req) {
@@ -21,6 +22,11 @@ export default async function(req) {
     }
     const user = await base44.auth.me();
     if (!user) return Response.json({ error: "Unauthorized" }, { status: 401 });
+    if (appleReviewRole(user)) return Response.json({ error: 'Use somente o pagamento simulado no modo de revisão.' }, { status: 403 });
+    if (body.service_request_id) {
+      const reviewService = await base44.asServiceRole.entities.ServiceRequest.get(body.service_request_id).catch(() => null);
+      if (isAppleReviewRequest(reviewService)) return Response.json({ error: 'Pedidos de revisão não podem gerar cobranças reais.' }, { status: 403 });
+    }
 
     if (body.action === "get_pending_credits") {
       const page = body.page ?? 0;

@@ -1,10 +1,12 @@
 import React from "react";
 import { Dices } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { generateValidCpf, isTestAccountEmail } from "@/lib/cpf";
+import { generateValidCpf } from "@/lib/cpf";
+import { useAuth } from '@/lib/AuthContext';
 
 export default function TestCpfGeneratorButton({ email, onGenerate }) {
-  if (!isTestAccountEmail(email)) return null;
+  const { appleReview } = useAuth();
+  if (!appleReview?.enabled) return null;
 
   return (
     <Button

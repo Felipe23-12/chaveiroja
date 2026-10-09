@@ -3,6 +3,7 @@
 // que repete o alerta enquanto ninguém aceita.
 
 import { loadServiceAreas, isAreaAvailable } from './serviceAreas.ts';
+import { appleReviewUserIds, isAppleReviewRequest } from './appleReviewPolicy.ts';
 
 const DEFAULT_RADIUS_KM = 15;
 
@@ -23,6 +24,7 @@ export function haversineKm(aLat: number, aLng: number, bLat: number, bLng: numb
  * Garante que o celular apite mesmo quando o chamado ainda não foi direcionado.
  */
 export async function notifyNearbyOnlineLocksmiths(base44: any, sr: any) {
+  if (isAppleReviewRequest(sr)) return { notified: [], reason: 'Pedido isolado de revisão' };
   if (!sr.customer_lat || !sr.customer_lng) return { notified: [] };
 
   const locksmiths = await base44.asServiceRole.entities.Locksmith
@@ -49,6 +51,8 @@ export async function notifyNearbyOnlineLocksmiths(base44: any, sr: any) {
  * repeat = true reenvia o alerta mesmo para quem já recebeu (reforço contínuo).
  */
 export async function notifyRingingLocksmiths(base44: any, sr: any, repeat = false) {
+  if (isAppleReviewRequest(sr)) return { notified: [], reason: 'Pedido isolado de revisão, alertas no painel' };
+  const reviewIds = await appleReviewUserIds(base44);
   const areas = await loadServiceAreas(base44);
   if (!isAreaAvailable(areas, sr.customer_lat, sr.customer_lng)) return { notified: [], reason: 'Endereço fora das áreas liberadas' };
   const locksmithIds = (sr.ringing_locksmith_ids || []).length > 0
@@ -82,7 +86,7 @@ export async function notifyRingingLocksmiths(base44: any, sr: any, repeat = fal
     if (inCooldown.has(locksmithId)) continue;
     const locksmith = await base44.asServiceRole.entities.Locksmith.get(locksmithId).catch(() => null);
     const userId = locksmith?.created_by_id;
-    if (!userId || locksmith.online !== true || !isAreaAvailable(areas, locksmith.lat, locksmith.lng)) continue;
+    if (!userId || reviewIds.includes(userId) || locksmith.online !== true || !isAreaAvailable(areas, locksmith.lat, locksmith.lng)) continue;
 
     // Confere o raio de atendimento do chaveiro antes de notificar
     if (sr.customer_lat && sr.customer_lng && locksmith.lat && locksmith.lng) {
