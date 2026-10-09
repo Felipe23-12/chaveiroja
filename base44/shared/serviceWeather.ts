@@ -46,6 +46,6 @@ async function readPricingWeather(latitude, longitude, key) {
     value = { key: null, label: 'Clima temporariamente indisponível: sem adicional de chuva' };
   }
   if (cache.size >= 200) cache.clear();
-  cache.set(key, { value, until: Date.now() + 300000 });
+  cache.set(key, { value, until: Date.now() + 60000 });
   return value;
 }

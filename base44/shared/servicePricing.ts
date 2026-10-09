@@ -13,6 +13,7 @@ import { matchingMotoRule, motoServiceBaseRange, validateMotoServiceRequest } fr
 import { vehicleFipeRate, matchingVehicleRule, vehicleManualKeyPrice, vehicleKeyUnavailable } from './vehicleFipeRates.ts';
 import { isAreaAvailable } from './serviceAreas.ts';
 import { requireServiceCoverage } from './serviceCoverage.ts';
+import { quoteConditionsFingerprint } from './priceQuoteConditions.ts';
 
 const RULES = {
   'Abertura Residencial': { range: [80, 250], id: 'abertura_residencial' },
@@ -259,6 +260,7 @@ export async function calculateServerServicePrice(base44, userId, data) {
     calculation.lines.push({ label: 'Desconto no primeiro chamado (10%)', value: -actualDiscount });
   }
   return {
+    conditions_fingerprint: await quoteConditionsFingerprint(config, weather, calendar),
     price,
     discount: actualDiscount,
     discount_type: firstCall ? 'first_call' : useDiscount ? 'loyalty' : null,

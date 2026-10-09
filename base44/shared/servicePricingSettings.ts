@@ -60,5 +60,5 @@ export async function loadServicePricing(base44, service, { includeInvalidRates 
   const openingRules = service !== 'Abertura Automotiva' ? [] : includeInvalidRates ? savedOpeningRules : savedOpeningRules.filter(rule => {
     try { validateVehicleOpeningRules([rule]); return true; } catch { return false; }
   });
-  return { neighborhood_assignments: record?.neighborhood_assignments || {}, vehicle_opening_rules: openingRules, values: record ? validatePricing(service, { ...defaults, ...record.values }) : defaults, vehicle_fipe_rates: vehicleRates, moto_rules: motoRules, version: record?.id || null, saved_at: record?.created_date || null };
+  return { neighborhood_assignments: record?.neighborhood_assignments || {}, vehicle_opening_rules: openingRules, values: record ? validatePricing(service, { ...defaults, ...record.values }) : defaults, vehicle_fipe_rates: vehicleRates, moto_rules: motoRules, version: record?.id || null, updated_at: record?.updated_date || null, saved_at: record?.created_date || null };
 }

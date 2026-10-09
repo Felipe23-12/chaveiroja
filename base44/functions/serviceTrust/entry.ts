@@ -3,6 +3,7 @@ import { secrets } from 'base44:runtime';
 import { scoreFor, penalizeLocksmithCancellation, recordClientCancellation, getClientCancelBlock, clientCancellationQuote } from '../../shared/cancellationRules.ts';
 import { validatedLocation } from '../../shared/cancellationSafety.ts';
 import { calculateServerServicePrice } from '../../shared/servicePricing.ts';
+import { currentQuoteConditions } from '../../shared/priceQuoteConditions.ts';
 import { matchingOpeningRule, openingAvailability } from '../../shared/vehicleOpeningRules.ts';
 import { validateOpeningVehicle, isMotoSeatOpening } from '../../shared/automotiveOpening.ts';
 import { loadServicePricing } from '../../shared/servicePricingSettings.ts';
@@ -145,6 +146,10 @@ export default async function(req) {
       const config = await loadServicePricing(base44, 'Abertura Automotiva');
       const rule = matchingOpeningRule(vehicle, config.vehicle_opening_rules);
       return Response.json({ availability: openingAvailability(rule), lishi_percent: rule?.lishi_percent ?? config.values.lishi_percent });
+    }
+
+    if (action === 'price_quote_conditions') {
+      return Response.json({ fingerprint: await currentQuoteConditions(base44, body.data || {}) });
     }
 
     if (action === 'price_quote') {
