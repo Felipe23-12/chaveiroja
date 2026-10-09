@@ -14,6 +14,18 @@ export default async function(req) {
     const text = String(message || '').trim();
     if (!locksmith_id || !text || text.length > 1000) return Response.json({ error: 'Mensagem inválida.' }, { status: 400 });
     if (/https?:\/\/|www\./i.test(text)) return Response.json({ error: 'Links não são permitidos.' }, { status: 400 });
+    if (photo_url !== undefined && photo_url !== null && photo_url !== '') {
+      const appId = secrets.get('BASE44_APP_ID');
+      const prefixes = [
+        `https://base44.app/api/apps/${appId}/files/mp/public/${appId}/`,
+        `https://media.base44.com/images/public/${appId}/`,
+      ];
+      const prefix = typeof photo_url === 'string' && prefixes.find(value => photo_url.startsWith(value));
+      const filename = prefix ? photo_url.slice(prefix.length) : '';
+      if (!appId || !prefix || photo_url.length > 2000 || filename.includes('..') || !/^[a-z0-9_][a-z0-9_. -]*\.(jpe?g|png|webp|gif)$/i.test(filename)) {
+        return Response.json({ error: 'Envie uma imagem válida pelo aplicativo.' }, { status: 400 });
+      }
+    }
     const locksmith = await base44.asServiceRole.entities.Locksmith.get(locksmith_id).catch(() => null);
     if (!locksmith) return Response.json({ error: 'Chaveiro não encontrado.' }, { status: 404 });
     const isLocksmith = locksmith.created_by_id === user.id;
