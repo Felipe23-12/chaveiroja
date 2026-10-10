@@ -17,6 +17,8 @@ import { requiresEmailVerification } from "@/lib/emailRegistration";
 import InlineOtpInput from "@/components/auth/InlineOtpInput";
 import AppleSignInButton from '@/components/auth/AppleSignInButton';
 import { resumeClientOnboarding } from '@/lib/clientOnboarding';
+import { resumeLocksmithOnboarding } from '@/lib/locksmithRegistration';
+import prepareLocksmithProfile from '@/lib/locksmithOnboarding';
 import finishAuthWindow from '@/lib/finishAuthWindow';
 import GoogleAppHandoff from '@/components/auth/GoogleAppHandoff';
 import { needsAppHandoff } from '@/lib/authHandoff';
@@ -45,6 +47,9 @@ export default function Login() {
     if (passwordAuthenticated && me.password_created !== true) {
       me = await base44.auth.updateMe({ password_created: true });
     }
+    const beforeResume = me;
+    me = await resumeLocksmithOnboarding(me);
+    if (me !== beforeResume) await prepareLocksmithProfile();
     me = await resumeClientOnboarding(me);
     const dest = returnTo !== "/" ? returnTo : me.role === "admin" ? "/painel-admin" : me.account_type === "chaveiro" ? "/painel-chaveiro" : "/";
     localStorage.setItem("remember_login", String(rememberMe));
@@ -61,12 +66,15 @@ export default function Login() {
     setError("");
     setLoading(true);
     const normalizedEmail = email.trim().toLowerCase();
+    let authenticated = false;
     try {
       await base44.auth.loginViaEmailPassword(normalizedEmail, password);
+      authenticated = true;
       markAuthProvider("password");
       await completeLogin(true);
     } catch (err) {
-      if (requiresEmailVerification(err)) setVerificationEmail(normalizedEmail);
+      // Errors while completing the profile are not failed email verification.
+      if (!authenticated && requiresEmailVerification(err)) setVerificationEmail(normalizedEmail);
       else setError(err.message || "Email ou senha inválidos. Use Esqueceu a senha? para recuperar o acesso.");
     } finally {
       setLoading(false);

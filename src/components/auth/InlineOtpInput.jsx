@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { Button } from "@/components/ui/button";
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
@@ -12,6 +12,28 @@ export default function InlineOtpInput({ email, onSuccess }) {
   const [resending, setResending] = useState(false);
   const [verified, setVerified] = useState(false);
   const [resendCooldown, setResendCooldown] = useState(0);
+  const [checking, setChecking] = useState(true);
+  const complete = useRef(onSuccess);
+  complete.current = onSuccess;
+
+  useEffect(() => {
+    let active = true;
+    const check = async () => {
+      // Only the authenticated owner of this email may skip an already
+      // completed verification. Never infer confirmation from admin approval.
+      const user = await base44.auth.me().catch(() => null);
+      if (!active) return;
+      if (user?.is_verified === true && user.email?.trim().toLowerCase() === email.trim().toLowerCase()) {
+        setVerified(true); setLoading(true);
+        try { await complete.current(); }
+        catch (err) { if (active) setError(err.message || 'Email confirmado. Não foi possível concluir o cadastro.'); }
+        finally { if (active) setLoading(false); }
+      }
+      if (active) setChecking(false);
+    };
+    check();
+    return () => { active = false; };
+  }, [email]);
 
   useEffect(() => {
     if (resendCooldown <= 0) return;
@@ -22,7 +44,7 @@ export default function InlineOtpInput({ email, onSuccess }) {
   }, [resendCooldown]);
 
   const handleVerify = async () => {
-    if (loading || resending) return;
+    if (checking || loading || resending) return;
     if (!verified && otpCode.length < 6) {
       setError("Digite o código completo de 6 dígitos.");
       return;
@@ -45,7 +67,7 @@ export default function InlineOtpInput({ email, onSuccess }) {
   };
 
   const handleResend = async () => {
-    if (resendCooldown > 0 || resending || loading || verified) return;
+    if (checking || resendCooldown > 0 || resending || loading || verified) return;
     setError("");
     setResending(true);
     try {
@@ -67,8 +89,8 @@ export default function InlineOtpInput({ email, onSuccess }) {
           <Mail className="w-4 h-4 text-primary" />
         </div>
         <div>
-          <p className="text-sm font-semibold text-foreground">Confirme seu email</p>
-          <p className="text-xs text-muted-foreground">Digite o código de 6 dígitos para {email}</p>
+          <p className="text-sm font-semibold text-foreground">{checking ? 'Verificando confirmação...' : verified ? 'Email já confirmado' : 'Confirme seu email'}</p>
+          <p className="text-xs text-muted-foreground">{verified ? 'Não é necessário confirmar novamente.' : `Digite o código de 6 dígitos para ${email}`}</p>
         </div>
       </div>
 
@@ -78,7 +100,7 @@ export default function InlineOtpInput({ email, onSuccess }) {
         </div>
       )}
 
-      <div className="flex justify-center">
+      {!verified && !checking && <div className="flex justify-center">
         <InputOTP
           maxLength={6}
           value={otpCode}
@@ -95,13 +117,13 @@ export default function InlineOtpInput({ email, onSuccess }) {
             <InputOTPSlot index={5} className="w-10 h-11 text-base rounded-md" />
           </InputOTPGroup>
         </InputOTP>
-      </div>
+      </div>}
 
       <Button
         type="button"
         className="w-full h-11 font-medium"
         onClick={handleVerify}
-        disabled={loading || resending || (!verified && otpCode.length < 6)}
+        disabled={checking || loading || resending || (!verified && otpCode.length < 6)}
       >
         {loading ? (
           <>
@@ -112,8 +134,8 @@ export default function InlineOtpInput({ email, onSuccess }) {
         )}
       </Button>
 
-      <p className="text-xs text-muted-foreground">Não recebeu? Confira o endereço, aguarde alguns minutos e verifique o spam. Se o reenvio também não chegar, contate o suporte da Base44.</p>
-      <div className="text-center">
+      {!verified && !checking && <p className="text-xs text-muted-foreground">Não recebeu? Confira o endereço, aguarde alguns minutos e verifique o spam. Se o reenvio também não chegar, contate o suporte da Base44.</p>}
+      {!verified && !checking && <div className="text-center">
         <button
           type="button"
           onClick={handleResend}
@@ -122,7 +144,7 @@ export default function InlineOtpInput({ email, onSuccess }) {
         >
           {resending ? "Enviando..." : resendCooldown > 0 ? `Reenviar em ${resendCooldown}s` : "Reenviar código"}
         </button>
-      </div>
+      </div>}
     </div>
   );
 }

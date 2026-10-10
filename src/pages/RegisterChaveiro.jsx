@@ -24,6 +24,7 @@ import ExistingAccountNotice from "@/components/auth/ExistingAccountNotice";
 import { isFullName } from "@/lib/fullName";
 import { markAuthProvider } from '@/lib/authProvider';
 import prepareLocksmithProfile from '@/lib/locksmithOnboarding';
+import { saveLocksmithOnboarding, readLocksmithOnboarding } from '@/lib/locksmithRegistration';
 
 // Campos que recebem foco além do scroll.
 const FOCUS_FIELDS = new Set(["fullName", "phone", "password", "confirmPassword", "vehicle"]);
@@ -127,9 +128,9 @@ export default function RegisterChaveiro() {
       const normalizedEmail = email.trim().toLowerCase();
       await registerEmailAccount(normalizedEmail, password);
       setEmail(normalizedEmail);
-      sessionStorage.setItem("chaveiro_onboarding", JSON.stringify({
+      saveLocksmithOnboarding({
         email: normalizedEmail, fullName, phone, cpf, specialty: specialties[0] || "Residencial", specialties, vehicle, bio,
-      }));
+      });
       setShowOtp(true);
     } catch (err) {
       setError(registrationErrorMessage(err));
@@ -142,8 +143,7 @@ export default function RegisterChaveiro() {
 
   const finishLocksmithRegistration = async () => {
     markAuthProvider('password');
-    const raw = sessionStorage.getItem("chaveiro_onboarding");
-    const data = raw ? JSON.parse(raw) : null;
+    const data = readLocksmithOnboarding(await base44.auth.me());
     let cpfLinked = false;
     if (data) {
       await base44.auth.updateMe({
