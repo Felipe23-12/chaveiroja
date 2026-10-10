@@ -10,7 +10,8 @@ export default async function(req: Request): Promise<Response> {
 
     // O vínculo só é liberado após a exclusão da conta ter sido confirmada pelo banco.
     await base44.asServiceRole.entities.User.delete(user.id);
-    await base44.asServiceRole.entities.VerifiedCpf.deleteMany({ user_id: user.id });
+    // Preserve only active rejection holds: deleting an account must not bypass the 15-day CPF restriction.
+    await base44.asServiceRole.entities.VerifiedCpf.deleteMany({ user_id: user.id, $or: [{ review_status: { $ne: 'rejected' } }, { retry_after: { $lte: new Date().toISOString() } }, { retry_after: { $exists: false } }] });
     return Response.json({ deleted: true });
   } catch (error) {
     const status = (error as any)?.status ?? (error as any)?.response?.status;

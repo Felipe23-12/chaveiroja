@@ -3,7 +3,7 @@ export async function locksmithApprovalQueue(base44, cursor) {
   // User has no cursor/count API; filter by account type on the server.
   const users = await base44.entities.User.filter({ account_type: 'chaveiro' });
   const byId = new Map(users.map(user => [user.id, user]));
-  const query = { user_id: { $in: [...byId.keys()] }, ownership_verified: { $ne: true } };
+  const query = { user_id: { $in: [...byId.keys()] }, ownership_verified: { $ne: true }, review_status: { $ne: 'rejected' } };
   const [page, total] = await Promise.all([
     base44.entities.VerifiedCpf.filter(query, { sort: 'created_date', limit: 25, ...(cursor ? { cursor } : {}) }),
     base44.entities.VerifiedCpf.count(query),

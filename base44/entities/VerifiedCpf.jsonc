@@ -13,9 +13,23 @@
       "default": false,
       "description": "Aprova\u00e7\u00e3o manual por administrador ap\u00f3s conferir prova de titularidade. CPF apenas informado ou registros antigos sem aprova\u00e7\u00e3o n\u00e3o liberam privil\u00e9gios."
     },
+    "review_status": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "approved",
+        "rejected"
+      ],
+      "default": "pending"
+    },
+    "retry_after": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Nova solicita\u00e7\u00e3o permitida somente ap\u00f3s 15 dias da reprova\u00e7\u00e3o; definido pelo servidor."
+    },
     "reviewed_by": {
       "type": "string",
-      "description": "Administrador que conferiu e aprovou a titularidade."
+      "description": "Administrador que conferiu a solicita\u00e7\u00e3o."
     },
     "reviewed_at": {
       "type": "string",
@@ -24,7 +38,7 @@
     "review_note": {
       "type": "string",
       "maxLength": 1000,
-      "description": "Registro da confer\u00eancia manual realizada pelo administrador."
+      "description": "Registro da confer\u00eancia ou motivo da reprova\u00e7\u00e3o."
     }
   },
   "required": [

@@ -3,8 +3,9 @@ import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Textarea } from '@/components/ui/textarea';
 import { formatCpf } from '@/lib/cpf';
+import RejectRegistrationDialog from '@/components/admin/RejectRegistrationDialog';
 
-export default function LocksmithApprovalCard({ item, busy, onApprove }) {
+export default function LocksmithApprovalCard({ item, busy, onApprove, onReject }) {
   const [confirmed, setConfirmed] = useState(false);
   const [note, setNote] = useState('');
   const profile = item.profile;
@@ -22,6 +23,6 @@ export default function LocksmithApprovalCard({ item, busy, onApprove }) {
     <p className="text-xs text-muted-foreground">Aprovar confirma a titularidade do CPF e libera essa pendência cadastral. As exigências de recebimentos, cobertura e eventuais bloqueios continuam válidas.</p>
     <label className="flex items-start gap-3 text-sm"><Checkbox checked={confirmed} onCheckedChange={value => setConfirmed(value === true)} disabled={busy} /><span>Conferi os dados e a comprovação de titularidade do CPF deste chaveiro.</span></label>
     <Textarea aria-label="Registro da conferência" placeholder="Registre como a titularidade foi conferida (obrigatório)." maxLength={1000} value={note} onChange={event => setNote(event.target.value)} disabled={busy} />
-    <Button disabled={busy || !confirmed || note.trim().length < 10} onClick={() => onApprove(item.id, note.trim())}>{busy ? 'Aprovando...' : 'Aprovar cadastro'}</Button>
+    <div className="flex flex-wrap gap-2"><Button disabled={busy || !confirmed || note.trim().length < 10} onClick={() => onApprove(item.id, note.trim())}>{busy ? 'Processando...' : 'Aprovar cadastro'}</Button><RejectRegistrationDialog item={item} busy={busy} onReject={onReject} /></div>
   </article>;
 }

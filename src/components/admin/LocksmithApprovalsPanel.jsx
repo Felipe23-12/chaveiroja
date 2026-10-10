@@ -19,13 +19,14 @@ export default function LocksmithApprovalsPanel() {
     finally { setLoading(false); }
   }, []);
   useEffect(() => { load(); }, [load]);
-  const approve = async (id, note) => {
+  const decide = async (action, id, note) => {
     setBusy(id); setError(''); setSuccess('');
     try {
-      await base44.functions.invoke('locksmithRegistrationApproval', { action: 'approve', id, note, ownership_confirmed: true });
-      setSuccess('Cadastro aprovado. A pendência de titularidade do CPF foi liberada.');
+      await base44.functions.invoke('locksmithRegistrationApproval', { action, id, note, ownership_confirmed: action === 'approve' });
+      setSuccess(action === 'approve' ? 'Cadastro aprovado. A pendência de titularidade do CPF foi liberada.' : 'Cadastro reprovado. Uma nova tentativa está bloqueada por 15 dias.');
       await load();
-    } catch (error) { setError(error?.response?.data?.error || error.message); }
+      return true;
+    } catch (error) { setError(error?.response?.data?.error || error.message); return false; }
     finally { setBusy(null); }
   };
   return <section className="space-y-4">
@@ -35,7 +36,7 @@ export default function LocksmithApprovalsPanel() {
     {success && <p role="status" className="text-sm text-success">{success}</p>}
     {loading && <p role="status" className="text-sm text-muted-foreground">Carregando cadastros...</p>}
     {!loading && !error && !page.items.length && <p className="rounded-xl border border-border p-6 text-center text-muted-foreground">Nenhum cadastro de chaveiro aguardando aprovação.</p>}
-    {page.items.map(item => <LocksmithApprovalCard key={item.id} item={item} busy={Boolean(busy) || loading} onApprove={approve} />)}
+    {page.items.map(item => <LocksmithApprovalCard key={item.id} item={item} busy={Boolean(busy) || loading} onApprove={(id, note) => decide('approve', id, note)} onReject={(id, note) => decide('reject', id, note)} />)}
     {page.has_more && <Button variant="outline" disabled={loading || Boolean(busy)} onClick={() => load(page.next_cursor)}>Carregar mais</Button>}
   </section>;
 }
