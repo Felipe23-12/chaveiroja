@@ -19,6 +19,9 @@ import AppleSignInButton from '@/components/auth/AppleSignInButton';
 import { resumeClientOnboarding } from '@/lib/clientOnboarding';
 import { resumeLocksmithOnboarding } from '@/lib/locksmithRegistration';
 import prepareLocksmithProfile from '@/lib/locksmithOnboarding';
+import locksmithEntryPath from '@/lib/locksmithEntryPath';
+import useExistingLocksmithSession from '@/hooks/useExistingLocksmithSession';
+import LoadingCard from '@/components/ui/LoadingCard';
 import finishAuthWindow from '@/lib/finishAuthWindow';
 import GoogleAppHandoff from '@/components/auth/GoogleAppHandoff';
 import { needsAppHandoff } from '@/lib/authHandoff';
@@ -39,6 +42,7 @@ export default function Login() {
   const nativeIOS = isNativeIOS();
   const selectedType = location.pathname === '/login/cliente' ? 'cliente' : location.pathname === '/login/chaveiro' ? 'chaveiro' : new URLSearchParams(location.search).get('tipo');
   const professional = selectedType === 'chaveiro' || (!selectedType && ['/painel-chaveiro', '/cadastro/recebimentos', '/modo-trabalho', '/painel-financeiro'].includes(returnTo.split('?')[0]));
+  const checkingSession = useExistingLocksmithSession(professional && !loading && !verificationEmail && !handoff, returnTo);
 
   const completeLogin = async (passwordAuthenticated = false) => {
     let me = await base44.auth.me();
@@ -51,7 +55,7 @@ export default function Login() {
     me = await resumeLocksmithOnboarding(me);
     if (me !== beforeResume) await prepareLocksmithProfile();
     me = await resumeClientOnboarding(me);
-    const dest = returnTo !== "/" ? returnTo : me.role === "admin" ? "/painel-admin" : me.account_type === "chaveiro" ? "/painel-chaveiro" : "/";
+    const dest = locksmithEntryPath(me, returnTo);
     localStorage.setItem("remember_login", String(rememberMe));
     sessionStorage.setItem("active_login_session", "true");
     const token = localStorage.getItem('base44_access_token');
@@ -128,6 +132,7 @@ export default function Login() {
   }, []);
 
   if (handoff) return <GoogleAppHandoff {...handoff} />;
+  if (checkingSession) return <AuthLayout title="Acessando sua conta"><LoadingCard label="Verificando seu cadastro..." /></AuthLayout>;
 
   if (!selectedType && !professional) return <AccountChoice returnTo={returnTo} />;
 

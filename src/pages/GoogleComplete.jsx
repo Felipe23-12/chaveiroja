@@ -15,11 +15,13 @@ import { termsPayload } from "@/lib/termsVersion";
 import { isFullName } from "@/lib/fullName";
 import { safeReturnTo } from '@/lib/authReturnTo';
 import CompletionSecurity from '@/components/auth/CompletionSecurity';
+import useExistingLocksmithSession from '@/hooks/useExistingLocksmithSession';
 
 export default function GoogleComplete() {
   const [searchParams] = useSearchParams();
   const [tipo, setTipo] = useState(searchParams.get("tipo") === "chaveiro" ? "chaveiro" : "cliente");
   const returnTo = safeReturnTo();
+  const checkingSession = useExistingLocksmithSession(true, returnTo);
   const dest = tipo === 'chaveiro' ? '/painel-chaveiro' : returnTo;
   const [account, setAccount] = useState(null);
   const [securityStep, setSecurityStep] = useState(false);
@@ -123,7 +125,7 @@ export default function GoogleComplete() {
     }
   };
 
-  if (loading) {
+  if (loading || checkingSession) {
     return (
       <div className="fixed inset-0 flex flex-col items-center justify-center gap-3">
         <Loader2 className="w-8 h-8 animate-spin text-primary" />

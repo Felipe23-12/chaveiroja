@@ -3,10 +3,14 @@ import { Link } from "react-router-dom";
 import { UserPlus, User, Wrench, ArrowRight } from "lucide-react";
 import AuthLayout from "@/components/AuthLayout";
 import { safeReturnTo } from "@/lib/authReturnTo";
+import useExistingLocksmithSession from '@/hooks/useExistingLocksmithSession';
+import LoadingCard from '@/components/ui/LoadingCard';
 
 export default function Register() {
   const returnTo = safeReturnTo();
   const qs = returnTo !== "/" ? "?returnTo=" + encodeURIComponent(returnTo) : "";
+  const checkingSession = useExistingLocksmithSession(true, returnTo);
+  if (checkingSession) return <AuthLayout title="Acessando sua conta"><LoadingCard label="Verificando seu cadastro..." /></AuthLayout>;
 
   return (
     <AuthLayout

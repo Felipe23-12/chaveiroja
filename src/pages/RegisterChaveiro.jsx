@@ -25,6 +25,8 @@ import { isFullName } from "@/lib/fullName";
 import { markAuthProvider } from '@/lib/authProvider';
 import prepareLocksmithProfile from '@/lib/locksmithOnboarding';
 import { saveLocksmithOnboarding, readLocksmithOnboarding } from '@/lib/locksmithRegistration';
+import useExistingLocksmithSession from '@/hooks/useExistingLocksmithSession';
+import LoadingCard from '@/components/ui/LoadingCard';
 
 // Campos que recebem foco além do scroll.
 const FOCUS_FIELDS = new Set(["fullName", "phone", "password", "confirmPassword", "vehicle"]);
@@ -75,6 +77,7 @@ export default function RegisterChaveiro() {
   }, [fieldError]);
 
   const returnTo = safeReturnTo();
+  const checkingSession = useExistingLocksmithSession(!showOtp, returnTo);
   const qs = returnTo !== "/" ? "?returnTo=" + encodeURIComponent(returnTo) : "";
 
   const handleSubmit = async (e) => {
@@ -164,11 +167,16 @@ export default function RegisterChaveiro() {
         ...termsPayload(),
       });
     }
-    await prepareLocksmithProfile();
+    const fresh = await base44.auth.me();
+    if (isFullName(fresh.legal_name || fresh.full_name) && /^\d{10,11}$/.test(String(fresh.phone || '').replace(/\D/g, ''))) {
+      await prepareLocksmithProfile();
+    }
     localStorage.setItem("remember_login", "true");
     sessionStorage.setItem("active_login_session", "true");
     window.location.assign(cpfLinked ? '/cadastro/recebimentos' : '/meus-dados#cpf');
   };
+
+  if (checkingSession) return <AuthLayout title="Acessando sua conta"><LoadingCard label="Verificando seu cadastro..." /></AuthLayout>;
 
   if (showOtp) return (
     <AuthLayout icon={Wrench} title="Confirme seu email" subtitle="Conclua a verificação para ativar seu cadastro">

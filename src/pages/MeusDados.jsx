@@ -5,6 +5,7 @@ import { useAuth } from '@/lib/AuthContext';
 import AccountBasicsForm from '@/components/profile/AccountBasicsForm';
 import AccountCpfForm from '@/components/profile/AccountCpfForm';
 import AccountPasswordForm from '@/components/profile/AccountPasswordForm';
+import { isFullName } from '@/lib/fullName';
 
 export default function MeusDados() {
   const { user: current, checkUserAuth } = useAuth();
@@ -18,8 +19,9 @@ export default function MeusDados() {
       <h1 className="font-heading text-2xl font-bold">Meus dados</h1>
       {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
       {!user ? <p>Carregando dados...</p> : <>
-        <AccountCpfForm user={user} onSaved={saved} />
+        {user.account_type === 'chaveiro' && (!isFullName(user.legal_name || user.full_name) || !/^\d{10,11}$/.test(String(user.phone || '').replace(/\D/g, ''))) && <p role="status" className="rounded-lg bg-primary/10 p-3 text-sm">Você já está dentro da sua conta. Preencha e salve nome completo e telefone abaixo para que a administração possa concluir a aprovação; não é necessário criar outro cadastro.</p>}
         <AccountBasicsForm user={user} onSaved={saved} />
+        <AccountCpfForm user={user} onSaved={saved} />
         <section className="rounded-xl border border-border bg-card p-4 space-y-2">
           <h2 className="font-heading font-semibold">Email da conta</h2>
           <p className="text-sm break-all">{user.email}</p>
