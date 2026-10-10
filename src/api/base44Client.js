@@ -14,4 +14,4 @@ export const base44 = createClient({
   appBaseUrl
 });
 
-preserveAccountProfile(base44.auth);
+preserveAccountProfile(base44.auth, base44.functions);

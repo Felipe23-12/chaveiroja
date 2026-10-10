@@ -6,7 +6,16 @@ const PROFILE_FIELDS = [
 
 // Partial profile saves must retain the account type and other existing profile
 // fields. Never copy authentication credentials or read-only User attributes.
-export default function preserveAccountProfile(auth) {
+export default function preserveAccountProfile(auth, functions) {
+  const readMe = auth.me.bind(auth);
+  auth.me = async () => {
+    const user = await readMe();
+    if (user.role !== 'admin' && user.is_verified === true && user.account_type !== 'chaveiro') {
+      const { data } = await functions.invoke('restoreApprovedLocksmithAccount', {});
+      if (data.restored) return { ...user, ...data.profile };
+    }
+    return user;
+  };
   const updateMe = auth.updateMe.bind(auth);
   let pending = Promise.resolve();
   auth.updateMe = (changes) => {
@@ -15,7 +24,10 @@ export default function preserveAccountProfile(auth) {
       const profile = Object.fromEntries(PROFILE_FIELDS
         .filter(field => current[field] !== undefined)
         .map(field => [field, current[field]]));
-      return updateMe({ ...profile, ...changes });
+      return updateMe({ ...profile, ...changes,
+        // Switching to client requires deleting the existing locksmith account.
+        ...(current.account_type === 'chaveiro' ? { account_type: 'chaveiro' } : {}),
+      });
     });
     // Serialize writes so simultaneous changes do not restore an older profile.
     // The caller still receives the original rejection and displays its error.
