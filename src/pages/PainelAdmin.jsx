@@ -26,6 +26,7 @@ const ServiceAreasPanel = lazy(() => import("@/components/admin/ServiceAreasPane
 const FeedbackPanel = lazy(() => import("@/components/admin/FeedbackPanel"));
 const FailedServiceReports = lazy(() => import("@/components/admin/FailedServiceReports"));
 const LocksmithQualityTable = lazy(() => import("@/components/admin/LocksmithQualityTable"));
+const LocksmithApprovalsPanel = lazy(() => import("@/components/admin/LocksmithApprovalsPanel"));
 
 const LazySection = ({ children }) => (
   <Suspense fallback={<div className="py-8 text-center text-sm text-muted-foreground">Carregando seção...</div>}>
@@ -165,6 +166,8 @@ export default function PainelAdmin() {
       </div>
 
       <AdminPanelTabs value={activeTab} onChange={setActiveTab} />
+
+      {activeTab === "approvals" && <LazySection><LocksmithApprovalsPanel /></LazySection>}
 
       {activeTab === "finance" && pendingWithdrawals.length > 0 && (
         <div className="flex items-center gap-3 p-4 rounded-xl bg-warning/10 border border-warning/30 animate-alert-slide">

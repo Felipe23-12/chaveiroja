@@ -102,7 +102,7 @@ export default function GoogleComplete() {
     }
     setSaving(true);
     try {
-      await claimCpf(cpfDigits);
+      if (tipo !== 'chaveiro') await claimCpf(cpfDigits);
       await base44.auth.updateMe({
         legal_name: fullName.trim(),
         username: username.trim(),
@@ -110,6 +110,7 @@ export default function GoogleComplete() {
         account_type: tipo,
         ...termsPayload(),
       });
+      if (tipo === 'chaveiro') await claimCpf(cpfDigits);
       const fresh = await base44.auth.me();
       setAccount(fresh);
       if (fresh.password_created !== true || fresh.is_verified !== true) {

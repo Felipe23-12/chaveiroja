@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import CpfInput from '@/components/auth/CpfInput';
 import { cpfError, isValidCpf, formatCpf } from '@/lib/cpf';
 import { claimCpf } from '@/lib/cpfRegistration';
+import RegistrationApprovalStatus from '@/components/profile/RegistrationApprovalStatus';
 
 export default function AccountCpfForm({ user, onSaved }) {
   const [cpf, setCpf] = useState(formatCpf(user.cpf));
@@ -15,7 +16,7 @@ export default function AccountCpfForm({ user, onSaved }) {
     let active = true;
     setLinked(null);
     base44.functions.invoke('claimCpf', { action: 'status' })
-      .then(({ data }) => { if (active) setLinked(data?.linked === true); })
+      .then(({ data }) => { if (active) { setLinked(data?.linked === true); if (!user.cpf && data.requested_cpf) setCpf(formatCpf(data.requested_cpf)); } })
       .catch(() => { if (active) setLinked(false); });
     return () => { active = false; };
   }, [user.id, user.cpf]);
@@ -37,6 +38,7 @@ export default function AccountCpfForm({ user, onSaved }) {
   return <section id="cpf" className="rounded-xl border border-border bg-card p-4 space-y-3 scroll-mt-20">
     <h2 className="font-heading font-semibold">Conclusão de cadastro · CPF</h2>
     {saved && <p className={`text-sm ${linked ? 'text-success' : 'text-muted-foreground'}`}>CPF cadastrado: {formatCpf(user.cpf)}. {linked === null ? 'Verificando confirmação...' : linked ? 'CPF confirmado.' : 'Aprovação administrativa pendente, com comprovação de titularidade.'} Por segurança, não é possível substituí-lo por outro CPF neste formulário.</p>}
+    {!linked && <RegistrationApprovalStatus onApproved={fresh => { setLinked(true); onSaved(fresh); }} />}
     {!linked && <form onSubmit={save} className="space-y-3">
       <p className="text-sm text-muted-foreground">{saved ? 'Envie o CPF já cadastrado para análise administrativa de titularidade.' : 'Informe seu CPF para análise administrativa de titularidade.'}</p>
       <CpfInput value={cpf} onChange={setCpf} email={user.email} />

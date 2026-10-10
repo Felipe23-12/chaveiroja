@@ -3,6 +3,7 @@ import { LayoutDashboard, Flag, KeyRound, Users, Wallet, ClipboardList, MessageS
 
 const tabs = [
   ["overview", "Visão geral", LayoutDashboard],
+  ["approvals", "Cadastros pendentes", Users],
   ["reports", "Denúncias", Flag],
   ["catalog", "Catálogo de chaves", KeyRound],
   ["pricing", "Preços e percentuais", Wallet],

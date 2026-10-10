@@ -15,7 +15,7 @@ import { safeReturnTo } from "@/lib/authReturnTo";
 
 import InlineOtpInput from "@/components/auth/InlineOtpInput";
 import { cpfError } from "@/lib/cpf";
-import { claimCpf } from "@/lib/cpfRegistration";
+
 import CpfInput from "@/components/auth/CpfInput";
 import TermsAcceptance from "@/components/auth/TermsAcceptance";
 import { termsPayload } from "@/lib/termsVersion";
@@ -144,8 +144,8 @@ export default function RegisterChaveiro() {
     markAuthProvider('password');
     const raw = sessionStorage.getItem("chaveiro_onboarding");
     const data = raw ? JSON.parse(raw) : null;
+    let cpfLinked = false;
     if (data) {
-      await claimCpf(data.cpf);
       await base44.auth.updateMe({
         legal_name: data.fullName.trim(),
         phone: data.phone,
@@ -153,6 +153,10 @@ export default function RegisterChaveiro() {
         password_created: true,
         ...termsPayload(),
       });
+      const response = await base44.functions.invoke('claimCpf', { cpf: data.cpf });
+      if (!response.data?.received) throw new Error('Não foi possível enviar o cadastro para análise. Tente novamente.');
+      const { data: status } = await base44.functions.invoke('claimCpf', { action: 'status' });
+      cpfLinked = status.linked === true;
     } else {
       await base44.auth.updateMe({
         account_type: "chaveiro",
@@ -163,7 +167,7 @@ export default function RegisterChaveiro() {
     await prepareLocksmithProfile();
     localStorage.setItem("remember_login", "true");
     sessionStorage.setItem("active_login_session", "true");
-    window.location.assign("/cadastro/recebimentos");
+    window.location.assign(cpfLinked ? '/cadastro/recebimentos' : '/meus-dados#cpf');
   };
 
   if (showOtp) return (
@@ -190,7 +194,7 @@ export default function RegisterChaveiro() {
       }
     >
       <StepProgress step={1} total={3} labels={{ 1: "Dados", 2: "Verificação", 3: "Recebimentos" }} />
-      <p className="mb-4 text-sm text-muted-foreground">Você pode se cadastrar mesmo que sua região ainda não esteja liberada. Sua conta ficará ativa; para receber chamados, será necessário estar em uma área de atendimento liberada.</p>
+      <p className="mb-4 text-sm text-muted-foreground">Você pode se cadastrar mesmo que sua região ainda não esteja liberada. Seu cadastro será enviado para análise administrativa; para atender, também será necessário concluir os recebimentos e estar em uma área de atendimento liberada.</p>
       <ExistingAccountNotice query={'?tipo=chaveiro&returnTo=' + encodeURIComponent(returnTo)} />
       {error && (
         <div className="mb-4 p-3 rounded-lg bg-destructive/10 text-destructive text-sm">{error}</div>
