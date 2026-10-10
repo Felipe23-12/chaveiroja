@@ -3,6 +3,7 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.53';
 import { onlyDigits, isValidCpf } from '../../shared/registrationEligibility.ts';
 import { verifiedCpf } from '../../shared/verifiedCpf.ts';
 import { registrationCooldown } from '../../shared/registrationCooldown.ts';
+import { userProfileFields } from '../../shared/userProfileFields.ts';
 
 import { cpfCanBeAssigned, SHARED_OWNER_EXCEPTION } from '../../shared/cpfOwnershipPolicy.ts';
 
@@ -31,7 +32,7 @@ export default async function(req) {
     const received = () => Response.json({ received: true, linked: false, message: 'Solicitação de vínculo recebida para análise administrativa.' });
     const linkedCpf = await verifiedCpf(base44, user.id);
     if (linkedCpf) {
-      if (linkedCpf === cpf && onlyDigits(user.cpf) !== cpf) await base44.auth.updateMe({ cpf });
+      if (linkedCpf === cpf && onlyDigits(user.cpf) !== cpf) await base44.auth.updateMe({ ...userProfileFields(user), cpf });
       return received();
     }
     // Um CPF legado só pode ser confirmado para o mesmo titular, nunca trocado.

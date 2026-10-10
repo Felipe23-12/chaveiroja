@@ -1,5 +1,6 @@
 import { createClient } from '@base44/sdk';
 import { appParams } from '@/lib/app-params';
+import preserveAccountProfile from '@/lib/preserveAccountProfile';
 
 const { appId, token, functionsVersion, appBaseUrl } = appParams;
 
@@ -12,3 +13,5 @@ export const base44 = createClient({
   requiresAuth: false,
   appBaseUrl
 });
+
+preserveAccountProfile(base44.auth);

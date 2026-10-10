@@ -3,6 +3,7 @@ import { locksmithApprovalQueue } from '../../shared/locksmithApprovalQueue.ts';
 import { cpfCanBeAssigned, SHARED_OWNER_EXCEPTION } from '../../shared/cpfOwnershipPolicy.ts';
 import { isValidCpf, onlyDigits } from '../../shared/registrationEligibility.ts';
 import { registrationCooldown, rejectLocksmithRegistration } from '../../shared/registrationCooldown.ts';
+import { userProfileFields } from '../../shared/userProfileFields.ts';
 
 export default async function(req) {
   try {
@@ -33,7 +34,7 @@ export default async function(req) {
     if (onlyDigits(target.cpf) && onlyDigits(target.cpf) !== cpf && !exception) return Response.json({ error: 'O CPF solicitado difere do CPF atual do cadastro. Confira a titularidade antes de prosseguir.' }, { status: 409 });
     if (!(await cpfCanBeAssigned(base44, target, cpf))) return Response.json({ error: 'CPF bloqueado ou vinculado a outra conta. A aprovação não foi realizada.' }, { status: 409 });
     // Setting the profile CPF alone never approves it: the trusted record is written last.
-    await base44.entities.User.update(target.id, { cpf });
+    await base44.entities.User.update(target.id, { ...userProfileFields(target), account_type: 'chaveiro', cpf });
     await base44.entities.VerifiedCpf.update(row.id, { ownership_verified: true, review_status: 'approved', reviewed_by: admin.id, reviewed_at: new Date().toISOString(), review_note: note });
     return Response.json({ approved: true });
   } catch (error) {
