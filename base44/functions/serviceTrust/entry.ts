@@ -1,5 +1,8 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.46';
 import { secrets } from 'base44:runtime';
+import { canReceiveRequest, distanceKm, loadDispatchCandidates, refreshRequestDispatch } from '../../shared/requestDispatch.ts';
+import { initialScoreCandidates, SCORE_PRIORITY_MS, dispatchScore, scoreCanReceive } from '../../shared/scoreDispatchPolicy.ts';
+import { notifyRingingLocksmiths } from '../../shared/locksmithRingPush.ts';
 import { scoreFor, penalizeLocksmithCancellation, recordClientCancellation, getClientCancelBlock, clientCancellationQuote } from '../../shared/cancellationRules.ts';
 import { validatedLocation } from '../../shared/cancellationSafety.ts';
 import { calculateServerServicePrice } from '../../shared/servicePricing.ts';
@@ -21,38 +24,6 @@ import { appleReviewUserIds, isAppleReviewRequest, nonAppleReviewRequestQuery } 
 
 const waitMinutes = (minutes) => new Date(Date.now() + minutes * 60000).toISOString();
 const SECOND_JOB_MAX_DISTANCE_KM = 20;
-
-const serviceProfiles = {
-  'Abertura Residencial': { id: 'abertura_residencial', specialty: 'Residencial' },
-  'Abertura Automotiva': { id: 'abertura_automotiva', specialty: 'Automotivo' },
-  'Abertura Fechadura Tetra': { id: 'abertura_tetra', specialty: 'Residencial' },
-  'Abertura Fechadura Eletrônica': { id: 'abertura_eletronica', specialty: 'Residencial' },
-  'Confecção de Chave de Carro': { id: 'confeccao_chave_carro', specialty: 'Automotivo' },
-  'Confecção de Chave de Moto': { id: 'confeccao_chave_moto', specialty: 'Automotivo' },
-};
-
-function distanceKm(a, b) {
-  const rad = (value) => value * Math.PI / 180;
-  const dLat = rad(Number(b.lat) - Number(a.lat));
-  const dLng = rad(Number(b.lng) - Number(a.lng));
-  const h = Math.sin(dLat / 2) ** 2 + Math.cos(rad(Number(a.lat))) * Math.cos(rad(Number(b.lat))) * Math.sin(dLng / 2) ** 2;
-  return 6371 * 2 * Math.atan2(Math.sqrt(h), Math.sqrt(1 - h));
-}
-
-function canReceiveRequest(locksmith, request) {
-  const profile = serviceProfiles[request?.service_type];
-  // available indica se o chaveiro está livre neste instante, não se ele pode receber chamados.
-  // Chaveiros online ocupados continuam elegíveis para receber um novo chamado e colocá-lo na fila.
-  // O frontend já aplica essa mesma regra; filtrar available=false aqui fazia o backend
-  // remover silenciosamente um chaveiro que o cliente havia encontrado como elegível.
-  if (!profile || locksmith.inactive_deactivated === true) return false;
-  if (locksmith.work_mode === 'livre' && locksmith.receive_app_requests === false) return false;
-  if (locksmith.blocked_until && Date.parse(locksmith.blocked_until) > Date.now()) return false;
-  const services = Array.isArray(locksmith.services) ? locksmith.services : [];
-  if (services.length && !services.includes(profile.id)) return false;
-  const specialties = Array.isArray(locksmith.specialties) ? locksmith.specialties : [];
-  return specialties.length ? specialties.includes(profile.specialty) : locksmith.specialty === profile.specialty;
-}
 
 async function notify(base44, userId, title, content, requestId) {
   if (!userId) return;
@@ -100,41 +71,26 @@ export default async function(req) {
       return Response.json({ allowed: isAreaAvailable(areas, body.lat, body.lng) });
     }
 
+    if (action === 'refresh_request_dispatch') {
+      const request = await base44.asServiceRole.entities.ServiceRequest.get(body.request_id);
+      if (!request || (request.created_by_id !== user.id && user.role !== 'admin')) return Response.json({ error: 'Acesso negado' }, { status: 403 });
+      const result = await refreshRequestDispatch(base44, request.id);
+      if (result.request) await notifyRingingLocksmiths(base44, result.request);
+      return Response.json(result);
+    }
+
     if (action === 'sync_online_requests') {
       const profiles = await base44.asServiceRole.entities.Locksmith.filter({ created_by_id: user.id });
       const locksmith = profiles.find((item) => item.id === body.locksmith_id) || profiles[0];
-      const receivesAppCalls = locksmith?.work_mode === 'app' || (locksmith?.work_mode === 'livre' && locksmith.receive_app_requests !== false);
-      if (!locksmith || locksmith.online !== true || !receivesAppCalls || !locksmith.lat || !locksmith.lng) {
-        return Response.json({ added: 0 });
-      }
-      const areas = await loadServiceAreas(base44);
-      if (!isAreaAvailable(areas, locksmith.lat, locksmith.lng)) return Response.json({ added: 0 });
-      const scoreRows = await base44.asServiceRole.entities.LocksmithScore.filter({ locksmith_id: locksmith.id });
-      const score = scoreRows[0];
-      if (score?.banned || (score?.suspended_until && Date.parse(score.suspended_until) > Date.now())) {
-        return Response.json({ added: 0 });
-      }
+      if (!locksmith || locksmith.online !== true) return Response.json({ added: 0 });
       const requests = await base44.asServiceRole.entities.ServiceRequest.filter({ status: 'ringing' }, '-created_date', 100);
       let added = 0;
-      for (const item of requests) {
-        if (isAppleReviewRequest(item)) continue;
-        if (!isAreaAvailable(areas, item.customer_lat, item.customer_lng)) continue;
-        if ((item.ringing_locksmith_ids || []).includes(locksmith.id) || !item.customer_lat || !item.customer_lng || !canReceiveRequest(locksmith, item)) continue;
-        const distance = distanceKm({ lat: locksmith.lat, lng: locksmith.lng }, { lat: item.customer_lat, lng: item.customer_lng });
-        if (distance > Math.min(Number(locksmith.service_radius_km || 15), 100)) continue;
-        const fresh = await base44.asServiceRole.entities.ServiceRequest.get(item.id);
-        if (!fresh || fresh.status !== 'ringing' || (fresh.ringing_locksmith_ids || []).includes(locksmith.id)) continue;
-        await base44.asServiceRole.entities.ServiceRequest.update(fresh.id, {
-          ringing_locksmith_ids: [...(fresh.ringing_locksmith_ids || []), locksmith.id],
-          ringing_locksmith_user_ids: [...new Set([...(fresh.ringing_locksmith_user_ids || []), locksmith.created_by_id])],
-          rejections: (fresh.rejections || []).filter((rejection) => rejection.locksmith_id !== locksmith.id),
-        });
-        // O chaveiro acabou de entrar online durante um chamado ativo: além de
-        // incluí-lo em tempo real na lista que o cliente vê, dispara o push do
-        // chamado imediatamente para que ele tenha a mesma oportunidade dos
-        // profissionais que já estavam online quando a solicitação foi criada.
-        await notify(base44, locksmith.created_by_id, 'Novo chamado disponível', `${fresh.service_type} próximo de você. Abra o app para aceitar.`, fresh.id);
-        added += 1;
+      for (const request of requests) {
+        if (isAppleReviewRequest(request)) continue;
+        const previouslyIncluded = (request.ringing_locksmith_ids || []).includes(locksmith.id);
+        const result = await refreshRequestDispatch(base44, request.id);
+        if (!previouslyIncluded && (result.request?.ringing_locksmith_ids || []).includes(locksmith.id)) added++;
+        if (result.request) await notifyRingingLocksmiths(base44, result.request);
       }
       return Response.json({ added });
     }
@@ -371,20 +327,17 @@ export default async function(req) {
       values.discount_applied = pricing.discount > 0;
       values.pricing_calculation = pricing.calculation;
 
-      const customerLat = Number(data.customer_lat);
-      const customerLng = Number(data.customer_lng);
-      const online = Number.isFinite(customerLat) && Number.isFinite(customerLng)
-        ? await base44.asServiceRole.entities.Locksmith.filter({ online: true }, '-updated_date', 500)
-        : [];
-      const reviewIds = await appleReviewUserIds(base44);
-      const candidates = online
-        .filter((locksmith) => !reviewIds.includes(locksmith.created_by_id) && locksmith.created_by_id && isAreaAvailable(areas, locksmith.lat, locksmith.lng) && canReceiveRequest(locksmith, data))
-        .map((locksmith) => ({ locksmith, distance: distanceKm({ lat: Number(locksmith.lat), lng: Number(locksmith.lng) }, { lat: customerLat, lng: customerLng }) }))
-        .filter((item) => Number.isFinite(item.distance) && item.distance <= Math.min(Number(item.locksmith.service_radius_km || 15), 100))
-        .sort((a, b) => a.distance - b.distance)
-        .slice(0, 100);
-      values.ringing_locksmith_ids = candidates.map((item) => item.locksmith.id);
-      values.ringing_locksmith_user_ids = [...new Set(candidates.map((item) => item.locksmith.created_by_id))];
+      const now = Date.now();
+      values.search_radius_km = Math.max(1, Math.min(100, Number(data.search_radius_km) || 100));
+      values.auto_expand_radius = data.auto_expand_radius === true;
+      values.search_radius_updated_at = new Date(now).toISOString();
+      const eligible = await loadDispatchCandidates(base44, { ...data, ...values, created_by_id: user.id }, areas, now);
+      const candidates = initialScoreCandidates(eligible);
+      if (candidates.some(item => dispatchScore(item.score) === 10)) {
+        values.score_priority_until = new Date(now + SCORE_PRIORITY_MS).toISOString();
+      }
+      values.ringing_locksmith_ids = candidates.map(item => item.locksmith.id);
+      values.ringing_locksmith_user_ids = [...new Set(candidates.map(item => item.locksmith.created_by_id))];
 
       const location = validatedLocation(data);
       const detail = location.place_type === 'condominium' ? `Bloco/torre: ${location.building} · Unidade: ${location.unit}` : '';
@@ -393,14 +346,7 @@ export default async function(req) {
       const request = await base44.asServiceRole.entities.ServiceRequest.create({ ...values, created_by_id: user.id, apple_review: false, status: 'ringing', payment_status: 'pending', cash_received: false, client_confirmed: false, locksmith_confirmed: false, cancellation_fee: 0, review_claimed: false });
       await base44.asServiceRole.entities.ServiceRequestContext.create({ ...location, request_id: request.id, client_id: user.id });
 
-      // O backend é a autoridade da distribuição. Assim que o chamado é criado,
-      // avisa TODOS os chaveiros que foram gravados em ringing_locksmith_user_ids.
-      // Isso não depende do realtime/WebView do painel estar aberto e evita o
-      // cenário em que o cliente vê "chaveiros recebendo", mas o profissional
-      // não recebe nenhum alerta.
-      await Promise.all(values.ringing_locksmith_user_ids.map((locksmithUserId) =>
-        notify(base44, locksmithUserId, 'Novo chamado disponível', `${request.service_type} próximo de você. Abra o app para aceitar.`, request.id)
-      ));
+      await notifyRingingLocksmiths(base44, request);
       return Response.json({ request });
     }
 
@@ -543,6 +489,10 @@ export default async function(req) {
       const profiles = await base44.asServiceRole.entities.Locksmith.filter({ created_by_id: user.id });
       const locksmith = profiles?.[0];
       if (!locksmith) return Response.json({ error: 'Perfil de chaveiro não encontrado' }, { status: 404 });
+      const scoreRows = await base44.asServiceRole.entities.LocksmithScore.filter({ locksmith_id: locksmith.id });
+      if (!scoreCanReceive(request, scoreRows[0]) || !canReceiveRequest(locksmith, request)) return Response.json({ error: 'Este chamado ainda não está disponível para seu perfil.' }, { status: 403 });
+      const eligible = await loadDispatchCandidates(base44, request);
+      if (!eligible.some(item => item.locksmith.id === locksmith.id)) return Response.json({ error: 'Este chamado não está disponível para seu perfil.' }, { status: 403 });
       const areas = await loadServiceAreas(base44);
       if (!isAreaAvailable(areas, locksmith.lat, locksmith.lng) || !isAreaAvailable(areas, request.customer_lat, request.customer_lng)) return Response.json({ code: 'AREA_UNAVAILABLE', error: 'Este atendimento está fora das áreas liberadas.' }, { status: 403 });
       const accountsByUser = await base44.asServiceRole.entities.MercadoPagoAccount.filter({ locksmith_user_id: user.id });
