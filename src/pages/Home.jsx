@@ -128,7 +128,7 @@ export default function Home() {
   const [customerLoc, setCustomerLoc] = useState(DEFAULT_CENTER);
   const gps = usePreciseLocation();
   const serviceCoverage = useServiceCoverage(customerLoc, locationContext.coordinates_confirmed);
-  const { locksmiths: appLocksmiths, refresh: refreshLocksmiths } = useLiveLocksmiths();
+  const { locksmiths: appLocksmiths, refresh: refreshLocksmiths, loading: locksmithsLoading, error: locksmithsError } = useLiveLocksmiths();
   const [activeRequestsCount, setActiveRequestsCount] = useState(0);
   const [activeRequest, setActiveRequest] = useState(null);
   const [selectedLocksmith, setSelectedLocksmith] = useState(null);
@@ -276,7 +276,7 @@ export default function Home() {
       .filter((d) => d <= limit);
     if (distances.length === 0) return null;
     return Math.min(...distances);
-  }, [service, unblockedAppLocksmiths, customerLoc, searchRadius]);
+  }, [service, unblockedAppLocksmiths, customerLoc, searchRadius, locksmithsLoading, locksmithsError]);
 
   // Se não houver chaveiro online dentro do raio, o cálculo assume um
   // chaveiro no limite do raio (aviso explicado no DynamicPriceFactors).
@@ -453,14 +453,14 @@ export default function Home() {
   // Chaveiros elegíveis dentro do raio escolhido (ou do raio inicial na opção
   // "perto de mim") — chaveiros mais distantes não são considerados.
   const inRadiusCount = useMemo(() => {
-    if (!service) return null;
+    if (!service || locksmithsLoading || locksmithsError) return null;
     return buildEligibleQueue(
       unblockedAppLocksmiths,
       service,
       customerLoc,
       searchRadius == null ? DEFAULT_RADIUS_KM : searchRadius
     ).length;
-  }, [service, unblockedAppLocksmiths, customerLoc, searchRadius]);
+  }, [service, unblockedAppLocksmiths, customerLoc, searchRadius, locksmithsLoading, locksmithsError]);
 
   // Sem resposta em 5 minutos: aumenta o raio em 20% e toca em mais chaveiros
   useRadiusExpansion({
@@ -1182,7 +1182,7 @@ export default function Home() {
         setKeyOrigin, keyCatalog, canPreviewKeyPrice, motoInfo, setMotoInfo, motoRule,
         selectedOptions, toggleOption, customAddons, setCustomAddon, locks, setLocks,
         brokenKeyInLock, setBrokenKeyInLock, openingReason, setOpeningReason,
-        searchRadius, setSearchRadius, inRadiusCount, urgency, setUrgency,
+        searchRadius, setSearchRadius, inRadiusCount, locksmithsLoading, locksmithsError, refreshLocksmiths, urgency, setUrgency,
         goToStep, handleConfirmConfig, submitting, keyBlock, selectedKeyValue,
         nearestDistance, assumedNearby, pricingData, quoteRevision,
         requiresRegistration: !canRequestService,

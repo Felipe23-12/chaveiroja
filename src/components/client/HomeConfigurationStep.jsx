@@ -44,6 +44,8 @@ export default function HomeConfigurationStep({ config }) {
     <CoverageNotice location={serviceLocation} known={locationContext.coordinates_confirmed} />
     {address && !locationContext.coordinates_confirmed && <p className="text-sm text-warning">Selecione o endereço nas sugestões ou use sua localização atual para verificar a cobertura.</p>}
     <p className="text-xs text-muted-foreground">Até 3 cancelamentos gratuitos por dia. Ao atingir o limite, novas solicitações ficam bloqueadas por 6 horas; cancelamentos relacionados ao mesmo atendimento podem gerar bloqueio de segurança de 2 horas.</p>
+    {config.locksmithsLoading && <p role="status" className="text-sm text-muted-foreground">Consultando profissionais disponíveis...</p>}
+    <ErrorBanner message={config.locksmithsError ? "Não foi possível atualizar a disponibilidade. Tente novamente." : ""} onRetry={config.locksmithsError ? () => config.refreshLocksmiths().catch(() => {}) : undefined} />
     <SearchRadiusSelector radius={searchRadius} setRadius={setSearchRadius} availableCount={inRadiusCount} />
     <UrgencySelector urgency={urgency} setUrgency={setUrgency} />
     {quote.loading && <p role="status" className="flex items-center gap-2 text-sm text-muted-foreground"><Loader2 className="h-4 w-4 animate-spin" />Calculando valor do chamado...</p>}
