@@ -106,7 +106,7 @@ export default function Home() {
   const [urgency, setUrgency] = useState("normal");
   const [selectedOptions, setSelectedOptions] = useState([]);
   const [customAddons, setCustomAddons] = useState({});
-  const [vehicleInfo, setVehicleInfo] = useState({ make: "", model: "", year: "", doorStatus: "", opening_method: "simples", alarmLocked: null });
+  const [vehicleInfo, setVehicleInfo] = useState({ make: "", model: "", year: "", doorStatus: "", version: "", opening_target: "car", opening_method: "simples", alarmLocked: null });
   const [locks, setLocks] = useState([createLock()]);
   // null = cliente ainda não confirmou se a chave está quebrada na fechadura
   const [brokenKeyInLock, setBrokenKeyInLock] = useState(null);
@@ -1069,7 +1069,7 @@ export default function Home() {
     setUrgency("normal");
     setSelectedOptions([]);
     setCustomAddons({});
-    setVehicleInfo({ make: "", model: "", year: "", doorStatus: "", opening_method: "simples", alarmLocked: null });
+    setVehicleInfo({ make: "", model: "", year: "", doorStatus: "", version: "", opening_target: "car", opening_method: "simples", alarmLocked: null });
     setLocks([createLock()]);
     setBrokenKeyInLock(null);
     setOpeningReason(null);

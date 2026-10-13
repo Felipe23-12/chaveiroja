@@ -20,7 +20,7 @@ const STATUS_CONFIG = {
   completed: { label: "Finalizado", className: "bg-success text-success-foreground", icon: CheckCircle2 },
 };
 
-export default function ServiceStatusBadge({ phase, className }) {
+export default function ServiceStatusBadge({ phase, className = undefined }) {
   const config = STATUS_CONFIG[phase] || STATUS_CONFIG.moving;
   const Icon = config.icon;
   return (

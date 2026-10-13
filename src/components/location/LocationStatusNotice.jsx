@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { Crosshair, Loader2, MapPinOff } from "lucide-react";
 
-export default function LocationStatusNotice({ status, error, accuracy, hasFix, onRetry }) {
+export default function LocationStatusNotice({ status, error, accuracy, hasFix = undefined, onRetry }) {
   // O hook agora expõe hasFix; se o consumidor passar, usamos. Caso contrário
   // (telas que ainda passam só status/error/accuracy), acompanhamos internamente
   // quando o status fica "ready" pela primeira vez — assim não dependemos de
@@ -27,7 +27,7 @@ export default function LocationStatusNotice({ status, error, accuracy, hasFix, 
       {locating ? <Loader2 className="mt-0.5 h-4 w-4 shrink-0 animate-spin text-primary" /> : <MapPinOff className="mt-0.5 h-4 w-4 shrink-0" />}
       <div className="min-w-0 flex-1">
         <p className="font-medium">{locating ? "Buscando localização precisa…" : error || (poor ? `Precisão atual aproximada: ${accuracy} m.` : "Ative a localização precisa ou informe o endereço manualmente.")}</p>
-        {!locating && <p className="mt-0.5 text-xs">Ative a localização precisa do Android ou informe o endereço manualmente.</p>}
+        {!locating && <p className="mt-0.5 text-xs">Ative a localização precisa do celular ou informe o endereço manualmente.</p>}
       </div>
       {!locating && onRetry && <button type="button" onClick={onRetry} className="min-h-[44px] shrink-0 rounded-lg px-3 font-semibold text-foreground active:bg-warning/15"><Crosshair className="mr-1 inline h-4 w-4" />Tentar</button>}
     </div>

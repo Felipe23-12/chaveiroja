@@ -3,7 +3,7 @@ import { validateVehicleModelYear } from './vehicleModelYears.ts';
 export const isMotoSeatOpening = (vehicle) => vehicle?.opening_target === 'moto_seat';
 
 // Seat opening is available to all makes, not limited to the key-making catalog.
-export function validateOpeningVehicle(vehicle) {
+export function validateOpeningVehicle(vehicle): { valid: boolean; error?: string } {
   if (vehicle?.opening_target && !['car', 'moto_seat'].includes(vehicle.opening_target)) return { valid: false, error: 'Tipo de abertura inválido.' };
   if (!isMotoSeatOpening(vehicle)) return validateVehicleModelYear(vehicle?.make, vehicle?.model, vehicle?.year);
   if (!String(vehicle.make || '').trim() || !String(vehicle.model || '').trim()) return { valid: false, error: 'Informe montadora e modelo da moto.' };

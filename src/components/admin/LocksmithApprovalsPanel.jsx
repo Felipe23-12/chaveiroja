@@ -5,7 +5,7 @@ import ErrorBanner from '@/components/ui/ErrorBanner';
 import LocksmithApprovalCard from '@/components/admin/LocksmithApprovalCard';
 
 export default function LocksmithApprovalsPanel() {
-  const [page, setPage] = useState({ items: [], total: 0 });
+  const [page, setPage] = useState({ items: [], total: 0, has_more: false, next_cursor: undefined });
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(null);
   const [error, setError] = useState('');

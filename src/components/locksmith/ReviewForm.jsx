@@ -5,7 +5,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { base44 } from "@/api/base44Client";
 import { submitReview } from "@/lib/reviews";
 
-export default function ReviewForm({ locksmithId, locksmithName, serviceType, workMode, serviceRequestId, onSubmitted }) {
+export default function ReviewForm({ locksmithId, locksmithName, serviceType = undefined, workMode, serviceRequestId = undefined, onSubmitted }) {
   const [rating, setRating] = useState(0);
   const [hover, setHover] = useState(0);
   const [comment, setComment] = useState("");

@@ -1,6 +1,7 @@
 import React from "react";
 import { LayoutDashboard, Flag, KeyRound, Users, Wallet, ClipboardList, MessageSquare } from "lucide-react";
 
+/** @type {Array<[string, string, typeof LayoutDashboard]>} */
 const tabs = [
   ["overview", "Visão geral", LayoutDashboard],
   ["approvals", "Cadastros pendentes", Users],

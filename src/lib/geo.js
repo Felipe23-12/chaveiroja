@@ -84,7 +84,7 @@ export const GEO_OPTIONS = {
 };
 
 export function locationErrorMessage(error) {
-  if (error?.code === 1) return "Permissão de localização negada. Libere o acesso nas configurações do Android.";
+  if (error?.code === 1) return "Permissão de localização negada. Libere o acesso nas configurações do celular.";
   if (error?.code === 2) return "O GPS não conseguiu determinar sua posição. Vá para uma área aberta ou informe o endereço.";
   if (error?.code === 3) return "A busca da localização demorou demais. Verifique se o GPS está ativado e tente novamente.";
   return "Não foi possível acessar sua localização. Informe o endereço manualmente.";

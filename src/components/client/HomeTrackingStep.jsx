@@ -7,7 +7,7 @@ import ModerationActions from "@/components/moderation/ModerationActions";
 import LightMap from "@/components/map/LightMap";
 import RequestTracking from "@/components/locksmith/RequestTracking";
 import UpgradeToUrgentButton from "@/components/locksmith/UpgradeToUrgentButton";
-export default function HomeTrackingStep({ request, locksmith, routePath, routeEta, onConfirmArrival, onDenyArrival, onAdvance, onRate, onChat, onUpdated, onCancel, onNewRequest }) {
+export default function HomeTrackingStep({ request, locksmith, routePath, routeEta, onConfirmArrival, onDenyArrival, onAdvance, onChat, onUpdated, onCancel, onNewRequest }) {
   return <div className="space-y-5 step-enter">
     <div><h2 className="font-heading font-semibold text-lg text-foreground flex items-center gap-2"><Navigation className="w-5 h-5 text-primary" /> Acompanhando serviço</h2><p className="text-sm text-muted-foreground">{request.service_type} · {request.address}</p></div>
     <UrgentArrivalCountdown request={request} />
@@ -23,7 +23,7 @@ export default function HomeTrackingStep({ request, locksmith, routePath, routeE
       { id: "c", lat: request.customer_lat, lng: request.customer_lng, type: "customer", label: "Você" },
       { id: "l", lat: request.locksmith_lat, lng: request.locksmith_lng, type: "locksmith", label: locksmith?.name?.split(" ")[0], active: request.status === "on_the_way" },
     ]} route={request.status !== "completed" ? { from: { lat: request.locksmith_lat, lng: request.locksmith_lng }, to: { lat: request.customer_lat, lng: request.customer_lng } } : null} routePath={routePath} eta={routeEta} />
-    <RequestTracking request={request} locksmith={locksmith} onAdvance={onAdvance} onRate={onRate} onCall={(l) => { window.location.href = `tel:${l.phone}`; }} />
+    <RequestTracking request={request} locksmith={locksmith} onAdvance={onAdvance} onCall={(l) => { window.location.href = `tel:${l.phone}`; }} />
     <Button variant="outline" onClick={onChat} className="w-full"><MessageCircle className="w-4 h-4 mr-2" /> Ver rota e conversar com o chaveiro</Button>
     {!request.start_photos?.length && <UpgradeToUrgentButton request={request} onUpdated={onUpdated} />}
     {request.status !== "completed" ? <Button onClick={onCancel} variant="outline" className="w-full text-destructive border-destructive/40">Cancelar serviço</Button> : <Button onClick={onNewRequest} variant="outline" className="w-full">Solicitar novo serviço</Button>}

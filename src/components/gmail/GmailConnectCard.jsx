@@ -46,7 +46,7 @@ export default function GmailConnectCard() {
   if (loading) return null;
   if (!authed) {
     return (
-      <Button variant="outline" onClick={() => base44.auth.redirectToLogin()} className="w-full">
+      <Button variant="outline" onClick={() => base44.auth.redirectToLogin(window.location.href)} className="w-full">
         Entrar para conectar o Gmail
       </Button>
     );

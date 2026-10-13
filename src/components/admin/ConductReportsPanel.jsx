@@ -5,7 +5,7 @@ import { safeUnsubscribe } from "@/lib/safeUnsubscribe";
 import ConductReportCard from "@/components/admin/ConductReportCard";
 
 export default function ConductReportsPanel({ users: initialUsers = [], locksmiths: initialLocksmiths = [] }) {
-  const [data, setData] = useState({ reports: [], users: initialUsers, locksmiths: initialLocksmiths });
+  const [data, setData] = useState({ reports: [], scores: [], users: initialUsers, locksmiths: initialLocksmiths });
   const [loading, setLoading] = useState(true);
   const load = () => base44.functions.invoke("reportChannel", { action: "adminListReports" })
     .then((response) => setData(response.data))

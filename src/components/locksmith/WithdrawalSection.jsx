@@ -56,7 +56,6 @@ export default function WithdrawalSection({ locksmith, onWithdrawalMade }) {
     try {
       await requestWithdrawal({
         locksmithId: locksmith.id,
-        locksmithName: locksmith.name,
         amount: Number(amount),
         pixKeyType,
         pixKeyValue: pixKeyValue.trim(),

@@ -509,7 +509,7 @@ export default function PainelChaveiro() {
       return;
     }
     if (!me.online) {
-      const block = getRejectBlock(me);
+      const block = getRejectBlock();
       if (block.blocked) {
         toast({
           title: "Bloqueado temporariamente",
@@ -808,7 +808,7 @@ export default function PainelChaveiro() {
 
   const isAppMode = me?.work_mode === "app";
   const canReceiveAppCalls = isAppMode || (me?.work_mode === "livre" && me?.receive_app_requests !== false);
-  const rejectBlock = getRejectBlock(me);
+  const rejectBlock = getRejectBlock();
   const trustBlocked = trustScore?.banned || (trustScore?.suspended_until && new Date(trustScore.suspended_until).getTime() > Date.now());
   const ring = pendingRequests[0] || null;
   const pendingCount = pendingRequests.length;

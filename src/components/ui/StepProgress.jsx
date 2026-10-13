@@ -16,7 +16,7 @@ const STEP_LABELS = {
   8: "Avaliação",
 };
 
-export default function StepProgress({ step, total = 8, labels }) {
+export default function StepProgress({ step, total = 8, labels = undefined }) {
   const labelMap = labels || STEP_LABELS;
   const currentLabel = labelMap[step] || "";
   return (

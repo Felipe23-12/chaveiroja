@@ -406,7 +406,7 @@ export default function PainelAdmin() {
   );
 }
 
-function StatCard({ icon: Icon, label, value, highlight }) {
+function StatCard({ icon: Icon, label, value, highlight = false }) {
   return (
     <div className={`rounded-xl border p-4 ${highlight ? "border-warning/40 bg-warning/10" : "border-border bg-white"}`}>
       <div className={`flex items-center gap-2 mb-1 ${highlight ? "text-warning" : "text-muted-foreground"}`}>
