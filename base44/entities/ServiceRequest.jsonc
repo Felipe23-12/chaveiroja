@@ -5,7 +5,7 @@
     "apple_review": {
       "type": "boolean",
       "default": false,
-      "description": "Definido exclusivamente pelo servidor para pedidos isolados de revisão Apple, sem efeitos financeiros."
+      "description": "Definido exclusivamente pelo servidor para pedidos isolados de revis\u00e3o Apple, sem efeitos financeiros."
     },
     "service_type": {
       "type": "string",
@@ -13,10 +13,10 @@
         "Abertura Residencial",
         "Abertura Automotiva",
         "Abertura Fechadura Tetra",
-        "Abertura Fechadura Eletrônica",
-        "Confecção de Chave de Carro",
-        "Confecção de Chave de Moto",
-        "Cópia de Chave"
+        "Abertura Fechadura Eletr\u00f4nica",
+        "Confec\u00e7\u00e3o de Chave de Carro",
+        "Confec\u00e7\u00e3o de Chave de Moto",
+        "C\u00f3pia de Chave"
       ],
       "default": "Abertura Residencial"
     },
@@ -59,7 +59,7 @@
     },
     "locksmith_user_id": {
       "type": "string",
-      "description": "ID do usuário dono do perfil designado"
+      "description": "ID do usu\u00e1rio dono do perfil designado"
     },
     "ringing_locksmith_ids": {
       "type": "array",
@@ -299,7 +299,7 @@
     },
     "pricing_calculation": {
       "type": "object",
-      "description": "Memória do cálculo utilizado na solicitação, antes do desconto; não recalculada com tarifas futuras.",
+      "description": "Mem\u00f3ria do c\u00e1lculo utilizado na solicita\u00e7\u00e3o, antes do desconto; n\u00e3o recalculada com tarifas futuras.",
       "properties": {
         "total": {
           "type": "number"
@@ -350,7 +350,7 @@
     "score_priority_until": {
       "type": "string",
       "format": "date-time",
-      "description": "Até esta hora, somente score 10 recebe; ao expirar, scores menores também recebem."
+      "description": "At\u00e9 esta hora, somente score 10 recebe; ao expirar, scores menores tamb\u00e9m recebem."
     },
     "score_dispatch_expanded_at": {
       "type": "string",
@@ -362,7 +362,7 @@
     },
     "search_radius_km": {
       "type": "number",
-      "description": "Raio efetivo escolhido para o chamado, até 100 km."
+      "description": "Raio efetivo escolhido para o chamado, at\u00e9 100 km."
     },
     "auto_expand_radius": {
       "type": "boolean",
@@ -371,6 +371,10 @@
     "search_radius_updated_at": {
       "type": "string",
       "format": "date-time"
+    },
+    "client_id": {
+      "type": "string",
+      "description": "Cliente autenticado propriet\u00e1rio do chamado. Definido exclusivamente pelo backend; created_by_id identifica o autor t\u00e9cnico da grava\u00e7\u00e3o."
     }
   },
   "required": [
@@ -385,6 +389,9 @@
     },
     "read": {
       "$or": [
+        {
+          "data.client_id": "{{user.id}}"
+        },
         {
           "created_by_id": "{{user.id}}"
         },
