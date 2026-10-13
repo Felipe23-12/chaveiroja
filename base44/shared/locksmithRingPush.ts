@@ -4,6 +4,8 @@
 
 import { loadServiceAreas, isAreaAvailable } from './serviceAreas.ts';
 import { appleReviewUserIds, isAppleReviewRequest } from './appleReviewPolicy.ts';
+import { loadDispatchCandidates, refreshRequestDispatch } from './requestDispatch.ts';
+import { scoreCanReceive } from './scoreDispatchPolicy.ts';
 
 const DEFAULT_RADIUS_KM = 15;
 
@@ -24,26 +26,8 @@ export function haversineKm(aLat: number, aLng: number, bLat: number, bLng: numb
  * Garante que o celular apite mesmo quando o chamado ainda não foi direcionado.
  */
 export async function notifyNearbyOnlineLocksmiths(base44: any, sr: any) {
-  if (isAppleReviewRequest(sr)) return { notified: [], reason: 'Pedido isolado de revisão' };
-  if (!sr.customer_lat || !sr.customer_lng) return { notified: [] };
-
-  const locksmiths = await base44.asServiceRole.entities.Locksmith
-    .filter({ online: true })
-    .catch(() => []);
-
-  const eligible = (locksmiths || []).filter((l: any) => {
-    if (!l.lat || !l.lng || !l.created_by_id) return false;
-    const dist = haversineKm(l.lat, l.lng, sr.customer_lat, sr.customer_lng);
-    return dist <= (l.service_radius_km || DEFAULT_RADIUS_KM);
-  });
-
-  if (eligible.length === 0) return { notified: [] };
-
-  return notifyRingingLocksmiths(
-    base44,
-    { ...sr, ringing_locksmith_ids: eligible.map((l: any) => l.id) },
-    true
-  );
+  const result = await refreshRequestDispatch(base44, sr.id);
+  return result.request ? notifyRingingLocksmiths(base44, result.request, true) : { notified: [] };
 }
 
 /**
@@ -52,6 +36,10 @@ export async function notifyNearbyOnlineLocksmiths(base44: any, sr: any) {
  */
 export async function notifyRingingLocksmiths(base44: any, sr: any, repeat = false) {
   if (isAppleReviewRequest(sr)) return { notified: [], reason: 'Pedido isolado de revisão, alertas no painel' };
+  sr = await base44.asServiceRole.entities.ServiceRequest.get(sr.id);
+  if (!sr || !['ringing', 'searching'].includes(sr.status)) return { notified: [] };
+  const eligible = await loadDispatchCandidates(base44, sr);
+  const allowedIds = new Set(eligible.filter((item: any) => scoreCanReceive(sr, item.score)).map((item: any) => item.locksmith.id));
   const reviewIds = await appleReviewUserIds(base44);
   const areas = await loadServiceAreas(base44);
   if (!isAreaAvailable(areas, sr.customer_lat, sr.customer_lng)) return { notified: [], reason: 'Endereço fora das áreas liberadas' };
@@ -83,7 +71,9 @@ export async function notifyRingingLocksmiths(base44: any, sr: any, repeat = fal
 
   const notified: string[] = [];
   for (const locksmithId of targets) {
-    if (inCooldown.has(locksmithId)) continue;
+    if (inCooldown.has(locksmithId) || !allowedIds.has(locksmithId)) continue;
+    const current = await base44.asServiceRole.entities.ServiceRequest.get(sr.id);
+    if (!current || !['ringing', 'searching'].includes(current.status)) break;
     const locksmith = await base44.asServiceRole.entities.Locksmith.get(locksmithId).catch(() => null);
     const userId = locksmith?.created_by_id;
     if (!userId || reviewIds.includes(userId) || locksmith.online !== true || !isAreaAvailable(areas, locksmith.lat, locksmith.lng)) continue;

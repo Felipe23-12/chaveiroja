@@ -16,13 +16,9 @@ export function withScores(locksmiths, scoreMap) {
   }));
 }
 
-export function selectScoreBroadcast(queue, requestPrice) {
-  const available = queue.filter(({ l }) => {
-    const status = l.trust_status;
-    return !status?.banned && (!status?.suspended_until || new Date(status.suspended_until) <= new Date());
-  });
-  const strong = available.filter(({ l }) => (l.trust_score ?? SCORE_START) > SCORE_LOW);
-  const recovery = available.filter(({ l }) => (l.trust_score ?? SCORE_START) <= SCORE_LOW).sort((a, b) => b.d - a.d);
-  if (Number(requestPrice) >= 150) return (strong.length ? strong : recovery).slice(0, 5);
-  return [...strong.slice(0, 3), ...recovery.slice(0, 2)].slice(0, 5);
+export function selectScoreBroadcast(queue, _requestPrice, includeLowerScores = false) {
+  const available = queue.filter(({ l }) => !l.trust_status?.banned &&
+    (!l.trust_status?.suspended_until || new Date(l.trust_status.suspended_until) <= new Date()));
+  const best = available.filter(({ l }) => (l.trust_score ?? SCORE_START) === SCORE_START);
+  return !includeLowerScores && best.length ? best : available;
 }

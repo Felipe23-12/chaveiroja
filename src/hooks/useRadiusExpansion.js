@@ -1,51 +1,43 @@
 import { useEffect, useRef } from "react";
 import { base44 } from "@/api/base44Client";
-import { buildEligibleQueue } from "@/lib/ringRotation";
-import { selectScoreBroadcast } from "@/lib/locksmithScore";
-import { expandRadius, RADIUS_EXPAND_INTERVAL_MS, MAX_RADIUS_KM } from "@/lib/searchRadius";
 
-/**
- * Enquanto o chamado estiver tocando sem ninguém aceitar, aumenta o raio de
- * busca em 20% a cada 5 minutos e passa a tocar também nos chaveiros que
- * entraram no novo raio.
- */
-export function useRadiusExpansion({ request, service, locksmiths, customerLoc, radiusKm, onExpand, enabled = true }) {
+/** O servidor controla os 60s de prioridade e a ampliação de raio após 5min. */
+export function useRadiusExpansion({ request, radiusKm, onExpand, enabled = true }) {
   const radiusRef = useRef(radiusKm);
-
+  const onExpandRef = useRef(onExpand);
+  useEffect(() => { radiusRef.current = radiusKm; onExpandRef.current = onExpand; }, [radiusKm, onExpand]);
   useEffect(() => {
-    radiusRef.current = radiusKm;
-  }, [radiusKm, request?.id]);
-
-  useEffect(() => {
-    if (!enabled) return;
-    if (!request || request.status !== "ringing" || !service) return;
-
-    const timer = setInterval(async () => {
+    if (!enabled || !request?.id || !["ringing", "searching"].includes(request.status)) return;
+    let stopped = false;
+    let busy = false;
+    const refresh = async () => {
+      if (busy || stopped) return;
+      busy = true;
       try {
-        const fresh = await base44.entities.ServiceRequest.get(request.id);
-        if (fresh.status !== "ringing") return;
-        if (radiusRef.current >= MAX_RADIUS_KM) return;
-
-        const next = expandRadius(radiusRef.current);
-        radiusRef.current = next;
-
-        const all = buildEligibleQueue(locksmiths, service, customerLoc);
-        // Toca para todos os chaveiros elegíveis dentro do novo raio
-        const queue = selectScoreBroadcast(all.filter((q) => q.d <= next), fresh.price);
-        const ids = queue.map((q) => q.l.id);
-        const userIds = queue.map((q) => q.l.created_by_id);
-        const added = ids.filter((id) => !(fresh.ringing_locksmith_ids || []).includes(id));
-
-        await base44.entities.ServiceRequest.update(request.id, {
-          ringing_locksmith_ids: ids,
-          ringing_locksmith_user_ids: userIds,
+        const { data } = await base44.functions.invoke("serviceTrust", {
+          action: "refresh_request_dispatch", request_id: request.id,
         });
-        onExpand?.({ radiusKm: next, added: added.length });
-      } catch (e) {
-        /* silencioso — tenta novamente no próximo ciclo */
-      }
-    }, RADIUS_EXPAND_INTERVAL_MS);
-
-    return () => clearInterval(timer);
-  }, [enabled, request?.id, request?.status, service?.id, locksmiths.length]);
+        const next = data?.request?.search_radius_km;
+        if (!stopped && next > radiusRef.current) {
+          radiusRef.current = next;
+          onExpandRef.current?.({ radiusKm: next, added: data.added || 0 });
+        }
+      } catch {
+        // O workflow no servidor também executa o envio, mesmo com o app fechado.
+      } finally { busy = false; }
+    };
+    const due = Date.parse(request.score_priority_until || "");
+    const timeout = Number.isFinite(due) ? setTimeout(refresh, Math.max(0, due - Date.now())) : null;
+    const interval = setInterval(refresh, 15000);
+    const visible = () => { if (document.visibilityState === "visible") void refresh(); };
+    window.addEventListener("focus", refresh);
+    document.addEventListener("visibilitychange", visible);
+    return () => {
+      stopped = true;
+      clearInterval(interval);
+      if (timeout !== null) clearTimeout(timeout);
+      window.removeEventListener("focus", refresh);
+      document.removeEventListener("visibilitychange", visible);
+    };
+  }, [enabled, request?.id, request?.status, request?.score_priority_until]);
 }

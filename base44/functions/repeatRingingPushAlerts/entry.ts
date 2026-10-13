@@ -1,4 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.46';
+import { refreshRequestDispatch } from '../../shared/requestDispatch.ts';
 import { verifyInternalCall } from '../../shared/internalCall.ts';
 import { notifyRingingLocksmiths, notifyNearbyOnlineLocksmiths } from '../../shared/locksmithRingPush.ts';
 
@@ -30,7 +31,10 @@ export default async function(req) {
     );
 
     let total = 0;
-    for (const sr of pending) {
+    for (const original of pending) {
+      const result = await refreshRequestDispatch(base44, original.id);
+      const sr = result.request;
+      if (!sr || !['ringing', 'searching'].includes(sr.status)) continue;
       const hasTargets = (sr.ringing_locksmith_ids || []).length > 0 || sr.locksmith_id;
       // Chamado ainda sem chaveiro direcionado: avisa todos os online no raio
       const res = hasTargets
