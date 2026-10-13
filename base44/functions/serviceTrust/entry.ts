@@ -334,7 +334,7 @@ export default async function(req) {
       const eligible = await loadDispatchCandidates(base44, { ...data, ...values, created_by_id: user.id }, areas, now);
       const candidates = initialScoreCandidates(eligible);
       if (candidates.some(item => dispatchScore(item.score) === 10)) {
-        values.score_priority_until = new Date(now + SCORE_PRIORITY_MS).toISOString();
+        values.score_priority_until = new Date(Date.now() + SCORE_PRIORITY_MS).toISOString();
       }
       values.ringing_locksmith_ids = candidates.map(item => item.locksmith.id);
       values.ringing_locksmith_user_ids = [...new Set(candidates.map(item => item.locksmith.created_by_id))];
