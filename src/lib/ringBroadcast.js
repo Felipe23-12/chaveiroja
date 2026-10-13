@@ -93,6 +93,7 @@ export async function acceptRing(requestId, locksmith) {
     result = await base44.functions.invoke("serviceTrust", {
       action: "accept_request",
       request_id: requestId,
+      locksmith_id: locksmith.id,
       queued,
       queued_after_request_id: queued ? state.active.id : undefined,
     });
