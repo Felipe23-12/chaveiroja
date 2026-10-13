@@ -469,9 +469,9 @@ export default function Home() {
     locksmiths: unblockedAppLocksmiths,
     customerLoc,
     radiusKm: currentRadius,
-    // A ampliação automática só vale na opção "Chaveiro perto de mim";
-    // com raio escolhido o chamado já toca para todos os chaveiros online.
-    enabled: searchRadius == null,
+    // A prioridade de score vale para todos os raios; o servidor amplia o
+    // raio somente na opção "Chaveiro perto de mim".
+    enabled: true,
     onExpand: ({ radiusKm, added }) => {
       setCurrentRadius(radiusKm);
       toast({
@@ -678,6 +678,8 @@ export default function Home() {
         locksmith_id: nearest.l.id,
         locksmith_name: nearest.l.name,
         locksmith_user_id: nearest.l.created_by_id,
+        search_radius_km: usedRadius,
+        auto_expand_radius: searchRadius == null,
         ringing_locksmith_ids: broadcast.map((q) => q.l.id),
         ringing_locksmith_user_ids: broadcast.map((q) => q.l.created_by_id),
         customer_lat: customerLoc.lat,
