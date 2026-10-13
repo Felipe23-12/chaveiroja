@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
+import { loadPublicLocksmiths } from '@/lib/publicLocksmiths';
 import { base44 } from "@/api/base44Client";
 import { MapPin, Loader2, MessageCircle, Star, Wrench, Navigation, Search, SlidersHorizontal, X } from "lucide-react";
 import { haversineKm } from "@/lib/geo";
@@ -24,6 +25,7 @@ export default function LiveLocksmithsMap({ customerLoc, livreOnly = false, loca
   const coverage = useServiceAreas();
   const [locksmiths, setLocksmiths] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
   const [maxDistance, setMaxDistance] = useState(0);
   const [specialtyFilter, setSpecialtyFilter] = useState("");
@@ -40,15 +42,20 @@ export default function LiveLocksmithsMap({ customerLoc, livreOnly = false, loca
     const isVisible = (profile) =>
       (profile?.online === true || profile?.available === false) && (!livreOnly || profile.work_mode === "livre");
     const load = () =>
-      base44.functions.invoke('serviceTrust', { action: 'public_locksmiths', surface: 'map', livre_only: livreOnly }).then(({ data }) => {
-        const list = data.items;
-        if (active) setLocksmiths(list.filter(isVisible));
-      });
+      loadPublicLocksmiths({ surface: 'map', livre_only: livreOnly }).then(list => {
+        if (active) { setLocksmiths(list.filter(isVisible)); setLoadError(''); }
+      }).catch(error => { if (active) setLoadError(error.message); });
     const onEvent = () => load();
     load().finally(() => active && setLoading(false));
+    const timer = setInterval(load, 30000);
+    window.addEventListener('online', load);
+    window.addEventListener('focus', load);
     const unsub = safeUnsubscribe(base44.entities.Locksmith.subscribe(onEvent));
     return () => {
       active = false;
+      clearInterval(timer);
+      window.removeEventListener('online', load);
+      window.removeEventListener('focus', load);
       unsub();
     };
   }, [livreOnly]);
@@ -290,6 +297,8 @@ export default function LiveLocksmithsMap({ customerLoc, livreOnly = false, loca
         <div className="flex items-center gap-2 text-sm text-muted-foreground py-2">
           <Loader2 className="w-4 h-4 animate-spin" /> Localizando profissionais…
         </div>
+      ) : loadError ? (
+        <p role="alert" className="text-sm text-destructive">{loadError}</p>
       ) : filtered.length === 0 ? (
         <div className="text-center py-6 rounded-xl border border-dashed border-border">
           <Wrench className="w-7 h-7 text-muted-foreground mx-auto mb-2" />

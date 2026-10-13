@@ -1,41 +1,39 @@
-import { useEffect, useState, useMemo } from "react";
-import { base44 } from "@/api/base44Client";
-import { loadScoreMap, withScores } from "@/lib/locksmithScore";
-import { safeUnsubscribe } from "@/lib/safeUnsubscribe";
+import { useEffect, useMemo } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { base44 } from '@/api/base44Client';
+import { loadScoreMap, withScores } from '@/lib/locksmithScore';
+import { loadPublicLocksmiths } from '@/lib/publicLocksmiths';
+import { safeUnsubscribe } from '@/lib/safeUnsubscribe';
 import { useServiceAreas, isAreaAvailable } from '@/lib/serviceAreas';
+import { useAuth } from '@/lib/AuthContext';
 
 export default function useLiveLocksmiths() {
-  const [locksmiths, setLocksmiths] = useState([]);
   const coverage = useServiceAreas();
-
-  useEffect(() => {
-    let active = true;
-
-    const load = async () => {
-      const { data } = await base44.functions.invoke('serviceTrust', { action: 'public_locksmiths' });
-      const profiles = data.items;
-      if (!active) return;
-      setLocksmiths(withScores(profiles, new Map()));
+  const { user, isAuthenticated, isLoadingAuth } = useAuth();
+  const client = useQueryClient();
+  const queryKey = ['publicLocksmiths', 'app', user?.id];
+  const query = useQuery({ queryKey, enabled: isAuthenticated && !isLoadingAuth,
+    staleTime: 10000, refetchInterval: 30000, refetchOnWindowFocus: true, retry: 1,
+    queryFn: async () => {
+      const profiles = await loadPublicLocksmiths();
       const scores = await loadScoreMap().catch(() => new Map());
-      if (active) setLocksmiths(withScores(profiles, scores));
-    };
-
-    const onEvent = () => load().catch(() => {});
-
-    const refresh = () => load().catch(() => {});
-    refresh();
-    const unsubscribe = safeUnsubscribe(base44.entities.Locksmith.subscribe(onEvent));
-    const onVisible = () => document.visibilityState === "visible" && refresh();
-    document.addEventListener("visibilitychange", onVisible);
-    window.addEventListener("focus", refresh);
-
-    return () => {
-      active = false;
-      unsubscribe();
-      document.removeEventListener("visibilitychange", onVisible);
-      window.removeEventListener("focus", refresh);
-    };
-  }, []);
-
-  return useMemo(() => coverage.loading || coverage.error ? [] : locksmiths.filter(l => isAreaAvailable(coverage.areas, l.lat, l.lng)), [locksmiths, coverage.areas, coverage.loading, coverage.error]);
+      return withScores(profiles, scores);
+    },
+  });
+  useEffect(() => {
+    const refresh = () => client.invalidateQueries({ queryKey: ['publicLocksmiths', 'app'] });
+    const unsub = safeUnsubscribe(base44.entities.Locksmith.subscribe(refresh));
+    const onVisible = () => { if (document.visibilityState === 'visible') refresh(); };
+    document.addEventListener('visibilitychange', onVisible);
+    return () => { unsub(); document.removeEventListener('visibilitychange', onVisible); };
+  }, [client, user?.id]);
+  const filterCoverage = profiles => profiles.filter(l => isAreaAvailable(coverage.areas, l.lat, l.lng));
+  const locksmiths = useMemo(() => coverage.loading || coverage.error ? [] : filterCoverage(query.data || []), [query.data, coverage.areas, coverage.loading, coverage.error]);
+  const refresh = async () => {
+    if (!isAuthenticated || isLoadingAuth) throw new Error('Aguarde a confirmação do login e tente novamente.');
+    if (coverage.loading || coverage.error) throw new Error('Não foi possível confirmar a área de atendimento. Tente novamente.');
+    const result = await query.refetch({ throwOnError: true });
+    return filterCoverage(result.data || []);
+  };
+  return { locksmiths, refresh, loading: query.isPending || coverage.loading, error: query.error || coverage.error };
 }

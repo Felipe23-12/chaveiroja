@@ -128,7 +128,7 @@ export default function Home() {
   const [customerLoc, setCustomerLoc] = useState(DEFAULT_CENTER);
   const gps = usePreciseLocation();
   const serviceCoverage = useServiceCoverage(customerLoc, locationContext.coordinates_confirmed);
-  const appLocksmiths = useLiveLocksmiths();
+  const { locksmiths: appLocksmiths, refresh: refreshLocksmiths } = useLiveLocksmiths();
   const [activeRequestsCount, setActiveRequestsCount] = useState(0);
   const [activeRequest, setActiveRequest] = useState(null);
   const [selectedLocksmith, setSelectedLocksmith] = useState(null);
@@ -612,7 +612,9 @@ export default function Home() {
       //    o serviço só vai para chaveiros cuja especialidade inclui a do serviço.
       // Nenhum chamado do modo aplicativo pode alcançar um profissional
       // localizado a mais de 100 km do cliente.
-      const allEligible = buildEligibleQueue(unblockedAppLocksmiths, service, customerLoc, MAX_RADIUS_KM);
+      const freshProfiles = await refreshLocksmiths();
+      const freshUnblocked = freshProfiles.filter(l => !blockedIds.has(l.created_by_id));
+      const allEligible = buildEligibleQueue(freshUnblocked, service, customerLoc, MAX_RADIUS_KM);
       let queue;
       let usedRadius;
       if (searchRadius == null) {
@@ -635,7 +637,7 @@ export default function Home() {
       // continuam em recuperação com chamados menores, mais distantes e menos frequentes.
 
       if (!nearest) {
-        setSearchError(`Não há chaveiro disponível em até ${MAX_RADIUS_KM} km da sua localização para "${service.label}". Tente novamente mais tarde ou consulte o mapa do Modo Livre.`);
+        setSearchError(`Não há chaveiro disponível em até ${usedRadius} km da sua localização para "${service.label}". Tente novamente mais tarde ou consulte o mapa do Modo Livre.`);
         setSubmitting(false);
         return;
       }
