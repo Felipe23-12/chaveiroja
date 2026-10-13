@@ -401,7 +401,7 @@ export function allocateCashCommissionStatus(completedRequests, pendingCashCommi
   const pendingOnes = (completedRequests || [])
     .filter((r) => (r.commission_status || "pending") !== "paid")
     .slice()
-    .sort((a, b) => new Date(a.created_date) - new Date(b.created_date));
+    .sort((a, b) => new Date(a.created_date).getTime() - new Date(b.created_date).getTime());
   let remaining = Math.max(0, Number(pendingCashCommission) || 0);
   const statusById = {};
   pendingOnes.forEach((r) => {

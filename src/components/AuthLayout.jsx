@@ -4,7 +4,7 @@ import { Image } from "@/components/ui/image";
 
 const LOGO_URL = "https://media.base44.com/images/public/6a975d266a8000184833026a/d4717d1d4_ChatGPTImage4desetde202604_02_02.png";
 
-export default function AuthLayout({ icon: Icon, title, subtitle, footer, children }) {
+export default function AuthLayout({ icon: Icon = null, title, subtitle = null, footer = null, children = null }) {
   return (
     <div
       data-scrollable="true"

@@ -3,7 +3,7 @@ import { AlertOctagon, CreditCard } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 /** Aviso de débito pendente — bloqueia novos pedidos e mensagens até o pagamento. */
-export default function DebtBlockNotice({ debt, onPay }) {
+export default function DebtBlockNotice({ debt, onPay = undefined }) {
   if (!debt) return null;
   const r = debt.request;
   const isUnpaidService = debt.type === "unpaid_service";

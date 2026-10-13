@@ -2,7 +2,7 @@ import { base44 } from '@/api/base44Client';
 import { safeUnsubscribe } from '@/lib/safeUnsubscribe';
 
 // O aceite usa gravação condicional: consulta também, sem depender de eventos.
-export default function watchServiceRequest(id, onRequest, onError = () => {}) {
+export default function watchServiceRequest(id, onRequest, onError = (_error) => {}) {
   let stopped = false, running = false, pending = false, timer;
   let status = 'ringing', revision = 0, lastTimestamp = 0;
   const deliver = request => {

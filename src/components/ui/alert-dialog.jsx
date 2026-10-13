@@ -38,7 +38,7 @@ const AlertDialogContent = React.forwardRef(({ className, ...props }, ref) => (
 AlertDialogContent.displayName = AlertDialogPrimitive.Content.displayName
 
 const AlertDialogHeader = ({
-  className,
+  className = undefined,
   ...props
 }) => (
   <div
@@ -48,7 +48,7 @@ const AlertDialogHeader = ({
 AlertDialogHeader.displayName = "AlertDialogHeader"
 
 const AlertDialogFooter = ({
-  className,
+  className = undefined,
   ...props
 }) => (
   <div

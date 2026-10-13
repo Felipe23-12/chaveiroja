@@ -3,7 +3,7 @@ import { MapPinOff } from 'lucide-react';
 import { AREA_UNAVAILABLE } from '@/lib/serviceAreas';
 import useServiceCoverage from '@/hooks/useServiceCoverage';
 import { Button } from '@/components/ui/button';
-export default function CoverageNotice({ location, known = true, locksmith = false, accuracy }) {
+export default function CoverageNotice({ location, known = true, locksmith = false, accuracy = undefined }) {
   const { allowed, status, message, checking, retry } = useServiceCoverage(location, known);
   if (allowed) return null;
   const approximate = status === 'unavailable' && Number.isFinite(accuracy) && accuracy > 100;

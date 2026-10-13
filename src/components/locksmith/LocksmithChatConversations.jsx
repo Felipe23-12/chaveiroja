@@ -52,7 +52,7 @@ export default function LocksmithChatConversations({ me, initialClient = null })
             }
           });
           const sorted = Object.values(groups).sort(
-            (a, b) => new Date(b.lastDate) - new Date(a.lastDate)
+            (a, b) => new Date(b.lastDate).getTime() - new Date(a.lastDate).getTime()
           );
           setConversations(sorted);
 

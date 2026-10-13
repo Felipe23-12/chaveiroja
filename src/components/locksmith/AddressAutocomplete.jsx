@@ -18,7 +18,7 @@ const highlightMatch = (text, query) => {
   );
 };
 
-export default function AddressAutocomplete({ value, onChange, onSelect, placeholder, includePlaces = false, location, allowCurrentLocation = false }) {
+export default function AddressAutocomplete({ value, onChange, onSelect, placeholder = "Digite o endereço", includePlaces = false, location = undefined, allowCurrentLocation = false }) {
   const [query, setQuery] = useState(value || "");
   const [predictions, setPredictions] = useState([]);
   const [loading, setLoading] = useState(false);

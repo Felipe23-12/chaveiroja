@@ -6,6 +6,7 @@ import { cpfError, formatCpf, onlyDigits } from "@/lib/cpf";
 import TestCpfGeneratorButton from "@/components/auth/TestCpfGeneratorButton";
 
 // Campo de CPF com validação real dos dígitos verificadores em tempo real.
+/** @type {React.ForwardRefExoticComponent<{ value: string, onChange: (value: string) => void, email?: string } & React.RefAttributes<HTMLInputElement>>} */
 const CpfInput = forwardRef(({ value, onChange, email }, ref) => {
   const digits = onlyDigits(value);
   const touched = digits.length === 11;

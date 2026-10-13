@@ -1,6 +1,15 @@
 const isNode = typeof window === 'undefined';
-const windowObj = isNode ? { localStorage: new Map() } : window;
-const storage = windowObj.localStorage;
+const memory = new Map();
+const memoryStorage = {
+  getItem: key => memory.get(key) ?? null,
+  setItem: (key, value) => { memory.set(key, String(value)); },
+  removeItem: key => { memory.delete(key); },
+};
+const storage = {
+  getItem(key) { try { return isNode ? memoryStorage.getItem(key) : window.localStorage.getItem(key); } catch { return memoryStorage.getItem(key); } },
+  setItem(key, value) { memoryStorage.setItem(key, value); try { if (!isNode) window.localStorage.setItem(key, value); } catch { /* blocked storage */ } },
+  removeItem(key) { memoryStorage.removeItem(key); try { if (!isNode) window.localStorage.removeItem(key); } catch { /* blocked storage */ } },
+};
 
 const toSnakeCase = (str) => {
 	return str.replace(/([A-Z])/g, '_$1').toLowerCase();
@@ -35,6 +44,7 @@ const getAppParamValue = (paramName, { defaultValue = undefined, removeFromUrl =
 }
 
 const getAppParams = () => {
+  if (isNode) return { appId: import.meta.env?.VITE_BASE44_APP_ID, token: null, fromUrl: '', functionsVersion: import.meta.env?.VITE_BASE44_FUNCTIONS_VERSION, appBaseUrl: import.meta.env?.VITE_BASE44_APP_BASE_URL };
 	// Limpar a sessão é uma ação única, não uma preferência persistente.
 	const callbackParams = new URLSearchParams(window.location.search);
 	const incomingToken = callbackParams.get('access_token');
@@ -48,7 +58,7 @@ const getAppParams = () => {
 		window.history.replaceState({}, document.title, `${window.location.pathname}${callbackParams.size ? `?${callbackParams}` : ''}${window.location.hash}`);
 	}
 	// Um retorno autenticado inicia uma nova sessão mesmo se o Android recriou a janela.
-	if (incomingToken) window.sessionStorage.setItem('active_login_session', 'true');
+	if (incomingToken) { try { window.sessionStorage.setItem('active_login_session', 'true'); } catch { /* blocked storage */ } }
 	return {
 		appId: getAppParamValue("app_id", { defaultValue: import.meta.env.VITE_BASE44_APP_ID }),
 		token: getAppParamValue("access_token", { removeFromUrl: true }),

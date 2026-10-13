@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
  * Substitui os <p className="text-red-600 bg-red-50"> espalhados pelo app,
  * oferecendo ícone, mensagem clara e botão de retry opcional.
  */
-export default function ErrorBanner({ message, onRetry, retryLabel = "Tentar novamente" }) {
+export default function ErrorBanner({ message, onRetry = undefined, retryLabel = "Tentar novamente" }) {
   if (!message) return null;
   return (
     <div className="flex items-start gap-3 p-3.5 rounded-xl bg-destructive/10 border border-destructive/30">

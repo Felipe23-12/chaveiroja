@@ -4,7 +4,7 @@ import { Minus } from "lucide-react"
 
 import { cn } from "@/lib/utils"
 
-/** @type {React.ForwardRefExoticComponent<React.ComponentPropsWithoutRef<typeof OTPInput> & React.RefAttributes<HTMLInputElement>>} */
+/** @type {React.ForwardRefExoticComponent<React.ComponentPropsWithoutRef<typeof InputOTPPrimitive> & React.RefAttributes<HTMLInputElement>>} */
 const InputOTP = React.forwardRef(({ className, containerClassName, ...props }, ref) => (
   <OTPInput
     ref={ref}

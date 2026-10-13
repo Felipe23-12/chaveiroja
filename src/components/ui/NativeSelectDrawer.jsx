@@ -4,7 +4,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/co
 import NativeSelectOptions from '@/components/ui/NativeSelectOptions';
 import { cn } from '@/lib/utils';
 
-export default function NativeSelectDrawer({ value, onChange, options = [], label, placeholder = 'Selecione', disabled = false, className, id, ...buttonProps }) {
+export default function NativeSelectDrawer({ value, onChange, options = [], label, placeholder = 'Selecione', disabled = false, className = undefined, id = undefined, ...buttonProps }) {
   const [open, setOpen] = useState(false);
   const trigger = useRef(null);
   const selected = options.find(option => String(option.value) === String(value));

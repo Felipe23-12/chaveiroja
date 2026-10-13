@@ -5,7 +5,7 @@ import { base44 } from "@/api/base44Client";
 import useOnAppResume from "@/hooks/useOnAppResume";
 import prepareLocksmithProfile from '@/lib/locksmithOnboarding';
 
-export default function MercadoPagoConnectSetup({ onStatusChange }) {
+export default function MercadoPagoConnectSetup({ onStatusChange = undefined }) {
   const [status, setStatus] = useState(null);
   const [loading, setLoading] = useState(true);
   const [working, setWorking] = useState(false);
