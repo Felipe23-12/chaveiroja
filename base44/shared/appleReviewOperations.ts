@@ -51,7 +51,7 @@ export async function handleAppleReview(base44, user, body) {
       ringing_locksmith_ids: [locksmith.id], ringing_locksmith_user_ids: [accounts.chaveiro.id],
       payment_method: 'dinheiro', payment_status: 'pending', cash_received: false, client_confirmed: false, locksmith_confirmed: false, cancellation_fee: 0, cancellation_locksmith_amount: 0, cancellation_app_fee: 0, review_claimed: false, pricing_calculation: pricing.calculation,
     });
-    if (created.created_by_id !== user.id) { await base44.asServiceRole.entities.ServiceRequest.delete(created.id); throw new Error('Não foi possível vincular o pedido à conta cliente de revisão.'); }
+    if (requestClientId(created) !== user.id) { await base44.asServiceRole.entities.ServiceRequest.delete(created.id); throw new Error('Não foi possível vincular o pedido à conta cliente de revisão.'); }
     return Response.json({ request: created });
   }
   if (!request) return deny('Operação indisponível no modo de revisão.', 400);
