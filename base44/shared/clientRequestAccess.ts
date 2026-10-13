@@ -10,7 +10,7 @@ export function requestCustomerName(value) {
 export async function clientRequestAccess(base44, user) {
   if (!user?.id) return { allowed: false, registration_required: true };
   const history = await base44.asServiceRole.entities.ServiceRequest.filter({ created_by_id: user.id }, '-created_date', 1);
-  const complete = clientRegistrationComplete(user, await verifiedCpf(base44, user.id));
+  const complete = clientRegistrationComplete(user, user.account_type === 'chaveiro' ? await verifiedCpf(base44, user.id) : undefined);
   const firstCall = history.length === 0;
   // O primeiro chamado pode ser feito apenas com o login e o nome/localização exigidos
   // pelo fluxo simplificado. Depois que existe qualquer chamado no histórico — inclusive

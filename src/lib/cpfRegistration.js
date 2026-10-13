@@ -3,7 +3,10 @@ import submitCpfForReview from '@/lib/submitCpfForReview';
 
 export async function claimCpf(cpf) {
   try {
-    const status = await submitCpfForReview(cpf);
+    const account = await base44.auth.me();
+    const status = account.account_type === 'chaveiro'
+      ? await submitCpfForReview(cpf)
+      : (await base44.functions.invoke('claimCpf', { action: 'register_client', cpf })).data;
     if (!status?.linked) throw new Error(status?.message || "Solicitação recebida. A confirmação do CPF depende de análise administrativa com comprovação de titularidade.");
     // Apenas aprovação administrativa permite avançar, nunca o recebimento.
     const user = await base44.auth.me();

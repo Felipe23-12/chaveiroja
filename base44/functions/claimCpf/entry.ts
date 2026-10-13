@@ -14,6 +14,20 @@ export default async function(req) {
     if (!user) return Response.json({ error: 'Não autenticado' }, { status: 401 });
 
     const body = await req.json().catch(() => ({}));
+    // Client profile data is validated without granting locksmith ownership approval.
+    const clientAccount = user.account_type !== 'chaveiro';
+    if (body.action === 'register_client' && !clientAccount) {
+      return Response.json({ error: 'Contas de chaveiro precisam da aprovação administrativa.' }, { status: 403 });
+    }
+    if (clientAccount) {
+      if (body.action === 'status') return Response.json({ linked: isValidCpf(user.cpf), pending: false, rejected: false, retry_blocked: false, requested_cpf: user.cpf || null, account_type: 'cliente', message: null });
+      const cpf = onlyDigits(body.cpf);
+      if (!isValidCpf(cpf)) return Response.json({ error: 'CPF inválido — confira os números digitados' }, { status: 400 });
+      if (user.cpf && onlyDigits(user.cpf) !== cpf) return Response.json({ error: 'Não é possível substituir o CPF já cadastrado. Procure o suporte.' }, { status: 409 });
+      if (!(await cpfCanBeAssigned(base44, user, cpf))) return Response.json({ error: 'Não foi possível concluir o cadastro com os dados informados. Confira seus dados ou procure o suporte.' }, { status: 409 });
+      await base44.auth.updateMe({ ...userProfileFields(user), cpf });
+      return Response.json({ received: true, linked: true, pending: false, account_type: 'cliente', message: 'CPF cadastrado.' });
+    }
     if (body.action === 'status') {
       const linked = await verifiedCpf(base44, user.id);
       const rows = linked ? [] : await base44.asServiceRole.entities.VerifiedCpf.filter({ user_id: user.id, ownership_verified: { $ne: true } }, '-created_date', 1);
