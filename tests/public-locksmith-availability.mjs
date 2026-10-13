@@ -1,0 +1,18 @@
+import assert from 'node:assert/strict';
+import { build } from 'esbuild';
+let response;
+globalThis.testSDK={functions:{invoke:async(name,args)=>{assert.equal(name,'serviceTrust');assert.equal(args.action,'public_locksmiths');if(response instanceof Error)throw response;return {data:response};}}};
+const compiled=await build({stdin:{contents:"export * from './src/lib/publicLocksmiths.js'; export {buildEligibleQueue} from './src/lib/ringRotation.js';",resolveDir:process.cwd()},bundle:true,platform:'node',format:'esm',write:false,plugins:[{name:'fixture',setup(b){b.onResolve({filter:/^@\/api\/base44Client$/},()=>({path:'sdk',namespace:'fixture'}));b.onLoad({filter:/.*/,namespace:'fixture'},()=>({contents:'export const base44=globalThis.testSDK;',loader:'js'}));}}]});
+const {loadPublicLocksmiths,buildEligibleQueue}=await import('data:text/javascript;base64,'+Buffer.from(compiled.outputFiles[0].text).toString('base64'));
+const profile={id:'online',online:true,lat:-23.54,lng:-46.75,service_radius_km:50,services:['abertura_residencial'],work_mode:'app'};
+response={items:[profile]};assert.deepEqual(await loadPublicLocksmiths(),[profile]);
+response=[profile];assert.deepEqual(await loadPublicLocksmiths({surface:'map'}),[profile],'legacy array response supported');
+response=new Error('network');await assert.rejects(loadPublicLocksmiths(),/consultar os chaveiros/,'network failure is not an empty availability list');
+response={};await assert.rejects(loadPublicLocksmiths(),/consultar os chaveiros/,'invalid response is not no-provider availability');
+response={items:[]};assert.deepEqual(await loadPublicLocksmiths(),[],'successful empty response remains valid');
+response={items:[profile]};const fresh=await loadPublicLocksmiths();const location={lat:-23.55,lng:-46.74};const service={id:'abertura_residencial',specialty:'Residencial'};
+assert.equal(buildEligibleQueue(fresh,service,location,10).length,1,'fresh online provider inside radius found');
+assert.equal(buildEligibleQueue(fresh,{...service,id:'confeccao_chave_moto'},location,10).length,0,'service capability filter preserved');
+assert.equal(buildEligibleQueue([{...profile,trust_status:{banned:true}}],service,location,10).length,0,'safety block preserved');
+assert.equal(buildEligibleQueue(fresh,service,{lat:-12,lng:-39},100).length,0,'distance limits preserved');
+console.log('PASS: current online list, response compatibility, network/malformed response distinct from empty list, matching service, radius and safety filters.');
