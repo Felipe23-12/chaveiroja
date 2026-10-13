@@ -345,6 +345,10 @@ export default async function(req) {
       if (detail) values.description = [values.description, detail].filter(Boolean).join(' — ');
       if (!access.registration_complete && customerName !== user.full_name) await base44.auth.updateMe({ full_name: customerName });
       const request = await base44.asServiceRole.entities.ServiceRequest.create({ ...values, client_id: user.id, apple_review: false, status: 'ringing', payment_status: 'pending', cash_received: false, client_confirmed: false, locksmith_confirmed: false, cancellation_fee: 0, review_claimed: false });
+      if (requestClientId(request) !== user.id) {
+        await base44.asServiceRole.entities.ServiceRequest.delete(request.id);
+        throw new Error('Não foi possível vincular o chamado à sua conta. Tente novamente.');
+      }
       await base44.asServiceRole.entities.ServiceRequestContext.create({ ...location, request_id: request.id, client_id: user.id });
 
       await notifyRingingLocksmiths(base44, request);
@@ -394,8 +398,10 @@ export default async function(req) {
     }
 
     if (action === 'cancel_quote') {
+      if (!body.request_id) return Response.json({ error: 'Selecione o chamado para cancelar.' }, { status: 400 });
       const request = await base44.asServiceRole.entities.ServiceRequest.get(body.request_id);
-      if (!request || requestClientId(request) !== user.id) return Response.json({ error: 'Chamado não encontrado' }, { status: 403 });
+      if (!request) return Response.json({ error: 'Chamado não encontrado' }, { status: 404 });
+      if (requestClientId(request) !== user.id && user.role !== 'admin') return Response.json({ error: 'Você não pode cancelar este chamado.' }, { status: 403 });
       if (user.role === 'admin') return Response.json({ free: true, fee: 0, fixed: false, locksmithAmount: 0, appFee: 0, cancelCount: 0, freeRemaining: 3 });
       return Response.json(await clientCancellationQuote(base44, request));
     }
