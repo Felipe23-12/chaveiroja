@@ -15,8 +15,10 @@ export default function GoogleSignInButton({ returnTo = '/' }) {
     setError('');
     try {
       markAuthProvider('google');
-      localStorage.setItem('remember_login', 'true');
-      sessionStorage.setItem('active_login_session', 'true');
+      try {
+        localStorage.setItem('remember_login', 'true');
+        sessionStorage.setItem('active_login_session', 'true');
+      } catch { /* WebView can block storage; continue with provider authentication. */ }
       await loginWithGoogle(`/auth/google-return?returnTo=${encodeURIComponent(returnTo)}`);
     } catch (err) {
       clearAuthProvider();

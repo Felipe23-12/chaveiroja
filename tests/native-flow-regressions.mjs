@@ -1,5 +1,4 @@
 import assert from 'node:assert/strict';
-import fs from 'node:fs/promises';
 import { build } from 'esbuild';
 async function moduleFrom(path, mocks = {}) {
   const result = await build({entryPoints:[path], bundle:true, platform:'node', format:'esm', write:false, plugins:[{name:'fixtures',setup(b){b.onResolve({filter:/.*/},args => args.path in mocks ? {path:args.path,namespace:'fixture'} : null);b.onLoad({filter:/.*/,namespace:'fixture'},args=>({contents:mocks[args.path],loader:'js'}));}}]});
@@ -22,7 +21,7 @@ const redirects=await moduleFrom('src/lib/authReturnTo.js');
 for(const url of ['https://evil.test','//evil.test','/\\evil.test'])assert.equal(redirects.safeReturnTo(url),'/');
 assert.equal(redirects.safeReturnTo('/?app_id=bad&access_token=bad&step=2'),'/?step=2');
 const native=await moduleFrom('src/lib/nativeAuthEnvironment.js');
-globalThis.navigator={userAgent:'iPhone',platform:'iPhone',maxTouchPoints:1};assert.equal(native.isNativeIOS(),false);window.Capacitor={isNativePlatform:()=>true,getPlatform:()=> 'ios'};assert.equal(native.isNativeIOS(),true);delete window.Capacitor;
+Object.defineProperty(globalThis,'navigator',{value:{userAgent:'iPhone',platform:'iPhone',maxTouchPoints:1},configurable:true});assert.equal(native.isNativeIOS(),false);window.Capacitor={isNativePlatform:()=>true,getPlatform:()=> 'ios'};assert.equal(native.isNativeIOS(),true);delete window.Capacitor;
 // GPS must succeed and synchronize before the accept operation can run.
 let actions=[];globalThis.testSDK={entities:{ServiceRequest:{get:async()=>({status:'ringing',customer_lat:-23,customer_lng:-46})}},functions:{invoke:async(_name,args)=>{actions.push(args.action);return {data:{request:{id:'service'},allowed:true}};}}};
 const ring=await moduleFrom('src/lib/ringBroadcast.js',{...sdk,'@/lib/geo':'export async function fetchDrivingRoute(){return null;}', '@/lib/serviceQueue':'export const SECOND_JOB_MAX_DISTANCE_KM=5; export const canReceiveWhileBusy=()=>true; export const getLocksmithQueueState=async()=>({});'});
