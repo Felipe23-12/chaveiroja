@@ -228,7 +228,7 @@ export default async function(req) {
       const locksmith = profiles.find((item) => item.id === body.locksmith_id) || profiles[0];
       if (!locksmith) return Response.json({ error: 'Perfil não encontrado' }, { status: 404 });
       const rejections = (request.rejections || []).filter((item) => item.locksmith_id !== locksmith.id);
-      rejections.push({ locksmith_id: locksmith.id, rering_at: new Date(Date.now() + 2 * 60000).toISOString() });
+      rejections.push({ locksmith_id: locksmith.id, rering_at: new Date(Date.now() + 60000).toISOString() });
       const updated = await base44.asServiceRole.entities.ServiceRequest.update(request.id, { rejections });
       return Response.json({ request: updated });
     }

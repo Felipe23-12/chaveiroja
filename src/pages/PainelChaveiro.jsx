@@ -266,7 +266,7 @@ export default function PainelChaveiro() {
   useEffect(() => {
     if (!selectedId || !coverage.allowed || !me?.online) { setPendingRequests([]); return; }
     // O mesmo chamado toca para vários chaveiros próximos ao mesmo tempo;
-    // quem recusou volta a receber depois de 2 minutos (regra de rering).
+    // quem recusou volta a receber depois de 1 minuto (regra de rering).
     const load = () =>
       Promise.all([
         base44.entities.ServiceRequest.filter({ ringing_locksmith_ids: selectedId, status: "ringing" }, "-created_date"),
@@ -620,7 +620,7 @@ export default function PainelChaveiro() {
     const req = pendingRequests.find((r) => r.id === reqId);
     if (!req) return;
     // Não cancela o chamado: ele para de tocar para este chaveiro e volta em
-    // 2 minutos, caso nenhum outro chaveiro assuma nesse intervalo.
+    // 1 minuto, caso nenhum outro chaveiro assuma nesse intervalo.
     await rejectRing(req, selectedId);
     setPendingRequests((prev) => prev.filter((r) => r.id !== reqId));
     if (me) {

@@ -68,7 +68,7 @@ export async function handleAppleReview(base44, user, body) {
     Object.assign(update, { status: 'accepted', accepted_at: new Date().toISOString() });
   } else if (action === 'reject_request') {
     if (request.status !== 'ringing') return deny('Pedido não disponível.', 409);
-    update.rejections = [{ locksmith_id: locksmith.id, rering_at: new Date(Date.now() + 120000).toISOString() }];
+    update.rejections = [{ locksmith_id: locksmith.id, rering_at: new Date(Date.now() + 60000).toISOString() }];
   } else if (action === 'locksmith_arrived') {
     if (!['accepted', 'on_the_way'].includes(request.status)) return deny('Aceite primeiro o pedido.', 409);
     update.locksmith_arrived = true;

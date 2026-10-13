@@ -210,7 +210,7 @@ export default function GlobalLocksmithRequestAlert() {
     setAccepting(reqId);
     try {
       const req = requests.find((r) => r.id === reqId);
-      // Recusa apenas para este chaveiro — volta a tocar para ele em 2 minutos
+      // Recusa apenas para este chaveiro — volta a tocar para ele em 1 minuto
       if (req) await rejectRing(req, locksmithId);
       setRequests((prev) => prev.filter((r) => r.id !== reqId));
     } catch (e) {

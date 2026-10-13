@@ -6,7 +6,7 @@ import { canReceiveWhileBusy, getLocksmithQueueState, SECOND_JOB_MAX_DISTANCE_KM
 export const BROADCAST_SIZE = 5;
 
 // Tempo até o chamado recusado voltar a tocar para o mesmo chaveiro
-export const RERING_DELAY_MS = 2 * 60 * 1000;
+export const RERING_DELAY_MS = 60 * 1000;
 
 /**
  * O chamado está tocando para este chaveiro agora?
@@ -24,7 +24,7 @@ export function isRingingFor(request, locksmithId) {
 
 /**
  * Registra a recusa do chaveiro: o chamado para de tocar para ele e volta
- * a tocar 2 minutos depois, caso nenhum outro chaveiro tenha assumido.
+ * a tocar 1 minuto depois, caso nenhum outro chaveiro tenha assumido.
  */
 export async function rejectRing(request, locksmithId) {
   const response = await base44.functions.invoke("serviceTrust", {
