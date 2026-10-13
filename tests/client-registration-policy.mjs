@@ -5,7 +5,7 @@ const api=await import('data:text/javascript;base64,'+Buffer.from(result.outputF
 const cpf='52998224725';
 let user={id:'client',account_type:'cliente',is_verified:true,phone:'11999999999',legal_name:'Cliente Teste',password_created:true,terms_accepted_at:'2026-10-13'};
 let reviews=[],blocked=[],duplicates=[],history=[],writes=[];
-const entities=new Proxy({}, {get(_t,name){return {filter:async(query)=>name==='User' ? duplicates : name==='BlockedCpf' ? blocked : name==='VerifiedCpf' ? reviews : name==='ServiceRequest' ? history : [],create:async(data)=>{writes.push(name);reviews.push(data);return data;}};}});
+const entities=new Proxy({}, {get(_t,name){return {filter:async(query)=>name==='User' ? duplicates : name==='BlockedCpf' ? blocked : name==='VerifiedCpf' ? (query.review_status === 'rejected' ? {items:[]} : reviews.filter(row => query.ownership_verified === true ? row.ownership_verified === true : true)) : name==='ServiceRequest' ? history : [],create:async(data)=>{writes.push(name);reviews.push(data);return data;}};}});
 globalThis.testClient={auth:{me:async()=>user,updateMe:async(fields)=>{user={...user,...fields};return user;}},asServiceRole:{entities}};
 const call=async(body)=>api.claim(new Request('https://example.test',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}));
 let response=await call({action:'register_client',cpf});assert.equal(response.status,200);assert.equal((await response.json()).linked,true);assert.equal(user.account_type,'cliente');assert.deepEqual(writes,[],'client must not create administrative review or ownership proof');assert.equal(user.cpf,cpf);
