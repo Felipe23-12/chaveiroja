@@ -12,7 +12,7 @@ export default async function(req) {
     if (!internal && user?.role !== 'admin') return Response.json({ error: 'Forbidden' }, { status: 403 });
     if (!body.request_id) return Response.json({ error: 'Informe o chamado' }, { status: 400 });
     const result = await refreshRequestDispatch(base44, body.request_id);
-    const push = result.request ? await notifyRingingLocksmiths(base44, result.request) : { notified: [] };
+    const push = result.request ? await notifyRingingLocksmiths(base44, result.request, true) : { notified: [] };
     return Response.json({ success: true, added: result.added, notified: push.notified.length });
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });
