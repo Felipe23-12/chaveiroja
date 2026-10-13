@@ -1,3 +1,4 @@
+import { recoverClientRegistration } from '../../shared/recoverClientRegistration.ts';
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.53';
 
 import { onlyDigits, isValidCpf } from '../../shared/registrationEligibility.ts';
@@ -10,10 +11,13 @@ import { cpfCanBeAssigned, SHARED_OWNER_EXCEPTION } from '../../shared/cpfOwners
 export default async function(req) {
   try {
     const base44 = createClientFromRequest(req);
-    const user = await base44.auth.me();
+    let user = await base44.auth.me();
     if (!user) return Response.json({ error: 'Não autenticado' }, { status: 401 });
 
     const body = await req.json().catch(() => ({}));
+    const previous = user;
+    user = await recoverClientRegistration(base44, user);
+    if (body.action === 'recover_client') return Response.json({ recovered: previous.account_type !== user.account_type || previous.cpf !== user.cpf, account_type: user.account_type || 'cliente' });
     // Client profile data is validated without granting locksmith ownership approval.
     const clientAccount = user.account_type !== 'chaveiro';
     if (body.action === 'register_client' && !clientAccount) {

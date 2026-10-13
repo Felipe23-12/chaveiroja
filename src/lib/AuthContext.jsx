@@ -130,7 +130,9 @@ export const AuthProvider = ({ children }) => {
     try {
       // Now check if the user is authenticated
       setIsLoadingAuth(true);
-      const currentUser = await base44.auth.me();
+      let currentUser = await base44.auth.me();
+      const recovery = await base44.functions.invoke('claimCpf', { action: 'recover_client' }).catch(() => null);
+      if (recovery?.data?.recovered) currentUser = await base44.auth.me();
       const review = await base44.functions.invoke('serviceTrust', { action: 'review_status' }).catch(() => ({ data: { enabled: false, role: null } }));
       setAppleReview(review.data);
       setAuthError(null);

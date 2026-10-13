@@ -9,7 +9,7 @@ export default function useExistingLocksmithSession(enabled, returnTo = '/') {
     let active = true;
     setChecking(true);
     // An absent session is normal on a public registration page.
-    base44.auth.me().then(user => {
+    base44.functions.invoke('claimCpf', { action: 'recover_client' }).catch(() => null).then(() => base44.auth.me()).then(user => {
       if (!active) return;
       if (user.role !== 'admin' && user.account_type === 'chaveiro' && user.is_verified === true) {
         sessionStorage.setItem('active_login_session', 'true');
