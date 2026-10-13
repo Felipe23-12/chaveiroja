@@ -7,6 +7,7 @@ import { cn } from "@/lib/utils";
  * Campo de senha reutilizável com ícone de cadeado à esquerda e botão de
  * mostrar/ocultar à direita. Repassa ref e todas as props de Input normalmente.
  */
+/** @type {React.ForwardRefExoticComponent<React.ComponentPropsWithoutRef<'input'> & React.RefAttributes<HTMLInputElement>>} */
 const PasswordInput = forwardRef(({ className, ...props }, ref) => {
   const [visible, setVisible] = useState(false);
   return (

@@ -10,8 +10,8 @@ export function validateVehicleOpeningRules(rules) {
     const first = rule.year_start, last = rule.year_end;
     if (!Number.isInteger(first) || !Number.isInteger(last) || first < range.min || last > Math.min(range.max, new Date().getFullYear() + 1) || first > last) throw new Error(`Abertura ${index + 1}: use anos-modelo de ${range.min} a ${Math.min(range.max, new Date().getFullYear() + 1)}.`);
     if (rule.version != null && (typeof rule.version !== 'string' || rule.version.length > 80)) throw new Error('Versão do veículo inválida.');
-    const result = { make: range.make, model: range.model, year_start: first, year_end: last, version: String(rule.version || '').trim() };
-    for (const [field, max] of [['base_price', 100000], ['lishi_percent', 500]]) {
+    const result: { make: string; model: string; year_start: number; year_end: number; version: string; base_price?: number; lishi_percent?: number; simple_unavailable?: boolean; lishi_unavailable?: boolean } = { make: range.make, model: range.model, year_start: first, year_end: last, version: String(rule.version || '').trim() };
+    for (const [field, max] of [['base_price', 100000], ['lishi_percent', 500]] as const) {
       const value = rule[field];
       if (value === '' || value == null) continue;
       if (typeof value !== 'number' || !Number.isFinite(value) || value < 0 || value > max) throw new Error(`Abertura ${index + 1}: ${field === 'base_price' ? 'preço base' : 'percentual Lishi'} deve estar entre 0 e ${max}.`);
