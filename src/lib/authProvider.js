@@ -1,11 +1,11 @@
 const KEY = "chaveiroja_auth_provider";
 
 export function markAuthProvider(provider) {
-  localStorage.setItem(KEY, provider);
+  try { localStorage.setItem(KEY, provider); } catch { /* blocked storage */ }
 }
 
 export function getAuthProvider() {
-  return localStorage.getItem(KEY);
+  try { return localStorage.getItem(KEY); } catch { return null; }
 }
 
 export function isGoogleAuthSession() {
@@ -13,5 +13,5 @@ export function isGoogleAuthSession() {
 }
 
 export function clearAuthProvider() {
-  localStorage.removeItem(KEY);
+  try { localStorage.removeItem(KEY); } catch { /* blocked storage */ }
 }

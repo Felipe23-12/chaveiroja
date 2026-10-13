@@ -20,7 +20,7 @@ export default function PaymentStep({ amount, description, locksmithId, serviceR
     try {
       const result = await createMercadoPagoCheckout({ amount, description, locksmithId, serviceRequestId, paymentKind });
       if (result?.status === "paid") {
-        onConfirm?.(result.method, result.provider_payment_id, result.payment_id);
+        await onConfirm?.(result.method, result.provider_payment_id, result.payment_id);
         setCreating(false);
         return;
       }

@@ -24,8 +24,8 @@ export default function useCheckoutConfirmation(serviceRequestId, paymentKind, o
         if (stopped) return;
         setState({ checking: false, pending: !!data.payment_id && data.status !== 'paid', error: '' });
         if (data.status === 'paid') {
-          confirmed = true;
           await callback.current?.(data.method, null, data.payment_id);
+          confirmed = true;
         }
       } catch (error) {
         if (!stopped) setState(s => ({ ...s, checking: false, error: error?.response?.data?.error || 'Não foi possível consultar o pagamento. Tentaremos novamente; não pague outra vez.' }));

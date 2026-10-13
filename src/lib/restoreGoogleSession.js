@@ -5,7 +5,8 @@ import { base44 } from '@/api/base44Client';
 export default async function restoreGoogleSession() {
   const params = new URLSearchParams(window.location.search);
   const incomingToken = params.get('access_token');
-  const token = incomingToken || localStorage.getItem('base44_access_token') || localStorage.getItem('token');
+  let token = incomingToken;
+  if (!token) { try { token = localStorage.getItem('base44_access_token') || localStorage.getItem('token'); } catch { /* blocked storage: use authenticated cookie */ } }
   if (token) {
     base44.auth.setToken(token);
     if (incomingToken) {
@@ -15,6 +16,6 @@ export default async function restoreGoogleSession() {
     }
   }
   const authenticated = await base44.auth.isAuthenticated();
-  if (authenticated) sessionStorage.setItem('active_login_session', 'true');
+  if (authenticated) { try { sessionStorage.setItem('active_login_session', 'true'); } catch { /* blocked storage */ } }
   return authenticated;
 }
