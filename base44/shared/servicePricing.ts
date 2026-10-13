@@ -1,3 +1,4 @@
+import { clientRequestsQuery } from './serviceRequestOwner.ts';
 import { catalogNeighborhoodPricing } from './neighborhoodResolver.ts';
 import { matchingOpeningRule, openingMethod, assertOpeningAvailable } from './vehicleOpeningRules.ts';
 import { isMotoSeatOpening, validateOpeningVehicle, motoSeatRange } from './automotiveOpening.ts';
@@ -129,8 +130,8 @@ async function carKeyPrice(base44, userId, data, inputs, factors, distanceFee, s
 
 async function loyaltyAvailable(base44, userId) {
   const [completed, used] = await Promise.all([
-    base44.asServiceRole.entities.ServiceRequest.filter({ created_by_id: userId, status: 'completed' }),
-    base44.asServiceRole.entities.ServiceRequest.filter({ created_by_id: userId, discount_applied: true }),
+    base44.asServiceRole.entities.ServiceRequest.filter({ ...clientRequestsQuery(userId), status: 'completed' }),
+    base44.asServiceRole.entities.ServiceRequest.filter({ ...clientRequestsQuery(userId), discount_applied: true }),
   ]);
   const paidRequestIds = completed.length
     ? new Set((await base44.asServiceRole.entities.Payment.filter({
@@ -170,7 +171,7 @@ export async function calculateServerServicePrice(base44, userId, data) {
     rule.fixed ? Promise.resolve({ key: null, label: 'Preço fixo: sem ajuste climático' }) : pricingWeather(data.customer_lat == null ? NaN : Number(data.customer_lat), data.customer_lng == null ? NaN : Number(data.customer_lng)),
     regionalPriceForLocation(base44, data.service_type, data.customer_lat, data.customer_lng),
     Promise.resolve(permittedAreas),
-    base44.asServiceRole.entities.ServiceRequest.filter({ created_by_id: userId }, '-created_date', 1, 0, ['id']),
+    base44.asServiceRole.entities.ServiceRequest.filter(clientRequestsQuery(userId), '-created_date', 1, 0, ['id']),
   ]);
   const online = profiles.filter(l => isAreaAvailable(areas, l.lat, l.lng));
   const settings = config.values;

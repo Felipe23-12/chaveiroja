@@ -1,3 +1,4 @@
+import { clientRequestsQuery } from "@/lib/serviceRequestOwner";
 import React, { useState, useEffect, useMemo, useRef } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
@@ -314,7 +315,7 @@ export default function Home() {
     base44.auth.me().then(async (u) => {
       if (!u?.id || cancelled) return;
       try {
-        const list = await base44.entities.ServiceRequest.filter({ created_by_id: u.id }, "-created_date", 20);
+        const list = await base44.entities.ServiceRequest.filter(clientRequestsQuery(u.id), "-created_date", 20);
         if (cancelled) return;
         const returningPaymentId = searchParams.get("mercado_pago") === "retorno" ? searchParams.get("local_payment_id") : null;
         const returnedRequest = returningPaymentId ? list.find((r) => r.payment_id === returningPaymentId) : null;

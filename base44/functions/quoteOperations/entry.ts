@@ -1,3 +1,4 @@
+import { requestClientId } from '../../shared/serviceRequestOwner.ts';
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.49';
 import { loadServiceAreas, isAreaAvailable } from '../../shared/serviceAreas.ts';
 import { clientRegistrationComplete } from '../../shared/registrationEligibility.ts';
@@ -33,7 +34,7 @@ async function startService(base44, quote, price) {
   const detail = quote.service_type === REPAIR ? `Reparo automotivo — ${PART_LABELS[quote.repair_part]}. ` : '';
   const now = new Date().toISOString();
   const values = {
-    created_by_id: quote.client_id, service_type: service, status: 'accepted',
+    client_id: quote.client_id, service_type: service, status: 'accepted',
     address: quote.address, description: `${detail}${quote.description || ''}`.trim(),
     vehicle_info: quote.vehicle_info, customer_lat: quote.customer_lat, customer_lng: quote.customer_lng,
     locksmith_id: locksmith.id, locksmith_user_id: quote.locksmith_user_id, locksmith_name: locksmith.name,
@@ -45,7 +46,7 @@ async function startService(base44, quote, price) {
     pricing_calculation: { total: price, lines: [{ label: 'Valor negociado no modo orçamento', value: price }], notes: [quote.service_type === REPAIR ? `Reparo: ${PART_LABELS[quote.repair_part]}` : 'Confecção de chave de carro'] },
   };
   const request = await base44.asServiceRole.entities.ServiceRequest.create(values);
-  if (request.created_by_id !== quote.client_id) {
+  if (requestClientId(request) !== quote.client_id) {
     await base44.asServiceRole.entities.ServiceRequest.delete(request.id);
     throw new Error('Não foi possível atribuir o atendimento ao cliente.');
   }

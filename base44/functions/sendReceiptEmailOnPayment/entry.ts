@@ -1,3 +1,4 @@
+import { requestClientId } from '../../shared/serviceRequestOwner.ts';
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.44';
 import { verifyInternalCall } from '../../shared/internalCall.ts';
 import { escapeHtml } from '../../shared/escapeHtml.ts';
@@ -20,7 +21,7 @@ export default async function(req) {
     if (!request) {
       return Response.json({ error: 'Solicitação não encontrada' }, { status: 404 });
     }
-    if (!internalCall && user.role !== 'admin' && request.created_by_id !== user.id) {
+    if (!internalCall && user.role !== 'admin' && requestClientId(request) !== user.id) {
       return Response.json({ error: 'Forbidden' }, { status: 403 });
     }
 
@@ -32,9 +33,9 @@ export default async function(req) {
     // Carrega o cliente (User) para obter o email
     let customerEmail = null;
     let customerName = 'Cliente';
-    if (request.created_by_id) {
+    if (requestClientId(request)) {
       try {
-        const customer = await base44.asServiceRole.entities.User.get(request.created_by_id);
+        const customer = await base44.asServiceRole.entities.User.get(requestClientId(request));
         customerEmail = customer?.email;
         customerName = customer?.full_name || 'Cliente';
       } catch (e) { /* ignora */ }

@@ -1,3 +1,4 @@
+import { requestClientId } from "@/lib/serviceRequestOwner";
 import React, { useState, useEffect } from "react";
 import { safeUnsubscribe } from "@/lib/safeUnsubscribe";
 import { base44 } from "@/api/base44Client";
@@ -63,7 +64,7 @@ export default function NearbyRequestsList({ locksmith }) {
       base44.entities.ServiceRequest
         .filter({ status: "searching" }, "-created_date")
         .then((list) => {
-          setAllRequests(list.filter((r) => !blockedIds.has(r.created_by_id)));
+          setAllRequests(list.filter((r) => !blockedIds.has(requestClientId(r))));
           setLoading(false);
         })
         .catch(() => setLoading(false));

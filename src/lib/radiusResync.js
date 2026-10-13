@@ -1,3 +1,4 @@
+import { requestClientId } from "@/lib/serviceRequestOwner";
 import { base44 } from "@/api/base44Client";
 import { haversineKm } from "@/lib/geo";
 import { SERVICE_CATALOG } from "@/lib/pricing";
@@ -31,7 +32,7 @@ export async function resyncRingingForRadius(locksmith, radiusKm) {
   const blockedIds = new Set(blocks.filter((b) => b.active !== false).map((b) => b.blocker_id === locksmith.created_by_id ? b.blocked_id : b.blocker_id));
 
   const candidates = [...searching, ...ringing].filter((r) => {
-    if (blockedIds.has(r.created_by_id)) return false;
+    if (blockedIds.has(requestClientId(r))) return false;
     if (!r.customer_lat || !r.customer_lng) return false;
     if ((r.ringing_locksmith_ids || []).includes(locksmith.id)) return false;
     if (!servesRequest(locksmith, r)) return false;

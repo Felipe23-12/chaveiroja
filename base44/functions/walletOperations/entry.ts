@@ -1,3 +1,4 @@
+import { requestClientId } from '../../shared/serviceRequestOwner.ts';
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.44';
 import { getOrCreateFinancials } from '../../shared/locksmithFinancials.ts';
 import { clientRegistrationComplete } from '../../shared/registrationEligibility.ts';
@@ -34,8 +35,8 @@ export default async function(req) {
       if (service.client_confirmed !== true || service.payment_method !== "dinheiro") {
         return Response.json({ error: "O cliente ainda não confirmou o pagamento em dinheiro" }, { status: 409 });
       }
-      const client = await base44.asServiceRole.entities.User.get(service.created_by_id);
-      if (!clientRegistrationComplete(client, await verifiedCpf(base44, service.created_by_id))) {
+      const client = await base44.asServiceRole.entities.User.get(requestClientId(service));
+      if (!clientRegistrationComplete(client, await verifiedCpf(base44, requestClientId(service)))) {
         return Response.json({ code: 'CASH_REQUIRES_COMPLETE_REGISTRATION', error: 'Este cliente tem cadastro incompleto e deve pagar pelo aplicativo.' }, { status: 403 });
       }
       const serviceAmount = Number(service.price);

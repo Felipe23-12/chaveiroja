@@ -1,3 +1,4 @@
+import { requestClientId } from '../../shared/serviceRequestOwner.ts';
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.44';
 import { verifyInternalCall } from '../../shared/internalCall.ts';
 
@@ -27,8 +28,8 @@ export default async function(req) {
     let customerEmail = "";
     let customerPhone = "";
     let customerCpf = "";
-    if (sr.created_by_id) {
-      const user = await base44.asServiceRole.entities.User.get(sr.created_by_id).catch(() => null);
+    if (requestClientId(sr)) {
+      const user = await base44.asServiceRole.entities.User.get(requestClientId(sr)).catch(() => null);
       if (user) {
         customerName = user.full_name || "";
         customerEmail = user.email || "";

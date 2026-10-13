@@ -1,3 +1,4 @@
+import { requestClientId } from '../../shared/serviceRequestOwner.ts';
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.46';
 import { verifyInternalCall } from '../../shared/internalCall.ts';
 
@@ -20,7 +21,7 @@ export default async function(req) {
     const sr = await base44.asServiceRole.entities.ServiceRequest.get(serviceRequestId);
     if (!sr) return Response.json({ error: 'Pedido não encontrado' }, { status: 404 });
 
-    const clientUserId = sr.created_by_id;
+    const clientUserId = requestClientId(sr);
     if (!clientUserId) return Response.json({ skipped: true, reason: 'Pedido sem cliente vinculado' });
 
     const locksmith = sr.locksmith_name || 'O chaveiro';

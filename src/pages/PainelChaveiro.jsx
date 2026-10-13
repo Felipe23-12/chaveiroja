@@ -1,3 +1,4 @@
+import { requestClientId } from "@/lib/serviceRequestOwner";
 import React, { useState, useEffect, useRef } from "react";
 import { useNavigate, useLocation, Link } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
@@ -272,7 +273,7 @@ export default function PainelChaveiro() {
         getLocksmithQueueState(selectedId),
       ])
         .then(([list, queueState]) => {
-          const visible = list.filter((r) => isAreaAvailable(coverage.areas, r.customer_lat, r.customer_lng) && !blocksLoading && !blockedIds.has(r.created_by_id) && isRingingFor(r, selectedId));
+          const visible = list.filter((r) => isAreaAvailable(coverage.areas, r.customer_lat, r.customer_lng) && !blocksLoading && !blockedIds.has(requestClientId(r)) && isRingingFor(r, selectedId));
           const ringing = filterRingableWhileBusy(visible, queueState);
           setPendingRequests(ringing);
           savePendingRequests(ringing);
@@ -298,7 +299,7 @@ export default function PainelChaveiro() {
     if (!selectedId || !me?.online || !coverage.allowed) return;
     const unsub = base44.entities.ServiceRequest.subscribe((event) => {
       const r = event.data;
-      if (!r || !isAreaAvailable(coverage.areas, r.customer_lat, r.customer_lng) || blockedIds.has(r.created_by_id) || notifiedIds.current.has(r.id)) return;
+      if (!r || !isAreaAvailable(coverage.areas, r.customer_lat, r.customer_lng) || blockedIds.has(requestClientId(r)) || notifiedIds.current.has(r.id)) return;
 
       if ((r.ringing_locksmith_ids || []).includes(selectedId)) {
         // Chamado tocando para este chaveiro (junto com outros próximos)
@@ -798,7 +799,7 @@ export default function PainelChaveiro() {
       if (selectedId) {
         await base44.entities.ServiceRequest
           .filter({ ringing_locksmith_ids: selectedId, status: "ringing" }, "-created_date")
-          .then((list) => setPendingRequests(list.filter((r) => !blockedIds.has(r.created_by_id) && isRingingFor(r, selectedId))))
+          .then((list) => setPendingRequests(list.filter((r) => !blockedIds.has(requestClientId(r)) && isRingingFor(r, selectedId))))
           .catch(() => {});
       }
     } catch (e) { /* ignora */ }
@@ -1026,8 +1027,8 @@ export default function PainelChaveiro() {
 
           <div className="flex flex-col gap-3 rounded-xl border border-border bg-card p-4">
             <LocksmithNetAmount request={active} />
-            <Button disabled={!active.created_by_id} onClick={() => {
-              setChatClient({ id: active.created_by_id, name: active.customer_name || active.description?.match(/Cliente:\s*([^—\n]+)/i)?.[1]?.trim() || "Cliente" });
+            <Button disabled={!requestClientId(active)} onClick={() => {
+              setChatClient({ id: requestClientId(active), name: active.customer_name || active.description?.match(/Cliente:\s*([^—\n]+)/i)?.[1]?.trim() || "Cliente" });
               setChatFocus(true);
             }} className="w-full">
               <MessageCircle className="h-5 w-5" /> Enviar mensagem ao cliente
@@ -1039,7 +1040,7 @@ export default function PainelChaveiro() {
           <KeyTechnicalDetails description={active.description} request={active} />
 
           <ModerationActions
-            targetUserId={active.created_by_id}
+            targetUserId={requestClientId(active)}
             targetType="cliente"
             targetName="Cliente"
             contextType="service"

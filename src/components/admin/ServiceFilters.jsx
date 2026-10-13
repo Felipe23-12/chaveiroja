@@ -1,3 +1,4 @@
+import { requestClientId } from "@/lib/serviceRequestOwner";
 import React, { useState } from "react";
 import { Search, Calendar, Filter, X, ChevronDown } from "lucide-react";
 import { Input } from "@/components/ui/input";
@@ -46,7 +47,7 @@ export function filterRequests(requests, { date, serviceType, status, locksmithN
         r.locksmith_name,
         r.address,
         r.description,
-        customerNameMap ? customerNameMap[r.created_by_id] : "",
+        customerNameMap ? customerNameMap[requestClientId(r)] : "",
       ]
         .filter(Boolean)
         .join(" ")

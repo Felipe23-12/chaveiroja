@@ -1,3 +1,4 @@
+import { requestClientId, clientRequestsQuery } from './serviceRequestOwner.ts';
 import { appleReviewRole, appleReviewAccounts, isAppleReviewRequest } from './appleReviewPolicy.ts';
 import { secrets } from 'base44:runtime';
 const SERVICES = ['Abertura Residencial', 'Abertura Automotiva', 'Abertura Fechadura Tetra', 'Abertura Fechadura Eletrônica', 'Confecção de Chave de Carro', 'Confecção de Chave de Moto', 'Cópia de Chave'];
@@ -10,7 +11,7 @@ export async function handleAppleReview(base44, user, body) {
   if (body.request_id) request = await base44.asServiceRole.entities.ServiceRequest.get(body.request_id).catch(() => null);
   if (!role && !isAppleReviewRequest(request)) return null;
   if (!role) return deny('Pedidos de revisão são exclusivos das contas de revisão.');
-  if (body.request_id && (!isAppleReviewRequest(request) || (role === 'cliente' ? request.created_by_id !== user.id : request.locksmith_user_id !== user.id && !(request.ringing_locksmith_user_ids || []).includes(user.id)))) return deny('Esta conta não pode acessar atendimentos reais ou de outra conta.');
+  if (body.request_id && (!isAppleReviewRequest(request) || (role === 'cliente' ? requestClientId(request) !== user.id : request.locksmith_user_id !== user.id && !(request.ringing_locksmith_user_ids || []).includes(user.id)))) return deny('Esta conta não pode acessar atendimentos reais ou de outra conta.');
   if (['record_app_access', 'heartbeat', 'score_event'].includes(action)) return Response.json({ success: true });
   if (action === 'client_registration_status') return Response.json({ allowed: role === 'cliente', registration_complete: true, registration_required: false, first_call_available: false, apple_review: true });
   if (action === 'client_block_status') return Response.json({ blocked: false, minutesLeft: 0, cancelCount: 0 });
@@ -21,7 +22,7 @@ export async function handleAppleReview(base44, user, body) {
   const profiles = accounts.chaveiro ? await base44.asServiceRole.entities.Locksmith.filter({ created_by_id: accounts.chaveiro.id }, '-created_date', 1) : [];
   const locksmith = profiles[0];
   if (action === 'review_snapshot') {
-    const query = role === 'cliente' ? { apple_review: true, created_by_id: user.id } : { apple_review: true, $or: [{ locksmith_user_id: user.id }, { ringing_locksmith_user_ids: user.id }] };
+    const query = role === 'cliente' ? { apple_review: true, ...clientRequestsQuery(user.id) } : { apple_review: true, $or: [{ locksmith_user_id: user.id }, { ringing_locksmith_user_ids: user.id }] };
     const rows = await base44.asServiceRole.entities.ServiceRequest.filter(query, '-created_date', 1);
     return Response.json({ request: rows[0] || null, locksmith: locksmith || null });
   }
@@ -39,12 +40,12 @@ export async function handleAppleReview(base44, user, body) {
     if (role !== 'cliente' || !locksmith || !accounts.chaveiro) return deny('Entre com a conta cliente de revisão e mantenha o perfil chaveiro cadastrado.');
     const data = body.data || {};
     if (!SERVICES.includes(data.service_type) || typeof data.address !== 'string' || !data.address.trim() || data.address.length > 300 || String(data.description || '').length > 1000) return deny('Informe um serviço e um endereço válidos.', 400);
-    const ongoing = await base44.asServiceRole.entities.ServiceRequest.filter({ apple_review: true, created_by_id: user.id, status: { $in: ['ringing', 'accepted', 'on_the_way', 'queued'] } }, '-created_date', 1);
+    const ongoing = await base44.asServiceRole.entities.ServiceRequest.filter({ apple_review: true, ...clientRequestsQuery(user.id), status: { $in: ['ringing', 'accepted', 'on_the_way', 'queued'] } }, '-created_date', 1);
     if (ongoing.length) return deny('Conclua ou cancele o pedido de revisão atual antes de criar outro.', 409);
     const lat = Number.isFinite(data.customer_lat) && Math.abs(data.customer_lat) <= 90 ? data.customer_lat : 0;
     const lng = Number.isFinite(data.customer_lng) && Math.abs(data.customer_lng) <= 180 ? data.customer_lng : 0;
     const created = await base44.asServiceRole.entities.ServiceRequest.create({
-      created_by_id: user.id, apple_review: true, service_type: data.service_type, address: data.address.trim(), description: String(data.description || ''), customer_name: String(data.customer_name || user.full_name || 'Cliente de revisão').slice(0, 100),
+      client_id: user.id, apple_review: true, service_type: data.service_type, address: data.address.trim(), description: String(data.description || ''), customer_name: String(data.customer_name || user.full_name || 'Cliente de revisão').slice(0, 100),
       status: 'ringing', urgency: 'normal', price: 0, customer_lat: lat, customer_lng: lng,
       locksmith_id: locksmith.id, locksmith_name: locksmith.name, locksmith_user_id: accounts.chaveiro.id, locksmith_lat: lat, locksmith_lng: lng,
       ringing_locksmith_ids: [locksmith.id], ringing_locksmith_user_ids: [accounts.chaveiro.id],
@@ -63,7 +64,7 @@ export async function handleAppleReview(base44, user, body) {
   if ((clientActions.includes(action) && role !== 'cliente') || (locksmithActions.includes(action) && role !== 'chaveiro')) return deny('Operação exclusiva do participante correto.');
   if (action === 'accept_request') {
     if (!locksmith?.online || request.status !== 'ringing') return deny('Fique online e selecione um pedido aguardando aceite.', 409);
-    if (request.created_by_id !== accounts.cliente?.id || request.locksmith_user_id !== user.id || request.ringing_locksmith_ids?.length !== 1 || request.ringing_locksmith_ids[0] !== locksmith.id || request.ringing_locksmith_user_ids?.length !== 1 || request.ringing_locksmith_user_ids[0] !== user.id) return deny('Distribuição de revisão inválida.');
+    if (requestClientId(request) !== accounts.cliente?.id || request.locksmith_user_id !== user.id || request.ringing_locksmith_ids?.length !== 1 || request.ringing_locksmith_ids[0] !== locksmith.id || request.ringing_locksmith_user_ids?.length !== 1 || request.ringing_locksmith_user_ids[0] !== user.id) return deny('Distribuição de revisão inválida.');
     Object.assign(update, { status: 'accepted', accepted_at: new Date().toISOString() });
   } else if (action === 'reject_request') {
     if (request.status !== 'ringing') return deny('Pedido não disponível.', 409);

@@ -1,3 +1,4 @@
+import { requestClientId } from '../../shared/serviceRequestOwner.ts';
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.44';
 import { escapeHtml } from '../../shared/escapeHtml.ts';
 
@@ -20,7 +21,7 @@ export default async function(req) {
     }
 
     // Autorização: somente o cliente proprietário, o chaveiro designado ou admin
-    const isOwner = request.created_by_id === user.id;
+    const isOwner = requestClientId(request) === user.id;
     const isAdmin = user.role === 'admin';
     let isAssignedLocksmith = false;
     if (!isOwner && !isAdmin && request.locksmith_id) {
@@ -34,9 +35,9 @@ export default async function(req) {
     // Carrega o cliente (User) para obter o email
     let customerEmail = null;
     let customerName = 'Cliente';
-    if (request.created_by_id) {
+    if (requestClientId(request)) {
       try {
-        const customer = await base44.asServiceRole.entities.User.get(request.created_by_id);
+        const customer = await base44.asServiceRole.entities.User.get(requestClientId(request));
         customerEmail = customer?.email;
         customerName = customer?.full_name || 'Cliente';
       } catch (e) {

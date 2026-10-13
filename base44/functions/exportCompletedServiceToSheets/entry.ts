@@ -1,3 +1,4 @@
+import { requestClientId } from '../../shared/serviceRequestOwner.ts';
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.44';
 import { verifyInternalCall } from '../../shared/internalCall.ts';
 
@@ -23,7 +24,7 @@ export default async function(req) {
     if (sr?.apple_review === true) return Response.json({ skipped: true, reason: 'Revisão Apple sem registro financeiro real' });
 
     // Dados de contato do cliente
-    const userId = sr.created_by_id;
+    const userId = requestClientId(sr);
     let customerEmail = "";
     let customerPhone = "";
     let customerName = "";

@@ -1,3 +1,4 @@
+import { requestClientId } from './serviceRequestOwner.ts';
 import { loadServiceAreas, isAreaAvailable } from './serviceAreas.ts';
 import { appleReviewUserIds, isAppleReviewRequest } from './appleReviewPolicy.ts';
 import { dispatchScore, scoreAvailable, scoreCanReceive } from './scoreDispatchPolicy.ts';
@@ -37,13 +38,13 @@ export async function loadDispatchCandidates(base44: any, request: any, supplied
   const [online, reviewIds, blocks] = await Promise.all([
     entities.Locksmith.filter({ online: true }, '-updated_date', 500),
     appleReviewUserIds(base44),
-    request.created_by_id ? entities.UserBlock.filter({
-      $or: [{ blocker_id: request.created_by_id }, { blocked_id: request.created_by_id }],
+    requestClientId(request) ? entities.UserBlock.filter({
+      $or: [{ blocker_id: requestClientId(request) }, { blocked_id: requestClientId(request) }],
       active: { $ne: false },
     }, '-created_date', 500) : [],
   ]);
   const blocked = new Set(blocks.map((block: any) =>
-    block.blocker_id === request.created_by_id ? block.blocked_id : block.blocker_id));
+    block.blocker_id === requestClientId(request) ? block.blocked_id : block.blocker_id));
   const scoreRows = online.length ? await entities.LocksmithScore.filter({ locksmith_id: { $in: online.map((l: any) => l.id) } }, '-updated_date', 500) : [];
   const scores = new Map(scoreRows.map((row: any) => [row.locksmith_id, row]));
   const searchRadius = Math.max(0, Math.min(100, Number(request.search_radius_km ?? 100)));

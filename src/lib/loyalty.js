@@ -1,3 +1,4 @@
+import { clientRequestsQuery } from "@/lib/serviceRequestOwner";
 import { base44 } from "@/api/base44Client";
 
 export const POINTS_PER_DISCOUNT = 5;
@@ -9,11 +10,11 @@ export async function getClientLoyalty(userId) {
   if (!userId) return null;
   const [completed, used] = await Promise.all([
     base44.entities.ServiceRequest.filter({
-      created_by_id: userId,
+      ...clientRequestsQuery(userId),
       status: "completed",
     }),
     base44.entities.ServiceRequest.filter({
-      created_by_id: userId,
+      ...clientRequestsQuery(userId),
       discount_applied: true,
     }),
   ]);

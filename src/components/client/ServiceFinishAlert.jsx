@@ -1,3 +1,4 @@
+import { clientRequestsQuery } from "@/lib/serviceRequestOwner";
 import React, { useState, useEffect, useRef } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
@@ -54,7 +55,7 @@ export default function ServiceFinishAlert() {
     let active = true;
     const load = () =>
       base44.entities.ServiceRequest
-        .filter({ created_by_id: user.id }, "-created_date", 20)
+        .filter(clientRequestsQuery(user.id), "-created_date", 20)
         .then((list) => {
           if (!active) return;
           // Serviço finalizado pelo chaveiro (end_photos) e ainda não concluído

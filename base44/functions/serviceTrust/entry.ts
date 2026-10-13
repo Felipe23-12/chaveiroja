@@ -1,3 +1,4 @@
+import { requestClientId, clientRequestsQuery } from '../../shared/serviceRequestOwner.ts';
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.46';
 import { secrets } from 'base44:runtime';
 import { canReceiveRequest, distanceKm, loadDispatchCandidates, refreshRequestDispatch } from '../../shared/requestDispatch.ts';
@@ -73,7 +74,7 @@ export default async function(req) {
 
     if (action === 'refresh_request_dispatch') {
       const request = await base44.asServiceRole.entities.ServiceRequest.get(body.request_id);
-      if (!request || (request.created_by_id !== user.id && user.role !== 'admin')) return Response.json({ error: 'Acesso negado' }, { status: 403 });
+      if (!request || (requestClientId(request) !== user.id && user.role !== 'admin')) return Response.json({ error: 'Acesso negado' }, { status: 403 });
       const result = await refreshRequestDispatch(base44, request.id);
       if (result.request) await notifyRingingLocksmiths(base44, result.request);
       return Response.json(result);
@@ -119,7 +120,7 @@ export default async function(req) {
     if (action === 'client_debt') return Response.json({ debt: await clientDebt(base44, user.id) });
     if (action === 'payment_status') {
       const request = await base44.asServiceRole.entities.ServiceRequest.get(body.request_id);
-      if (!request || (request.created_by_id !== user.id && request.locksmith_user_id !== user.id && user.role !== 'admin')) return Response.json({ error: 'Acesso negado' }, { status: 403 });
+      if (!request || (requestClientId(request) !== user.id && request.locksmith_user_id !== user.id && user.role !== 'admin')) return Response.json({ error: 'Acesso negado' }, { status: 403 });
       return Response.json({ paid: await confirmedServicePayment(base44, request) });
     }
 
@@ -145,7 +146,7 @@ export default async function(req) {
     if (action === 'client_arrival_response') {
       const request = await base44.asServiceRole.entities.ServiceRequest.get(body.request_id);
       if (!request) return Response.json({ error: 'Chamado não encontrado' }, { status: 404 });
-      if (request.created_by_id !== user.id && user.role !== 'admin') return Response.json({ error: 'Acesso negado' }, { status: 403 });
+      if (requestClientId(request) !== user.id && user.role !== 'admin') return Response.json({ error: 'Acesso negado' }, { status: 403 });
       const confirmed = body.confirmed === true;
       if (confirmed && request.locksmith_arrived !== true) return Response.json({ error: 'O chaveiro ainda não confirmou a chegada' }, { status: 409 });
       const updated = await base44.asServiceRole.entities.ServiceRequest.update(request.id, confirmed
@@ -190,7 +191,7 @@ export default async function(req) {
     if (action === 'client_confirm_service') {
       const request = await base44.asServiceRole.entities.ServiceRequest.get(body.request_id);
       if (!request) return Response.json({ error: 'Chamado não encontrado' }, { status: 404 });
-      if (request.created_by_id !== user.id && user.role !== 'admin') return Response.json({ error: 'Acesso negado' }, { status: 403 });
+      if (requestClientId(request) !== user.id && user.role !== 'admin') return Response.json({ error: 'Acesso negado' }, { status: 403 });
       if (!(request.end_photos || []).length || !['accepted', 'on_the_way'].includes(request.status)) return Response.json({ error: 'O chaveiro ainda não registrou a finalização' }, { status: 409 });
       const updated = await base44.asServiceRole.entities.ServiceRequest.update(request.id, { client_confirmed: true });
       return Response.json({ request: updated });
@@ -199,9 +200,9 @@ export default async function(req) {
     if (action === 'select_cash_payment') {
       const request = await base44.asServiceRole.entities.ServiceRequest.get(body.request_id);
       if (!request) return Response.json({ error: 'Chamado não encontrado' }, { status: 404 });
-      if (request.created_by_id !== user.id && user.role !== 'admin') return Response.json({ error: 'Acesso negado' }, { status: 403 });
-      const client = request.created_by_id === user.id ? user : await base44.asServiceRole.entities.User.get(request.created_by_id);
-      if (!clientRegistrationComplete(client, await verifiedCpf(base44, request.created_by_id))) {
+      if (requestClientId(request) !== user.id && user.role !== 'admin') return Response.json({ error: 'Acesso negado' }, { status: 403 });
+      const client = requestClientId(request) === user.id ? user : await base44.asServiceRole.entities.User.get(requestClientId(request));
+      if (!clientRegistrationComplete(client, await verifiedCpf(base44, requestClientId(request)))) {
         return Response.json({ code: 'CASH_REQUIRES_COMPLETE_REGISTRATION', error: 'Com cadastro incompleto, pague somente pelo aplicativo.' }, { status: 403 });
       }
       if (request.client_confirmed !== true || !(request.end_photos || []).length) return Response.json({ error: 'Confirme primeiro a conclusão do serviço' }, { status: 409 });
@@ -212,7 +213,7 @@ export default async function(req) {
     if (action === 'client_mark_on_the_way') {
       const request = await base44.asServiceRole.entities.ServiceRequest.get(body.request_id);
       if (!request) return Response.json({ error: 'Chamado não encontrado' }, { status: 404 });
-      if (request.created_by_id !== user.id && user.role !== 'admin') return Response.json({ error: 'Acesso negado' }, { status: 403 });
+      if (requestClientId(request) !== user.id && user.role !== 'admin') return Response.json({ error: 'Acesso negado' }, { status: 403 });
       if (request.status !== 'accepted') return Response.json({ request });
       const updated = await base44.asServiceRole.entities.ServiceRequest.update(request.id, { status: 'on_the_way' });
       return Response.json({ request: updated });
@@ -233,7 +234,7 @@ export default async function(req) {
 
     if (['urgency_upgrade_quote', 'request_urgency_upgrade'].includes(action)) {
       const request = await base44.asServiceRole.entities.ServiceRequest.get(body.request_id);
-      if (!request || request.created_by_id !== user.id) return Response.json({ error: 'Chamado não encontrado' }, { status: 403 });
+      if (!request || requestClientId(request) !== user.id) return Response.json({ error: 'Chamado não encontrado' }, { status: 403 });
       if (request.urgency === 'urgent' || !['accepted', 'on_the_way'].includes(request.status)) return Response.json({ error: 'Alteração indisponível' }, { status: 409 });
       const pricing = await urgencyServicePrice(base44, request);
       if (action === 'urgency_upgrade_quote') return Response.json({ pricing });
@@ -297,7 +298,7 @@ export default async function(req) {
       if (!customerName) return Response.json({ code: 'NAME_REQUIRED', error: 'Informe seu nome para solicitar o atendimento.' }, { status: 400 });
       if (data.location_context?.coordinates_confirmed !== true || !Number.isFinite(data.customer_lat) || !Number.isFinite(data.customer_lng) || Math.abs(data.customer_lat) > 90 || Math.abs(data.customer_lng) > 180) return Response.json({ error: 'Confirme a localização do atendimento.' }, { status: 400 });
       if (!access.registration_complete) {
-        const active = await base44.asServiceRole.entities.ServiceRequest.filter({ created_by_id: user.id, status: { $in: ['ringing', 'searching', 'accepted', 'queued', 'on_the_way'] } }, '-created_date', 1);
+        const active = await base44.asServiceRole.entities.ServiceRequest.filter({ ...clientRequestsQuery(user.id), status: { $in: ['ringing', 'searching', 'accepted', 'queued', 'on_the_way'] } }, '-created_date', 1);
         if (active.length) return Response.json({ error: 'Você já possui um chamado em andamento. Acompanhe esse atendimento antes de solicitar outro.' }, { status: 409 });
       }
       if (!data.service_type || !String(data.address || '').trim()) return Response.json({ error: 'Informe o serviço e o endereço' }, { status: 400 });
@@ -331,7 +332,7 @@ export default async function(req) {
       values.search_radius_km = Math.max(1, Math.min(100, Number(data.search_radius_km) || 100));
       values.auto_expand_radius = data.auto_expand_radius === true;
       values.search_radius_updated_at = new Date(now).toISOString();
-      const eligible = await loadDispatchCandidates(base44, { ...data, ...values, created_by_id: user.id }, areas, now);
+      const eligible = await loadDispatchCandidates(base44, { ...data, ...values, client_id: user.id }, areas, now);
       const candidates = initialScoreCandidates(eligible);
       if (candidates.some(item => dispatchScore(item.score) === 10)) {
         values.score_priority_until = new Date(Date.now() + SCORE_PRIORITY_MS).toISOString();
@@ -343,7 +344,7 @@ export default async function(req) {
       const detail = location.place_type === 'condominium' ? `Bloco/torre: ${location.building} · Unidade: ${location.unit}` : '';
       if (detail) values.description = [values.description, detail].filter(Boolean).join(' — ');
       if (!access.registration_complete && customerName !== user.full_name) await base44.auth.updateMe({ full_name: customerName });
-      const request = await base44.asServiceRole.entities.ServiceRequest.create({ ...values, created_by_id: user.id, apple_review: false, status: 'ringing', payment_status: 'pending', cash_received: false, client_confirmed: false, locksmith_confirmed: false, cancellation_fee: 0, review_claimed: false });
+      const request = await base44.asServiceRole.entities.ServiceRequest.create({ ...values, client_id: user.id, apple_review: false, status: 'ringing', payment_status: 'pending', cash_received: false, client_confirmed: false, locksmith_confirmed: false, cancellation_fee: 0, review_claimed: false });
       await base44.asServiceRole.entities.ServiceRequestContext.create({ ...location, request_id: request.id, client_id: user.id });
 
       await notifyRingingLocksmiths(base44, request);
@@ -394,14 +395,14 @@ export default async function(req) {
 
     if (action === 'cancel_quote') {
       const request = await base44.asServiceRole.entities.ServiceRequest.get(body.request_id);
-      if (!request || request.created_by_id !== user.id) return Response.json({ error: 'Chamado não encontrado' }, { status: 403 });
+      if (!request || requestClientId(request) !== user.id) return Response.json({ error: 'Chamado não encontrado' }, { status: 403 });
       if (user.role === 'admin') return Response.json({ free: true, fee: 0, fixed: false, locksmithAmount: 0, appFee: 0, cancelCount: 0, freeRemaining: 3 });
       return Response.json(await clientCancellationQuote(base44, request));
     }
 
     if (action === 'cancel_failed_service') {
       const request = await base44.asServiceRole.entities.ServiceRequest.get(body.request_id);
-      if (!request || request.created_by_id !== user.id) return Response.json({ error: 'Chamado não encontrado' }, { status: 403 });
+      if (!request || requestClientId(request) !== user.id) return Response.json({ error: 'Chamado não encontrado' }, { status: 403 });
       if (request.status === 'cancelled' && request.cancellation_reason === 'Serviço não deu certo') return Response.json({ success: true, request, duplicate: true });
       if (!['accepted', 'on_the_way'].includes(request.status) || request.locksmith_arrived !== true || request.client_arrived_confirmed !== true || request.client_confirmed === true || !['pending', undefined, null].includes(request.payment_status)) {
         return Response.json({ error: 'Esta opção só está disponível após confirmar a chegada do chaveiro, antes de confirmar ou pagar o serviço.' }, { status: 409 });
@@ -431,7 +432,7 @@ export default async function(req) {
       if (request.status === 'completed') return Response.json({ error: 'Um chamado concluído não pode ser cancelado' }, { status: 409 });
 
       const isAdmin = user.role === 'admin';
-      const isClient = request.created_by_id === user.id;
+      const isClient = requestClientId(request) === user.id;
       const isLocksmith = request.locksmith_user_id === user.id;
       const actor = isClient ? 'cliente' : isLocksmith ? 'chaveiro' : isAdmin && ['cliente', 'chaveiro'].includes(body.actor) ? body.actor : null;
       if (!actor) return Response.json({ error: 'Você não pode cancelar este chamado' }, { status: 403 });
@@ -483,8 +484,8 @@ export default async function(req) {
       const request = await base44.asServiceRole.entities.ServiceRequest.get(body.request_id);
       if (!request) return Response.json({ error: 'Chamado não encontrado' }, { status: 404 });
       if (request.status !== 'ringing') return Response.json({ error: 'Outro chaveiro assumiu este atendimento primeiro.' }, { status: 409 });
-      const contexts = await base44.asServiceRole.entities.ServiceRequestContext.filter({ request_id: request.id, client_id: request.created_by_id }, '-created_date', 1);
-      if (!contexts.length || await clientDebt(base44, request.created_by_id)) return Response.json({ error: 'Solicitação não autorizada ou cliente com débito pendente.' }, { status: 409 });
+      const contexts = await base44.asServiceRole.entities.ServiceRequestContext.filter({ request_id: request.id, client_id: requestClientId(request) }, '-created_date', 1);
+      if (!contexts.length || await clientDebt(base44, requestClientId(request))) return Response.json({ error: 'Solicitação não autorizada ou cliente com débito pendente.' }, { status: 409 });
       if (!(request.ringing_locksmith_user_ids || []).includes(user.id)) return Response.json({ error: 'Este chamado não foi direcionado a você.' }, { status: 403 });
       const profiles = await base44.asServiceRole.entities.Locksmith.filter({ created_by_id: user.id });
       const locksmith = profiles?.[0];
@@ -567,14 +568,14 @@ export default async function(req) {
       if (reason === 'client_cancelled' && !body.evidence_photo) return Response.json({ error: 'A foto do local é obrigatória' }, { status: 400 });
       const status = reason === 'address_incorrect' ? 'waiting_address' : reason === 'threat' ? 'threat_suspended' : 'waiting_client';
       const deadline = reason === 'address_incorrect' ? waitMinutes(6) : reason === 'threat' ? waitMinutes(48 * 60) : waitMinutes(5);
-      const item = await base44.asServiceRole.entities.ServiceCancellationCase.create({ request_id: request.id, client_id: request.created_by_id, locksmith_id: request.locksmith_id, locksmith_user_id: user.id, reason, report: body.report, evidence_photo: body.evidence_photo, status, deadline });
+      const item = await base44.asServiceRole.entities.ServiceCancellationCase.create({ request_id: request.id, client_id: requestClientId(request), locksmith_id: request.locksmith_id, locksmith_user_id: user.id, reason, report: body.report, evidence_photo: body.evidence_photo, status, deadline });
       if (reason === 'threat') {
         const profiles = await base44.asServiceRole.entities.Locksmith.filter({ created_by_id: user.id });
-        const client = await base44.asServiceRole.entities.User.get(request.created_by_id).catch(() => null);
+        const client = await base44.asServiceRole.entities.User.get(requestClientId(request)).catch(() => null);
         const report = await base44.asServiceRole.entities.ConductReport.create({
           reporter_id: user.id,
           reporter_name: user.full_name || user.email,
-          reported_id: request.created_by_id,
+          reported_id: requestClientId(request),
           reported_name: client?.full_name || client?.email || 'Cliente',
           reporter_type: 'chaveiro',
           reported_type: 'cliente',
@@ -589,18 +590,18 @@ export default async function(req) {
         });
         const systemMessage = `Ocorrência de segurança registrada. A parte denunciada pode apresentar sua versão até ${new Date(deadline).toLocaleString('pt-BR')}.`;
         await base44.asServiceRole.entities.ReportMessage.bulkCreate([
-          { report_id: report.id, sender_id: user.id, sender_name: 'Administração Chaveiro Já', sender_role: 'system', recipient_id: user.id, reporter_id: user.id, reported_id: request.created_by_id, message: systemMessage },
-          { report_id: report.id, sender_id: user.id, sender_name: 'Administração Chaveiro Já', sender_role: 'system', recipient_id: request.created_by_id, reporter_id: user.id, reported_id: request.created_by_id, message: systemMessage },
+          { report_id: report.id, sender_id: user.id, sender_name: 'Administração Chaveiro Já', sender_role: 'system', recipient_id: user.id, reporter_id: user.id, reported_id: requestClientId(request), message: systemMessage },
+          { report_id: report.id, sender_id: user.id, sender_name: 'Administração Chaveiro Já', sender_role: 'system', recipient_id: requestClientId(request), reporter_id: user.id, reported_id: requestClientId(request), message: systemMessage },
         ]);
         const score = await scoreFor(base44, profiles[0]);
         await base44.asServiceRole.entities.LocksmithScore.update(score.id, { suspended_until: deadline });
         await base44.asServiceRole.entities.Locksmith.update(request.locksmith_id, { online: false });
         const cancelled = await base44.asServiceRole.entities.ServiceRequest.update(request.id, { status: 'cancelled', cancelled_by: 'chaveiro', cancellation_reason: 'Relato de ameaça ou agressão em análise' });
         await penalizeLocksmithCancellation(base44, cancelled);
-        await notify(base44, request.created_by_id, 'Atendimento em análise', 'O chaveiro relatou uma situação de segurança. Informe sua versão no aplicativo.', request.id);
+        await notify(base44, requestClientId(request), 'Atendimento em análise', 'O chaveiro relatou uma situação de segurança. Informe sua versão no aplicativo.', request.id);
       } else {
         const text = reason === 'address_incorrect' ? 'O chaveiro está no endereço informado e aguardará 6 minutos. Encontre-o no local.' : 'O chaveiro informou que você cancelou. Confirme ou negue em até 5 minutos.';
-        await notify(base44, request.created_by_id, 'Confirmação necessária', text, request.id);
+        await notify(base44, requestClientId(request), 'Confirmação necessária', text, request.id);
       }
       return Response.json({ success: true, case: item, deadline });
     }

@@ -25,6 +25,7 @@ export async function nonAppleReviewRequestQuery(base44) {
     : [];
   return {
     apple_review: { $ne: true },
+    client_id: { $nin: userIds },
     created_by_id: { $nin: userIds },
     locksmith_user_id: { $nin: userIds },
     locksmith_id: { $nin: profiles.map(profile => profile.id) },

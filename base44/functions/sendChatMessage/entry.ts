@@ -1,3 +1,4 @@
+import { clientRequestsQuery } from '../../shared/serviceRequestOwner.ts';
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.46';
 import { secrets } from 'base44:runtime';
 import { requireServiceCoverage, coverageError } from '../../shared/serviceCoverage.ts';
@@ -57,7 +58,7 @@ export default async function(req) {
     }
     if (isLocksmith) {
       const conversation = await base44.asServiceRole.entities.ChatMessage.filter({ locksmith_id, client_id: customerId });
-      const requests = await base44.asServiceRole.entities.ServiceRequest.filter({ locksmith_id, created_by_id: customerId });
+      const requests = await base44.asServiceRole.entities.ServiceRequest.filter({ locksmith_id, ...clientRequestsQuery(customerId) });
       if (!conversation.length && !requests.length) return Response.json({ error: 'Conversa não encontrada.' }, { status: 403 });
     }
     const created = await base44.asServiceRole.entities.ChatMessage.create({

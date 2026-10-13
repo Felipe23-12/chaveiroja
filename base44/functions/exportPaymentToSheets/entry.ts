@@ -1,3 +1,4 @@
+import { requestClientId } from '../../shared/serviceRequestOwner.ts';
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.44';
 import { verifyInternalCall } from '../../shared/internalCall.ts';
 
@@ -27,7 +28,7 @@ export default async function(req) {
     }
 
     // Busca dados de contato do cliente
-    const userId = sr.created_by_id || payment?.client_id;
+    const userId = requestClientId(sr) || payment?.client_id;
     let customerEmail = "";
     let customerPhone = "";
     let customerCpf = "";

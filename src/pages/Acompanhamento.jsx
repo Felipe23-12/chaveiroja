@@ -1,3 +1,4 @@
+import { requestClientId } from "@/lib/serviceRequestOwner";
 import React, { useState, useEffect, useRef, useMemo } from "react";
 import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from '@/lib/AuthContext';
@@ -29,7 +30,7 @@ export default function Acompanhamento() {
   const showChatError = (error) => toast({ title: 'Mensagem não enviada', description: error?.response?.data?.error || error?.data?.error || 'Não foi possível enviar. Tente novamente.', variant: 'destructive' });
   const location = useLocation();
   const passedRequest = location.state?.request;
-  const initialRequest = passedRequest?.id === requestId && passedRequest?.created_by_id === user?.id ? passedRequest : null;
+  const initialRequest = passedRequest?.id === requestId && requestClientId(passedRequest) === user?.id ? passedRequest : null;
   const [request, setRequest] = useState(initialRequest);
   const [locksmith, setLocksmith] = useState(null);
   const [messages, setMessages] = useState([]);

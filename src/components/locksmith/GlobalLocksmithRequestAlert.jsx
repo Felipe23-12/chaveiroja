@@ -1,3 +1,4 @@
+import { requestClientId } from "@/lib/serviceRequestOwner";
 import React, { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
@@ -114,14 +115,14 @@ export default function GlobalLocksmithRequestAlert() {
         getLocksmithQueueState(locksmithId),
       ])
         .then(([list, queueState]) => {
-          const visible = list.filter((r) => !blocksLoading && !blockedIds.has(r.created_by_id) && isRingingFor(r, locksmithId));
+          const visible = list.filter((r) => !blocksLoading && !blockedIds.has(requestClientId(r)) && isRingingFor(r, locksmithId));
           const ringing = filterRingableWhileBusy(visible, queueState);
           setRequests(ringing);
           savePendingRequests(ringing);
         })
         .catch(() => {
           // Oscilação de internet: mantém visível o último chamado em cache
-          const cached = getPendingRequests().filter((r) => !blockedIds.has(r.created_by_id) && isRingingFor(r, locksmithId));
+          const cached = getPendingRequests().filter((r) => !blockedIds.has(requestClientId(r)) && isRingingFor(r, locksmithId));
           if (cached.length > 0) setRequests((prev) => (prev.length > 0 ? prev : cached));
         });
     load();

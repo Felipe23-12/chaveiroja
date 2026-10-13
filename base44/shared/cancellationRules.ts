@@ -1,3 +1,4 @@
+import { requestClientId, clientRequestsQuery } from './serviceRequestOwner.ts';
 import { cancellationFee } from './cancellationFee.ts';
 import { detectCancellationPattern, safetyBlockFor } from './cancellationSafety.ts';
 const sixHours = 6 * 3600000;
@@ -45,7 +46,7 @@ export async function recordClientCancellation(base44, request, cancelledAt = ne
     const context = contexts[0];
     const fields = ['service_type', 'address', 'latitude', 'longitude', 'place_type', 'building', 'unit', 'vehicle_plate'];
     const snapshot = context ? Object.fromEntries(fields.filter((key) => context[key] !== undefined).map((key) => [key, context[key]])) : {};
-    event = await entity.create({ ...snapshot, request_id: request.id, client_id: request.created_by_id, cancelled_at: cancelledAt });
+    event = await entity.create({ ...snapshot, request_id: request.id, client_id: requestClientId(request), cancelled_at: cancelledAt });
   }
   if (event.service_type) await detectCancellationPattern(base44, event);
 }
@@ -71,7 +72,7 @@ export function calculateClientBlock(events, now = Date.now()) {
 export async function getClientCancelBlock(base44, clientId) {
   // Preserva a hora dos cancelamentos legados antes de futuras alterações de pagamento.
   const since = new Date(Date.now() - 48 * 3600000).toISOString();
-  const legacy = await allRows(base44.asServiceRole.entities.ServiceRequest, { created_by_id: clientId, status: 'cancelled', cancelled_by: 'cliente', updated_date: { $gte: since } });
+  const legacy = await allRows(base44.asServiceRole.entities.ServiceRequest, { ...clientRequestsQuery(clientId), status: 'cancelled', cancelled_by: 'cliente', updated_date: { $gte: since } });
   for (const request of legacy) await recordClientCancellation(base44, request, request.updated_date);
   const events = await allRows(base44.asServiceRole.entities.ClientCancellationEvent, { client_id: clientId, cancelled_at: { $gte: since } });
   const daily = calculateClientBlock(events);
@@ -82,7 +83,7 @@ export async function getClientCancelBlock(base44, clientId) {
 }
 
 export async function clientCancellationQuote(base44, request) {
-  const block = await getClientCancelBlock(base44, request.created_by_id);
+  const block = await getClientCancelBlock(base44, requestClientId(request));
   const elapsed = Date.now() - Date.parse(request.accepted_at || request.created_date);
   const started = ['accepted', 'on_the_way', 'queued'].includes(request.status);
   const free = block.cancelCount < 3 || !started || !Number.isFinite(elapsed) || elapsed < 5 * 60000;

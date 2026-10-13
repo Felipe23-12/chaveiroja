@@ -1,3 +1,4 @@
+import { requestClientId } from '../../shared/serviceRequestOwner.ts';
 import { createClientFromRequest } from "npm:@base44/sdk@0.8.44";
 import { secrets } from "base44:runtime";
 import { APP_URL, MP_WEBHOOK_URL, fetchPayment, getSellerAccount, reconcilePaidPayment, syncApprovedPayment } from "../../shared/mercadoPago.ts";
@@ -51,7 +52,7 @@ export default async function(req) {
         token = secrets.get("MERCADO_PAGO_ACCESS_TOKEN");
       } else {
         service = await base44.asServiceRole.entities.ServiceRequest.get(body.service_request_id).catch(() => null);
-        if (!service || service.created_by_id !== user.id || service.locksmith_id !== body.locksmith_id) return Response.json({ error: "Atendimento não encontrado" }, { status: 404 });
+        if (!service || requestClientId(service) !== user.id || service.locksmith_id !== body.locksmith_id) return Response.json({ error: "Atendimento não encontrado" }, { status: 404 });
         const existingPayments = await base44.asServiceRole.entities.Payment.filter({ service_request_id: service.id });
         const paidPayment = existingPayments.find((p) => p.status === "paid" || p.status === "captured");
         if (paidPayment) return Response.json({ status: "paid", already_paid: true, payment_id: paidPayment.id, method: paidPayment.method });
@@ -181,7 +182,7 @@ export default async function(req) {
       let payment;
       if (body.service_request_id) {
         const service = await base44.asServiceRole.entities.ServiceRequest.get(body.service_request_id).catch(() => null);
-        if (!service || (user.role !== 'admin' && service.created_by_id !== user.id)) return Response.json({ error: 'Atendimento não encontrado' }, { status: 404 });
+        if (!service || (user.role !== 'admin' && requestClientId(service) !== user.id)) return Response.json({ error: 'Atendimento não encontrado' }, { status: 404 });
         const payments = await base44.asServiceRole.entities.Payment.filter({ service_request_id: service.id, provider: 'mercado_pago', payment_kind: body.payment_kind === 'cancellation' ? 'cancellation' : 'service' }, '-created_date', 20);
         payment = payments.find(p => p.status === 'paid') || payments.find(p => p.status === 'pre_authorized');
         if (!payment) return Response.json({ status: 'pending' });

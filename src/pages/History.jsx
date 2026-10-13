@@ -1,3 +1,4 @@
+import { clientRequestsQuery } from "@/lib/serviceRequestOwner";
 import React, { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { Clock, Wrench } from "lucide-react";
@@ -25,7 +26,7 @@ export default function History() {
       const user = await base44.auth.me();
       // Somente os pedidos criados por esta conta — nunca de outro cliente
       const data = await base44.entities.ServiceRequest.filter(
-        { created_by_id: user.id },
+        clientRequestsQuery(user.id),
         "-created_date",
         50
       );

@@ -1,3 +1,4 @@
+import { requestClientId } from '../../shared/serviceRequestOwner.ts';
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.44';
 import { nonAppleReviewRequestQuery } from '../../shared/appleReviewPolicy.ts';
 
@@ -62,7 +63,7 @@ export default async function(req) {
       const price = r.price || 0;
       const commission = Math.round(price * COMMISSION_RATE * 100) / 100;
       const net = Math.round((price - commission) * 100) / 100;
-      const user = userMap[r.created_by_id];
+      const user = userMap[requestClientId(r)];
       return [
         new Date(r.created_date).toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" }),
         r.id,

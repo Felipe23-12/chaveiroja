@@ -1,3 +1,4 @@
+import { requestClientId } from "@/lib/serviceRequestOwner";
 import React, { useEffect, useState } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useAuth } from '@/lib/AuthContext';
@@ -8,14 +9,14 @@ export default function ReviewChat({ request }) {
   const [messages, setMessages] = useState([]), [text, setText] = useState(''), [busy, setBusy] = useState(false), [error, setError] = useState('');
   useEffect(() => {
     let active = true;
-    const load = async () => { const page = await base44.entities.ChatMessage.filter({ locksmith_id: request.locksmith_id, client_id: request.created_by_id }, { sort: '-created_date', limit: 50 }); if (active) setMessages(page.items.slice().reverse()); };
+    const load = async () => { const page = await base44.entities.ChatMessage.filter({ locksmith_id: request.locksmith_id, client_id: requestClientId(request) }, { sort: '-created_date', limit: 50 }); if (active) setMessages(page.items.slice().reverse()); };
     const refresh = () => load().catch(err => setError(err.message));
     refresh(); const timer = setInterval(refresh, 5000), unsubscribe = base44.entities.ChatMessage.subscribe(refresh);
     return () => { active = false; clearInterval(timer); unsubscribe(); };
-  }, [request.locksmith_id, request.created_by_id]);
+  }, [request.locksmith_id, requestClientId(request)]);
   const send = async event => {
     event.preventDefault(); setBusy(true); setError('');
-    try { await base44.functions.invoke('sendChatMessage', { locksmith_id: request.locksmith_id, client_id: appleReview.role === 'chaveiro' ? request.created_by_id : undefined, message: text }); setText(''); }
+    try { await base44.functions.invoke('sendChatMessage', { locksmith_id: request.locksmith_id, client_id: appleReview.role === 'chaveiro' ? requestClientId(request) : undefined, message: text }); setText(''); }
     catch (err) { setError(err?.response?.data?.error || err.message); }
     finally { setBusy(false); }
   };

@@ -1,3 +1,4 @@
+import { requestClientId } from '../../shared/serviceRequestOwner.ts';
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.44';
 import { createMimeMessage } from 'npm:mimetext@3.0.24';
 
@@ -44,7 +45,7 @@ export default async function (req: Request): Promise<Response> {
     const sent = request.client_push_sent || [];
     if (sent.includes(marker)) return Response.json({ sent: false, skipped: true, reason: 'E-mail já enviado para esta etapa' });
 
-    const clients = await base44.asServiceRole.entities.User.filter({ id: request.created_by_id });
+    const clients = await base44.asServiceRole.entities.User.filter({ id: requestClientId(request) });
     const to = clients?.[0]?.email;
     if (!to) return Response.json({ error: 'E-mail do cliente não encontrado' }, { status: 404 });
 
