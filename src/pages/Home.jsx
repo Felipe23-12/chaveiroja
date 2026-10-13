@@ -465,9 +465,6 @@ export default function Home() {
   // Sem resposta em 5 minutos: aumenta o raio em 20% e toca em mais chaveiros
   useRadiusExpansion({
     request: activeRequest,
-    service,
-    locksmiths: unblockedAppLocksmiths,
-    customerLoc,
     radiusKm: currentRadius,
     // A prioridade de score vale para todos os raios; o servidor amplia o
     // raio somente na opção "Chaveiro perto de mim".
