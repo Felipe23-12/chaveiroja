@@ -5,7 +5,7 @@ import ClientRequestPrice from '@/components/client/ClientRequestPrice';
 const KEY_SERVICES = ["Confecção de Chave de Carro", "Confecção de Chave de Moto"];
 const ACCEPTED_STATUSES = ["queued", "accepted", "on_the_way", "completed"];
 
-export default function KeyServicePrice({ request, pending = false }) {
+export default function KeyServicePrice({ request = undefined, pending = false }) {
   if (pending) {
     return (
       <div className="flex items-start gap-2 rounded-2xl border border-border bg-muted/40 p-4">

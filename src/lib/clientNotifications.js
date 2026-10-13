@@ -20,13 +20,14 @@ export function notifyClient(title, body) {
   // Notificação nativa do navegador (PWA em segundo plano)
   if ("Notification" in window && Notification.permission === "granted") {
     try {
-      new Notification(title, {
+      const options = {
         body,
         icon: "https://media.base44.com/images/public/6a975d266a8000184833026a/dd1b4ee70_ChatGPTImage3desetde202614_01_55.png",
         badge: "https://media.base44.com/images/public/6a975d266a8000184833026a/dd1b4ee70_ChatGPTImage3desetde202614_01_55.png",
         tag: "chaveiro-status",
         renotify: true,
-      });
+      };
+      new Notification(title, options);
     } catch {
       /* silencioso */
     }

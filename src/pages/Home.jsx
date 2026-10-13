@@ -1224,7 +1224,7 @@ export default function Home() {
       {step === 5 && activeRequest && !cancelFeeData && <HomeTrackingStep
         request={activeRequest} locksmith={selectedLocksmith} routePath={routePath} routeEta={routeEta}
         onConfirmArrival={handleConfirmArrival} onDenyArrival={handleDenyArrival}
-        onAdvance={handleAdvance} onRate={handleRate} onChat={() => navigate(`/acompanhamento/${activeRequest.id}`)}
+        onAdvance={handleAdvance} onChat={() => navigate(`/acompanhamento/${activeRequest.id}`)}
         onUpdated={setActiveRequest} onCancel={handleCancel} onNewRequest={handleNewRequest}
       />}
 

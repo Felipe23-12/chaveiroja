@@ -29,7 +29,7 @@ export default function CalculosChamados() {
       <NativeSelectDrawer label="Tipo de serviço" value={serviceType} onChange={next => { setServiceType(next); setPage(0); }} className="flex-1" options={[{ value: '', label: 'Todos os serviços' }, ...SERVICE_CATALOG.map(s => ({ value: s.label, label: s.label }))]} />
       <Button variant="outline" disabled={isFetching} onClick={() => refetch()}>Atualizar</Button>
     </div>
-    {isLoading ? <LoadingCard label="Carregando cálculos..." /> : error ? <p role="alert" className="text-sm text-destructive">{error?.response?.data?.error || "Não foi possível carregar. Toque em Atualizar para tentar novamente."}</p> : <>
+    {isLoading ? <LoadingCard label="Carregando cálculos..." /> : error ? <p role="alert" className="text-sm text-destructive">{('response' in error ? error.response?.data?.error : undefined) || "Não foi possível carregar. Toque em Atualizar para tentar novamente."}</p> : <>
       {!data?.items?.length && <p className="py-6 text-center text-muted-foreground">Nenhum chamado encontrado.</p>}
       {data?.items?.map((r) => <ChargeCalculationCard key={r.id} request={r} />)}
       <div className="flex items-center justify-between gap-2"><Button variant="outline" disabled={page === 0 || isFetching} onClick={() => setPage((p) => p - 1)}>Anterior</Button><span className="text-sm">Página {page + 1}</span><Button variant="outline" disabled={!data?.has_more || isFetching} onClick={() => setPage((p) => p + 1)}>Próxima</Button></div>

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { safeUnsubscribe } from "@/lib/safeUnsubscribe";
 import { base44 } from "@/api/base44Client";
 import { MapPin, Navigation, Filter, Loader2, Inbox } from "lucide-react";
 import { haversineKm } from "@/lib/geo";
@@ -68,12 +69,7 @@ export default function NearbyRequestsList({ locksmith }) {
         .catch(() => setLoading(false));
     load();
     const unsub = base44.entities.ServiceRequest.subscribe(() => load());
-    return () => {
-      if (typeof unsub === "function") unsub();
-      else if (unsub && typeof unsub.then === "function") {
-        unsub.then((fn) => typeof fn === "function" && fn()).catch(() => {});
-      }
-    };
+    return safeUnsubscribe(unsub);
   }, [blockedIds]);
 
   if (!locksmith?.online || coverage.loading || coverage.error || !isAreaAvailable(coverage.areas, locksmith.lat, locksmith.lng)) return null;
