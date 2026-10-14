@@ -4,4 +4,8 @@ interface Window {
   webkit?: { messageHandlers?: { bridge?: unknown; capacitor?: unknown } };
   ReactNativeWebView?: { postMessage: (message: string) => void };
   webkitAudioContext?: typeof AudioContext;
+  OneSignalDeferred?: Array<(OneSignal: any) => unknown>;
+}
+interface Navigator {
+  standalone?: boolean;
 }
