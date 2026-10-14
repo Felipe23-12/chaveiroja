@@ -3,6 +3,7 @@ import { secrets } from "base44:runtime";
 import { createOAuthState, MP_CALLBACK_URL } from "../../shared/mercadoPago.ts";
 import { ensureLocksmithProfile } from "../../shared/locksmithProfile.ts";
 import { appleReviewRole } from '../../shared/appleReviewPolicy.ts';
+import { activePaymentAccount } from '../../shared/locksmithAppReadiness.ts';
 
 export default async function(req) {
   try {
@@ -23,10 +24,14 @@ export default async function(req) {
     const profiles = await base44.asServiceRole.entities.Locksmith.filter({ created_by_id: user.id }, "-updated_date", 1);
     const locksmith = profiles[0] || (body.action === 'connect' ? await ensureLocksmithProfile(base44, user) : null);
     const accountsByUser = await base44.asServiceRole.entities.MercadoPagoAccount.filter({ locksmith_user_id: user.id });
-    const legacyAccounts = accountsByUser.length || !locksmith
+    const accountProfile = locksmith || { created_by_id: user.id };
+    const activeAccount = activePaymentAccount(accountsByUser, accountProfile);
+    const legacyAccounts = activeAccount || !locksmith
       ? []
       : await base44.asServiceRole.entities.MercadoPagoAccount.filter({ locksmith_id: locksmith.id });
-    const account = accountsByUser?.[0] || legacyAccounts?.[0];
+    // Uma conexão ativa da conta não pode ficar escondida por um registro antigo.
+    // Um registro legado com dono explícito diferente nunca libera este usuário.
+    const account = activeAccount || activePaymentAccount(legacyAccounts, accountProfile);
 
     if (body.action === "get_status" || body.action === "onboarding_policy") {
       const connected = account?.status === "active";
