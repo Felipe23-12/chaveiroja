@@ -47,9 +47,10 @@ export async function loadDispatchCandidates(base44: any, request: any, supplied
   const blocked = new Set(blocks.map((block: any) =>
     block.blocker_id === requestClientId(request) ? block.blocked_id : block.blocker_id));
   const scoreRows = online.length ? await entities.LocksmithScore.filter({ locksmith_id: { $in: online.map((l: any) => l.id) } }, '-updated_date', 500) : [];
-  const scores = new Map(scoreRows.map((row: any) => [row.locksmith_id, row]));
+  const scores = new Map();
+  for (const row of scoreRows) if (!scores.has(row.locksmith_id)) scores.set(row.locksmith_id, row);
   const searchRadius = Math.max(0, Math.min(100, Number(request.search_radius_km ?? 100)));
-  const ready = await filterAppReadyLocksmiths(base44, online);
+  const ready = await filterAppReadyLocksmiths(base44, online, scoreRows);
   return ready.filter((l: any) => l.created_by_id && !blocked.has(l.created_by_id) &&
       !reviewIds.includes(l.created_by_id) && canReceiveRequest(l, request, now) &&
       isAreaAvailable(areas, l.lat, l.lng) && scoreAvailable(scores.get(l.id), now))
