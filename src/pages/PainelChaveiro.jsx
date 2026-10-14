@@ -592,14 +592,8 @@ export default function PainelChaveiro() {
     acceptingRequest.current = true;
     setAcceptError(null);
     try {
-      if (user?.role !== 'admin') {
-        const fresh = await base44.auth.me();
-        if (!isValidCpf(fresh.cpf)) {
-          setAcceptError({ reason: 'CPF pendente. Preencha em Meus dados antes de aceitar chamados.' });
-          return;
-        }
-        await claimCpf(fresh.cpf);
-      }
+      // O backend valida o CPF aprovado. Reenviar cadastro a cada clique
+      // acrescentava chamadas de rede e podia impedir um aceite já autorizado.
       const result = await acceptRing(reqId, me);
       if (!result.ok) { setAcceptError(result); return; }
       setPendingRequests((prev) => prev.filter((r) => r.id !== reqId));

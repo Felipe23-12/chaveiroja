@@ -51,7 +51,7 @@ export async function flushActionQueue() {
         const result = await acceptRing(action.requestId, action.locksmith);
         if (!result.ok) {
           // GPS desligado: mantém o aceite pendente até o chaveiro ativar a localização.
-          if (result.code === "GPS_REQUIRED" || result.code === "GPS_SYNC_FAILED") throw new Error(result.reason);
+          if (result.retryable || result.code === "GPS_REQUIRED" || result.code === "GPS_SYNC_FAILED") throw new Error(result.reason);
           // O chamado já foi assumido por outro profissional; não o reenvia.
         }
       } else if (action.type === "reject") {

@@ -1,4 +1,5 @@
 import { base44 } from "@/api/base44Client";
+import { isTemporaryConnectionError, retryConnectionRead } from "@/lib/connectionErrors";
 import { fetchDrivingRoute } from '@/lib/geo';
 import { canReceiveWhileBusy, getLocksmithQueueState, SECOND_JOB_MAX_DISTANCE_KM } from "@/lib/serviceQueue";
 
@@ -37,11 +38,23 @@ export async function rejectRing(request, locksmithId) {
 
 /** Aceita o primeiro chamado ou reserva um segundo chamado normal e próximo. */
 export async function acceptRing(requestId, locksmith) {
-  const [fresh, state] = await Promise.all([
-    base44.entities.ServiceRequest.get(requestId),
-    getLocksmithQueueState(locksmith.id),
-  ]);
-  if (fresh.status !== "ringing") return { ok: false, reason: "Outro chaveiro assumiu este atendimento primeiro." };
+  if (!locksmith?.id || !requestId) return { ok: false, code: "PROFILE_REQUIRED", reason: "Atualize o painel e selecione o chamado novamente." };
+  const confirmedForMe = request => request?.id === requestId &&
+    request.locksmith_id === locksmith.id && request.locksmith_user_id === locksmith.created_by_id &&
+    ["accepted", "queued", "on_the_way"].includes(request.status);
+  const success = request => ({ ok: true, request, queued: request.status === "queued", recovered: true });
+  let fresh, state;
+  try {
+    fresh = await retryConnectionRead(() => base44.entities.ServiceRequest.get(requestId));
+    if (confirmedForMe(fresh)) return success(fresh);
+    if (!fresh) return { ok: false, code: "REQUEST_NOT_FOUND", reason: "Chamado não encontrado. Atualize o painel." };
+    if (fresh.status !== "ringing") return { ok: false, code: "REQUEST_UNAVAILABLE",
+      reason: ["accepted", "queued", "on_the_way"].includes(fresh.status) ? "Outro chaveiro assumiu este atendimento primeiro." : "Este chamado foi cancelado ou encerrado." };
+    state = await retryConnectionRead(() => getLocksmithQueueState(locksmith.id));
+  } catch (error) {
+    return { ok: false, code: isTemporaryConnectionError(error) ? "CONNECTION_FAILED" : "REQUEST_UNAVAILABLE",
+      retryable: isTemporaryConnectionError(error), reason: error?.response?.data?.error || "Não foi possível consultar o chamado. Confira a conexão e tente novamente." };
+  }
 
   if (!canReceiveWhileBusy(fresh, state)) {
     const reason = state.queued
@@ -82,7 +95,7 @@ export async function acceptRing(requestId, locksmith) {
     });
     if (data?.allowed === false) return { ok: false, code: "AREA_UNAVAILABLE", reason: "Sua localização atual está fora da área disponível para atendimento." };
   } catch (error) {
-    return { ok: false, code: "GPS_SYNC_FAILED", reason: error?.response?.data?.error || "Não foi possível confirmar sua posição. Verifique a conexão e tente novamente." };
+    return { ok: false, code: "GPS_SYNC_FAILED", retryable: isTemporaryConnectionError(error), reason: error?.response?.data?.error || "Não foi possível confirmar sua posição. Verifique a conexão e tente novamente." };
   }
   if (!queued) void fetchDrivingRoute(
     { lat: position.coords.latitude, lng: position.coords.longitude },
@@ -99,11 +112,30 @@ export async function acceptRing(requestId, locksmith) {
     });
   } catch (err) {
     const data = err?.response?.data || err?.data || err;
-    return { ok: false, code: data?.code, reason: data?.error || err?.message || "Não foi possível aceitar o chamado." };
+    // A resposta pode ter se perdido depois da reserva atômica. Consultar é
+    // seguro; não mostrar "aceito" sem confirmar o registro do servidor.
+    if (isTemporaryConnectionError(err)) {
+      try {
+        const confirmed = await retryConnectionRead(() => base44.entities.ServiceRequest.get(requestId));
+        if (confirmedForMe(confirmed)) return success(confirmed);
+      } catch { /* sem confirmação */ }
+    }
+    return { ok: false, code: data?.code || (isTemporaryConnectionError(err) ? "CONNECTION_FAILED" : "ACCEPT_FAILED"),
+      retryable: isTemporaryConnectionError(err), reason: data?.error || (isTemporaryConnectionError(err)
+        ? "A conexão falhou e o aceite ainda não foi confirmado. Confira o atendimento no painel ou tente novamente."
+        : err?.message || "Não foi possível aceitar o chamado.") };
   }
   // A pontuação não bloqueia a abertura do atendimento já aceito.
   void base44.functions.invoke("serviceTrust", {
     action: "score_event", event_type: "accepted", request_id: requestId, locksmith_id: locksmith.id,
   }).catch(() => null);
-  return { ok: true, request: result?.data?.request, queued: result?.data?.queued === true || queued };
+  const accepted = result?.data?.request;
+  if (!accepted?.id || !["accepted", "queued", "on_the_way"].includes(accepted.status)) {
+    try {
+      const confirmed = await retryConnectionRead(() => base44.entities.ServiceRequest.get(requestId));
+      if (confirmedForMe(confirmed)) return success(confirmed);
+    } catch { /* resposta sem confirmação */ }
+    return { ok: false, code: "CONNECTION_FAILED", retryable: true, reason: "O aceite ainda não foi confirmado. Confira a conexão e tente novamente." };
+  }
+  return { ok: true, request: accepted, queued: accepted.status === "queued" };
 }
