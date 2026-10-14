@@ -13,8 +13,10 @@ export async function ensureLocksmithProfile(base44, user, details = {}) {
   const specialties = [...new Set(source.filter(value => SPECIALTIES.includes(value)))].slice(0, 4);
   const vehicle = typeof details?.vehicle === 'string' ? details.vehicle.trim().slice(0, 160) : '';
   const bio = typeof details?.bio === 'string' ? details.bio.trim().slice(0, 1000) : '';
-  return await base44.asServiceRole.entities.Locksmith.create({
-    created_by_id: user.id,
+  // O autor é definido pelo Base44 a partir da credencial da gravação.
+  // O service role grava service_* e ignora created_by_id enviado no payload.
+  // Crie com a sessão autenticada para preservar dono, RLS e consultas do painel.
+  const created = await base44.entities.Locksmith.create({
     name,
     phone: user.phone || '',
     specialty: specialties[0] || 'Residencial',
@@ -25,4 +27,9 @@ export async function ensureLocksmithProfile(base44, user, details = {}) {
     available: true,
     online: false,
   });
+  const saved = await base44.asServiceRole.entities.Locksmith.get(created.id);
+  if (saved?.created_by_id !== user.id) {
+    throw new Error('Não foi possível confirmar o vínculo do seu perfil. Tente novamente.');
+  }
+  return saved;
 }
