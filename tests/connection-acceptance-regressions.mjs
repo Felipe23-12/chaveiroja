@@ -79,7 +79,7 @@ testAuthSDK.auth.me=async()=>verifiedClient;
 let fresh,mode,reads,mutations;
 const locksmith={id:'locksmith',created_by_id:'locksmith-user'};
 function resetRing(){fresh={id:'call',status:'ringing',customer_lat:-23.5,customer_lng:-46.7};mode='normal';reads=0;mutations=0;}
-globalThis.navigator={onLine:true,geolocation:{getCurrentPosition:ok=>ok({coords:{latitude:-23.5,longitude:-46.7}})}};
+Object.defineProperty(globalThis,'navigator',{value:{onLine:true,geolocation:{getCurrentPosition:ok=>ok({coords:{latitude:-23.5,longitude:-46.7}})}},configurable:true});
 globalThis.testRingSDK={entities:{ServiceRequest:{get:async()=>{reads++;if(mode==='read_failure')throw network();return structuredClone(fresh);}}},functions:{invoke:async(_name,body)=>{
  if(body.action==='locksmith_location')return {data:{allowed:true}};
  if(body.action==='score_event')return {data:{}};
