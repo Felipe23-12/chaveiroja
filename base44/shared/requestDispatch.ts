@@ -1,3 +1,4 @@
+import { filterAppReadyLocksmiths } from './locksmithAppReadiness.ts';
 import { requestClientId } from './serviceRequestOwner.ts';
 import { loadServiceAreas, isAreaAvailable } from './serviceAreas.ts';
 import { appleReviewUserIds, isAppleReviewRequest } from './appleReviewPolicy.ts';
@@ -48,7 +49,8 @@ export async function loadDispatchCandidates(base44: any, request: any, supplied
   const scoreRows = online.length ? await entities.LocksmithScore.filter({ locksmith_id: { $in: online.map((l: any) => l.id) } }, '-updated_date', 500) : [];
   const scores = new Map(scoreRows.map((row: any) => [row.locksmith_id, row]));
   const searchRadius = Math.max(0, Math.min(100, Number(request.search_radius_km ?? 100)));
-  return online.filter((l: any) => l.created_by_id && !blocked.has(l.created_by_id) &&
+  const ready = await filterAppReadyLocksmiths(base44, online);
+  return ready.filter((l: any) => l.created_by_id && !blocked.has(l.created_by_id) &&
       !reviewIds.includes(l.created_by_id) && canReceiveRequest(l, request, now) &&
       isAreaAvailable(areas, l.lat, l.lng) && scoreAvailable(scores.get(l.id), now))
     .map((locksmith: any) => ({ locksmith, score: scores.get(locksmith.id),

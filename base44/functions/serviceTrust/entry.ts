@@ -1,3 +1,4 @@
+import { filterAppReadyLocksmiths, activePaymentAccount } from '../../shared/locksmithAppReadiness.ts';
 import { requestClientId, clientRequestsQuery } from '../../shared/serviceRequestOwner.ts';
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.46';
 import { secrets } from 'base44:runtime';
@@ -57,7 +58,8 @@ export default async function(req) {
       query.created_by_id = { $nin: reviewIds };
       if (body.livre_only === true) query.work_mode = 'livre';
       const items = await base44.entities.Locksmith.filter(query, '-updated_date', 500);
-      return Response.json({ items });
+      const visible = body.surface === 'map' || body.livre_only === true ? items : await filterAppReadyLocksmiths(base44, items);
+      return Response.json({ items: visible });
     }
 
     if (action === 'client_registration_status') return Response.json(await clientRequestAccess(base44, user));
@@ -486,19 +488,26 @@ export default async function(req) {
     if (action === 'accept_request') {
       // O aceite não autoriza o chaveiro a alterar unilateralmente o preço do cliente.
       if (body.extra !== undefined && (typeof body.extra !== 'number' || !Number.isFinite(body.extra) || body.extra !== 0)) return Response.json({ error: 'Custos adicionais não podem ser cobrados no aceite do chamado.' }, { status: 400 });
-      const linkedCpf = await verifiedCpf(base44, user.id);
-      if (user.role !== 'admin' && (!linkedCpf || linkedCpf !== String(user.cpf || '').replace(/\D/g, ''))) return Response.json({ error: 'Confirme seu CPF antes de aceitar chamados.' }, { status: 403 });
       const request = await base44.asServiceRole.entities.ServiceRequest.get(body.request_id);
-      if (!request) return Response.json({ error: 'Chamado não encontrado' }, { status: 404 });
-      if (request.status !== 'ringing') return Response.json({ error: 'Outro chaveiro assumiu este atendimento primeiro.' }, { status: 409 });
+      if (!request) return Response.json({ code: 'REQUEST_NOT_FOUND', error: 'Chamado não encontrado' }, { status: 404 });
+      if (['accepted', 'queued', 'on_the_way'].includes(request.status) &&
+          request.locksmith_user_id === user.id && (!body.locksmith_id || request.locksmith_id === body.locksmith_id)) {
+        // Recupera uma reserva já confirmada cuja resposta se perdeu na conexão.
+        return Response.json({ success: true, request, queued: request.status === 'queued', duplicate: true });
+      }
+      if (request.status !== 'ringing') return Response.json({ code: 'REQUEST_UNAVAILABLE', error: 'Este chamado já foi assumido, cancelado ou encerrado.' }, { status: 409 });
+      const linkedCpf = await verifiedCpf(base44, user.id);
+      if (user.role !== 'admin' && (!linkedCpf || linkedCpf !== String(user.cpf || '').replace(/\D/g, ''))) return Response.json({ code: 'CPF_REQUIRED', error: 'Confirme seu CPF antes de aceitar chamados.' }, { status: 403 });
+      if (user.moderation_blocked) return Response.json({ code: 'PROFILE_BLOCKED', error: 'Seu perfil está bloqueado para novos chamados.' }, { status: 403 });
       const contexts = await base44.asServiceRole.entities.ServiceRequestContext.filter({ request_id: request.id, client_id: requestClientId(request) }, '-created_date', 1);
       if (!contexts.length || await clientDebt(base44, requestClientId(request))) return Response.json({ error: 'Solicitação não autorizada ou cliente com débito pendente.' }, { status: 409 });
       const acceptance = await validateRequestAcceptance(base44, user, request, body.locksmith_id);
       if (acceptance.error) return Response.json({ code: acceptance.code, error: acceptance.error }, { status: 403 });
       const { locksmith } = acceptance;
       const accountsByUser = await base44.asServiceRole.entities.MercadoPagoAccount.filter({ locksmith_user_id: user.id });
-      const legacyAccounts = accountsByUser.length ? [] : await base44.asServiceRole.entities.MercadoPagoAccount.filter({ locksmith_id: locksmith.id });
-      const account = accountsByUser?.[0] || legacyAccounts?.[0];
+      const activeAccount = activePaymentAccount(accountsByUser, locksmith);
+      const legacyAccounts = activeAccount ? [] : await base44.asServiceRole.entities.MercadoPagoAccount.filter({ locksmith_id: locksmith.id });
+      const account = activeAccount || activePaymentAccount(legacyAccounts, locksmith);
       if (account?.status !== 'active') return Response.json({ code: 'MERCADO_PAGO_REQUIRED', error: 'Conecte sua conta Mercado Pago para aceitar chamados. Acesse Cadastro de recebimentos no seu perfil.' }, { status: 403 });
       // O servidor decide se o aceite é imediato ou entra na fila. Nunca confie
       // nos parâmetros queued/queued_after_request_id enviados pelo dispositivo.

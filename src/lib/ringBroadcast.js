@@ -130,7 +130,7 @@ export async function acceptRing(requestId, locksmith) {
     action: "score_event", event_type: "accepted", request_id: requestId, locksmith_id: locksmith.id,
   }).catch(() => null);
   const accepted = result?.data?.request;
-  if (!accepted?.id || !["accepted", "queued", "on_the_way"].includes(accepted.status)) {
+  if (!confirmedForMe(accepted)) {
     try {
       const confirmed = await retryConnectionRead(() => base44.entities.ServiceRequest.get(requestId));
       if (confirmedForMe(confirmed)) return success(confirmed);
