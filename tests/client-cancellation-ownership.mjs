@@ -7,7 +7,7 @@ const source=await readFile(entry,'utf8');
 const mocks={};
 for(const match of source.matchAll(/import \{([^}]+)\} from '([^']+)'/g)){
   const file=match[2].split('/').at(-1);
-  if(file==='serviceRequestOwner.ts'||file==='requestDispatch.ts'||file==='scoreDispatchPolicy.ts')continue;
+  if(file==='serviceRequestOwner.ts'||file==='requestDispatch.ts'||file==='scoreDispatchPolicy.ts'||file==='locksmithAppReadiness.ts')continue;
   if(match[2].startsWith('npm:')||match[2].startsWith('base44:'))continue;
   const names=match[1].split(',').map(n=>n.trim());
   mocks[file]=names.map(n=>'export const '+n+'=(...args)=>globalThis.ownerMocks.'+n+'(...args);').join('\n');
