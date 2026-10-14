@@ -16,25 +16,27 @@ export async function validateRequestAcceptance(base44, user, request, profileId
     return deny('NOT_RECIPIENT', 'Este chamado não foi direcionado ao perfil exibido. Atualize o painel.');
   }
   const entities = base44.asServiceRole.entities;
-  const { items } = await entities.Locksmith.filter({
+  // O SDK deste atendimento retorna arrays na consulta posicional.
+  // Não ler .items de um array: isso interrompia o aceite antes das validações.
+  const profiles = await entities.Locksmith.filter({
     created_by_id: user.id,
     id: profileId || { $in: recipientIds },
-  }, { sort: '-updated_date', limit: 1 });
-  const locksmith = items[0];
+  }, '-updated_date', 1);
+  const locksmith = profiles[0];
   if (!locksmith) return deny('PROFILE_NOT_FOUND', 'O perfil destinatário não está vinculado à sua conta. Atualize o painel.');
   const clientId = requestClientId(request);
   const [scores, areas, blocks, reviewIds] = await Promise.all([
-    entities.LocksmithScore.filter({ locksmith_id: locksmith.id }, { sort: '-updated_date', limit: 1 }),
+    entities.LocksmithScore.filter({ locksmith_id: locksmith.id }, '-updated_date', 1),
     loadServiceAreas(base44),
     entities.UserBlock.filter({ active: { $ne: false }, $or: [
       { blocker_id: user.id, blocked_id: clientId },
       { blocker_id: clientId, blocked_id: user.id },
-    ] }, { limit: 1 }),
+    ] }, '-created_date', 1),
     appleReviewUserIds(base44),
   ]);
   if (reviewIds.includes(user.id)) return deny('NOT_RECIPIENT', 'Este chamado não foi direcionado a você.');
-  if (blocks.items.length) return deny('CONTACT_BLOCKED', 'Este atendimento está indisponível por um bloqueio entre as contas.');
-  if (!scoreAvailable(scores.items[0]) || locksmith.inactive_deactivated || Date.parse(locksmith.blocked_until || '') > Date.now()) {
+  if (blocks.length) return deny('CONTACT_BLOCKED', 'Este atendimento está indisponível por um bloqueio entre as contas.');
+  if (!scoreAvailable(scores[0]) || locksmith.inactive_deactivated || Date.parse(locksmith.blocked_until || '') > Date.now()) {
     return deny('PROFILE_BLOCKED', 'Seu perfil está suspenso ou desativado para receber chamados.');
   }
   if (!isAreaAvailable(areas, locksmith.lat, locksmith.lng) || !isAreaAvailable(areas, request.customer_lat, request.customer_lng)) {
@@ -42,6 +44,6 @@ export async function validateRequestAcceptance(base44, user, request, profileId
   }
   if (!locksmith.online) return deny('PROFILE_OFFLINE', 'Você está offline. Fique online e tente aceitar novamente.');
   if (!canReceiveRequest(locksmith, request)) return deny('SERVICE_UNAVAILABLE', 'Este serviço não está habilitado no seu modo de trabalho ou nos serviços do seu perfil.');
-  if (!scoreCanReceive(request, scores.items[0])) return deny('SCORE_PRIORITY', 'Aguarde o fim da prioridade dos chaveiros com score 10 para aceitar.');
+  if (!scoreCanReceive(request, scores[0])) return deny('SCORE_PRIORITY', 'Aguarde o fim da prioridade dos chaveiros com score 10 para aceitar.');
   return { locksmith };
 }

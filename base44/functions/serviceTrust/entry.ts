@@ -637,6 +637,7 @@ export default async function(req) {
 
     return Response.json({ error: 'Ação inválida' }, { status: 400 });
   } catch (error) {
+    console.error('serviceTrust failed:', error?.stack || error?.message);
     if (error.code === 'AREA_UNAVAILABLE') return Response.json({ code: error.code, error: error.message }, { status: 403 });
     const status = /Preço|Desconto|Serviço inválido|Dados do veículo|Catálogo|veículo|concessionária|Consulta de preço/.test(error.message || '') ? 400 : 500;
     return Response.json({ error: error.message || 'Erro interno' }, { status });
