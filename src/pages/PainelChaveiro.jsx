@@ -64,7 +64,6 @@ import CoverageNotice from '@/components/location/CoverageNotice';
 import useLocksmithCoverage from '@/hooks/useLocksmithCoverage';
 import { isAreaAvailable } from '@/lib/serviceAreas';
 import { QUOTE_MODE_ENABLED } from '@/lib/quoteMode';
-import { claimCpf } from '@/lib/cpfRegistration';
 import { isValidCpf } from '@/lib/cpf';
 
 // Raio de cobertura para considerar um pedido "na região" do chaveiro (km)

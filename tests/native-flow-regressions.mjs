@@ -23,12 +23,12 @@ assert.equal(redirects.safeReturnTo('/?app_id=bad&access_token=bad&step=2'),'/?s
 const native=await moduleFrom('src/lib/nativeAuthEnvironment.js');
 Object.defineProperty(globalThis,'navigator',{value:{userAgent:'iPhone',platform:'iPhone',maxTouchPoints:1},configurable:true});assert.equal(native.isNativeIOS(),false);window.Capacitor={isNativePlatform:()=>true,getPlatform:()=> 'ios'};assert.equal(native.isNativeIOS(),true);delete window.Capacitor;
 // GPS must succeed and synchronize before the accept operation can run.
-let actions=[];globalThis.testSDK={entities:{ServiceRequest:{get:async()=>({status:'ringing',customer_lat:-23,customer_lng:-46})}},functions:{invoke:async(_name,args)=>{actions.push(args.action);return {data:{request:{id:'service'},allowed:true}};}}};
+let actions=[];globalThis.testSDK={entities:{ServiceRequest:{get:async()=>({status:'ringing',customer_lat:-23,customer_lng:-46})}},functions:{invoke:async(_name,args)=>{actions.push(args.action);return {data:{request:{id:'service',status:'accepted',locksmith_id:'locksmith',locksmith_user_id:'locksmith-user'},allowed:true}};}}};
 const ring=await moduleFrom('src/lib/ringBroadcast.js',{...sdk,'@/lib/geo':'export async function fetchDrivingRoute(){return null;}', '@/lib/serviceQueue':'export const SECOND_JOB_MAX_DISTANCE_KM=5; export const canReceiveWhileBusy=()=>true; export const getLocksmithQueueState=async()=>({});'});
-navigator.geolocation=undefined;assert.equal((await ring.acceptRing('service',{id:'locksmith'})).code,'GPS_REQUIRED');assert.deepEqual(actions,[]);
-navigator.geolocation={getCurrentPosition(_ok,fail){fail({code:1});}};assert.equal((await ring.acceptRing('service',{id:'locksmith'})).code,'GPS_REQUIRED');assert.deepEqual(actions,[]);
+navigator.geolocation=undefined;assert.equal((await ring.acceptRing('service',{id:'locksmith',created_by_id:'locksmith-user'})).code,'GPS_REQUIRED');assert.deepEqual(actions,[]);
+navigator.geolocation={getCurrentPosition(_ok,fail){fail({code:1});}};assert.equal((await ring.acceptRing('service',{id:'locksmith',created_by_id:'locksmith-user'})).code,'GPS_REQUIRED');assert.deepEqual(actions,[]);
 navigator.geolocation={getCurrentPosition(ok,_fail,options){assert.equal(options.maximumAge,0);ok({coords:{latitude:-23.5,longitude:-46.5}});}};
-assert.equal((await ring.acceptRing('service',{id:'locksmith'})).ok,true);assert.deepEqual(actions.slice(0,2),['locksmith_location','accept_request']);
+assert.equal((await ring.acceptRing('service',{id:'locksmith',created_by_id:'locksmith-user'})).ok,true);assert.deepEqual(actions.slice(0,2),['locksmith_location','accept_request']);
 // Payment callback failure must allow a later retry, without creating a new charge.
 let effect,cleanup,fail=true,confirmations=0,statusCalls=0;
 globalThis.testReact={useEffect(fn){effect=fn;},useRef(value){return {current:value};},useState(){return [{},()=>{}];}};

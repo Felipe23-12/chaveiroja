@@ -33,6 +33,9 @@ function reset() {
     ringing_locksmith_ids:['ten'],ringing_locksmith_user_ids:['ten-user']};
 }
 const entities={
+  User:{filter:async()=>providers.map(p=>({id:p.created_by_id,role:'user',cpf:'52998224725'}))},
+  VerifiedCpf:{filter:async()=>providers.map(p=>({user_id:p.created_by_id,ownership_verified:true,cpf:'52998224725'}))},
+  MercadoPagoAccount:{filter:async()=>providers.map(p=>({locksmith_user_id:p.created_by_id,status:'active'}))},
   Locksmith:{filter:async()=>providers.filter(p=>p.online),get:async id=>providers.find(p=>p.id===id)},
   LocksmithScore:{filter:async()=>scores},
   UserBlock:{filter:async()=>blocks},
