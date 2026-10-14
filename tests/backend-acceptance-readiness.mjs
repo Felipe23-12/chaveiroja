@@ -4,7 +4,7 @@ import { tmpdir } from 'node:os';
 import { pathToFileURL } from 'node:url';
 import { build } from 'esbuild';
 const source=await readFile('base44/functions/serviceTrust/entry.ts','utf8');
-const real=new Set(['serviceRequestOwner.ts','requestAcceptance.ts','requestDispatch.ts','scoreDispatchPolicy.ts','locksmithAppReadiness.ts','registrationEligibility.ts']);
+const real=new Set(['serviceRequestOwner.ts','requestAcceptance.ts','requestDispatch.ts','scoreDispatchPolicy.ts','locksmithAppReadiness.ts','registrationEligibility.ts','unansweredRequest.ts']);
 const mocks={};
 for(const match of source.matchAll(/import \{([^}]+)\} from '([^']+)'/g)) {
  const file=match[2].split('/').at(-1);
@@ -20,11 +20,12 @@ const matches=(row,q)=>Object.entries(q).every(([key,v])=>{
   if('$in' in v)return v.$in.includes(value??null);
   if('$nin' in v)return !v.$nin.includes(value);
   if('$ne' in v)return value!==v.$ne;
+  if('$gt' in v)return value>v.$gt;
  }
  return value===v;
 });
 const profile=(id,owner)=>({id,created_by_id:owner,online:true,lat:-23.53,lng:-46.7,work_mode:'app',services:['abertura_residencial'],service_radius_km:10});
-const callRecord=(id='call')=>({id,client_id:'client',created_by_id:'service_technical',status:'ringing',service_type:'Abertura Residencial',address:'Fixture',
+const callRecord=(id='call')=>({id,client_id:'client',created_by_id:'service_technical',status:'ringing',created_date:new Date().toISOString(),service_type:'Abertura Residencial',address:'Fixture',
  urgency:'normal',customer_lat:-23.54,customer_lng:-46.7,ringing_locksmith_ids:['p1','p2'],ringing_locksmith_user_ids:['u1','u2']});
 function reset(){
  profiles=[profile('p1','u1'),profile('p2','u2')];
