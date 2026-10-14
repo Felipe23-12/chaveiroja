@@ -4,6 +4,7 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.46';
 import { secrets } from 'base44:runtime';
 import { distanceKm, loadDispatchCandidates, refreshRequestDispatch } from '../../shared/requestDispatch.ts';
 import { validateRequestAcceptance } from '../../shared/requestAcceptance.ts';
+import { UNANSWERED_REQUEST_MS, UNANSWERED_REQUEST_REASON, unansweredRequestExpired } from '../../shared/unansweredRequest.ts';
 import { initialScoreCandidates, SCORE_PRIORITY_MS, dispatchScore, scoreCanReceive } from '../../shared/scoreDispatchPolicy.ts';
 import { notifyRingingLocksmiths } from '../../shared/locksmithRingPush.ts';
 import { scoreFor, penalizeLocksmithCancellation, recordClientCancellation, getClientCancelBlock, clientCancellationQuote } from '../../shared/cancellationRules.ts';
@@ -496,6 +497,7 @@ export default async function(req) {
         return Response.json({ success: true, request, queued: request.status === 'queued', duplicate: true });
       }
       if (request.status !== 'ringing') return Response.json({ code: 'REQUEST_UNAVAILABLE', error: 'Este chamado já foi assumido, cancelado ou encerrado.' }, { status: 409 });
+      if (unansweredRequestExpired(request)) return Response.json({ code: 'REQUEST_EXPIRED', error: UNANSWERED_REQUEST_REASON }, { status: 409 });
       const linkedCpf = await verifiedCpf(base44, user.id);
       if (user.role !== 'admin' && (!linkedCpf || linkedCpf !== String(user.cpf || '').replace(/\D/g, ''))) return Response.json({ code: 'CPF_REQUIRED', error: 'Confirme seu CPF antes de aceitar chamados.' }, { status: 403 });
       if (user.moderation_blocked) return Response.json({ code: 'PROFILE_BLOCKED', error: 'Seu perfil está bloqueado para novos chamados.' }, { status: 403 });
@@ -549,10 +551,11 @@ export default async function(req) {
       // Reserva o chamado em uma única gravação condicional. Se dois chaveiros
       // aceitarem ao mesmo tempo, apenas quem ainda encontrar status=ringing vence.
       const claimed = await base44.asServiceRole.entities.ServiceRequest.updateMany(
-        { id: request.id, status: 'ringing' },
+        { id: request.id, status: 'ringing', created_date: { $gt: new Date(Date.now() - UNANSWERED_REQUEST_MS).toISOString() } },
         { $set: acceptedData },
       );
       if (claimed?.updated !== 1) {
+        if (unansweredRequestExpired(request)) return Response.json({ code: 'REQUEST_EXPIRED', error: UNANSWERED_REQUEST_REASON }, { status: 409 });
         return Response.json({ error: 'Outro chaveiro assumiu este atendimento primeiro.' }, { status: 409 });
       }
       // updateMany faz a reserva atômica, mas não publica os eventos individuais.

@@ -1,0 +1,50 @@
+{
+  "name": "Encerrar Chamado Sem Aceite",
+  "description": "Encerra sem taxa os novos chamados que n\u00e3o forem aceitos por um chaveiro em at\u00e9 10 minutos, mesmo com o aplicativo fechado.",
+  "trigger": {
+    "config": {
+      "trigger_type": "entity",
+      "entity_name": "ServiceRequest",
+      "events": [
+        "create"
+      ]
+    },
+    "condition": "${ (.trigger.data.status == \"ringing\" or .trigger.data.status == \"searching\") and .trigger.data.apple_review != true }"
+  },
+  "definition": {
+    "document": {
+      "dsl": "1.0.0",
+      "name": "encerrar_chamado_sem_aceite",
+      "version": "1.0",
+      "namespace": "base44"
+    },
+    "do": [
+      {
+        "aguardar_aceite": {
+          "wait": "PT10M",
+          "then": "encerrar_se_pendente",
+          "x-base44": {
+            "title": "Aguardar 10 minutos",
+            "description": "Prazo contado da cria\u00e7\u00e3o do chamado"
+          }
+        }
+      },
+      {
+        "encerrar_se_pendente": {
+          "call": "invoke_backend_function",
+          "with": {
+            "function_name": "expireUnansweredRequest",
+            "args": {
+              "request_id": "${ .trigger.entity_id }"
+            }
+          },
+          "then": "end",
+          "x-base44": {
+            "title": "Encerrar se ningu\u00e9m aceitou",
+            "description": "Preserva chamados j\u00e1 aceitos ou em fila"
+          }
+        }
+      }
+    ]
+  }
+}

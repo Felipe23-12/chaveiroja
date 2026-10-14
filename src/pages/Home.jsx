@@ -823,10 +823,10 @@ export default function Home() {
           const travelling = ["accepted", "on_the_way"].includes(updated.status) &&
             !updated.end_photos?.length && !updated.client_confirmed;
           if (updated.status === "cancelled" && updated.cancelled_by !== "cliente") {
-            notifyClient("Chamado cancelado", updated.cancelled_by === "chaveiro" ? "O chaveiro cancelou o atendimento." : "O atendimento foi cancelado automaticamente.");
+            notifyClient("Chamado cancelado", updated.cancelled_by === "chaveiro" ? "O chaveiro cancelou o atendimento." : updated.cancellation_reason || "O atendimento foi cancelado automaticamente.");
             toast({
               title: "Chamado cancelado",
-              description: updated.cancelled_by === "chaveiro" ? "O chaveiro cancelou o atendimento. Você já pode solicitar outro serviço." : "O atendimento foi encerrado. Você já pode solicitar outro serviço.",
+              description: updated.cancelled_by === "chaveiro" ? "O chaveiro cancelou o atendimento. Você já pode solicitar outro serviço." : `${updated.cancellation_reason || "O atendimento foi encerrado."} Você já pode solicitar outro serviço.`,
               variant: "destructive",
             });
             handleNewRequest();
