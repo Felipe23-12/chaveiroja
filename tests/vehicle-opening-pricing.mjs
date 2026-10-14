@@ -18,7 +18,7 @@ const values={...defaults,tier_day:0,tier_night:0,tier_weekend:0,tier_normal_cap
 let record={id:'initial',values,vehicle_opening_rules:[]};let role='admin';let writes=0;let history=[{id:'prior-request'}];
 const paid=Array.from({length:5},(_,i)=>({id:`paid${i}`}));
 const entities=new Proxy({}, {get:(_,name)=>({
- filter:async query=>name==='ServicePricingConfig'?[record]:name==='ServiceRequest'&&query.status==='completed'?paid:name==='ServiceRequest'&&query.created_by_id?history:name==='Payment'?paid.map(r=>({service_request_id:r.id})):[],
+ filter:async query=>name==='ServicePricingConfig'?[record]:name==='ServiceRequest'&&query.status==='completed'?paid:name==='ServiceRequest'&&(query.created_by_id||query.$or)?history:name==='Payment'?paid.map(r=>({service_request_id:r.id})):[],
  create:async data=>{assert.equal(name,'ServicePricingConfig');writes++;record={...data,id:`save${writes}`,created_date:'2026-09-28T00:00:00Z'};return record;}
 })});
 globalThis.testClient={auth:{me:async()=>({id:'admin',role})},entities,asServiceRole:{entities}};
