@@ -35,6 +35,7 @@
     "src/vite-plugins",
     "src/components/ui",
     "src/api",
-    "src/lib"
+    "src/lib",
+    "src/components/notifications/OneSignalWorker.js"
   ]
 }
