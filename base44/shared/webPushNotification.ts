@@ -29,6 +29,7 @@ export async function sendWebPush(base44, { userId, title, content, path, eventI
       target_channel: 'push', isAnyWeb: true, isAndroid: false, isIos: false,
       headings: { en: title, pt: title }, contents: { en: content, pt: content },
       data: { path },
+      web_url: `https://woodoo-quick-lock-link.base44.app${path}`,
       idempotency_key: await webPushEventId(eventId),
       ttl: 3600,
     }),

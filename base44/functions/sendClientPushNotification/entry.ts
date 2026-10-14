@@ -1,6 +1,7 @@
 import { requestClientId } from '../../shared/serviceRequestOwner.ts';
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.46';
 import { verifyInternalCall } from '../../shared/internalCall.ts';
+import { sendWebPush } from '../../shared/webPushNotification.ts';
 
 // Envia notificação push ao CLIENTE quando o andamento do chamado muda.
 // Toca no celular do cliente mesmo com o app fechado / tela bloqueada.
@@ -73,26 +74,28 @@ export default async function(req) {
     if (!key) return Response.json({ skipped: true, reason: `status ${sr.status} não gera aviso` });
 
     const alreadySent = sr.client_push_sent || [];
-    if (alreadySent.includes(key)) {
-      return Response.json({ skipped: true, reason: `aviso ${key} já enviado` });
-    }
+    const webKey = `web:${key}`;
+    if (alreadySent.includes(key) && alreadySent.includes(webKey)) return Response.json({ skipped: true, reason: `aviso ${key} já enviado` });
+    if (body.dry_run === true) return Response.json({ success: true, dry_run: true, key, channels: ['native', 'web'] });
 
-    if (body.dry_run === true) return Response.json({ success: true, dry_run: true, key });
-
-    await base44.asServiceRole.integrations.Core.SendPushNotification({
-      user_id: clientUserId,
-      title,
-      content,
-      action_label: 'Abrir chamado',
-      action_url: `/acompanhamento/${serviceRequestId}`,
-    });
-
-    await base44.asServiceRole.entities.ServiceRequest.updateMany(
-      { id: serviceRequestId },
-      { $addToSet: { client_push_sent: key } },
+    const [native, web] = await Promise.allSettled([
+      alreadySent.includes(key) ? Promise.resolve({ skipped: true }) : base44.asServiceRole.integrations.Core.SendPushNotification({
+        user_id: clientUserId, title, content, action_label: 'Abrir chamado', action_url: `/acompanhamento/${serviceRequestId}`,
+      }),
+      alreadySent.includes(webKey) ? Promise.resolve({ skipped: true }) : sendWebPush(base44, {
+        userId: clientUserId, title, content, path: `/acompanhamento/${serviceRequestId}`, eventId: `request:${serviceRequestId}:${key}`,
+      }),
+    ]);
+    const sentKeys = [];
+    if (!alreadySent.includes(key) && native.status === 'fulfilled') sentKeys.push(key);
+    if (!alreadySent.includes(webKey) && web.status === 'fulfilled' && web.value.sent) sentKeys.push(webKey);
+    if (sentKeys.length) await base44.asServiceRole.entities.ServiceRequest.updateMany(
+      { id: serviceRequestId }, { $addToSet: { client_push_sent: { $each: sentKeys } } },
     );
-
-    return Response.json({ success: true, key, user_id: clientUserId });
+    if (native.status === 'rejected') console.warn('Native client push failed:', native.reason?.message);
+    if (web.status === 'rejected') console.warn('Browser client push failed:', web.reason?.message);
+    const successful = sentKeys.length > 0 || alreadySent.includes(key) || alreadySent.includes(webKey);
+    return Response.json({ success: successful, key, native: native.status, web: web.status === 'fulfilled' ? web.value : { error: 'web_delivery_failed' } }, { status: successful ? 200 : 502 });
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });
   }

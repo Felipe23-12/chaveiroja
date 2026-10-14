@@ -20,6 +20,7 @@ import ChargeCalculationsLink from "@/components/admin/ChargeCalculationsLink";
 import { getEffectiveRole, canAccess } from "@/lib/accessControl";
 import useMobileMenuHistory from '@/hooks/useMobileMenuHistory';
 import MobileMenuViewport from '@/components/MobileMenuViewport';
+import BrowserNotifications from '@/components/notifications/BrowserNotifications';
 
 const rootPaths = ['/', '/mapa', '/historico', '/pagamentos', '/painel-chaveiro', '/painel-financeiro', '/modo-trabalho', '/painel-admin', '/painel-financeiro-admin', '/sugestoes'];
 
@@ -232,6 +233,7 @@ export default function Layout() {
         <SidebarContent onNavigate={() => {}} />
       </aside>
       <main className={`min-w-0 flex-1 ${isRootPath ? 'pb-[calc(4rem+env(safe-area-inset-bottom))]' : 'pb-safe'} md:pb-0`}>
+        <BrowserNotifications />
         <PageTransition key={location.pathname}>
           <Outlet />
         </PageTransition>

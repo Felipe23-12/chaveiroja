@@ -1,5 +1,6 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.46';
 import { verifyInternalCall } from '../../shared/internalCall.ts';
+import { sendWebPush } from '../../shared/webPushNotification.ts';
 
 // Envia push nativo ao destinatário de uma mensagem de chat, para que o alerta
 // toque e apareça na tela do celular mesmo com o app fechado ou bloqueado.
@@ -50,15 +51,19 @@ export default async function(req) {
     const text = (msg.message || (msg.photo_url ? 'Enviou uma foto.' : 'Você recebeu uma nova mensagem.')).slice(0, 140);
     if (body.dry_run === true) return Response.json({ success: true, dry_run: true, recipient: toLocksmith ? 'locksmith' : 'client', action_url: toLocksmith ? '/painel-chaveiro' : `/chat/${msg.locksmith_id}` });
 
-    await base44.asServiceRole.integrations.Core.SendPushNotification({
-      user_id: userId,
-      title: `💬 ${senderName}`,
-      content: text,
-      action_label: 'Abrir conversa',
-      action_url: toLocksmith ? '/painel-chaveiro' : `/chat/${msg.locksmith_id}`,
-    });
-
-    return Response.json({ success: true, user_id: userId });
+    const [native, web] = await Promise.allSettled([
+      base44.asServiceRole.integrations.Core.SendPushNotification({
+        user_id: userId, title: `💬 ${senderName}`, content: text, action_label: 'Abrir conversa',
+        action_url: toLocksmith ? '/painel-chaveiro' : `/chat/${msg.locksmith_id}`,
+      }),
+      toLocksmith ? Promise.resolve({ skipped: true }) : sendWebPush(base44, {
+        userId, title: `💬 ${senderName}`, content: text, path: `/chat/${msg.locksmith_id}`, eventId: `chat:${messageId}`,
+      }),
+    ]);
+    if (native.status === 'rejected') console.warn('Native chat push failed:', native.reason?.message);
+    if (web.status === 'rejected') console.warn('Browser chat push failed:', web.reason?.message);
+    const successful = native.status === 'fulfilled' || (web.status === 'fulfilled' && web.value.sent);
+    return Response.json({ success: successful, native: native.status, web: web.status === 'fulfilled' ? web.value : { error: 'web_delivery_failed' } }, { status: successful ? 200 : 502 });
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });
   }
