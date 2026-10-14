@@ -1,0 +1,46 @@
+{
+  "name": "WebPushIdentity",
+  "type": "object",
+  "properties": {
+    "user_id": {
+      "type": "string"
+    },
+    "external_id": {
+      "type": "string",
+      "description": "Identificador aleat\u00f3rio privado, gerado somente pelo servidor para vincular navegadores ao usu\u00e1rio."
+    }
+  },
+  "required": [
+    "user_id",
+    "external_id"
+  ],
+  "rls": {
+    "read": {
+      "$or": [
+        {
+          "data.user_id": "{{user.id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}
