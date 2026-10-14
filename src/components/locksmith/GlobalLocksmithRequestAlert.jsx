@@ -10,7 +10,7 @@ import { savePendingRequests, getPendingRequests, saveLocksmithProfile, getLocks
 import { enqueueAction, flushActionQueue, queuedActionsCount, bindAutoFlush } from "@/lib/offlineActionQueue";
 import { useOnlineStatus } from "@/hooks/useOnlineStatus";
 import OfflineBanner from "@/components/locksmith/OfflineBanner";
-import { safeUnsubscribe } from "@/lib/safeUnsubscribe";
+import { subscribeSafely } from "@/lib/safeUnsubscribe";
 import useBlockedUsers from "@/hooks/useBlockedUsers";
 import { filterRingableWhileBusy, getLocksmithQueueState } from "@/lib/serviceQueue";
 import { clientNameFromRequest } from "@/lib/clientName";
@@ -90,7 +90,7 @@ export default function GlobalLocksmithRequestAlert() {
 
   useEffect(() => {
     if (!isChaveiro || !user?.id) return;
-    return safeUnsubscribe(base44.entities.Locksmith.subscribe(event => {
+    return subscribeSafely(() => base44.entities.Locksmith.subscribe(event => {
       if (event.data?.created_by_id === user.id) setLocksmith(prev => event.type === 'delete' ? null : { ...prev, ...event.data });
     }));
   }, [isChaveiro, user?.id]);
@@ -129,7 +129,7 @@ export default function GlobalLocksmithRequestAlert() {
     // No Preview/Web o realtime pode atrasar; polling curto garante que o chamado
     // direcionado pelo backend apareça mesmo quando o subscribe não disparar.
     const timer = setInterval(load, 3000);
-    const unsub = safeUnsubscribe(base44.entities.ServiceRequest.subscribe(() => load()));
+    const unsub = subscribeSafely(() => base44.entities.ServiceRequest.subscribe(() => load()));
     return () => {
       clearInterval(timer);
       unsub();

@@ -1,5 +1,5 @@
 import { base44 } from '@/api/base44Client';
-import { safeUnsubscribe } from '@/lib/safeUnsubscribe';
+import { subscribeSafely } from '@/lib/safeUnsubscribe';
 
 // O aceite usa gravação condicional: consulta também, sem depender de eventos.
 export default function watchServiceRequest(id, onRequest, onError = (_error) => {}) {
@@ -32,7 +32,7 @@ export default function watchServiceRequest(id, onRequest, onError = (_error) =>
       }
     }
   };
-  const unsubscribe = safeUnsubscribe(base44.entities.ServiceRequest.subscribe(event => {
+  const unsubscribe = subscribeSafely(() => base44.entities.ServiceRequest.subscribe(event => {
     if (stopped || (event.id !== id && event.data?.id !== id)) return;
     const data = event.data;
     // Usa o evento autorizado completo sem uma consulta adicional.
@@ -45,6 +45,7 @@ export default function watchServiceRequest(id, onRequest, onError = (_error) =>
   }));
   document.addEventListener('visibilitychange', refresh);
   window.addEventListener('online', refresh);
+  window.addEventListener('focus', refresh);
   refresh();
   return () => {
     stopped = true;
@@ -52,5 +53,6 @@ export default function watchServiceRequest(id, onRequest, onError = (_error) =>
     unsubscribe();
     document.removeEventListener('visibilitychange', refresh);
     window.removeEventListener('online', refresh);
+    window.removeEventListener('focus', refresh);
   };
 }

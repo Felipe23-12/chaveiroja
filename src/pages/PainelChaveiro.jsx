@@ -49,7 +49,7 @@ import UrgentNearbyAlert from "@/components/locksmith/UrgentNearbyAlert";
 import GmailConnectCard from "@/components/gmail/GmailConnectCard";
 import PartsChecklist from "@/components/locksmith/PartsChecklist";
 import { notifyStatusByGmail } from "@/lib/gmailStatusEmail";
-import { safeUnsubscribe } from "@/lib/safeUnsubscribe";
+import { subscribeSafely } from "@/lib/safeUnsubscribe";
 import useBlockedUsers from "@/hooks/useBlockedUsers";
 import ModerationActions from "@/components/moderation/ModerationActions";
 import OpeningConditionCorrection from "@/components/locksmith/OpeningConditionCorrection";
@@ -229,14 +229,14 @@ export default function PainelChaveiro() {
           if (cached?.created_by_id === user.id) setMe(cached);
         });
     loadMe();
-    const unsub = base44.entities.Locksmith.subscribe((event) => {
+    const unsub = subscribeSafely(() => base44.entities.Locksmith.subscribe((event) => {
       if (event.data?.id === selectedId) loadMe();
-    });
-    const unsubFinancials = base44.entities.LocksmithFinancials.subscribe((event) => {
+    ));
+    const unsubFinancials = subscribeSafely(() => base44.entities.LocksmithFinancials.subscribe((event) => {
       if (event.data?.locksmith_id === selectedId) loadMe();
-    });
-    const cleanupLocksmith = safeUnsubscribe(unsub);
-    const cleanupFinancials = safeUnsubscribe(unsubFinancials);
+    ));
+    const cleanupLocksmith = unsub;
+    const cleanupFinancials = unsubFinancials;
     return () => {
       disposed = true;
       cleanupLocksmith();
@@ -248,7 +248,7 @@ export default function PainelChaveiro() {
     if (!selectedId) return;
     const load = () => base44.entities.LocksmithScore.filter({ locksmith_id: selectedId }).then((rows) => setTrustScore(rows[0] || null)).catch(() => {});
     load();
-    return safeUnsubscribe(base44.entities.LocksmithScore.subscribe(load));
+    return subscribeSafely(() => base44.entities.LocksmithScore.subscribe(load));
   }, [selectedId]);
 
   useEffect(() => {
@@ -284,7 +284,7 @@ export default function PainelChaveiro() {
     load();
     // Reavalia periodicamente para o chamado recusado voltar a tocar no prazo
     const timer = setInterval(load, 15000);
-    const unsub = safeUnsubscribe(base44.entities.ServiceRequest.subscribe(() => load()));
+    const unsub = subscribeSafely(() => base44.entities.ServiceRequest.subscribe(() => load()));
     return () => {
       clearInterval(timer);
       unsub();
@@ -296,7 +296,7 @@ export default function PainelChaveiro() {
   // para pedidos na região não direcionados a ele.
   useEffect(() => {
     if (!selectedId || !me?.online || !coverage.allowed) return;
-    const unsub = base44.entities.ServiceRequest.subscribe((event) => {
+    const unsub = subscribeSafely(() => base44.entities.ServiceRequest.subscribe((event) => {
       const r = event.data;
       if (!r || !isAreaAvailable(coverage.areas, r.customer_lat, r.customer_lng) || blockedIds.has(requestClientId(r)) || notifiedIds.current.has(r.id)) return;
 
@@ -341,8 +341,8 @@ export default function PainelChaveiro() {
         title: "🔔 Novo pedido na sua região",
         description: `${r.service_type} · ${r.address} · ${dist.toFixed(1)} km de você`,
       });
-    });
-    return safeUnsubscribe(unsub);
+    ));
+    return unsub;
   }, [selectedId, me, blockedIds, coverage.allowed, coverage.areas]);
 
   useEffect(() => {
@@ -421,7 +421,7 @@ export default function PainelChaveiro() {
         });
     load();
     const reloadVisible = () => { if (document.visibilityState === "visible" && isOnline()) load(); };
-    const unsub = safeUnsubscribe(base44.entities.ServiceRequest.subscribe(() => load()));
+    const unsub = subscribeSafely(() => base44.entities.ServiceRequest.subscribe(() => load()));
     window.addEventListener("focus", reloadVisible);
     window.addEventListener("online", reloadVisible);
     document.addEventListener("visibilitychange", reloadVisible);

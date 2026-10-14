@@ -1,10 +1,21 @@
-// Transforma o retorno de `subscribe` (função ou Promise de função) em uma
-// função de limpeza segura para useEffect — evita "destroy is not a function".
-export function safeUnsubscribe(unsub) {
-  return () => {
-    if (typeof unsub === "function") unsub();
-    else if (unsub && typeof unsub.then === "function") {
-      unsub.then((fn) => typeof fn === "function" && fn()).catch(() => {});
+// Normaliza o retorno do SDK (função ou Promise) e trata a limpeza com segurança.
+export function safeUnsubscribe(subscription) {
+  let stopped = false, cleanup;
+  const run = () => {
+    if (typeof cleanup === "function") {
+      try { cleanup(); } catch { /* conexão já encerrada */ }
+      cleanup = null;
     }
   };
+  if (typeof subscription === "function") cleanup = subscription;
+  else if (subscription && typeof subscription.then === "function") {
+    Promise.resolve(subscription).then(fn => { cleanup = fn; if (stopped) run(); }).catch(() => {});
+  }
+  return () => { stopped = true; run(); };
+}
+
+/** Realtime indisponível não pode interromper as consultas periódicas da tela. */
+export function subscribeSafely(startSubscription) {
+  try { return safeUnsubscribe(startSubscription()); }
+  catch { return () => {}; }
 }

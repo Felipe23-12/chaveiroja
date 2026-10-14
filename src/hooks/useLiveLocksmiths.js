@@ -3,7 +3,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { loadScoreMap, withScores } from '@/lib/locksmithScore';
 import { loadPublicLocksmiths } from '@/lib/publicLocksmiths';
-import { safeUnsubscribe } from '@/lib/safeUnsubscribe';
+import { subscribeSafely } from '@/lib/safeUnsubscribe';
 import { useServiceAreas, isAreaAvailable } from '@/lib/serviceAreas';
 import { useAuth } from '@/lib/AuthContext';
 
@@ -22,7 +22,7 @@ export default function useLiveLocksmiths() {
   });
   useEffect(() => {
     const refresh = () => client.invalidateQueries({ queryKey: ['publicLocksmiths', 'app'] });
-    const unsub = safeUnsubscribe(base44.entities.Locksmith.subscribe(refresh));
+    const unsub = subscribeSafely(() => base44.entities.Locksmith.subscribe(refresh));
     const onVisible = () => { if (document.visibilityState === 'visible') refresh(); };
     document.addEventListener('visibilitychange', onVisible);
     return () => { unsub(); document.removeEventListener('visibilitychange', onVisible); };

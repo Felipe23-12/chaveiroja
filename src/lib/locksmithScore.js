@@ -5,7 +5,9 @@ export const SCORE_LOW = 3;
 
 export async function loadScoreMap() {
   const rows = await base44.entities.LocksmithScore.list("-updated_date", 500);
-  return new Map(rows.map((row) => [row.locksmith_id, row]));
+  const map = new Map();
+  for (const row of rows) if (!map.has(row.locksmith_id)) map.set(row.locksmith_id, row);
+  return map;
 }
 
 export function withScores(locksmiths, scoreMap) {
