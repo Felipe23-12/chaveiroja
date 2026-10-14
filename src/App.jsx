@@ -7,6 +7,7 @@ import { queryClientInstance } from '@/lib/query-client'
 import { BrowserRouter as Router, Route, Routes, Navigate } from 'react-router-dom';
 import PageNotFound from './lib/PageNotFound';
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
+import AuthConnectionNotice from '@/components/AuthConnectionNotice';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
 import ScrollToTop from './components/ScrollToTop';
 import ProtectedRoute from '@/components/ProtectedRoute';
@@ -84,6 +85,7 @@ const AuthenticatedApp = () => {
   // mesmo quando uma sessão antiga falha na checagem inicial.
   const authPaths = ['/login', '/login/cliente', '/login/chaveiro', '/register', '/forgot-password', '/reset-password', '/cadastro/cliente', '/cadastro/chaveiro', '/auth/google-return'];
   if (authError && !authPaths.includes(window.location.pathname)) {
+    if (authError.type === 'connection') return <AuthConnectionNotice />;
     if (authError.type === 'user_not_registered') return <UserNotRegisteredError />;
     if (authError.type === 'auth_required') {
       navigateToLogin();

@@ -1,8 +1,9 @@
-import React, { createContext, useState, useContext, useEffect } from 'react';
+import React, { createContext, useState, useContext, useEffect, useRef } from 'react';
 import { base44 } from '@/api/base44Client';
 import { appParams } from '@/lib/app-params';
 import { createAxiosClient } from '@base44/sdk/dist/utils/axios-client';
 import { clearAuthProvider } from '@/lib/authProvider';
+import { isTemporaryConnectionError, retryConnectionRead } from '@/lib/connectionErrors';
 
 const AuthContext = createContext(undefined);
 
@@ -16,22 +17,31 @@ export const AuthProvider = ({ children }) => {
   const [authChecked, setAuthChecked] = useState(false);
   const [appPublicSettings, setAppPublicSettings] = useState(null); // Contains only { id, public_settings }
 
+  const authenticatedUser = useRef(null);
+  const authPending = useRef(null);
+  const connectionPending = useRef(false);
+  const authEpoch = useRef(0);
   useEffect(() => {
-    checkAppState();
+    void checkAppState();
+    const reconnect = () => { if (connectionPending.current) void checkAppState(); };
+    window.addEventListener('online', reconnect);
+    window.addEventListener('focus', reconnect);
+    return () => {
+      window.removeEventListener('online', reconnect);
+      window.removeEventListener('focus', reconnect);
+    };
   }, []);
 
   const clearInvalidStoredSession = () => {
     // WebViews Android e iOS podem manter um JWT antigo entre atualizações/retornos do app.
     // Remova somente a credencial inválida; dados de preferência do usuário ficam intactos.
-    try {
-      localStorage.removeItem('base44_access_token');
-      localStorage.removeItem('token');
-      sessionStorage.removeItem('active_login_session');
-      base44.auth.setToken('', false);
-      // appParams é capturado no bootstrap. Zere também a cópia em memória para
-      // que a checagem pública seguinte não reutilize o JWT que acabou de falhar.
-      appParams.token = null;
-    } catch { /* storage pode estar indisponível em WebViews/modos restritos */ }
+    for (const [storage, key] of [['localStorage', 'base44_access_token'], ['localStorage', 'token'], ['sessionStorage', 'active_login_session']]) {
+      try { window[storage].removeItem(key); } catch { /* armazenamento restrito */ }
+    }
+    try { base44.auth.setToken('', false); } catch { /* SDK usa a próxima sessão */ }
+    appParams.token = null;
+    authenticatedUser.current = null;
+    authEpoch.current += 1;
   };
 
   const isInvalidSessionError = (error) => {
@@ -42,7 +52,10 @@ export const AuthProvider = ({ children }) => {
 
   const checkAppState = async () => {
     try {
-      if (appParams.token && localStorage.getItem('remember_login') === 'false' && sessionStorage.getItem('active_login_session') !== 'true') {
+      let remember, activeSession;
+      try { remember = localStorage.getItem('remember_login'); } catch { /* usar sessão do SDK */ }
+      try { activeSession = sessionStorage.getItem('active_login_session'); } catch { /* usar sessão do SDK */ }
+      if (appParams.token && remember === 'false' && activeSession !== 'true') {
         await base44.auth.logout();
         return;
       }
@@ -61,7 +74,7 @@ export const AuthProvider = ({ children }) => {
       });
       
       try {
-        const publicSettings = await appClient.get(`/prod/public-settings/by-id/${appParams.appId}`);
+        const publicSettings = await retryConnectionRead(() => appClient.get(`/prod/public-settings/by-id/${appParams.appId}`));
         setAppPublicSettings(publicSettings);
         
         // Consulta a sessão atual do SDK, não apenas o token capturado na inicialização.
@@ -84,6 +97,13 @@ export const AuthProvider = ({ children }) => {
           return;
         }
         
+        if (isTemporaryConnectionError(appError)) {
+          // auth.me() pode estar disponível mesmo se a consulta pública oscilou.
+          await checkUserAuth();
+          setIsLoadingPublicSettings(false);
+          return;
+        }
+
         // Handle app-level errors
         if (appError.status === 403 && appError.data?.extra_data?.reason) {
           const reason = appError.data.extra_data.reason;
@@ -91,7 +111,7 @@ export const AuthProvider = ({ children }) => {
             // Public settings may reject an OAuth callback before the SDK session
             // is ready; verify the actual user before sending them back to login.
             const currentUser = await checkUserAuth();
-            if (!currentUser) setAuthError({
+            if (!currentUser && !connectionPending.current) setAuthError({
               type: 'auth_required',
               message: 'Authentication required'
             });
@@ -126,46 +146,62 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  const checkUserAuth = async () => {
-    try {
-      // Now check if the user is authenticated
+  const checkUserAuth = () => {
+    if (authPending.current) return authPending.current;
+    const epoch = authEpoch.current;
+    const pending = (async () => {
       setIsLoadingAuth(true);
-      let currentUser = await base44.auth.me();
-      const recovery = await base44.functions.invoke('claimCpf', { action: 'recover_client' }).catch(() => null);
-      if (recovery?.data?.recovered) currentUser = await base44.auth.me();
-      const review = await base44.functions.invoke('serviceTrust', { action: 'review_status' }).catch(() => ({ data: { enabled: false, role: null } }));
-      setAppleReview(review.data);
-      setAuthError(null);
-      setUser(currentUser);
-      setIsAuthenticated(true);
-      setIsLoadingAuth(false);
-      setAuthChecked(true);
-      return currentUser;
-    } catch (error) {
-      console.error('User auth check failed:', error);
-      setAppleReview({ enabled: false, role: null });
-      if (isInvalidSessionError(error)) clearInvalidStoredSession();
-      setIsLoadingAuth(false);
-      setIsAuthenticated(false);
-      setUser(null);
-      setAuthChecked(true);
-      
-      // If user auth fails, it might be an expired token
-      if (isInvalidSessionError(error) || error.status === 403 || error?.response?.status === 403) {
-        setAuthError({
-          type: 'auth_required',
-          message: 'Authentication required'
-        });
+      try {
+        let currentUser = await retryConnectionRead(() => base44.auth.me());
+        const recovery = await base44.functions.invoke('claimCpf', { action: 'recover_client' }).catch(() => null);
+        if (recovery?.data?.recovered) currentUser = await retryConnectionRead(() => base44.auth.me());
+        const review = await base44.functions.invoke('serviceTrust', { action: 'review_status' }).catch(() => null);
+        if (epoch !== authEpoch.current) return null;
+        if (review?.data) setAppleReview(review.data);
+        authenticatedUser.current = currentUser;
+        connectionPending.current = false;
+        setAuthError(null);
+        setUser(currentUser);
+        setIsAuthenticated(true);
+        setAuthChecked(true);
+        return currentUser;
+      } catch (error) {
+        if (epoch !== authEpoch.current) return null;
+        if (isTemporaryConnectionError(error)) {
+          connectionPending.current = true;
+          setAuthError({ type: 'connection', message: 'Não foi possível confirmar a conexão. Tente novamente.' });
+          // Uma resposta de rede não é uma resposta de sessão inválida.
+          setIsAuthenticated(Boolean(authenticatedUser.current));
+          setAuthChecked(true);
+          return null;
+        }
+        connectionPending.current = false;
+        setAppleReview({ enabled: false, role: null });
+        if (isInvalidSessionError(error)) clearInvalidStoredSession();
+        authenticatedUser.current = null;
+        setUser(null);
+        setIsAuthenticated(false);
+        setAuthChecked(true);
+        setAuthError({ type: 'auth_required', message: 'Authentication required' });
+        return null;
+      } finally {
+        setIsLoadingAuth(false);
       }
-    }
+    })();
+    authPending.current = pending;
+    pending.finally(() => { if (authPending.current === pending) authPending.current = null; });
+    return pending;
   };
 
   const logout = (shouldRedirect = true) => {
+    authEpoch.current += 1;
+    authenticatedUser.current = null;
+    connectionPending.current = false;
     setAppleReview({ enabled: false, role: null });
     setUser(null);
     setIsAuthenticated(false);
-    localStorage.removeItem('remember_login');
-    sessionStorage.removeItem('active_login_session');
+    try { localStorage.removeItem('remember_login'); } catch { /* armazenamento restrito */ }
+    try { sessionStorage.removeItem('active_login_session'); } catch { /* armazenamento restrito */ }
     clearAuthProvider();
     
     if (shouldRedirect) {

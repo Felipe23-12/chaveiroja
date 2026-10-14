@@ -11,7 +11,7 @@ export default function preserveAccountProfile(auth, functions) {
   auth.me = async () => {
     const user = await readMe();
     if (user.role !== 'admin' && user.is_verified === true && user.account_type !== 'chaveiro') {
-      const { data } = await functions.invoke('restoreApprovedLocksmithAccount', {});
+      const { data } = await functions.invoke('restoreApprovedLocksmithAccount', {}).catch(() => ({ data: { restored: false } }));
       if (data.restored) return { ...user, ...data.profile };
     }
     return user;

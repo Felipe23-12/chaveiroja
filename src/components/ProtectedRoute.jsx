@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { Outlet } from 'react-router-dom';
 import { useAuth } from '@/lib/AuthContext';
+import AuthConnectionNotice from '@/components/AuthConnectionNotice';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
 
 const DefaultFallback = () => (
@@ -23,6 +24,7 @@ export default function ProtectedRoute({ fallback = <DefaultFallback />, unauthe
   }
 
   if (authError) {
+    if (authError.type === 'connection') return <AuthConnectionNotice />;
     if (authError.type === 'user_not_registered') {
       return <UserNotRegisteredError />;
     }
