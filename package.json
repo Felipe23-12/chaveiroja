@@ -10,7 +10,7 @@
     "ios:validate": "node scripts/validate-ios-config.mjs",
     "lint": "eslint . --quiet",
     "lint:fix": "eslint . --fix",
-    "typecheck": "tsc -p ./jsconfig.json",
+    "typecheck": "tsc -p ./jsconfig.json && tsc --noEmit --allowJs --checkJs --skipLibCheck --lib esnext,webworker src/components/notifications/OneSignalWorker.js",
     "preview": "vite preview"
   },
   "dependencies": {
