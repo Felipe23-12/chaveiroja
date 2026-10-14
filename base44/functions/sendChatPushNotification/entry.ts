@@ -34,18 +34,21 @@ export default async function(req) {
     });
     if (hiddenRows.length) return Response.json({ skipped: true, reason: 'Mensagem excluída da visualização' });
 
-    const readStates = await base44.asServiceRole.entities.ChatReadState.filter({
-      user_id: userId,
-      locksmith_id: msg.locksmith_id,
-      client_id: msg.client_id,
-    });
-    const lastReadAt = readStates.reduce((latest, state) => Math.max(latest, Date.parse(state.last_read_at) || 0), 0);
-    if (lastReadAt >= Date.parse(msg.created_date)) {
-      return Response.json({ skipped: true, reason: 'Mensagem já lida' });
+    // Mensagens do chaveiro sempre avisam o cliente, inclusive com o chat aberto.
+    // Preserva o comportamento de mensagens já lidas no sentido cliente → chaveiro.
+    if (toLocksmith) {
+      const readStates = await base44.asServiceRole.entities.ChatReadState.filter({
+        user_id: userId,
+        locksmith_id: msg.locksmith_id,
+        client_id: msg.client_id,
+        last_read_at: { $gte: msg.created_date },
+      }, '-last_read_at', 1);
+      if (readStates.length) return Response.json({ skipped: true, reason: 'Mensagem já lida' });
     }
 
     const senderName = msg.sender_name || (toLocksmith ? msg.client_name || 'Cliente' : msg.locksmith_name || 'Chaveiro');
-    const text = (msg.message || '').slice(0, 140);
+    const text = (msg.message || (msg.photo_url ? 'Enviou uma foto.' : 'Você recebeu uma nova mensagem.')).slice(0, 140);
+    if (body.dry_run === true) return Response.json({ success: true, dry_run: true, recipient: toLocksmith ? 'locksmith' : 'client', action_url: toLocksmith ? '/painel-chaveiro' : `/chat/${msg.locksmith_id}` });
 
     await base44.asServiceRole.integrations.Core.SendPushNotification({
       user_id: userId,

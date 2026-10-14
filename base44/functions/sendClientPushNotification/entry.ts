@@ -29,7 +29,13 @@ export default async function(req) {
     let title = '';
     let content = '';
 
-    if ((sr.description || '').includes('Ajuste no local confirmado pelo chaveiro') && !(sr.client_push_sent || []).includes('condition_adjustment')) {
+    if (body.notification_key === 'accepted' && sr.accepted_at && sr.locksmith_user_id && ['accepted', 'queued', 'on_the_way'].includes(sr.status)) {
+      key = 'accepted';
+      title = '🔔 Chamado aceito';
+      content = sr.status === 'queued'
+        ? `${locksmith} aceitou seu chamado. Você será atendido após o serviço atual.`
+        : `${locksmith} aceitou seu chamado de ${sr.service_type}. Acompanhe pelo aplicativo.`;
+    } else if ((sr.description || '').includes('Ajuste no local confirmado pelo chaveiro') && !(sr.client_push_sent || []).includes('condition_adjustment')) {
       key = 'condition_adjustment';
       const charged = (sr.description || '').includes('Adicional único de R$ 25,00 aplicado');
       title = charged ? 'Valor do chamado atualizado' : 'Condição do chamado atualizada';
@@ -56,10 +62,12 @@ export default async function(req) {
       key = 'on_the_way';
       title = '🚗 Chaveiro a caminho';
       content = `${locksmith} está indo até você. Acompanhe em tempo real.`;
-    } else if (sr.status === 'accepted') {
+    } else if (['accepted', 'queued'].includes(sr.status)) {
       key = 'accepted';
       title = '🔔 Chamado aceito';
-      content = `${locksmith} aceitou seu chamado de ${sr.service_type}.`;
+      content = sr.status === 'queued'
+        ? `${locksmith} aceitou seu chamado. Você será atendido após o serviço atual.`
+        : `${locksmith} aceitou seu chamado de ${sr.service_type}.`;
     }
 
     if (!key) return Response.json({ skipped: true, reason: `status ${sr.status} não gera aviso` });
@@ -79,9 +87,10 @@ export default async function(req) {
       action_url: `/acompanhamento/${serviceRequestId}`,
     });
 
-    await base44.asServiceRole.entities.ServiceRequest.update(serviceRequestId, {
-      client_push_sent: [...alreadySent, key],
-    });
+    await base44.asServiceRole.entities.ServiceRequest.updateMany(
+      { id: serviceRequestId },
+      { $addToSet: { client_push_sent: key } },
+    );
 
     return Response.json({ success: true, key, user_id: clientUserId });
   } catch (error) {

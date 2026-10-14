@@ -1,6 +1,6 @@
 {
   "name": "Notifica\u00e7\u00e3o Push Cliente",
-  "description": "Envia notifica\u00e7\u00e3o push ao cliente nas etapas do chamado e quando houver ajuste comprovado de condi\u00e7\u00e3o e valor",
+  "description": "Notifica o cliente no celular no aceite, inclusive em fila, e nas etapas ou ajustes do chamado.",
   "trigger": {
     "config": {
       "trigger_type": "entity",
@@ -9,13 +9,13 @@
         "update"
       ]
     },
-    "condition": "${ ((.trigger.changed_fields // []) | index(\"status\") != null or index(\"locksmith_arrived\") != null or index(\"end_photos\") != null or index(\"description\") != null) }"
+    "condition": "${ ((.trigger.changed_fields // []) | index(\"accepted_at\") != null or index(\"status\") != null or index(\"locksmith_arrived\") != null or index(\"end_photos\") != null or index(\"description\") != null) }"
   },
   "definition": {
     "document": {
       "dsl": "1.0.0",
       "name": "push_cliente_andamento",
-      "version": "1.1",
+      "version": "1.2",
       "namespace": "base44"
     },
     "do": [
@@ -25,13 +25,14 @@
           "with": {
             "function_name": "sendClientPushNotification",
             "args": {
-              "service_request_id": "${ .trigger.entity_id }"
+              "service_request_id": "${ .trigger.entity_id }",
+              "notification_key": "${ if (((.trigger.changed_fields // []) | index(\"accepted_at\")) != null or .trigger.data.status == \"accepted\" or .trigger.data.status == \"queued\") then \"accepted\" else null end }"
             }
           },
           "then": "end",
           "x-base44": {
             "title": "Notificar cliente",
-            "description": "Etapa ou ajuste do chamado"
+            "description": "Aceite, etapa ou ajuste do chamado"
           }
         }
       }

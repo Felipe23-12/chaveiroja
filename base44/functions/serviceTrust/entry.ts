@@ -558,7 +558,10 @@ export default async function(req) {
       // updateMany faz a reserva atômica, mas não publica os eventos individuais.
       // Publica o registro confirmado sem regravar status/posição (que podem
       // ter avançado por outra ação), mantendo a proteção contra aceite duplo.
-      const updated = await base44.asServiceRole.entities.ServiceRequest.update(request.id, { accepted_at: now })
+      // Um instante posterior à reserva gera a mudança observável de accepted_at,
+      // mesmo que o status já tenha avançado para on_the_way.
+      const publishedAcceptance = new Date(Math.max(Date.now(), Date.parse(now) + 1)).toISOString();
+      const updated = await base44.asServiceRole.entities.ServiceRequest.update(request.id, { accepted_at: publishedAcceptance })
         .catch(() => base44.asServiceRole.entities.ServiceRequest.get(request.id));
       return Response.json({ success: true, request: updated, queued });
     }
