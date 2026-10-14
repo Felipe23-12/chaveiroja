@@ -231,10 +231,10 @@ export default function PainelChaveiro() {
     loadMe();
     const unsub = subscribeSafely(() => base44.entities.Locksmith.subscribe((event) => {
       if (event.data?.id === selectedId) loadMe();
-    ));
+    }));
     const unsubFinancials = subscribeSafely(() => base44.entities.LocksmithFinancials.subscribe((event) => {
       if (event.data?.locksmith_id === selectedId) loadMe();
-    ));
+    }));
     const cleanupLocksmith = unsub;
     const cleanupFinancials = unsubFinancials;
     return () => {
@@ -341,7 +341,7 @@ export default function PainelChaveiro() {
         title: "🔔 Novo pedido na sua região",
         description: `${r.service_type} · ${r.address} · ${dist.toFixed(1)} km de você`,
       });
-    ));
+    }));
     return unsub;
   }, [selectedId, me, blockedIds, coverage.allowed, coverage.areas]);
 

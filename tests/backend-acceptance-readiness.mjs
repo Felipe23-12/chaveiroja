@@ -95,6 +95,11 @@ assert.equal((await api.filterAppReadyLocksmiths(auditBackendSDK,profiles)).leng
 reset();users[0].moderation_blocked=true;
 assert.equal((await accept()).data.code,'PROFILE_BLOCKED');
 assert.deepEqual((await api.filterAppReadyLocksmiths(auditBackendSDK,profiles)).map(p=>p.id),['p2']);
+reset();profiles[0].inactive_deactivated=true;assert.deepEqual((await api.filterAppReadyLocksmiths(auditBackendSDK,profiles)).map(p=>p.id),['p2']);
+reset();scores=[{locksmith_id:'p1',score:9,banned:true},{locksmith_id:'p1',score:10,banned:false}];
+assert.deepEqual((await api.filterAppReadyLocksmiths(auditBackendSDK,profiles)).map(p=>p.id),['p2'],'latest suspension cannot be overridden by duplicate older score');
+reset();profiles[0].work_mode='livre';profiles[0].monthly_fee_paid=false;
+assert.deepEqual((await api.filterAppReadyLocksmiths(auditBackendSDK,profiles)).map(p=>p.id),['p2'],'unpaid free mode is not app availability');
 reset();users[0].cpf='11111111111';assert.deepEqual((await api.filterAppReadyLocksmiths(auditBackendSDK,profiles)).map(p=>p.id),['p2']);
 reset();approvals.unshift({user_id:'u1',cpf:'11111111111',ownership_verified:true});
 assert.deepEqual((await api.filterAppReadyLocksmiths(auditBackendSDK,profiles)).map(p=>p.id),['p2'],'newest approval governs, never older matching row');
