@@ -31,7 +31,7 @@ export function canReceiveRequest(locksmith: any, request: any, now = Date.now()
   return specialties.length ? specialties.includes(profile.specialty) : locksmith.specialty === profile.specialty;
 }
 
-export async function loadDispatchCandidates(base44: any, request: any, suppliedAreas?: any, now = Date.now()) {
+export async function loadDispatchCandidates(base44: any, request: any, suppliedAreas?: any, now = Date.now(), maxCandidates = 100) {
   if (isAppleReviewRequest(request)) return [];
   const entities = base44.asServiceRole.entities;
   const areas = suppliedAreas || await loadServiceAreas(base44);
@@ -60,7 +60,7 @@ export async function loadDispatchCandidates(base44: any, request: any, supplied
     .filter((item: any) => Number.isFinite(item.distance) &&
       item.distance <= Math.min(Number(item.locksmith.service_radius_km || 15), searchRadius))
     .sort((a: any, b: any) => dispatchScore(b.score) - dispatchScore(a.score) || a.distance - b.distance)
-    .slice(0, 100);
+    .slice(0, Math.min(500, Math.max(1, maxCandidates)));
 }
 
 // A gravação condicional não pode reabrir um chamado já aceito/cancelado.

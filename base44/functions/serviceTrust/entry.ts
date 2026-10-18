@@ -339,9 +339,9 @@ export default async function(req) {
       values.search_radius_updated_at = new Date(now).toISOString();
       // Fotografia inicial: preserva a distância do profissional no momento da solicitação,
       // inclusive se ele só receber o chamado após a ampliação do raio.
-      const initialCandidates = await loadDispatchCandidates(base44, { ...data, ...values, client_id: user.id, search_radius_km: 100 }, areas, now);
+      const initialCandidates = await loadDispatchCandidates(base44, { ...data, ...values, client_id: user.id, search_radius_km: 100 }, areas, now, 500);
       values.initial_locksmith_distances = initialCandidates.map(item => ({ locksmith_id: item.locksmith.id, distance_km: item.distance }));
-      const eligible = initialCandidates.filter(item => item.distance <= values.search_radius_km);
+      const eligible = initialCandidates.filter(item => item.distance <= values.search_radius_km).slice(0, 100);
       const candidates = initialScoreCandidates(eligible);
       if (candidates.some(item => dispatchScore(item.score) === 10)) {
         values.score_priority_until = new Date(Date.now() + SCORE_PRIORITY_MS).toISOString();
