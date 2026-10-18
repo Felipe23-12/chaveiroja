@@ -91,11 +91,15 @@ const created=await call('create_request',{data:{
  service_type:'Abertura Automotiva',address:'Endereço de teste',customer_name:'Cliente Teste',
  customer_lat:-23.53,customer_lng:-46.7,location_context:{coordinates_confirmed:true},
  client_id:'attacker',created_by_id:'attacker',
+ arrival_extra_minutes:999,accepted_distance_km:1,initial_locksmith_distances:[{locksmith_id:'forged',distance_km:999}],
 }});
 assert.equal(created.status,200);
 assert.equal(created.data.request.created_by_id,'service_technical','fixture reproduces actual Base44 server attribution');
 assert.equal(created.data.request.client_id,'client','owner comes from authenticated user, never body');
 assert.equal(contexts[0].client_id,'client');
+assert.equal(created.data.request.arrival_extra_minutes,undefined,'client cannot set the arrival extension');
+assert.equal(created.data.request.accepted_distance_km,undefined,'client cannot set acceptance distance');
+assert.deepEqual(created.data.request.initial_locksmith_distances,[],'server replaces forged initial distances with actual candidates');
 const id=created.data.request.id;
 assert.equal((await call('cancel_quote',{request_id:id})).status,200,'quote succeeds for real client despite technical author');
 let result=await call('cancel_request',{request_id:id,actor:'chaveiro'});

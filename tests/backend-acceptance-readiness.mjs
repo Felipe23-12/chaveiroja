@@ -122,5 +122,22 @@ requests[0].urgency='normal';assert.equal((await accept()).data.queued,true);
 reset();requests.push({...callRecord('queued'),status:'queued',locksmith_id:'p1',locksmith_user_id:'u1'});assert.equal((await accept()).status,409,'two-job limit remains enforced');
 reset();requests[0].status='cancelled';assert.equal((await accept()).status,409);assert.equal(writes,0);
 reset();user=null;assert.equal((await accept('call','p1')).status,401);assert.equal(writes,0);
+// Integração da nova política dentro da reserva atômica real do handler.
+reset();
+profiles[0].lat=requests[0].customer_lat+50/6371*180/Math.PI;
+profiles[0].service_radius_km=50;
+Object.assign(requests[0],{urgency:'urgent',price:100,discount_amount:0,extra_cost:0,
+ initial_locksmith_distances:[{locksmith_id:'p1',distance_km:50}],
+ pricing_calculation:{total:100,lines:[{label:'Mão de obra',value:100}],distance_pricing:{threshold_km:20,rate_per_km:0.9,fee:0,
+ price_model:{base:100,minimum:0,after_minimum:0,protected_fees:0,customer_minimum:0,loyalty_percent:0,lishi_percent:0,first_call:false}}}});
+const distant=await accept();assert.equal(distant.status,200);assert.equal(distant.data.request.price,127);
+assert.equal(distant.data.request.locomotion_cost,27);assert.equal(distant.data.request.arrival_extra_minutes,15);
+assert.equal(distant.data.request.accepted_distance_km,50);
+profiles[0].lat=requests[0].customer_lat;
+const recovered=await accept();assert.equal(recovered.data.duplicate,true);assert.equal(recovered.data.request.price,127);
+assert.equal(recovered.data.request.accepted_distance_km,50);assert.equal(recovered.data.request.arrival_extra_minutes,15);
+assert.equal(writes,1,'lost reply recovery does not reprice or restart the deadline');
+reset();assert.equal((await invoke('accept_request',{request_id:'call',locksmith_id:'p1',extra:99})).status,400);
+assert.equal(writes,0,'locksmith cannot supply an arbitrary surcharge');
 await rm(temp,{recursive:true,force:true});
 console.log('PASS: readiness and client availability; active vs stale/foreign/legacy payment account; approved CPF and moderation; invitation/profile/service/area/score protections; fresh GPS acceptance; queue limits; two-accept race; idempotent recovery; cancelled and unauthenticated requests. No real data, payments or notifications changed.');
