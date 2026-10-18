@@ -63,6 +63,7 @@ for(const [type,pricing_inputs] of scenarios)for(const urgency of ['normal','urg
   const patch=api.acceptedTravelPatch(call,{id:'far'},km);
   providerKm=km;
   const expected=await api.calculateServerServicePrice(client,'client',data);
+  if(patch.price!==expected.price)console.log(JSON.stringify({km,original,patch,expected}));
   assert.equal(patch.price,expected.price,`${service} ${urgency} ${discount} floor=${floor} distance=${km}`);
   assert.equal(patch.discount_amount,expected.discount,'discount reconciles with a fresh quote');
   assert.equal(patch.locomotion_cost,expected.fields.locomotion_cost,'fee uses accepted locksmith distance');
