@@ -718,7 +718,7 @@ export default function Home() {
             client_name: user?.full_name || customerName || "Cliente",
             sender_type: "system",
             sender_name: "Chaveiro Já",
-            message: "⚠️ Chamado URGENTE: o chaveiro tem até 35 minutos para chegar ao local do atendimento.",
+            message: "⚠️ Chamado URGENTE: prazo de até 35 minutos após o aceite. Se um profissional além de 10 km aceitar, o prazo recebe mais 15 minutos; consulte o prazo atualizado no acompanhamento.",
           });
         } catch (e) {
           /* não bloqueia o fluxo de solicitação */

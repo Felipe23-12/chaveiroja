@@ -54,7 +54,7 @@ export default function ArrivalDeadlineCountdown({ request }) {
           ? `Prazo de chegada de ${limit} min ultrapassado — chamado cancelado automaticamente, sem cobrança`
           : `${urgent ? "Chamado urgente" : "Prazo de chegada"} — ${min}:${sec
               .toString()
-              .padStart(2, "0")} restantes (limite ${limit} min)`}
+              .padStart(2, "0")} restantes (limite ${limit} min)${request.arrival_extra_minutes === 15 ? " · 15 min extras por deslocamento além de 10 km" : ""}`}
       </span>
     </div>
   );

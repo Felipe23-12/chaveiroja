@@ -259,7 +259,7 @@ export default function GlobalLocksmithRequestAlert() {
             <div className="p-4 space-y-3 max-h-[60vh] overflow-y-auto">
               <AcceptRequestError error={acceptError} />
               {requests.map((req, idx) => (
-                <RequestCard
+                <RequestCard locksmith={locksmith}
                   key={req.id}
                   request={req}
                   onAccept={handleAccept}
@@ -292,7 +292,7 @@ export default function GlobalLocksmithRequestAlert() {
   );
 }
 
-function RequestCard({ request, onAccept, onReject, accepting, showDivider }) {
+function RequestCard({ request, locksmith, onAccept, onReject, accepting, showDivider }) {
   const [extraCost, setExtraCost] = useState("");
   const [elapsed, setElapsed] = useState(0);
 
@@ -339,7 +339,7 @@ function RequestCard({ request, onAccept, onReject, accepting, showDivider }) {
       )}
 
       {/* Para o chaveiro, mostrar somente o valor líquido que ele receberá. */}
-      <LocksmithNetAmount request={request} className="bg-muted/50 rounded-lg p-2.5 border border-border mb-2" />
+      <LocksmithNetAmount request={request} locksmith={locksmith} className="bg-muted/50 rounded-lg p-2.5 border border-border mb-2" />
 
       {isUrgent && (
         <div className="flex items-center gap-1.5 text-xs text-destructive bg-destructive/15 p-2 rounded-lg mb-2 animate-alert-blink">

@@ -10,7 +10,7 @@ function formatElapsed(seconds) {
   return `${m}:${s.toString().padStart(2, "0")}`;
 }
 
-export default function IncomingRequestAlert({ request, onAccept, onReject }) {
+export default function IncomingRequestAlert({ request, locksmith = null, onAccept, onReject }) {
   const [elapsed, setElapsed] = useState(0);
 
   // O alarme persistente é controlado globalmente; este timer acompanha
@@ -84,7 +84,7 @@ export default function IncomingRequestAlert({ request, onAccept, onReject }) {
         <KeyTechnicalDetails description={request.description} request={request} />
 
         {/* Para o chaveiro, mostrar somente o valor líquido que ele receberá. */}
-        <LocksmithNetAmount request={request} className="bg-card rounded-lg p-3 border border-border" />
+        <LocksmithNetAmount request={request} locksmith={locksmith} className="bg-card rounded-lg p-3 border border-border" />
 
         {/* Aviso de tempo limite */}
         {isUrgent && (

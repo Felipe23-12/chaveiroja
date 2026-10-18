@@ -8,7 +8,7 @@ import LocksmithNetAmount from '@/components/locksmith/LocksmithNetAmount';
 // Renderiza a fila de solicitações pendentes. A primeira (mais recente)
 // recebe o alerta completo com som/vibração; as demais aparecem em cards
 // compactos para aceitar ou recusar rapidamente.
-export default function PendingRequestsList({ requests, onAccept, onReject }) {
+export default function PendingRequestsList({ requests, locksmith = null, onAccept, onReject }) {
   if (!requests.length) return null;
 
   const [primary, ...rest] = requests;
@@ -18,6 +18,7 @@ export default function PendingRequestsList({ requests, onAccept, onReject }) {
       {/* Alerta principal (com som e vibração) */}
       <IncomingRequestAlert
         request={primary}
+        locksmith={locksmith}
         onAccept={() => onAccept(primary.id)}
         onReject={() => onReject(primary.id)}
       />
@@ -34,6 +35,7 @@ export default function PendingRequestsList({ requests, onAccept, onReject }) {
             <CompactRequestCard
               key={req.id}
               request={req}
+              locksmith={locksmith}
               onAccept={onAccept}
               onReject={onReject}
             />
@@ -44,7 +46,7 @@ export default function PendingRequestsList({ requests, onAccept, onReject }) {
   );
 }
 
-function CompactRequestCard({ request, onAccept, onReject }) {
+function CompactRequestCard({ request, locksmith, onAccept, onReject }) {
   const [expanded, setExpanded] = React.useState(false);
   const hasCarKey = request.key_value != null;
 
@@ -62,7 +64,7 @@ function CompactRequestCard({ request, onAccept, onReject }) {
             <span className="w-1.5 h-1.5 rounded-full bg-warning shrink-0" />
             {request.address}
           </p>
-          <LocksmithNetAmount request={request} className="mt-2" />
+          <LocksmithNetAmount request={request} locksmith={locksmith} className="mt-2" />
         </div>
         <button
           onClick={() => setExpanded((e) => !e)}

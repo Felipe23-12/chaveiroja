@@ -999,6 +999,7 @@ export default function PainelChaveiro() {
       {pendingCount > 0 && canReceiveAppCalls && !rejectBlock.blocked && !trustBlocked && (
         <PendingRequestsList
           requests={pendingRequests}
+          locksmith={me}
           onAccept={handleAccept}
           onReject={handleReject}
         />

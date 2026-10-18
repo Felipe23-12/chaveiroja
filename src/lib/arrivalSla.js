@@ -29,7 +29,7 @@ function isNightRequest(request) {
 }
 
 export function slaMinutes(request) {
-  if (request?.urgency === "urgent") return ARRIVAL_SLA_MINUTES.urgent;
+  if (request?.urgency === "urgent") return ARRIVAL_SLA_MINUTES.urgent + (request.arrival_extra_minutes === 15 ? 15 : 0);
   if (!isNightRequest(request)) return ARRIVAL_SLA_MINUTES.normal;
 
   const distanceKm = Number(request?.distance_km);

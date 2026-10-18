@@ -48,6 +48,7 @@ export default function HomeConfigurationStep({ config }) {
     <ErrorBanner message={config.locksmithsError ? "Não foi possível atualizar a disponibilidade. Tente novamente." : ""} onRetry={config.locksmithsError ? () => config.refreshLocksmiths().catch(() => {}) : undefined} />
     <SearchRadiusSelector radius={searchRadius} setRadius={setSearchRadius} availableCount={inRadiusCount} />
     <UrgencySelector urgency={urgency} setUrgency={setUrgency} />
+    <p className="text-xs text-muted-foreground">O deslocamento é confirmado pela distância do chaveiro que aceitar. Acima de 20 km, aplica-se a tarifa por km excedente, inclusive em emergências. Se um profissional além de 10 km aceitar a emergência, o prazo recebe mais 15 minutos.</p>
     {quote.loading && <p role="status" className="flex items-center gap-2 text-sm text-muted-foreground"><Loader2 className="h-4 w-4 animate-spin" />Calculando valor do chamado...</p>}
     <ErrorBanner message={quote.error || searchError} onRetry={quote.error ? quote.retry : undefined} />
     {(service.isCarKey || service.isMotoKey) && !isAdminProfile && !disabled && quote.pricing && <ServerPriceSummary pricing={quote.pricing} />}

@@ -3,7 +3,7 @@ import { Clock, AlertCircle, Navigation } from "lucide-react";
 import { notifyClient } from "@/lib/clientNotifications";
 import { useToast } from "@/components/ui/use-toast";
 import {
-  ARRIVAL_SLA_MINUTES,
+  slaMinutes,
   NEARBY_TOLERANCE_KM,
   NEARBY_TOLERANCE_MINUTES,
   arrivalDeadline,
@@ -12,7 +12,7 @@ import {
 
 /**
  * Contagem regressiva do prazo de chegada para chamados urgentes.
- * O chaveiro tem até 35 minutos (a partir da aceitação) para chegar no cliente.
+ * O prazo considera os 15 minutos extras registrados no aceite distante.
  * Se o prazo estourar e ele já estiver a até 5 km, ganha 10 minutos de tolerância.
  */
 export default function UrgentArrivalCountdown({ request }) {
@@ -82,8 +82,8 @@ export default function UrgentArrivalCountdown({ request }) {
       {expired ? <AlertCircle className="w-4 h-4 shrink-0" /> : <Clock className="w-4 h-4 shrink-0" />}
       <span>
         {expired
-          ? `Prazo de chegada ultrapassado (limite ${ARRIVAL_SLA_MINUTES.urgent} min)`
-          : `Chamado urgente — chegada em até ${min}:${sec.toString().padStart(2, "0")}`}
+          ? `Prazo de chegada ultrapassado (limite ${slaMinutes(request)} min)`
+          : `Chamado urgente — chegada em até ${min}:${sec.toString().padStart(2, "0")} (limite ${slaMinutes(request)} min)${request.arrival_extra_minutes === 15 ? " · 15 min extras por deslocamento além de 10 km" : ""}`}
       </span>
     </div>
   );
