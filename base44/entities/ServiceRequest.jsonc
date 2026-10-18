@@ -375,6 +375,30 @@
     "client_id": {
       "type": "string",
       "description": "Cliente autenticado propriet\u00e1rio do chamado. Definido exclusivamente pelo backend; created_by_id identifica o autor t\u00e9cnico da grava\u00e7\u00e3o."
+    },
+    "initial_locksmith_distances": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "locksmith_id": {
+            "type": "string"
+          },
+          "distance_km": {
+            "type": "number"
+          }
+        }
+      },
+      "description": "Dist\u00e2ncias calculadas pelo servidor no momento da solicita\u00e7\u00e3o para definir o prazo emergencial."
+    },
+    "accepted_distance_km": {
+      "type": "number",
+      "description": "Dist\u00e2ncia do chaveiro ao cliente no aceite, calculada pelo servidor e fixada para a cobran\u00e7a."
+    },
+    "arrival_extra_minutes": {
+      "type": "number",
+      "default": 0,
+      "description": "15 minutos extras para emerg\u00eancia aceita por profissional al\u00e9m de 10 km na solicita\u00e7\u00e3o."
     }
   },
   "required": [

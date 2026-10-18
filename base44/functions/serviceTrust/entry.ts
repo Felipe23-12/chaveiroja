@@ -1,3 +1,4 @@
+import { acceptedTravelPatch } from '../../shared/acceptedTravel.ts';
 import { filterAppReadyLocksmiths, activePaymentAccount } from '../../shared/locksmithAppReadiness.ts';
 import { requestClientId, clientRequestsQuery } from '../../shared/serviceRequestOwner.ts';
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.46';
@@ -336,7 +337,11 @@ export default async function(req) {
       values.search_radius_km = Math.max(1, Math.min(100, Number(data.search_radius_km) || 100));
       values.auto_expand_radius = data.auto_expand_radius === true;
       values.search_radius_updated_at = new Date(now).toISOString();
-      const eligible = await loadDispatchCandidates(base44, { ...data, ...values, client_id: user.id }, areas, now);
+      // Fotografia inicial: preserva a distância do profissional no momento da solicitação,
+      // inclusive se ele só receber o chamado após a ampliação do raio.
+      const initialCandidates = await loadDispatchCandidates(base44, { ...data, ...values, client_id: user.id, search_radius_km: 100 }, areas, now);
+      values.initial_locksmith_distances = initialCandidates.map(item => ({ locksmith_id: item.locksmith.id, distance_km: item.distance }));
+      const eligible = initialCandidates.filter(item => item.distance <= values.search_radius_km);
       const candidates = initialScoreCandidates(eligible);
       if (candidates.some(item => dispatchScore(item.score) === 10)) {
         values.score_priority_until = new Date(Date.now() + SCORE_PRIORITY_MS).toISOString();
@@ -536,7 +541,12 @@ export default async function(req) {
       }
       const queued = Boolean(activeJob);
       const now = new Date().toISOString();
+      const travel = acceptedTravelPatch(request, locksmith, distanceKm(
+        { lat: Number(locksmith.lat), lng: Number(locksmith.lng) },
+        { lat: Number(request.customer_lat), lng: Number(request.customer_lng) },
+      ));
       const acceptedData = {
+        ...travel,
         status: queued ? 'queued' : 'accepted',
         accepted_at: now,
         ...(queued ? { queued_at: now, queued_after_request_id: activeJob.id } : {}),

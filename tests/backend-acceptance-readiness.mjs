@@ -4,7 +4,7 @@ import { tmpdir } from 'node:os';
 import { pathToFileURL } from 'node:url';
 import { build } from 'esbuild';
 const source=await readFile('base44/functions/serviceTrust/entry.ts','utf8');
-const real=new Set(['serviceRequestOwner.ts','requestAcceptance.ts','requestDispatch.ts','scoreDispatchPolicy.ts','locksmithAppReadiness.ts','registrationEligibility.ts','unansweredRequest.ts']);
+const real=new Set(['acceptedTravel.ts','serviceRequestOwner.ts','requestAcceptance.ts','requestDispatch.ts','scoreDispatchPolicy.ts','locksmithAppReadiness.ts','registrationEligibility.ts','unansweredRequest.ts']);
 const mocks={};
 for(const match of source.matchAll(/import \{([^}]+)\} from '([^']+)'/g)) {
  const file=match[2].split('/').at(-1);

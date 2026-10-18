@@ -113,6 +113,7 @@ async function carKeyPrice(base44, userId, data, inputs, factors, distanceFee, s
   const base = Math.max(settings.minimum, raw);
   return {
     total: round(base + complexityFee + alarmFee),
+    distanceModel: { base: round(chargedKey + adjusted.total + onlineFee), minimum: settings.minimum, after_minimum: complexityFee + alarmFee, protected_fees: complexityFee + alarmFee, customer_minimum: settings.minimum + complexityFee + alarmFee },
     protectedFees: complexityFee + alarmFee,
     fields: { base_labor_cost: labor, key_value: chargedKey, fipe_value: fipe, fipe_code: quote.fipeCode || '', fipe_reference_month: quote.fipeMonth || '', fipe_model: quote.fipeModel || '', fipe_source_url: quote.fipeSourceUrl || '', labor_cost: adjusted.total, locomotion_cost: distanceFee, extra_cost: onlineFee + complexityFee + alarmFee },
     lines: [
@@ -227,6 +228,7 @@ export async function calculateServerServicePrice(base44, userId, data) {
     const total = round(laborAndTravel + floorAdjustment + motoKey + automotiveFee + brokenFee);
     calculation = {
       total,
+      distanceModel: { base: round(adjusted.total + locks), minimum: settings.minimum, after_minimum: motoKey + automotiveFee + brokenFee, protected_fees: brokenFee, customer_minimum: 0 },
       protectedFees: brokenFee,
       fields: { base_labor_cost: motoBase, labor_cost: adjusted.total, extra_cost: locks + automotiveFee + brokenFee, locomotion_cost: distanceFee, ...(rule.id === 'confeccao_chave_moto' ? { key_value: motoKey } : {}) },
       lines: [
@@ -267,7 +269,7 @@ export async function calculateServerServicePrice(base44, userId, data) {
     discount_type: firstCall ? 'first_call' : useDiscount ? 'loyalty' : null,
     minimum: firstCall ? round(minimum * 0.90) : minimum,
     fields: calculation.fields,
-    calculation: { distance_pricing: { distance_km: round(nearest), threshold_km: settings.distance_threshold, rate_per_km: settings.distance_rate, excess_km: round(Math.max(0, nearest - settings.distance_threshold)), fee: distanceFee }, ...(carOpening ? { opening_method: method, lishi_percent: lishiPercent, simple_opening_price: simplePrice } : {}), total: calculation.total, lines: calculation.lines, notes: [
+    calculation: { distance_pricing: { distance_km: round(nearest), threshold_km: settings.distance_threshold, rate_per_km: settings.distance_rate, excess_km: round(Math.max(0, nearest - settings.distance_threshold)), fee: distanceFee, price_model: calculation.distanceModel ? { ...calculation.distanceModel, loyalty_percent: useDiscount ? settings.loyalty : 0, lishi_percent: carOpening && method === 'lishi' ? lishiPercent : 0, first_call: firstCall } : null }, ...(carOpening ? { opening_method: method, lishi_percent: lishiPercent, simple_opening_price: simplePrice } : {}), total: calculation.total, lines: calculation.lines, notes: [
       'Preço recalculado e validado pelo servidor.',
       ...(!rule.fixed && !rule.carKey && openingRule?.base_price == null ? [`Horário de Brasília: ${calendar.businessHours ? 'horário comercial' : 'fora do horário comercial / fim de semana / feriado'}. Posição aplicada na faixa base: ${round(tierFactor * 100)}%. O ajuste de horário já está incluído na mão de obra, antes dos demais fatores.`] : []),
       `${neighborhood.label}. ${neighborhood.source || "Identificação inconclusiva: sem ajuste."} Ajuste sobre a mão de obra.`,
