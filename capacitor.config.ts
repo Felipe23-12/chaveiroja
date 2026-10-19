@@ -8,7 +8,7 @@ const config: CapacitorConfig = {
     // Keep the native shell pointed at the published Base44 application. This
     // preserves the existing authentication and backend behavior while the
     // iOS signing configuration remains fully controlled by this repository.
-    url: 'https://woodoo-quick-lock-link.base44.app',
+    url: 'https://chaveiroja.base44.app',
     cleartext: false,
   },
   ios: {
