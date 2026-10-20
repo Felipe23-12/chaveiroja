@@ -10,8 +10,8 @@
 	</array>
 	<key>com.apple.developer.associated-domains</key>
 	<array>
-		<string>applinks:woodoo-quick-lock-link.base44.app</string>
-		<string>webcredentials:woodoo-quick-lock-link.base44.app</string>
+		<string>applinks:chaveiroja.base44.app</string>
+		<string>webcredentials:chaveiroja.base44.app</string>
 	</array>
 </dict>
 </plist>

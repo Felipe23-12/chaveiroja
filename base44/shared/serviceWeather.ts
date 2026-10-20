@@ -17,7 +17,7 @@ async function weatherReading(lat, lng) {
     return { rain, storm: [95, 96, 99].includes(code), source: 'Dados de Open-Meteo' };
   } catch {
     // A fonte principal pode limitar o IP compartilhado; usa previsão horária verificada no servidor.
-    const body = await weatherJson(`https://api.met.no/weatherapi/locationforecast/2.0/compact?lat=${lat}&lon=${lng}`, { 'User-Agent': 'ChaveiroJa/1.0 https://woodoo-quick-lock-link.base44.app' });
+    const body = await weatherJson(`https://api.met.no/weatherapi/locationforecast/2.0/compact?lat=${lat}&lon=${lng}`, { 'User-Agent': 'ChaveiroJa/1.0 https://chaveiroja.base44.app' });
     const now = Date.now();
     const slot = (body.properties?.timeseries || []).filter(item => Math.abs(Date.parse(item.time) - now) < 3600000).sort((a, b) => Math.abs(Date.parse(a.time) - now) - Math.abs(Date.parse(b.time) - now))[0];
     const hour = slot?.data?.next_1_hours, rain = hour?.details?.precipitation_amount;

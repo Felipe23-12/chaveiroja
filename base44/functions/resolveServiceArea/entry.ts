@@ -20,7 +20,7 @@ export default async function(req: Request): Promise<Response> {
     if (!accepted[scope] || query.length < 3 || query.length > 140) return Response.json({ error: 'Informe o tipo e o nome completo da área' }, { status: 400 });
     const url = new URL('https://nominatim.openstreetmap.org/search');
     url.search = new URLSearchParams({ q: query, format: 'json', polygon_geojson: '1', polygon_threshold: scope === 'country' ? '0.01' : scope === 'state' ? '0.002' : '0.0002', addressdetails: '1', limit: '7', 'accept-language': 'pt-BR' }).toString();
-    const response = await fetch(url, { headers: { 'User-Agent': 'ChaveiroJa/1.0 (https://woodoo-quick-lock-link.base44.app)', Accept: 'application/json' } });
+    const response = await fetch(url, { headers: { 'User-Agent': 'ChaveiroJa/1.0 (https://chaveiroja.base44.app)', Accept: 'application/json' } });
     if (!response.ok) return Response.json({ error: 'Busca de limites indisponível. Tente novamente.' }, { status: 502 });
     const results = await response.json();
     const areas = results.filter(item => accepted[scope].includes(item.addresstype)).slice(0, 4).map(item => {

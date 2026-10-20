@@ -11,7 +11,7 @@ export function normalizeMercadoPagoPaymentId(value) {
   return paymentId;
 }
 
-export const APP_URL = "https://woodoo-quick-lock-link.base44.app";
+export const APP_URL = "https://chaveiroja.base44.app";
 export const MP_CALLBACK_URL = `${APP_URL}/functions/mercadoPagoOAuthCallback`;
 export const MP_WEBHOOK_URL = `${APP_URL}/functions/mercadoPagoWebhook`;
 

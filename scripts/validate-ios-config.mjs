@@ -21,11 +21,11 @@ reject(entitlements.includes('com.apple.developer.carrier-messaging-app'), 'carr
 reject(/<string>voip<\/string>/.test(info), 'voip background mode is forbidden');
 reject(!info.includes('<string>remote-notification</string>'), 'remote-notification background mode is missing');
 reject(!info.includes('NSLocationWhenInUseUsageDescription'), 'location usage description is missing');
-reject(!project.includes('MARKETING_VERSION = 2.131675.3;'), 'marketing version must be 2.131675.3');
-reject(!project.includes('CURRENT_PROJECT_VERSION = 3;'), 'build number must be 3');
+reject(!project.includes('MARKETING_VERSION = 2.131675.4;'), 'marketing version must be 2.131675.4');
+reject(!project.includes('CURRENT_PROJECT_VERSION = 4;'), 'build number must be 4');
 reject(!project.includes('DEVELOPMENT_TEAM = TM2BBSKJ6L;'), 'Apple development team is missing');
 reject(!project.includes('CODE_SIGN_ENTITLEMENTS = App/App.entitlements;'), 'entitlements file is not assigned');
-reject(!capacitor.includes('https://woodoo-quick-lock-link.base44.app'), 'published Base44 URL is missing');
+reject(!capacitor.includes('https://chaveiroja.base44.app'), 'published Base44 URL is missing');
 
 if (failures.length) {
   console.error(`iOS configuration validation failed:\n- ${failures.join('\n- ')}`);
