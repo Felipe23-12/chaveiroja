@@ -1,0 +1,45 @@
+{
+  "name": "UpdateNoticeCampaign",
+  "type": "object",
+  "properties": {
+    "campaign_key": {
+      "type": "string"
+    },
+    "locked_until": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "run_token": {
+      "type": "string"
+    },
+    "last_result": {
+      "type": "object"
+    }
+  },
+  "required": [
+    "campaign_key",
+    "locked_until"
+  ],
+  "rls": {
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

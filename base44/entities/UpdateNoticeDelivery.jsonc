@@ -1,0 +1,68 @@
+{
+  "name": "UpdateNoticeDelivery",
+  "type": "object",
+  "properties": {
+    "campaign_key": {
+      "type": "string"
+    },
+    "user_id": {
+      "type": "string"
+    },
+    "channel": {
+      "type": "string",
+      "enum": [
+        "native_push",
+        "web_push",
+        "email"
+      ]
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "attempting",
+        "sent",
+        "failed",
+        "skipped"
+      ]
+    },
+    "attempted_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "completed_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "error_code": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "campaign_key",
+    "user_id",
+    "channel",
+    "status"
+  ],
+  "rls": {
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

@@ -18,7 +18,7 @@ export async function sendWebPush(base44, { userId, title, content, path, eventI
   const page = await base44.asServiceRole.entities.WebPushIdentity.filter({ user_id: userId }, { limit: 1 });
   const identity = page.items[0];
   if (!identity) return { skipped: true, reason: 'browser_not_registered' };
-  if (!/^\/(?:chat|acompanhamento)\/[a-zA-Z0-9_-]+$/.test(path)) throw new Error('Destino da notificação inválido');
+  if (path !== '/' && !/^\/(?:chat|acompanhamento)\/[a-zA-Z0-9_-]+$/.test(path)) throw new Error('Destino da notificação inválido');
   const response = await fetch('https://api.onesignal.com/notifications', {
     method: 'POST',
     headers: { Authorization: `Key ${apiKey}`, 'Content-Type': 'application/json' },
