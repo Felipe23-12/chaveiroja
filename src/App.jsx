@@ -108,8 +108,7 @@ const AuthenticatedApp = () => {
         <Route path="/google-complete" element={<GoogleComplete />} />
         <Route path="/auth/google-return" element={<GoogleSignInReturn />} />
         <Route path="/politica-reembolso" element={<PoliticaReembolso />} />
-        <Route path="/termos-privacidade" element={<TermosPrivacidade />} />
-        <Route path="/exclusao-de-conta" element={<ExclusaoConta />} />
+
         <Route path="/sobre" element={<Sobre />} />
         <Route path="/about" element={<About />} />
         <Route path="/contato" element={<Contato />} />
@@ -171,16 +170,25 @@ const AuthenticatedApp = () => {
 function App() {
 
   return (
-    <AuthProvider>
-      <QueryClientProvider client={queryClientInstance}>
-        <Router>
-          <ScrollToTop />
-          <LocksmithActivityTracker />
-          <AuthenticatedApp />
-        </Router>
-        <Toaster />
-      </QueryClientProvider>
-    </AuthProvider>
+    <QueryClientProvider client={queryClientInstance}>
+      <Router>
+        <ScrollToTop />
+        <Suspense fallback={<PageFallback />}>
+          <Routes>
+            {/* Public legal pages never mount authentication checks or account guards. */}
+            <Route path="/termos-privacidade" element={<TermosPrivacidade />} />
+            <Route path="/exclusao-de-conta" element={<ExclusaoConta />} />
+            <Route path="*" element={
+              <AuthProvider>
+                <LocksmithActivityTracker />
+                <AuthenticatedApp />
+              </AuthProvider>
+            } />
+          </Routes>
+        </Suspense>
+      </Router>
+      <Toaster />
+    </QueryClientProvider>
   )
 }
 

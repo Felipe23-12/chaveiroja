@@ -4,6 +4,7 @@ import { Link } from "react-router-dom";
 import { ArrowLeft, ShieldCheck, FileText, Lock, UserCheck, ScrollText, CreditCard, AlertTriangle, Mail, Scale } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import LegalSection from "@/components/legal/LegalSection";
+import PrivacyDataDetails from "@/components/legal/PrivacyDataDetails";
 
 export default function TermosPrivacidade() {
   return (
@@ -14,7 +15,7 @@ export default function TermosPrivacidade() {
         </div>
         <div>
           <h1 className="font-heading font-bold text-2xl text-foreground">Termos de Uso e Privacidade</h1>
-          <p className="text-sm text-muted-foreground">Chaveiro Já · atualizado em 28/09/2026</p>
+          <p className="text-sm text-muted-foreground">Chaveiro Já · atualizado em 20/10/2026</p>
         </div>
       </div>
 
@@ -47,7 +48,7 @@ export default function TermosPrivacidade() {
         </p>
       </LegalSection>
 
-      <LegalSection icon={Lock} title="2. Proteção de dados (LGPD — Lei nº 13.709/2018)">
+      <LegalSection icon={Lock} title="2. Política de Privacidade (LGPD — Lei nº 13.709/2018)">
         <p>
           Tratamos seus dados pessoais em conformidade com a Lei Geral de Proteção de Dados. Coletamos apenas
           o necessário para prestar o serviço:
@@ -65,13 +66,14 @@ export default function TermosPrivacidade() {
         </p>
         <p>
           <strong className="text-foreground">Compartilhamento:</strong> seus dados de contato e localização são compartilhados
-          com o chaveiro designado somente durante o atendimento, e com provedores de pagamento, mapas e
+          com profissionais envolvidos na busca e execução do atendimento, conforme necessário, e com provedores de pagamento, mapas e
           infraestrutura estritamente para viabilizar o serviço. Não vendemos dados pessoais.
         </p>
         <p>
           <strong className="text-foreground">Retenção:</strong> os dados de atendimento e pagamento são mantidos pelo prazo
-          legal e fiscal aplicável (até 5 anos), sendo depois eliminados ou anonimizados.
+          legal e fiscal aplicável (até 5 anos), sendo depois eliminados ou anonimizados. O cadastro de acesso é removido ao confirmar a exclusão no app; a eliminação dos dados associados pode ser solicitada pelo canal público indicado abaixo. Registros mínimos de reprovação cadastral são mantidos até o fim do bloqueio de 15 dias contado da reprovação.
         </p>
+        <PrivacyDataDetails />
       </LegalSection>
 
       <LegalSection icon={UserCheck} title="3. Seus direitos como titular de dados">
@@ -151,8 +153,7 @@ export default function TermosPrivacidade() {
 
       <LegalSection icon={Mail} title="8. Contato, alterações e foro">
         <p>
-          Dúvidas, solicitações relativas a dados pessoais ou reclamações podem ser enviadas pelo suporte do
-          aplicativo. Estes termos podem ser atualizados para refletir mudanças legais ou de funcionalidades,
+          Dúvidas, solicitações relativas a dados pessoais ou reclamações podem ser enviadas, sem login, para o e-mail oficial indicado na página de exclusão abaixo. Pedidos de exclusão e anonimização são atendidos em até 30 dias após a confirmação da titularidade, ressalvadas as retenções informadas nesta política. Estes termos podem ser atualizados para refletir mudanças legais ou de funcionalidades,
           com aviso no app. Consulte também a página de{" "}
           <Link to="/exclusao-de-conta" className="text-primary underline">exclusão da conta e dos dados</Link>.
         </p>

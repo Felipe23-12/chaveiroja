@@ -28,19 +28,23 @@ export default function ExclusaoConta() {
       </LegalSection>
 
       <LegalSection icon={Mail} title="Solicitar exclusão por e-mail">
-        <p>Se você não conseguir acessar sua conta, também pode solicitar a exclusão da conta e dos dados pelo e-mail oficial do Chaveiro Já.</p>
+        <p>Você pode solicitar a exclusão da conta e dos dados por e-mail, sem entrar no aplicativo e sem precisar reinstalá-lo. Use o botão abaixo ou copie o endereço para seu serviço de e-mail.</p>
+        <p>Informe seu nome, o e-mail cadastrado e que deseja excluir a conta e os dados do Chaveiro Já. Não envie senha, código de verificação ou dados de cartão.</p>
+        <p><strong>Prazo da solicitação por e-mail:</strong> até 30 dias após a confirmação da titularidade para concluir a exclusão ou anonimização dos dados que não precisam ser conservados. A equipe responderá pelo e-mail da solicitação, informando a conclusão e eventuais retenções obrigatórias.</p>
         <p>Envie a solicitação usando, de preferência, o mesmo endereço de e-mail cadastrado na conta. Poderemos solicitar informações adicionais apenas para confirmar a titularidade e proteger seus dados.</p>
         <Button asChild variant="outline" className="w-full"><a href="mailto:chaveiroja.comercial@gmail.com?subject=Solicita%C3%A7%C3%A3o%20de%20exclus%C3%A3o%20de%20conta%20e%20dados%20-%20Chaveiro%20J%C3%A1"><Mail className="w-4 h-4" /><span>Solicitar exclusão por e-mail</span></a></Button>
         <p className="text-sm"><strong>E-mail:</strong> chaveiroja.comercial@gmail.com</p>
       </LegalSection>
 
       <LegalSection icon={Trash2} title="Dados excluídos ou anonimizados">
-        <p>São excluídos os dados de acesso e cadastro, como nome, e-mail, telefone, CPF e foto de perfil, além da localização em tempo real e das informações opcionais do perfil. Mensagens, fotos, avaliações e demais conteúdos vinculados à conta são excluídos ou anonimizados quando não houver obrigação legal de conservação.</p>
+        <p>A confirmação dentro do aplicativo remove a conta de acesso e seu cadastro. Para solicitar também a revisão e eliminação dos dados associados, utilize o e-mail acima: a solicitação abrange nome, e-mail, telefone, CPF, foto e informações do perfil, localizações, mensagens, fotos de atendimentos e avaliações, exceto os registros sujeitos às retenções descritas abaixo. Os dados associados são excluídos ou anonimizados pela equipe após a verificação da titularidade.</p>
       </LegalSection>
 
       <LegalSection icon={Clock3} title="Dados mantidos e prazo de retenção">
         <p>Registros mínimos de atendimentos, pagamentos, recibos e documentos fiscais poderão ser mantidos por até 5 anos para cumprimento de obrigações legais, fiscais, prevenção a fraudes e exercício regular de direitos. Durante esse período, o acesso é restrito; ao final, os dados são eliminados ou anonimizados.</p>
-        <p>A exclusão da conta é irreversível e os dados removidos não poderão ser recuperados.</p>
+        <p>Se houve reprovação cadastral, o registro mínimo do CPF e do bloqueio permanece até o fim do prazo de 15 dias contado da reprovação, para impedir que a exclusão contorne essa restrição.</p>
+        <p>A exclusão da conta é irreversível e os dados removidos não poderão ser recuperados. Desinstalar o aplicativo não exclui a conta. A solicitação ao Chaveiro Já não exclui uma conta independente mantida no Mercado Pago, Google ou Apple.</p>
+        <Link to="/termos-privacidade" className="text-primary underline">Consultar a Política de Privacidade do Chaveiro Já</Link>
       </LegalSection>
     </main>
   );

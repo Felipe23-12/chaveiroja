@@ -1,0 +1,15 @@
+import React from 'react';
+
+export default function PrivacyDataDetails() {
+  return (
+    <>
+      <p><strong className="text-foreground">Responsável pelo tratamento:</strong> a administração do Chaveiro Já é responsável pelos dados tratados para operar a plataforma. O canal de privacidade e de exercício de direitos está indicado ao final desta política e na página pública de exclusão.</p>
+      <p><strong className="text-foreground">Dados adicionais:</strong> para profissionais, tratamos especialidades, serviços, disponibilidade, documentos de verificação e informações de recebimento. Quando você entra com Google ou Apple, recebemos as informações de identidade autorizadas pelo provedor. Também são tratados identificadores de sessão e de notificações, dados técnicos do dispositivo e navegador, registros de acesso e eventos de uso para segurança, diagnóstico e análise do funcionamento.</p>
+      <p><strong className="text-foreground">Permissões:</strong> localização permite localizar atendimentos e acompanhar o deslocamento; câmera e fotos permitem anexar imagens escolhidas por você; notificações informam mensagens e andamento dos chamados. Você pode revogar essas permissões nas configurações do dispositivo ou navegador, o que pode limitar a função correspondente.</p>
+      <p><strong className="text-foreground">Armazenamento local e análise:</strong> usamos armazenamento local e de sessão para manter o acesso, preferências e funcionamento do aplicativo. O Google Analytics é usado para métricas de utilização; identificadores do OneSignal permitem entregar notificações autorizadas. Você pode gerenciar permissões, cookies e dados locais no navegador; limpar esses dados não equivale a excluir sua conta.</p>
+      <p><strong className="text-foreground">Prestadores e transferências:</strong> utilizamos Base44 para hospedagem, autenticação e armazenamento, Mercado Pago para pagamentos, serviços de mapas e localização, Google Analytics e OneSignal. Esses prestadores podem processar dados em outros países conforme seus serviços e políticas; o tratamento deve observar as salvaguardas aplicáveis da LGPD. Dados também podem ser disponibilizados a autoridades quando houver obrigação legal ou ordem válida.</p>
+      <p><strong className="text-foreground">Finalidade e necessidade:</strong> usamos os dados para cadastrar e verificar usuários, intermediar serviços, calcular preços e rotas, permitir comunicação e pagamentos, prestar suporte, prevenir abuso e cumprir obrigações legais. Não solicitamos senhas de provedores ou números completos de cartão por e-mail.</p>
+      <p><strong className="text-foreground">Crianças e adolescentes:</strong> o serviço destina-se a maiores de 18 anos. Se identificar dados de menor cadastrados indevidamente, contate a administração para análise e remoção cabível.</p>
+    </>
+  );
+}
