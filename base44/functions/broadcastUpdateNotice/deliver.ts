@@ -30,7 +30,7 @@ export async function deliverNotice(base44, user, channel) {
           variables: {
             first_name: escapeHtml(String(current.legal_name || current.full_name || 'usuário').trim().split(/\s+/)[0]),
             android_url: 'https://play.google.com/store/apps/details?id=com.base6a975d266a8000184833026a.app',
-            ios_url: 'https://apps.apple.com/app/id6814332317',
+            ios_url: 'https://apps.apple.com/br/app/id6814332317',
           },
         });
         if (result?.success === false || result?.error) throw new Error('EMAIL_REJECTED');
