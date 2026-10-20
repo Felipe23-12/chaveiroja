@@ -110,8 +110,8 @@ jobs:
             echo 'Forbidden voip background mode found in signed IPA.' >&2
             exit 1
           fi
-          test "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$APP_PATH/Info.plist")" = '2.131675.3'
-          test "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleVersion' "$APP_PATH/Info.plist")" = '3'
+          test "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$APP_PATH/Info.plist")" = '2.131675.4'
+          test "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleVersion' "$APP_PATH/Info.plist")" = '4'
           mkdir -p artifacts
           cp "$IPA_PATH" artifacts/ChaveiroJa-2.131675.3-3.ipa
 
