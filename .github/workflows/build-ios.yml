@@ -122,3 +122,11 @@ jobs:
           path: artifacts/ChaveiroJa-2.131675.4-4.ipa
           if-no-files-found: error
           retention-days: 7
+
+      - name: Upload IPA to App Store Connect
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$HOME/.appstoreconnect/private_keys"
+          cp "$ASC_KEY_PATH" "$HOME/.appstoreconnect/private_keys/"
+          xcrun altool --upload-app --type ios --file artifacts/ChaveiroJa-2.131675.4-4.ipa --apiKey "$ASC_KEY_ID" --apiIssuer "$ASC_ISSUER_ID"
