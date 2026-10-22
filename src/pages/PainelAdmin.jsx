@@ -27,6 +27,7 @@ const FeedbackPanel = lazy(() => import("@/components/admin/FeedbackPanel"));
 const FailedServiceReports = lazy(() => import("@/components/admin/FailedServiceReports"));
 const LocksmithQualityTable = lazy(() => import("@/components/admin/LocksmithQualityTable"));
 const LocksmithApprovalsPanel = lazy(() => import("@/components/admin/LocksmithApprovalsPanel"));
+const LowRatingsPanel = lazy(() => import("@/components/admin/LowRatingsPanel"));
 
 const LazySection = ({ children }) => (
   <Suspense fallback={<div className="py-8 text-center text-sm text-muted-foreground">Carregando seção...</div>}>
@@ -198,6 +199,8 @@ export default function PainelAdmin() {
         <StatCard icon={ClipboardList} label="Solicitações" value={requests.length} />
         <StatCard icon={Wallet} label="Receita (concluídos)" value={fmtMoney(revenue)} />
       </div>}
+
+      {activeTab === "overview" && <LazySection><LowRatingsPanel /></LazySection>}
 
       {activeTab === "overview" && <LazySection><WeeklyOperationsPanel requests={requests} scores={scores} /></LazySection>}
 
