@@ -4,6 +4,7 @@ import { cpfCanBeAssigned, SHARED_OWNER_EXCEPTION } from '../../shared/cpfOwners
 import { isValidCpf, onlyDigits } from '../../shared/registrationEligibility.ts';
 import { registrationCooldown, rejectLocksmithRegistration } from '../../shared/registrationCooldown.ts';
 import { persistLocksmithAccount } from '../../shared/persistLocksmithAccount.ts';
+import { missingLocksmithInformation, notifyMissingLocksmithInformation } from '../../shared/locksmithMissingInformation.ts';
 
 export default async function(req) {
   try {
@@ -15,15 +16,16 @@ export default async function(req) {
       if (body.cursor != null && (typeof body.cursor !== 'string' || body.cursor.length > 4000)) return Response.json({ error: 'Página inválida.' }, { status: 400 });
       return Response.json(await locksmithApprovalQueue(base44, body.cursor));
     }
-    if (!['approve', 'reject'].includes(body.action) || typeof body.id !== 'string' || !body.id || body.id.length > 100) return Response.json({ error: 'Solicitação inválida.' }, { status: 400 });
+    if (!['approve', 'reject', 'notify_missing_information'].includes(body.action) || typeof body.id !== 'string' || !body.id || body.id.length > 100) return Response.json({ error: 'Solicitação inválida.' }, { status: 400 });
     const note = typeof body.note === 'string' ? body.note.trim() : '';
-    if (note.length < 10 || note.length > 1000 || (body.action === 'approve' && body.ownership_confirmed !== true)) return Response.json({ error: body.action === 'reject' ? 'Informe um motivo de reprovação entre 10 e 1000 caracteres.' : 'Confirme a comprovação de titularidade e registre a conferência realizada.' }, { status: 400 });
+    if (body.action !== 'notify_missing_information' && (note.length < 10 || note.length > 1000 || (body.action === 'approve' && body.ownership_confirmed !== true))) return Response.json({ error: body.action === 'reject' ? 'Informe um motivo de reprovação entre 10 e 1000 caracteres.' : 'Confirme a comprovação de titularidade e registre a conferência realizada.' }, { status: 400 });
     const row = await base44.entities.VerifiedCpf.get(body.id);
     if (!row) return Response.json({ error: 'Solicitação não encontrada.' }, { status: 404 });
     const target = await base44.entities.User.get(row.user_id);
     const previouslyApproved = row.ownership_verified === true && row.review_status === 'approved' && Boolean(row.reviewed_by);
     if (!target || (target.account_type !== 'chaveiro' && !previouslyApproved)) return Response.json({ error: 'Esta solicitação não pertence a uma conta de chaveiro.' }, { status: 409 });
     if (row.review_status === 'rejected') return Response.json({ error: 'Esta solicitação já foi reprovada. O chaveiro precisa aguardar o prazo e enviar uma nova solicitação.' }, { status: 409 });
+    if (body.action === 'notify_missing_information') return await notifyMissingLocksmithInformation(base44, row, target);
     if (row.ownership_verified === true) {
       if (body.action === 'reject') return Response.json({ error: 'Não é possível reprovar uma solicitação já aprovada.' }, { status: 409 });
       await persistLocksmithAccount(base44, target.id, row.cpf);
@@ -34,7 +36,8 @@ export default async function(req) {
     const cooldown = await registrationCooldown(base44, target.id, cpf);
     if (cooldown.retry_blocked) return Response.json({ error: cooldown.message }, { status: 409 });
     if (!isValidCpf(cpf)) return Response.json({ error: 'O CPF solicitado é inválido.' }, { status: 409 });
-    if (target.is_verified !== true || !/^\d{10,11}$/.test(onlyDigits(target.phone)) || String(target.legal_name || target.full_name || '').trim().split(/\s+/).length < 2) return Response.json({ error: 'O chaveiro precisa confirmar o email e preencher nome completo e telefone antes da aprovação.' }, { status: 409 });
+    const missing = missingLocksmithInformation(target);
+    if (missing.length) return Response.json({ error: `Informações pendentes: ${missing.join('; ')}.`, code: 'MISSING_REGISTRATION_INFORMATION' }, { status: 409 });
     const exception = cpf === SHARED_OWNER_EXCEPTION.cpf && String(target.email || '').toLowerCase() === SHARED_OWNER_EXCEPTION.locksmithEmail;
     if (onlyDigits(target.cpf) && onlyDigits(target.cpf) !== cpf && !exception) return Response.json({ error: 'O CPF solicitado difere do CPF atual do cadastro. Confira a titularidade antes de prosseguir.' }, { status: 409 });
     if (!(await cpfCanBeAssigned(base44, target, cpf))) return Response.json({ error: 'CPF bloqueado ou vinculado a outra conta. A aprovação não foi realizada.' }, { status: 409 });

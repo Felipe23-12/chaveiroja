@@ -4,8 +4,9 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Textarea } from '@/components/ui/textarea';
 import { formatCpf } from '@/lib/cpf';
 import RejectRegistrationDialog from '@/components/admin/RejectRegistrationDialog';
+import MissingInformationEmailButton from '@/components/admin/MissingInformationEmailButton';
 
-export default function LocksmithApprovalCard({ item, busy, onApprove, onReject }) {
+export default function LocksmithApprovalCard({ item, busy, onApprove, onReject, missingInformation }) {
   const [confirmed, setConfirmed] = useState(false);
   const [note, setNote] = useState('');
   const profile = item.profile;
@@ -24,5 +25,6 @@ export default function LocksmithApprovalCard({ item, busy, onApprove, onReject 
     <label className="flex items-start gap-3 text-sm"><Checkbox checked={confirmed} onCheckedChange={value => setConfirmed(value === true)} disabled={busy} /><span>Conferi os dados e a comprovação de titularidade do CPF deste chaveiro.</span></label>
     <Textarea aria-label="Registro da conferência" placeholder="Registre como a titularidade foi conferida (obrigatório)." maxLength={1000} value={note} onChange={event => setNote(event.target.value)} disabled={busy} />
     <div className="flex flex-wrap gap-2"><Button disabled={busy || !confirmed || note.trim().length < 10} onClick={() => onApprove(item.id, note.trim())}>{busy ? 'Processando...' : 'Aprovar cadastro'}</Button><RejectRegistrationDialog item={item} busy={busy} onReject={onReject} /></div>
+    {missingInformation && <MissingInformationEmailButton id={item.id} disabled={busy} />}
   </article>;
 }

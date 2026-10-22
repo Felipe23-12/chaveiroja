@@ -10,6 +10,7 @@ export default function LocksmithApprovalsPanel() {
   const [busy, setBusy] = useState(null);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [missingInfoId, setMissingInfoId] = useState(null);
   const load = useCallback(async (cursor) => {
     setLoading(true); setError('');
     try {
@@ -20,13 +21,17 @@ export default function LocksmithApprovalsPanel() {
   }, []);
   useEffect(() => { load(); }, [load]);
   const decide = async (action, id, note) => {
-    setBusy(id); setError(''); setSuccess('');
+    setBusy(id); setError(''); setSuccess(''); setMissingInfoId(null);
     try {
       await base44.functions.invoke('locksmithRegistrationApproval', { action, id, note, ownership_confirmed: action === 'approve' });
       setSuccess(action === 'approve' ? 'Cadastro aprovado. A pendência de titularidade do CPF foi liberada.' : 'Cadastro reprovado. Uma nova tentativa está bloqueada por 15 dias.');
       await load();
       return true;
-    } catch (error) { setError(error?.response?.data?.error || error.message); return false; }
+    } catch (error) {
+      setError(error?.response?.data?.error || error.message);
+      if (action === 'approve' && error?.response?.data?.code === 'MISSING_REGISTRATION_INFORMATION') setMissingInfoId(id);
+      return false;
+    }
     finally { setBusy(null); }
   };
   return <section className="space-y-4">
@@ -36,7 +41,7 @@ export default function LocksmithApprovalsPanel() {
     {success && <p role="status" className="text-sm text-success">{success}</p>}
     {loading && <p role="status" className="text-sm text-muted-foreground">Carregando cadastros...</p>}
     {!loading && !error && !page.items.length && <p className="rounded-xl border border-border p-6 text-center text-muted-foreground">Nenhum cadastro de chaveiro aguardando aprovação.</p>}
-    {page.items.map(item => <LocksmithApprovalCard key={item.id} item={item} busy={Boolean(busy) || loading} onApprove={(id, note) => decide('approve', id, note)} onReject={(id, note) => decide('reject', id, note)} />)}
+    {page.items.map(item => <LocksmithApprovalCard key={item.id} item={item} missingInformation={missingInfoId === item.id} busy={Boolean(busy) || loading} onApprove={(id, note) => decide('approve', id, note)} onReject={(id, note) => decide('reject', id, note)} />)}
     {page.has_more && <Button variant="outline" disabled={loading || Boolean(busy)} onClick={() => load(page.next_cursor)}>Carregar mais</Button>}
   </section>;
 }
