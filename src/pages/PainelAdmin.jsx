@@ -28,6 +28,7 @@ const FailedServiceReports = lazy(() => import("@/components/admin/FailedService
 const LocksmithQualityTable = lazy(() => import("@/components/admin/LocksmithQualityTable"));
 const LocksmithApprovalsPanel = lazy(() => import("@/components/admin/LocksmithApprovalsPanel"));
 const LowRatingsPanel = lazy(() => import("@/components/admin/LowRatingsPanel"));
+const LocksmithRegionsPanel = lazy(() => import('@/components/admin/LocksmithRegionsPanel'));
 
 const LazySection = ({ children }) => (
   <Suspense fallback={<div className="py-8 text-center text-sm text-muted-foreground">Carregando seção...</div>}>
@@ -217,6 +218,8 @@ export default function PainelAdmin() {
       {activeTab === "finance" && <LazySection><RevenueCommissionChart requests={requests} /></LazySection>}
 
       {activeTab === "finance" && <LazySection><FinancialConsolidation requests={requests} locksmiths={locksmiths} /></LazySection>}
+
+      {activeTab === 'people' && <LazySection><LocksmithRegionsPanel /></LazySection>}
 
       <section className={activeTab === "people" ? "" : "hidden"}>
         <h2 className="font-heading font-semibold text-lg text-foreground mb-3">Usuários</h2>

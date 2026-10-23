@@ -13,6 +13,8 @@ import MonthlySubscriptionConfig from "@/components/locksmith/MonthlySubscriptio
 import MercadoPagoConnectSetup from "@/components/locksmith/MercadoPagoConnectSetup";
 import ServiceSelector from "@/components/locksmith/ServiceSelector";
 import ServiceRadiusConfig from "@/components/locksmith/ServiceRadiusConfig";
+import ServiceRegionsField from '@/components/locksmith/ServiceRegionsField';
+import ServiceRegionsEditor from '@/components/locksmith/ServiceRegionsEditor';
 import { resyncRingingForRadius } from "@/lib/radiusResync";
 import AvatarPicker from "@/components/profile/AvatarPicker";
 import SpecialtiesSelector from "@/components/locksmith/SpecialtiesSelector";
@@ -24,7 +26,7 @@ export default function LocksmithProfile() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [creating, setCreating] = useState(false);
-  const [newProfile, setNewProfile] = useState({ specialties: ["Residencial"], vehicle: "", bio: "" });
+  const [newProfile, setNewProfile] = useState({ specialties: ["Residencial"], vehicle: "", bio: "", service_regions: "" });
 
   const selected = myLocksmith;
 
@@ -63,6 +65,7 @@ export default function LocksmithProfile() {
         specialties: newProfile.specialties,
         vehicle: newProfile.vehicle,
         bio: newProfile.bio,
+        service_regions: newProfile.service_regions.trim(),
         work_mode: "app",
         available: true,
         online: false,
@@ -136,6 +139,7 @@ export default function LocksmithProfile() {
             Você ainda não tem um perfil de chaveiro vinculado à sua conta. Preencha os dados abaixo para começar a configurar seu modo de trabalho.
           </p>
           <div className="space-y-3">
+            <ServiceRegionsField value={newProfile.service_regions} onChange={value => setNewProfile({ ...newProfile, service_regions: value })} disabled={creating} />
             <SpecialtiesSelector
               value={newProfile.specialties}
               onChange={(v) => setNewProfile({ ...newProfile, specialties: v })}
@@ -253,6 +257,8 @@ export default function LocksmithProfile() {
                 }
               />
             </div>
+
+            <ServiceRegionsEditor locksmith={selected} onSave={updateLocksmith} />
 
             <ServiceSelector locksmith={selected} onUpdate={updateLocksmith} />
 

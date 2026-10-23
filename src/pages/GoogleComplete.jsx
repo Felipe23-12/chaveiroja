@@ -16,6 +16,8 @@ import { isFullName } from "@/lib/fullName";
 import { safeReturnTo } from '@/lib/authReturnTo';
 import CompletionSecurity from '@/components/auth/CompletionSecurity';
 import useExistingLocksmithSession from '@/hooks/useExistingLocksmithSession';
+import ServiceRegionsField from '@/components/locksmith/ServiceRegionsField';
+import { saveLocksmithOnboarding, readLocksmithOnboarding } from '@/lib/locksmithRegistration';
 
 export default function GoogleComplete() {
   const [searchParams] = useSearchParams();
@@ -31,6 +33,7 @@ export default function GoogleComplete() {
   const [username, setUsername] = useState("");
   const [phone, setPhone] = useState("");
   const [cpf, setCpf] = useState("");
+  const [serviceRegions, setServiceRegions] = useState('');
   const [email, setEmail] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
@@ -55,6 +58,7 @@ export default function GoogleComplete() {
       try {
         const me = await base44.auth.me();
         setAccount(me);
+        setServiceRegions(readLocksmithOnboarding(me)?.service_regions || '');
         setTipo(me.account_type === 'chaveiro' ? 'chaveiro' : 'cliente');
         setAcceptedTerms(Boolean(me.terms_accepted_at));
         const profileReady = isValidCpf(me.cpf) && /^\d{10,11}$/.test(onlyDigits(me.phone)) && isFullName(me.legal_name || me.full_name) && me.terms_accepted_at;
@@ -112,7 +116,10 @@ export default function GoogleComplete() {
         account_type: tipo,
         ...termsPayload(),
       });
-      if (tipo === 'chaveiro') await claimCpf(cpfDigits);
+      if (tipo === 'chaveiro') {
+        saveLocksmithOnboarding({ ...readLocksmithOnboarding(account), email, fullName, phone, cpf: cpfDigits, service_regions: serviceRegions.trim() });
+        await claimCpf(cpfDigits);
+      }
       const fresh = await base44.auth.me();
       setAccount(fresh);
       if (fresh.password_created !== true || fresh.is_verified !== true) {
@@ -199,6 +206,7 @@ export default function GoogleComplete() {
         <div className="space-y-2"><Label htmlFor="account-email">Email da conta</Label><Input id="account-email" type="email" value={email} readOnly /><p className="text-xs text-muted-foreground">{account?.is_verified === true ? 'Email confirmado na autenticação.' : 'Você precisará confirmar este email na próxima etapa.'}</p></div>
         <CpfInput value={cpf} onChange={setCpf} email={email} />
 
+        {tipo === 'chaveiro' && <ServiceRegionsField value={serviceRegions} onChange={setServiceRegions} disabled={saving} />}
         <TermsAcceptance accountType={tipo} checked={acceptedTerms} onChange={setAcceptedTerms} />
 
         <Button type="submit" className="w-full h-12 font-medium" disabled={saving || leaving || !acceptedTerms}>

@@ -9,6 +9,11 @@
       "type": "string",
       "description": "Nome de exibi\u00e7\u00e3o escolhido pelo chaveiro para o painel (sobrescreve o nome de registro)"
     },
+    "service_regions": {
+      "type": "string",
+      "maxLength": 500,
+      "description": "Regi\u00f5es atendidas informadas livremente pelo chaveiro, para consulta administrativa. N\u00e3o altera cobertura oficial nem raio de atendimento."
+    },
     "specialty": {
       "type": "string",
       "enum": [

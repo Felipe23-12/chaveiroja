@@ -3,7 +3,11 @@ const SPECIALTIES = ['Residencial', 'Automotivo', 'Comercial', 'Emergencial'];
 // Recebe exclusivamente o usuário autenticado pelo chamador; nunca um ID do payload.
 export async function ensureLocksmithProfile(base44, user, details = {}) {
   const profiles = await base44.asServiceRole.entities.Locksmith.filter({ created_by_id: user.id }, '-updated_date', 1);
-  if (profiles[0]) return profiles[0];
+  const serviceRegions = typeof details?.service_regions === 'string' ? details.service_regions.trim().slice(0, 500) : '';
+  if (profiles[0]) {
+    if (serviceRegions && !profiles[0].service_regions) return await base44.entities.Locksmith.update(profiles[0].id, { service_regions: serviceRegions });
+    return profiles[0];
+  }
   if (user.account_type !== 'chaveiro' || user.is_verified !== true) {
     throw new Error('Entre com sua conta de chaveiro e confirme seu email para configurar os recebimentos.');
   }
@@ -23,6 +27,7 @@ export async function ensureLocksmithProfile(base44, user, details = {}) {
     specialties: specialties.length ? specialties : ['Residencial'],
     vehicle,
     bio,
+    service_regions: serviceRegions,
     work_mode: 'app',
     available: true,
     online: false,

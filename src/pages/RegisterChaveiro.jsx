@@ -8,6 +8,7 @@ import PasswordInput from "@/components/ui/PasswordInput";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import SpecialtiesSelector from "@/components/locksmith/SpecialtiesSelector";
+import ServiceRegionsField from '@/components/locksmith/ServiceRegionsField';
 import { Wrench, Mail, Loader2, User, Phone } from "lucide-react";
 import AuthLayout from "@/components/AuthLayout";
 
@@ -38,6 +39,7 @@ export default function RegisterChaveiro() {
   const [specialties, setSpecialties] = useState(["Residencial"]);
   const [vehicle, setVehicle] = useState("");
   const [bio, setBio] = useState("");
+  const [serviceRegions, setServiceRegions] = useState('');
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -132,7 +134,7 @@ export default function RegisterChaveiro() {
       await registerEmailAccount(normalizedEmail, password);
       setEmail(normalizedEmail);
       saveLocksmithOnboarding({
-        email: normalizedEmail, fullName, phone, cpf, specialty: specialties[0] || "Residencial", specialties, vehicle, bio,
+        email: normalizedEmail, fullName, phone, cpf, specialty: specialties[0] || "Residencial", specialties, vehicle, bio, service_regions: serviceRegions.trim(),
       });
       setShowOtp(true);
     } catch (err) {
@@ -267,6 +269,7 @@ export default function RegisterChaveiro() {
 
         <div className="space-y-4 rounded-xl border border-border bg-muted/30 p-4">
           <p className="text-sm font-semibold text-foreground">Dados profissionais</p>
+          <ServiceRegionsField value={serviceRegions} onChange={setServiceRegions} disabled={loading} />
           <div ref={specialtiesRef}>
             <SpecialtiesSelector
               value={specialties}

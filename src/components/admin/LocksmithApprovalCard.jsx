@@ -19,6 +19,7 @@ export default function LocksmithApprovalCard({ item, busy, onApprove, onReject,
       <div><dt className="text-muted-foreground">Solicitação recebida</dt><dd>{new Date(item.created_date).toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' })}</dd></div>
       <div><dt className="text-muted-foreground">Especialidades</dt><dd>{profile?.specialties?.join(', ') || profile?.specialty || 'Perfil ainda não concluído'}</dd></div>
       <div><dt className="text-muted-foreground">Veículo</dt><dd>{profile?.vehicle || 'Não informado'}</dd></div>
+      <div className="sm:col-span-2"><dt className="text-muted-foreground">Regiões atendidas</dt><dd className="whitespace-pre-wrap break-words">{profile?.service_regions || 'Não informadas'}</dd></div>
     </dl>
     {profile?.bio && <p className="text-sm whitespace-pre-wrap">{profile.bio}</p>}
     <p className="text-xs text-muted-foreground">Aprovar confirma a titularidade do CPF e libera essa pendência cadastral. As exigências de recebimentos, cobertura e eventuais bloqueios continuam válidas.</p>

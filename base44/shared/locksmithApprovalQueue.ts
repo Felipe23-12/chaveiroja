@@ -9,7 +9,7 @@ export async function locksmithApprovalQueue(base44, cursor) {
     base44.entities.VerifiedCpf.count(query),
   ]);
   const ids = [...new Set(page.items.map(row => row.user_id))];
-  const profiles = ids.length ? await base44.entities.Locksmith.filter({ created_by_id: { $in: ids } }, { sort: '-updated_date', limit: 100, fields: ['created_by_id', 'specialty', 'specialties', 'vehicle', 'bio'] }) : { items: [] };
+  const profiles = ids.length ? await base44.entities.Locksmith.filter({ created_by_id: { $in: ids } }, { sort: '-updated_date', limit: 100, fields: ['created_by_id', 'specialty', 'specialties', 'vehicle', 'bio', 'service_regions'] }) : { items: [] };
   const profileByUser = new Map();
   for (const profile of profiles.items) if (!profileByUser.has(profile.created_by_id)) profileByUser.set(profile.created_by_id, profile);
   return {
