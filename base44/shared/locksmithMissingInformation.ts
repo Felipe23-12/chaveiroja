@@ -2,7 +2,8 @@ export function missingLocksmithInformation(user) {
   const missing = [];
   if (user.is_verified !== true) missing.push('Confirmação do e-mail');
   if (String(user.legal_name || user.full_name || '').trim().split(/\s+/).length < 2) missing.push('Nome completo');
-  if (!/^\d{10,11}$/.test(String(user.phone || '').replace(/\D/g, ''))) missing.push('Telefone com DDD');
+  // Aceita DDD + número nacional e o mesmo telefone com o código do Brasil (+55).
+  if (!/^(?:55)?\d{10,11}$/.test(String(user.phone || '').replace(/\D/g, ''))) missing.push('Telefone com DDD');
   return missing;
 }
 
