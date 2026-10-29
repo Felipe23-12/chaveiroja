@@ -4,21 +4,23 @@ import AdminPricePreview from "@/components/admin/AdminPricePreview";
 import DynamicPriceFactors from "@/components/locksmith/DynamicPriceFactors";
 import ServerPriceSummary from "@/components/client/ServerPriceSummary";
 import { useServiceQuoteScope } from '@/components/location/ServiceQuoteScope';
+import { isOpeningService } from '@/lib/pricing';
 
 export default function PriceSummary({ price, showCalculationDetails = false, service = null, nearestDistance, assumedNearby = false }) {
   const { allowed } = useServiceQuoteScope();
   if (!allowed || !price) return null;
-  if (price.serverPricing) return <ServerPriceSummary pricing={price.serverPricing} showDetails={showCalculationDetails} />;
+  const showTotal = isOpeningService(service);
+  if (price.serverPricing) return <ServerPriceSummary pricing={price.serverPricing} showDetails={showCalculationDetails} showTotal={showTotal} />;
   return (
     <div className="space-y-3">
       <div className="rounded-2xl bg-muted p-4 space-y-2">
         <div className="flex justify-between items-center">
-          <span className="font-heading font-semibold text-foreground">{showCalculationDetails ? 'Valor calculado do serviço' : 'Prévia'}</span>
-          <span className="font-heading font-bold text-xl text-primary">R$ {(Number(price.total) * (showCalculationDetails ? 1 : 0.67)).toFixed(2)}</span>
+          <span className="font-heading font-semibold text-foreground">{showCalculationDetails ? 'Valor calculado do serviço' : showTotal ? 'Valor total do serviço' : 'Prévia'}</span>
+          <span className="font-heading font-bold text-xl text-primary">R$ {(Number(price.total) * (showCalculationDetails || showTotal ? 1 : 0.67)).toFixed(2)}</span>
         </div>
         <div className="flex items-start gap-1.5 text-xs text-muted-foreground">
           <Info className="w-3.5 h-3.5 shrink-0 mt-0.5" />
-          <span>{showCalculationDetails ? 'Valor estimado. O valor final pode variar conforme as condições do serviço.' : 'Atenção: este é um valor de prévia e não representa necessariamente o valor final. O total pode variar conforme as condições do serviço e custos adicionais.'}</span>
+          <span>{showTotal ? 'Valor total calculado para as condições informadas. Alterações no serviço ou no deslocamento podem ajustar o total.' : showCalculationDetails ? 'Valor estimado. O valor final pode variar conforme as condições do serviço.' : 'Atenção: este é um valor de prévia e não representa necessariamente o valor final. O total pode variar conforme as condições do serviço e custos adicionais.'}</span>
         </div>
       </div>
       <DynamicPriceFactors price={price} nearestDistance={nearestDistance} assumedNearby={assumedNearby} />
