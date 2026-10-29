@@ -17,6 +17,19 @@ function isAllowedOwnerDuplicate(user, cpf, duplicateAccounts, trustedMatches) {
   return Boolean(allowedAdmin && otherUsers.every(account => account.id === allowedAdmin.id) && otherTrustedIds.every(id => id === allowedAdmin.id));
 }
 
+// Liberação administrativa individual para o par cliente/chaveiro existente.
+// IDs fixos impedem que novas contas aproveitem esta exceção.
+function isAllowedClientLocksmithPair(user, cpf, accounts, trusted) {
+  if (cpf !== '45694520866') return false;
+  const pair = new Map([
+    ['6a9ddb3284fc018ecb3fec8d', 'chaveiro'],
+    ['6ac045423c9e6e3c4137783d', 'cliente'],
+  ]);
+  return pair.has(user.id) && user.account_type === pair.get(user.id)
+    && accounts.every(account => pair.has(account.id) && account.account_type === pair.get(account.id))
+    && trusted.every(row => pair.has(row.user_id));
+}
+
 export async function cpfCanBeAssigned(base44, user, cpf) {
   const [plain, formatted, blocked, trusted] = await Promise.all([
     base44.asServiceRole.entities.User.filter({ cpf }),
@@ -26,5 +39,5 @@ export async function cpfCanBeAssigned(base44, user, cpf) {
   ]);
   const accounts = [...new Map([...plain, ...formatted].map(account => [account.id, account])).values()];
   const duplicate = accounts.some(account => account.id !== user.id) || trusted.some(row => row.user_id !== user.id);
-  return !blocked.length && (!duplicate || isAllowedOwnerDuplicate(user, cpf, accounts, trusted));
+  return !blocked.length && (!duplicate || isAllowedOwnerDuplicate(user, cpf, accounts, trusted) || isAllowedClientLocksmithPair(user, cpf, accounts, trusted));
 }
