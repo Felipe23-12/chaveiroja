@@ -1,43 +1,45 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { base44 } from '@/api/base44Client';
-const KEY = 'chaveiroja_guest_room';
+const KEY = 'chaveiroja_guest_token_v1';
 export default function useGuestService(userId) {
-  const room = useRef(null), waiting = useRef(new Map());
+  const token = useRef(null);
   const [snapshot, setSnapshot] = useState(null), [error, setError] = useState(''), [connected, setConnected] = useState(false), [revision, setRevision] = useState(0);
-  const send = useCallback((action, body = {}) => new Promise((resolve, reject) => {
-    if (!room.current) return reject(new Error('Conecte-se à internet e tente novamente.'));
-    const id = crypto.randomUUID();
-    const timeout = setTimeout(() => { waiting.current.delete(id); reject(new Error('A resposta demorou. Confira a conexão e tente novamente; seu chamado não será duplicado.')); }, 60000);
-    waiting.current.set(id, { resolve, reject, timeout });
-    room.current.send({ ...body, id, action });
-  }), []);
+  const send = useCallback(async (action, body = {}) => {
+    if (!token.current) throw new Error('Conecte-se à internet e tente novamente.');
+    const response = await base44.functions.invoke('guestServiceGateway', { ...body, action, token: token.current });
+    if (response.data.error) throw Object.assign(new Error(response.data.error), { code: response.data.code });
+    return response.data;
+  }, []);
   const call = useCallback(async (action, body = {}) => {
     if (action !== 'claim') return send(action, body);
     const proof = await send('claim_proof');
-    const result = await base44.functions.invoke('claimGuestService', proof);
-    if (result.data.error) throw new Error(result.data.error);
-    return result.data;
+    const response = await base44.functions.invoke('claimGuestService', proof);
+    if (response.data.error) throw new Error(response.data.error);
+    return response.data;
   }, [send]);
-  const refresh = useCallback(async () => {
-    const result = await call('snapshot'); setSnapshot(result); setError(''); return result;
-  }, [call]);
+  const refresh = useCallback(async () => { const result = await call('snapshot'); setSnapshot(result); setError(''); return result; }, [call]);
   useEffect(() => {
-    let id;
-    try { id = localStorage.getItem(KEY); if (!/^[a-f0-9-]{36}$/.test(id || '')) { id = crypto.randomUUID(); localStorage.setItem(KEY, id); } }
-    catch { setError('Permita o armazenamento neste navegador para manter acesso privado ao atendimento.'); return; }
-    const connection = base44.actors.GuestServiceRoom(id).connect(); room.current = connection;
-    const connectTimer = setTimeout(() => setError('Não foi possível conectar ao atendimento. Tente novamente ou entre na sua conta.'), 12000);
-    const subscription = connection.subscribe(message => {
-      if (!message || typeof message !== 'object') return;
-      const msg = /** @type {{type?: string, id?: string, error?: string, code?: string, data?: any}} */ (message);
-      if (msg.type === 'ready') { clearTimeout(connectTimer); setConnected(true); refresh().catch(e => setError(e.message)); }
-      if (msg.type !== 'result') return;
-      const pending = waiting.current.get(msg.id); if (!pending) return;
-      clearTimeout(pending.timeout); waiting.current.delete(msg.id);
-      if (msg.error) { const err = Object.assign(new Error(msg.error), { code: msg.code }); pending.reject(err); } else pending.resolve(msg.data);
-    });
-    return () => { clearTimeout(connectTimer); subscription.unsubscribe(); connection.close(); room.current = null; setConnected(false); for (const p of waiting.current.values()) { clearTimeout(p.timeout); p.reject(new Error('Conexão reiniciada. Tente novamente.')); } waiting.current.clear(); };
-  }, [userId, revision, refresh]);
+    let active = true;
+    setConnected(false);
+    (async () => {
+      let saved;
+      try { saved = localStorage.getItem(KEY); }
+      catch { throw new Error('Permita o armazenamento neste navegador para manter acesso privado ao atendimento.'); }
+      if (!saved) {
+        const response = await base44.functions.invoke('guestServiceGateway', { action: 'session' });
+        saved = response.data.token;
+        if (typeof saved !== 'string') throw new Error('Não foi possível iniciar o atendimento. Tente novamente.');
+        if (!active) return;
+        try { localStorage.setItem(KEY, saved); }
+        catch { throw new Error('Permita o armazenamento neste navegador para continuar.'); }
+      }
+      if (!active) return;
+      token.current = saved;
+      const result = await send('snapshot');
+      if (active) { setSnapshot(result); setError(''); setConnected(true); }
+    })().catch(e => { if (active) setError(e.message); });
+    return () => { active = false; };
+  }, [userId, revision, send]);
   useEffect(() => {
     if (!snapshot?.request || snapshot.claimed) return;
     let running = false;

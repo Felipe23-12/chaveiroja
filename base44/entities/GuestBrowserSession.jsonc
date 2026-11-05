@@ -1,0 +1,61 @@
+{
+  "name": "GuestBrowserSession",
+  "type": "object",
+  "properties": {
+    "guest_client_id": {
+      "type": "string"
+    },
+    "expires_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "session_id": {
+      "type": "string"
+    },
+    "request_id": {
+      "type": "string"
+    },
+    "last_message_id": {
+      "type": "string"
+    },
+    "rate_window": {
+      "type": "number"
+    },
+    "rate_count": {
+      "type": "number"
+    },
+    "lock_nonce": {
+      "type": "string"
+    },
+    "lock_until": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "required": [
+    "guest_client_id",
+    "expires_at"
+  ],
+  "rls": {
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}
