@@ -15,13 +15,16 @@ export default async function(req) {
   const body = await req.json().catch(() => ({}));
   try {
     const client = createClientFromRequest(req);
-    if (typeof body.actor_access_id !== 'string' || typeof body.actor_access_nonce !== 'string' || body.actor_access_nonce.length > 100) return Response.json({ error: 'Acesso visitante inválido.' }, { status: 403 });
+    if (typeof body.actor_access_id !== 'string' || typeof body.actor_access_nonce !== 'string' || body.actor_access_nonce.length > 100) return Response.json({ error: 'Não foi possível validar a sessão (A1).' }, { status: 403 });
     const access = await client.asServiceRole.entities.GuestActorAccess.get(body.actor_access_id).catch(() => null);
     const supplied = body.actor_access_nonce;
     const expected = access?.server_nonce || '';
     let difference = supplied.length ^ expected.length;
     for (let i = 0; i < expected.length; i++) difference |= supplied.charCodeAt(i) ^ expected.charCodeAt(i);
-    if (!access || difference !== 0 || !expected || access.guest_client_id !== body.state?.clientId || Date.parse(access.expires_at) <= Date.now()) return Response.json({ error: 'Acesso visitante inválido.' }, { status: 403 });
+    if (!access) return Response.json({ error: 'Não foi possível validar a sessão (A2).' }, { status: 403 });
+    if (difference !== 0 || !expected) return Response.json({ error: 'Não foi possível validar a sessão (A3).' }, { status: 403 });
+    if (access.guest_client_id !== body.state?.clientId) return Response.json({ error: 'Não foi possível validar a sessão (A4).' }, { status: 403 });
+    if (Date.parse(access.expires_at) <= Date.now()) return Response.json({ error: 'O acesso visitante expirou.' }, { status: 403 });
     const { state, command: msg } = body;
     if (!state?.clientId?.startsWith('guest:') || !msg?.action) return Response.json({ error: 'Sessão inválida' }, { status: 400 });
     const entity = client.asServiceRole.entities.GuestServiceSession;
