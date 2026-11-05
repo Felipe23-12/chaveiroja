@@ -38,10 +38,16 @@ export async function claimGuestService(client, state, userId) {
   if (user.role !== 'user' || (user.account_type && user.account_type !== 'cliente') || user.moderation_blocked || appleReviewRole(user) || user.is_verified !== true) fail('Entre com uma conta de cliente verificada e liberada para vincular este atendimento.');
   const row = await entities.GuestServiceSession.get(state.sessionId);
   if (row.blocked || (row.claimed_user_id && row.claimed_user_id !== userId)) fail('Atendimento indisponível para esta conta.');
-  // Pin the authenticated identity before migrating; retries may only complete this same claim.
-  if (!row.claimed_user_id) await entities.GuestServiceSession.update(row.id, { claimed_user_id: userId });
   const request = await entities.ServiceRequest.get(state.requestId);
   if (![state.clientId, userId].includes(request.client_id)) fail('Vínculo do atendimento inválido.');
+  // Only one verified account can win, even if the same proof is submitted concurrently.
+  if (!row.claimed_user_id) {
+    const result = await entities.GuestServiceSession.updateMany({ id: row.id, $or: [{ claimed_user_id: { $exists: false } }, { claimed_user_id: null }, { claimed_user_id: '' }] }, { $set: { claimed_user_id: userId } });
+    if (result.updated !== 1) {
+      const pinned = await entities.GuestServiceSession.get(row.id);
+      if (pinned.claimed_user_id !== userId) fail('Atendimento indisponível para esta conta.');
+    }
+  }
   const updates = [
     ['ServiceRequestContext', { request_id: request.id, client_id: state.clientId }, { client_id: userId }],
     ['ServiceCancellationCase', { request_id: request.id, client_id: state.clientId }, { client_id: userId }],

@@ -4,7 +4,7 @@ const lazyPage = loader => lazy(() => importWithRetry(loader));
 import { Toaster } from "@/components/ui/toaster"
 import { QueryClientProvider } from '@tanstack/react-query'
 import { queryClientInstance } from '@/lib/query-client'
-import { BrowserRouter as Router, Route, Routes, Navigate } from 'react-router-dom';
+import { BrowserRouter as Router, Route, Routes, Navigate, useLocation } from 'react-router-dom';
 import PageNotFound from './lib/PageNotFound';
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import AuthConnectionNotice from '@/components/AuthConnectionNotice';
@@ -73,9 +73,10 @@ const PageFallback = () => (
 );
 
 const AuthenticatedApp = () => {
+  const location = useLocation();
   const { isLoadingAuth, isLoadingPublicSettings, isAuthenticated, authError, navigateToLogin } = useAuth();
   const web = !isNativeAppEnvironment();
-  const guestPath = web && isGuestWebEntry(window.location.pathname, window.location.search);
+  const guestPath = web && isGuestWebEntry(location.pathname, location.search);
   let hasToken = false;
   try { hasToken = Boolean(localStorage.getItem('base44_access_token')); } catch { /* handled by guest form */ }
   // Ads can open the booking form immediately; account routes retain all guards.
