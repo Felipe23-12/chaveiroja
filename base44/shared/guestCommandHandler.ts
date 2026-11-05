@@ -1,4 +1,4 @@
-import { createClientFromRequest } from 'npm:@base44/sdk@0.8.54';
+import { requireServiceCoverage } from './serviceCoverage.ts';
 import { createServiceRequest } from './createServiceRequest.ts';
 import { placeLookup } from './placeLookup.ts';
 import { reserveGuestContact } from './guestServiceIdentity.ts';
@@ -41,7 +41,11 @@ export async function handleGuestCommand(client, state, msg) {
       if (state.requestId) data = await guestServiceSnapshot(client, state);
       else {
         const input = guestOpeningData(msg.data);
-        if (msg.action === 'quote') data = { pricing: await calculateServerServicePrice(client, state.clientId, input) };
+        if (msg.action === 'quote') {
+          // Check the same coverage gate as create before offering a total.
+          await requireServiceCoverage(client, input.customer_lat, input.customer_lng);
+          data = { pricing: await calculateServerServicePrice(client, state.clientId, input) };
+        }
         else {
           if (!Number.isFinite(input.expected_price) || input.expected_price <= 0) throw new Error('Consulte e confirme o valor do serviço.');
           const contact = await reserveGuestContact(client, state, msg.data);

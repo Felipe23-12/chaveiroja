@@ -1,19 +1,24 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { base44 } from '@/api/base44Client';
+import { normalizeServiceError } from '@/lib/serviceErrors';
+async function invokeGuestFunction(name, body) {
+  try { return await base44.functions.invoke(name, body); }
+  catch (error) { throw normalizeServiceError(error); }
+}
 const KEY = 'chaveiroja_guest_token_v1';
 export default function useGuestService(userId) {
   const token = useRef(null);
   const [snapshot, setSnapshot] = useState(null), [error, setError] = useState(''), [connected, setConnected] = useState(false), [revision, setRevision] = useState(0);
   const send = useCallback(async (action, body = {}) => {
     if (!token.current) throw new Error('Conecte-se à internet e tente novamente.');
-    const response = await base44.functions.invoke('guestServiceGateway', { ...body, action, token: token.current });
+    const response = await invokeGuestFunction('guestServiceGateway', { ...body, action, token: token.current });
     if (response.data.error) throw Object.assign(new Error(response.data.error), { code: response.data.code });
     return response.data;
   }, []);
   const call = useCallback(async (action, body = {}) => {
     if (action !== 'claim') return send(action, body);
     const proof = await send('claim_proof');
-    const response = await base44.functions.invoke('claimGuestService', proof);
+    const response = await invokeGuestFunction('claimGuestService', proof);
     if (response.data.error) throw new Error(response.data.error);
     return response.data;
   }, [send]);
@@ -26,7 +31,7 @@ export default function useGuestService(userId) {
       try { saved = localStorage.getItem(KEY); }
       catch { throw new Error('Permita o armazenamento neste navegador para manter acesso privado ao atendimento.'); }
       if (!saved) {
-        const response = await base44.functions.invoke('guestServiceGateway', { action: 'session' });
+        const response = await invokeGuestFunction('guestServiceGateway', { action: 'session' });
         saved = response.data.token;
         if (typeof saved !== 'string') throw new Error('Não foi possível iniciar o atendimento. Tente novamente.');
         if (!active) return;
