@@ -12,5 +12,23 @@ export async function getKeyCancelBlock(userId) {
 
 export async function createAppServiceRequest(data) {
   const response = await base44.functions.invoke("serviceTrust", { action: "create_request", data });
-  return response.data.request;
+  const request = response.data.request;
+  // Métrica GA4: somente após confirmação do chamado pelo servidor.
+  // Sem nome, endereço ou outros dados pessoais no evento.
+  if (request?.id && typeof window !== "undefined" && typeof window.gtag === "function") {
+    try {
+      const key = `chaveiroja_ga4_request_${request.id}`;
+      if (window.sessionStorage.getItem(key) !== "sent") {
+        window.gtag("event", "chamado_solicitado", {
+          service_type: request.service_type || data.service_type || "nao_informado",
+          request_source: "web",
+        });
+        window.sessionStorage.setItem(key, "sent");
+      }
+    } catch (error) {
+      // Falhas de analytics nunca impedem o atendimento.
+      console.warn("Medição do chamado indisponível", error);
+    }
+  }
+  return request;
 }
