@@ -15,7 +15,7 @@ export default async function(req) {
   const body = await req.json().catch(() => ({}));
   try {
     const client = createClientFromRequest(req);
-    if (typeof body.actor_access_id !== 'string' || typeof body.actor_access_nonce !== 'string' || body.actor_access_nonce.length > 100) return Response.json({ error: 'Não foi possível validar a sessão (A1).' }, { status: 403 });
+    if (typeof body.actor_access_id !== 'string' || typeof body.actor_access_nonce !== 'string' || body.actor_access_nonce.length > 100) return Response.json({ error: 'Não foi possível validar a sessão (A1; ' + Object.keys(body).join(',') + '; ' + typeof body.actor_access_id + '; ' + typeof body.actor_access_nonce + ').' }, { status: 403 });
     const access = await client.asServiceRole.entities.GuestActorAccess.get(body.actor_access_id).catch(() => null);
     const supplied = body.actor_access_nonce;
     const expected = access?.server_nonce || '';
