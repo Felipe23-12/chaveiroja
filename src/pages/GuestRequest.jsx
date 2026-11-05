@@ -8,9 +8,11 @@ import GuestOpeningForm from '@/components/guest/GuestOpeningForm';
 import GuestServiceTracking from '@/components/guest/GuestServiceTracking';
 import ErrorBanner from '@/components/ui/ErrorBanner';
 import LoadingCard from '@/components/ui/LoadingCard';
+import { trackGuestEvent } from '@/lib/guestAnalytics';
 export default function GuestRequest() {
   const { user, isLoadingAuth } = useAuth();
   const guest = useGuestService(user?.id);
+  useEffect(() => { if (!user) trackGuestEvent('primeiro_chamado_visualizado', 'chaveiroja_guest_view'); }, [user?.id]);
   const [contact, setContact] = useState({ name: '', phone: '', service: '', urgency: 'normal', terms: false });
   const [configuring, setConfiguring] = useState(false), [claimError, setClaimError] = useState(''), [claimRevision, setClaimRevision] = useState(0);
   useEffect(() => {
@@ -28,7 +30,7 @@ export default function GuestRequest() {
     <nav className="flex items-center justify-between gap-3"><Link to="/" className="font-heading text-xl font-bold">ChaveiroJá</Link><Link className="min-h-11 py-3 text-sm underline" to="/login/chaveiro">Sou chaveiro</Link></nav>
     <ErrorBanner message={guest.error} onRetry={guest.retry} /><ErrorBanner message={claimError} onRetry={() => { setClaimError(''); setClaimRevision(v => v + 1); }} />
     <ServiceAccessProvider value={guest.invoke}>
-      {user ? !claimError && <LoadingCard label="Vinculando seu atendimento à sua conta…" /> : guest.snapshot?.request ? <GuestServiceTracking guest={guest} /> : guest.snapshot?.claimed ? <p>Este chamado já foi vinculado. <Link to="/login/cliente?login=1" className="underline">Entre na sua conta para continuar.</Link></p> : configuring ? <GuestOpeningForm contact={contact} guest={guest} onBack={() => setConfiguring(false)} /> : <GuestBookingIntro value={contact} onChange={setContact} onContinue={() => setConfiguring(true)} />}
+      {user ? !claimError && <LoadingCard label="Vinculando seu atendimento à sua conta…" /> : guest.snapshot?.request ? <GuestServiceTracking guest={guest} /> : guest.snapshot?.claimed ? <p>Este chamado já foi vinculado. <Link to="/login/cliente?login=1" className="underline">Entre na sua conta para continuar.</Link></p> : configuring ? <GuestOpeningForm contact={contact} guest={guest} onBack={() => setConfiguring(false)} /> : <GuestBookingIntro value={contact} onChange={setContact} onContinue={() => { trackGuestEvent('primeiro_chamado_iniciado', 'chaveiroja_guest_started'); setConfiguring(true); }} />}
     </ServiceAccessProvider>
     <footer className="flex justify-center gap-4 text-xs text-muted-foreground"><Link to="/termos-privacidade">Privacidade</Link><Link to="/contato">Contato</Link></footer>
   </div></main>;

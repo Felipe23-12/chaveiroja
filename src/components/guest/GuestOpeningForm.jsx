@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { trackGuestEvent } from '@/lib/guestAnalytics';
 import { Button } from '@/components/ui/button';
 import ErrorBanner from '@/components/ui/ErrorBanner';
 import ServiceConfig from '@/components/locksmith/ServiceConfig';
@@ -13,7 +14,10 @@ export default function GuestOpeningForm({ contact, guest, onBack }) {
     setBusy(true); setError('');
     try {
       const result = await guest.call(pricing ? 'create' : 'quote', { data: { ...form.data, ...(pricing ? { expected_price: pricing.price } : {}) } });
-      if (result.request) guest.setSnapshot(result);
+      if (result.request) {
+        if (pricing) trackGuestEvent('chamado_solicitado', `chaveiroja_ga4_request_${result.request.id}`, { service_type: result.request.service_type });
+        guest.setSnapshot(result);
+      }
       else setQuote({ key: fingerprint, pricing: result.pricing });
     } catch (e) { setError(e.message); if (e.code === 'PRICE_CHANGED') setQuote(null); }
     finally { setBusy(false); }
