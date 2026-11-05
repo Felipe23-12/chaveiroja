@@ -11,7 +11,7 @@ export default function GuestBookingIntro({ value, onChange, onContinue }) {
   const update = (key, next) => onChange({ ...value, [key]: next });
   const ready = value.name.trim().length >= 2 && value.phone.replace(/\D/g, '').length >= 10 && value.service && value.terms;
   return <section className="guest-booking bg-muted text-foreground font-body">
-    <Link to="/login/cliente" aria-label="Fechar e entrar na minha conta" className="absolute right-3 top-3 z-10 flex h-11 w-11 items-center justify-center rounded-lg border bg-card"><X className="h-4 w-4" /></Link>
+    <Link to="/login/cliente?login=1" aria-label="Fechar e entrar na minha conta" className="absolute right-3 top-3 z-10 flex h-11 w-11 items-center justify-center rounded-lg border bg-card"><X className="h-4 w-4" /></Link>
     <div className="guest-booking-card"><h1 className="guest-booking-title font-heading font-bold">Precisa de um chaveiro?</h1>
       <div className="guest-booking-row"><div className="guest-booking-content">
         <p className="text-sm text-muted-foreground">Primeiro chamado pela web sem login. Cadastre-se ao final do atendimento, antes de confirmar e pagar.</p>
@@ -25,7 +25,7 @@ export default function GuestBookingIntro({ value, onChange, onContinue }) {
           <label className="flex min-h-11 items-start gap-2 text-sm"><input className="mt-1 h-4 w-4 accent-primary" type="checkbox" checked={value.terms} onChange={e => update('terms', e.target.checked)} /><span>Concordo com os <Link to="/termos-privacidade" target="_blank" className="underline">termos e a privacidade</Link> e com a <Link to="/politica-reembolso" target="_blank" className="underline">política de cancelamento</Link>.</span></label>
           <Button disabled={!ready} className="guest-booking-continue relative h-11 w-full" type="submit"><span className="guest-booking-mask"><span className="guest-booking-label"><span aria-hidden="true">Continuar sem login</span><span>Continuar sem login</span></span></span><ArrowUpRight className="absolute right-3" /></Button>
         </form>
-        <Link to="/login/cliente" className="text-sm underline underline-offset-4">Já tenho conta ou preciso de confecção de chave</Link>
+        <Link to="/login/cliente?login=1" className="text-sm underline underline-offset-4">Já tenho conta ou preciso de confecção de chave</Link>
         <p className="text-xs text-muted-foreground">Guarde este navegador para retomar o chamado. O telefone é um contato, não uma verificação de identidade.</p>
       </div><div className="guest-booking-scene" aria-hidden="true">
         <div className="guest-booking-photo-float"><div className="guest-booking-photo bg-card"><Image src="https://media.base44.com/images/public/6a975d266a8000184833026a/5e354d72c_generated_image.png" alt="Profissional realizando abertura de fechadura residencial" className="h-full w-full" /></div></div>
