@@ -1,5 +1,4 @@
 import { Actor } from 'base44:runtime/actors';
-import { secrets } from 'base44:runtime';
 export default class GuestServiceRoom extends Actor {
   state = null;
   queue = Promise.resolve();
@@ -8,6 +7,14 @@ export default class GuestServiceRoom extends Actor {
   async handleConnect(conn) {
     if (this.getConnections().length > 4) { conn.reject(4001, 'Muitas abas abertas.'); return; }
     if (!this.state) { this.state = { clientId: 'guest:' + crypto.randomUUID(), expiresAt: new Date(Date.now() + 30*86400000).toISOString(), budgetStart: Date.now(), budgetUsed: 0 }; await this.save(); }
+    if (!this.state.accessId) {
+      // Actors receive no app secrets. A server-only record supplies a separate
+      // random credential; it is never included in messages sent to the browser.
+      const access = await this.client.asServiceRole.entities.GuestActorAccess.create({ guest_client_id: this.state.clientId, server_nonce: crypto.randomUUID() + crypto.randomUUID(), expires_at: this.state.expiresAt });
+      this.state.accessId = access.id;
+      this.state.accessNonce = access.server_nonce;
+      await this.save();
+    }
     conn.send({ type: 'ready' });
   }
   handleMessage(conn, message) {
@@ -22,14 +29,13 @@ export default class GuestServiceRoom extends Actor {
       if (Date.now() - this.state.budgetStart >= 60000) { this.state.budgetStart = Date.now(); this.state.budgetUsed = 0; }
       if (++this.state.budgetUsed > 60) throw new Error('Aguarde um minuto antes de tentar novamente.');
       await this.save();
-      // Actors have an anonymous SDK client. The bridge authenticates this
-      // server-to-server call with the app secret before using service role.
-      const response = await this.client.functions.invoke('guestServiceBridge', {
-        _internal_token: secrets.get('INTERNAL_CALL_TOKEN'), state: this.state, command: msg,
+      const response = await this.client.asServiceRole.functions.invoke('guestServiceBridge', {
+        actor_access_id: this.state.accessId, actor_access_nonce: this.state.accessNonce,
+        state: { clientId: this.state.clientId, expiresAt: this.state.expiresAt, sessionId: this.state.sessionId, requestId: this.state.requestId, lastMessageId: this.state.lastMessageId }, command: msg,
       });
       const result = response.data;
       if (result.error) throw new Error(result.error);
-      this.state = result.state;
+      this.state = { ...this.state, ...result.state };
       await this.save();
       conn.send({ type: 'result', id: msg.id, data: result.data });
     } catch (error) {

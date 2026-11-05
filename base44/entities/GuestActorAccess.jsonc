@@ -1,0 +1,43 @@
+{
+  "name": "GuestActorAccess",
+  "type": "object",
+  "properties": {
+    "guest_client_id": {
+      "type": "string"
+    },
+    "server_nonce": {
+      "type": "string"
+    },
+    "expires_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "required": [
+    "guest_client_id",
+    "server_nonce",
+    "expires_at"
+  ],
+  "rls": {
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

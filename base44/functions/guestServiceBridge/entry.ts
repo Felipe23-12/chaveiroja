@@ -1,5 +1,4 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.54';
-import { verifyInternalCall } from '../../shared/internalCall.ts';
 import { createServiceRequest } from '../../shared/createServiceRequest.ts';
 import { placeLookup } from '../../shared/placeLookup.ts';
 import { reserveGuestContact } from '../../shared/guestServiceIdentity.ts';
@@ -14,9 +13,15 @@ async function readResponse(response) { const data = await response.json(); if (
 // Server-to-server only: callers cannot choose a guest principal or claim identity.
 export default async function(req) {
   const body = await req.json().catch(() => ({}));
-  if (!verifyInternalCall(req, body)) return Response.json({ error: 'Forbidden' }, { status: 403 });
   try {
     const client = createClientFromRequest(req);
+    if (typeof body.actor_access_id !== 'string' || typeof body.actor_access_nonce !== 'string' || body.actor_access_nonce.length > 100) return Response.json({ error: 'Acesso visitante inválido.' }, { status: 403 });
+    const access = await client.asServiceRole.entities.GuestActorAccess.get(body.actor_access_id).catch(() => null);
+    const supplied = body.actor_access_nonce;
+    const expected = access?.server_nonce || '';
+    let difference = supplied.length ^ expected.length;
+    for (let i = 0; i < expected.length; i++) difference |= supplied.charCodeAt(i) ^ expected.charCodeAt(i);
+    if (!access || difference !== 0 || !expected || access.guest_client_id !== body.state?.clientId || Date.parse(access.expires_at) <= Date.now()) return Response.json({ error: 'Acesso visitante inválido.' }, { status: 403 });
     const { state, command: msg } = body;
     if (!state?.clientId?.startsWith('guest:') || !msg?.action) return Response.json({ error: 'Sessão inválida' }, { status: 400 });
     const entity = client.asServiceRole.entities.GuestServiceSession;
