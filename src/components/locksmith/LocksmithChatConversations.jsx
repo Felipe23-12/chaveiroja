@@ -102,7 +102,7 @@ export default function LocksmithChatConversations({ me, initialClient = null })
       });
       setMessages((prev) => prev.some((item) => item.id === created.id) ? prev : [...prev, created]);
     } catch (e) {
-      toast({ title: "Falha ao enviar foto", description: e.message || "Tente novamente", variant: "destructive" });
+      toast({ title: "Falha ao enviar foto", description: e?.response?.data?.error || e?.message || "Tente novamente", variant: "destructive" });
     } finally {
       setSending(false);
     }
@@ -124,8 +124,8 @@ export default function LocksmithChatConversations({ me, initialClient = null })
       });
       setMessages((prev) => prev.some((item) => item.id === created.id) ? prev : [...prev, created]);
     } catch (e) {
-      setText(msg);
-      toast({ title: "Falha ao enviar mensagem", description: e.message || "Tente novamente", variant: "destructive" });
+      setText((current) => current || msg);
+      toast({ title: "Falha ao enviar mensagem", description: e?.response?.data?.error || e?.message || "Tente novamente", variant: "destructive" });
     } finally {
       setSending(false);
     }
