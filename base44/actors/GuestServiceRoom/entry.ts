@@ -22,7 +22,9 @@ export default class GuestServiceRoom extends Actor {
       if (Date.now() - this.state.budgetStart >= 60000) { this.state.budgetStart = Date.now(); this.state.budgetUsed = 0; }
       if (++this.state.budgetUsed > 60) throw new Error('Aguarde um minuto antes de tentar novamente.');
       await this.save();
-      const response = await this.client.asServiceRole.functions.invoke('guestServiceBridge', {
+      // Actors have an anonymous SDK client. The bridge authenticates this
+      // server-to-server call with the app secret before using service role.
+      const response = await this.client.functions.invoke('guestServiceBridge', {
         _internal_token: secrets.get('INTERNAL_CALL_TOKEN'), state: this.state, command: msg,
         authenticatedUserId: conn.identity?.type === 'authenticated' ? conn.identity.userId : null,
       });
