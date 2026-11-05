@@ -24,7 +24,7 @@ import MercadoPagoOnboardingGuard from '@/components/MercadoPagoOnboardingGuard'
 import ModerationBlockGate from '@/components/ModerationBlockGate';
 import CustomerCoverageGate from '@/components/location/CustomerCoverageGate';
 import LocksmithActivityTracker from '@/components/locksmith/LocksmithActivityTracker';
-import { isNativeIOS } from '@/lib/nativeAuthEnvironment';
+import { isGuestWebEntry, isNativeAppEnvironment } from '@/lib/guestEntry';
 
 // Páginas carregadas sob demanda — reduz o tempo de inicialização em
 // conexões móveis lentas (WebView), pois só o código da rota atual é baixado.
@@ -74,8 +74,8 @@ const PageFallback = () => (
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, isAuthenticated, authError, navigateToLogin } = useAuth();
-  const web = !isNativeIOS() && !window.Capacitor?.isNativePlatform?.() && !window.ReactNativeWebView;
-  const guestPath = web && ['/', '/atendimento-visitante'].includes(window.location.pathname);
+  const web = !isNativeAppEnvironment();
+  const guestPath = web && isGuestWebEntry(window.location.pathname, window.location.search);
   let hasToken = false;
   try { hasToken = Boolean(localStorage.getItem('base44_access_token')); } catch { /* handled by guest form */ }
   // Ads can open the booking form immediately; account routes retain all guards.
