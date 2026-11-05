@@ -9,7 +9,7 @@ import { calculateServerServicePrice } from './servicePricing.ts';
 import { loadServicePricing } from './servicePricingSettings.ts';
 import { matchingOpeningRule, openingAvailability } from './vehicleOpeningRules.ts';
 import { validateOpeningVehicle, isMotoSeatOpening } from './automotiveOpening.ts';
-async function readResponse(response) { const data = await response.json(); if (!response.ok || data.error) { const error = new Error(data.error || 'Não foi possível continuar.'); error.code = data.code; throw error; } return data; }
+async function readResponse(response) { const data = await response.json(); if (!response.ok || data.error) { const error = new Error(data.error || 'Não foi possível continuar.'); error.code = data.code; error.status = response.status; throw error; } return data; }
 
 export async function handleGuestCommand(client, state, msg) {
     const entity = client.asServiceRole.entities.GuestServiceSession;

@@ -43,7 +43,11 @@ export default async function(req) {
       if (Object.keys(patch).length) await entities.update(row.id, patch);
     }
     return Response.json(data);
-  } catch (error) { return Response.json({ error: error.message || 'Não foi possível continuar.', code: error.code }, { status: 400 }); }
+  } catch (error) {
+    const suppliedStatus = Number(error.status || error.response?.status);
+    const status = error.code === 'GUEST_LOGIN_REQUIRED' ? 403 : [400, 401, 403, 404, 409, 422, 429, 500, 502, 503, 504].includes(suppliedStatus) ? suppliedStatus : 400;
+    return Response.json({ error: error.message || 'Não foi possível continuar.', code: error.code }, { status });
+  }
   finally {
     if (entities && row && lock) await entities.updateMany({ id: row.id, lock_nonce: lock }, { $unset: { lock_nonce: '', lock_until: '' } }).catch(() => {});
   }

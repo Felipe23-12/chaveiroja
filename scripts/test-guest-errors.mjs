@@ -46,9 +46,9 @@ await test('moderation remains enforced for matching accounts',async()=>{await a
 let priceCalls=0;
 const handler=await load('base44/shared/guestCommandHandler.ts',{
  './serviceCoverage.ts':{requireServiceCoverage:async(client,lat)=>{if(lat===0)throw Object.assign(new Error('Área não atendida.'),{code:'AREA_UNAVAILABLE'});}},
- './createServiceRequest.ts':{createServiceRequest:async()=>{throw Error('Dispatch is forbidden in quote tests');}},
+ './createServiceRequest.ts':{createServiceRequest:async()=>Response.json({error:'Limite de cancelamentos atingido.',code:'CLIENT_CANCEL_BLOCKED'},{status:403})},
  './placeLookup.ts':{placeLookup:async()=>Response.json({})},
- './guestServiceIdentity.ts':{reserveGuestContact:async()=>{throw Error('Contact creation is forbidden in quote tests');}},
+ './guestServiceIdentity.ts':{reserveGuestContact:async()=>({id:'synthetic-contact',customer_name:'Teste',phone:'11900000000'})},
  './guestClaimProof.ts':{signGuestClaimProof:async()=>({})},
  './guestServiceSnapshot.ts':{guestServiceSnapshot:async()=>({request:null})},
  './guestServiceOperations.ts':{guestOpeningData:x=>x,guestServiceAction:async()=>({})},
@@ -60,4 +60,5 @@ const handler=await load('base44/shared/guestCommandHandler.ts',{
 const quoteClient={asServiceRole:{entities:{GuestServiceSession:{filter:async()=>[]}}}};
 await test('out-of-coverage addresses are rejected before offering a total',async()=>{await assert.rejects(handler.handleGuestCommand(quoteClient,{clientId:'guest:quote'},{action:'quote',data:{customer_lat:0,customer_lng:0}}),e=>e.code==='AREA_UNAVAILABLE');assert.equal(priceCalls,0);});
 await test('covered addresses still receive the server price',async()=>{const r=await handler.handleGuestCommand(quoteClient,{clientId:'guest:quote'},{action:'quote',data:{customer_lat:-23.5,customer_lng:-46.7}});assert.equal(r.data.pricing.price,130);assert.equal(priceCalls,1);});
+await test('cancellation refusal is not converted into generic HTTP 400',async()=>{await assert.rejects(handler.handleGuestCommand(quoteClient,{clientId:'guest:blocked'},{action:'create',data:{expected_price:130,customer_lat:-23.5,customer_lng:-46.7}}),e=>e.status===403&&e.code==='CLIENT_CANCEL_BLOCKED');});
 console.log(`${passed} checks passed; no external calls, real requests or locksmith notifications.`);
