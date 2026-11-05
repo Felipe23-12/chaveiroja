@@ -7,12 +7,15 @@ export default class GuestServiceRoom extends Actor {
   async handleConnect(conn) {
     if (this.getConnections().length > 4) { conn.reject(4001, 'Muitas abas abertas.'); return; }
     if (!this.state) { this.state = { clientId: 'guest:' + crypto.randomUUID(), expiresAt: new Date(Date.now() + 30*86400000).toISOString(), budgetStart: Date.now(), budgetUsed: 0 }; await this.save(); }
-    if (!this.state.accessId) {
+    if (!this.state.accessId || !this.state.accessNonce) {
       // Actors receive no app secrets. A server-only record supplies a separate
       // random credential; it is never included in messages sent to the browser.
-      const access = await this.client.asServiceRole.entities.GuestActorAccess.create({ guest_client_id: this.state.clientId, server_nonce: crypto.randomUUID() + crypto.randomUUID(), expires_at: this.state.expiresAt });
+      const nonce = crypto.randomUUID() + crypto.randomUUID();
+      const created = await this.client.asServiceRole.entities.GuestActorAccess.create({ guest_client_id: this.state.clientId, server_nonce: nonce, expires_at: this.state.expiresAt });
+      const access = created?.data || created;
+      if (typeof access?.id !== 'string') throw new Error('Não foi possível iniciar o atendimento neste navegador.');
       this.state.accessId = access.id;
-      this.state.accessNonce = access.server_nonce;
+      this.state.accessNonce = nonce;
       await this.save();
     }
     conn.send({ type: 'ready' });
