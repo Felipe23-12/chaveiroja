@@ -28,7 +28,7 @@ export default function GuestRequest() {
     <nav className="flex items-center justify-between gap-3"><Link to="/" className="font-heading text-xl font-bold">ChaveiroJá</Link><Link className="min-h-11 py-3 text-sm underline" to="/login/chaveiro">Sou chaveiro</Link></nav>
     <ErrorBanner message={guest.error} onRetry={guest.retry} /><ErrorBanner message={claimError} onRetry={() => { setClaimError(''); setClaimRevision(v => v + 1); }} />
     <ServiceAccessProvider value={guest.invoke}>
-      {user ? !claimError && <LoadingCard label="Vinculando seu atendimento à sua conta…" /> : guest.snapshot?.request ? <GuestServiceTracking guest={guest} /> : guest.snapshot?.claimed ? <p>Este chamado já foi vinculado. <Link to="/login/cliente" className="underline">Entre na sua conta para continuar.</Link></p> : configuring ? <GuestOpeningForm contact={contact} guest={guest} onBack={() => setConfiguring(false)} /> : <GuestBookingIntro value={contact} onChange={setContact} onContinue={() => setConfiguring(true)} />}
+      {user ? !claimError && <LoadingCard label="Vinculando seu atendimento à sua conta…" /> : guest.snapshot?.request ? <GuestServiceTracking guest={guest} /> : guest.snapshot?.claimed ? <p>Este chamado já foi vinculado. <Link to="/login/cliente?login=1" className="underline">Entre na sua conta para continuar.</Link></p> : configuring ? <GuestOpeningForm contact={contact} guest={guest} onBack={() => setConfiguring(false)} /> : <GuestBookingIntro value={contact} onChange={setContact} onContinue={() => setConfiguring(true)} />}
     </ServiceAccessProvider>
     <footer className="flex justify-center gap-4 text-xs text-muted-foreground"><Link to="/termos-privacidade">Privacidade</Link><Link to="/contato">Contato</Link></footer>
   </div></main>;
