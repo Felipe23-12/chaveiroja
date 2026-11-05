@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { MapPin, Loader2, X } from "lucide-react";
 import { Input } from "@/components/ui/input";
-import { base44 } from "@/api/base44Client";
+import { useServiceAccess } from '@/components/guest/ServiceAccessContext';
 import CurrentLocationButton from "@/components/location/CurrentLocationButton";
 
 // Destaca o trecho digitado dentro do texto
@@ -19,6 +19,7 @@ const highlightMatch = (text, query) => {
 };
 
 export default function AddressAutocomplete({ value, onChange, onSelect, placeholder = "Digite o endereço", includePlaces = false, location = undefined, allowCurrentLocation = false }) {
+  const invoke = useServiceAccess();
   const [query, setQuery] = useState(value || "");
   const [predictions, setPredictions] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -47,7 +48,7 @@ export default function AddressAutocomplete({ value, onChange, onSelect, placeho
     debounceRef.current = setTimeout(async () => {
       setLoading(true);
       try {
-        const res = await base44.functions.invoke("googlePlacesAutocomplete", {
+        const res = await invoke("googlePlacesAutocomplete", {
           action: "search",
           input: query,
           include_places: includePlaces,
@@ -93,7 +94,7 @@ export default function AddressAutocomplete({ value, onChange, onSelect, placeho
     setTouched(false);
     setFetchingDetails(true);
     try {
-      const res = await base44.functions.invoke("googlePlacesAutocomplete", {
+      const res = await invoke("googlePlacesAutocomplete", {
         action: "details",
         place_id: p.place_id
       });

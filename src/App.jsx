@@ -24,10 +24,13 @@ import MercadoPagoOnboardingGuard from '@/components/MercadoPagoOnboardingGuard'
 import ModerationBlockGate from '@/components/ModerationBlockGate';
 import CustomerCoverageGate from '@/components/location/CustomerCoverageGate';
 import LocksmithActivityTracker from '@/components/locksmith/LocksmithActivityTracker';
+import { isNativeIOS } from '@/lib/nativeAuthEnvironment';
 
 // Páginas carregadas sob demanda — reduz o tempo de inicialização em
 // conexões móveis lentas (WebView), pois só o código da rota atual é baixado.
 const Home = lazyPage(() => import('@/pages/Home'));
+const GuestRequest = lazyPage(() => import('@/pages/GuestRequest'));
+const Mfa = lazyPage(() => import('@/pages/Mfa'));
 const History = lazyPage(() => import('@/pages/History'));
 const LocksmithProfile = lazyPage(() => import('@/pages/LocksmithProfile'));
 const Mapa = lazyPage(() => import('@/pages/Mapa'));
@@ -70,7 +73,13 @@ const PageFallback = () => (
 );
 
 const AuthenticatedApp = () => {
-  const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
+  const { isLoadingAuth, isLoadingPublicSettings, isAuthenticated, authError, navigateToLogin } = useAuth();
+  const web = !isNativeIOS() && !window.Capacitor?.isNativePlatform?.() && !window.ReactNativeWebView;
+  const guestPath = web && ['/', '/atendimento-visitante'].includes(window.location.pathname);
+  let hasToken = false;
+  try { hasToken = Boolean(localStorage.getItem('base44_access_token')); } catch { /* handled by guest form */ }
+  // Ads can open the booking form immediately; account routes retain all guards.
+  if (guestPath && !isAuthenticated && !hasToken) return <Suspense fallback={<PageFallback />}><GuestRequest /></Suspense>;
 
   // Show loading spinner while checking app public settings or auth
   if (isLoadingPublicSettings || isLoadingAuth) {
@@ -83,7 +92,7 @@ const AuthenticatedApp = () => {
 
   // As telas públicas de entrada e o retorno OAuth precisam ficar acessíveis
   // mesmo quando uma sessão antiga falha na checagem inicial.
-  const authPaths = ['/login', '/login/cliente', '/login/chaveiro', '/register', '/forgot-password', '/reset-password', '/cadastro/cliente', '/cadastro/chaveiro', '/auth/google-return'];
+  const authPaths = ['/login', '/login/cliente', '/login/chaveiro', '/register', '/forgot-password', '/reset-password', '/cadastro/cliente', '/cadastro/chaveiro', '/auth/google-return', '/mfa', '/atendimento-visitante'];
   if (authError && !authPaths.includes(window.location.pathname)) {
     if (authError.type === 'connection') return <AuthConnectionNotice />;
     if (authError.type === 'user_not_registered') return <UserNotRegisteredError />;
@@ -103,6 +112,8 @@ const AuthenticatedApp = () => {
         <Route path="/register" element={<Register />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/reset-password" element={<ResetPassword />} />
+        <Route path="/mfa" element={<Mfa />} />
+        <Route path="/atendimento-visitante" element={web ? <GuestRequest /> : <Navigate to="/login" replace />} />
         <Route path="/cadastro/cliente" element={<RegisterCliente />} />
         <Route path="/cadastro/chaveiro" element={<RegisterChaveiro />} />
         <Route path="/google-complete" element={<GoogleComplete />} />

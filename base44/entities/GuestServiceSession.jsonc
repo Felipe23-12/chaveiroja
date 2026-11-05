@@ -1,0 +1,72 @@
+{
+  "name": "GuestServiceSession",
+  "type": "object",
+  "properties": {
+    "guest_client_id": {
+      "type": "string"
+    },
+    "phone_hash": {
+      "type": "string"
+    },
+    "phone": {
+      "type": "string",
+      "maxLength": 13
+    },
+    "customer_name": {
+      "type": "string",
+      "maxLength": 100
+    },
+    "request_id": {
+      "type": "string"
+    },
+    "claimed_user_id": {
+      "type": "string"
+    },
+    "terms_accepted_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "terms_version": {
+      "type": "string"
+    },
+    "expires_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "blocked": {
+      "type": "boolean",
+      "default": false
+    }
+  },
+  "required": [
+    "guest_client_id",
+    "phone_hash",
+    "phone",
+    "customer_name",
+    "terms_accepted_at",
+    "terms_version",
+    "expires_at"
+  ],
+  "rls": {
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

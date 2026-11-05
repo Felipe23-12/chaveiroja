@@ -1,8 +1,9 @@
 import React, { useState } from "react";
 import { LocateFixed, Loader2 } from "lucide-react";
-import { base44 } from "@/api/base44Client";
+import { useServiceAccess } from '@/components/guest/ServiceAccessContext';
 
 export default function CurrentLocationButton({ onSelect }) {
+  const invoke = useServiceAccess();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -11,7 +12,7 @@ export default function CurrentLocationButton({ onSelect }) {
     setError("");
     navigator.geolocation.getCurrentPosition(async ({ coords }) => {
       try {
-        const { data } = await base44.functions.invoke("googlePlacesAutocomplete", {
+        const { data } = await invoke("googlePlacesAutocomplete", {
           action: "reverse",
           lat: coords.latitude,
           lng: coords.longitude

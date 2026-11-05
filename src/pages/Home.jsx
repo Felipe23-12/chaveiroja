@@ -354,7 +354,7 @@ export default function Home() {
         }
         // A finalização registrada pelo chaveiro tem prioridade sobre o status
         // de deslocamento, que pode continuar como on_the_way até o pagamento.
-        if (!active.end_photos?.length && (active.status === "accepted" || active.status === "on_the_way")) {
+        if (searchParams.get('cancel') !== '1' && !active.end_photos?.length && (active.status === "accepted" || active.status === "on_the_way")) {
           void fetchDrivingRoute(
             { lat: active.locksmith_lat, lng: active.locksmith_lng },
             { lat: active.customer_lat, lng: active.customer_lng }

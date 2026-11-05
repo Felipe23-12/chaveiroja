@@ -16,7 +16,7 @@ export async function resumeClientOnboarding(user) {
   let draft;
   try { draft = JSON.parse(raw); } catch { return user; }
   if (!draft.email || draft.email !== user.email?.trim().toLowerCase() || !draft.savedAt || Date.now() - draft.savedAt > 24 * 60 * 60 * 1000) return user;
-  await claimCpf(draft.cpf);
+  if (!draft.guest) await claimCpf(draft.cpf);
   const updated = await base44.auth.updateMe({
     legal_name: user.legal_name || draft.fullName.trim(),
     phone: user.phone || draft.phone,

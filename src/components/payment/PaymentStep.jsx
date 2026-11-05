@@ -12,7 +12,7 @@ export default function PaymentStep({ amount, description, locksmithId, serviceR
   const cashAllowed = clientRegistrationComplete(user);
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState("");
-  const confirmation = useCheckoutConfirmation(serviceRequestId = undefined, paymentKind, onConfirm);
+  const confirmation = useCheckoutConfirmation(serviceRequestId, paymentKind, onConfirm);
   const breakdown = calculatePaymentBreakdown(amount);
   const pay = async () => {
     setCreating(true);

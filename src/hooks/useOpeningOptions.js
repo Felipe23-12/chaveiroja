@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
-import { base44 } from '@/api/base44Client';
+import { useServiceAccess } from '@/components/guest/ServiceAccessContext';
 export default function useOpeningOptions(vehicle, enabled) {
+  const invoke = useServiceAccess();
   const key = JSON.stringify({ make: vehicle?.make, model: vehicle?.model, year: vehicle?.year, version: vehicle?.version || '' });
   const [state, setState] = useState(null);
   const [revision, setRevision] = useState(0);
@@ -9,7 +10,7 @@ export default function useOpeningOptions(vehicle, enabled) {
     let cancelled = false;
     const load = async () => {
       try {
-        const { data } = await base44.functions.invoke('serviceTrust', { action: 'opening_options', vehicle: JSON.parse(key) });
+        const { data } = await invoke('serviceTrust', { action: 'opening_options', vehicle: JSON.parse(key) });
         if (!cancelled) setState({ key, ...data });
       } catch (e) { if (!cancelled) setState({ key, error: e?.response?.data?.error || 'Não foi possível consultar as opções de abertura.' }); }
     };

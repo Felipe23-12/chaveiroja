@@ -67,6 +67,7 @@ export default function RegisterCliente() {
   }, [fieldError]);
 
   const returnTo = safeReturnTo();
+  const guestReturn = returnTo.split('?')[0] === '/atendimento-visitante';
   const nativeIOS = isNativeIOS();
   const qs = returnTo !== "/" ? "?returnTo=" + encodeURIComponent(returnTo) : "";
   useEffect(() => {
@@ -103,7 +104,7 @@ export default function RegisterCliente() {
       setFieldError("confirmPassword");
       return;
     }
-    const cpfMsg = cpfError(cpf);
+    const cpfMsg = guestReturn ? '' : cpfError(cpf);
     if (cpfMsg) {
       setError(cpfMsg);
       setFieldError("cpf");
@@ -119,7 +120,7 @@ export default function RegisterCliente() {
       const normalizedEmail = email.trim().toLowerCase();
       await registerEmailAccount(normalizedEmail, password);
       setEmail(normalizedEmail);
-      saveClientOnboarding({ email: normalizedEmail, fullName, phone, cpf });
+      saveClientOnboarding({ email: normalizedEmail, fullName, phone, cpf, guest: guestReturn });
       setShowOtp(true);
     } catch (err) {
       setError(registrationErrorMessage(err));
@@ -130,7 +131,7 @@ export default function RegisterCliente() {
 
   const finishClientRegistration = async () => {
     markAuthProvider('password');
-    await claimCpf(cpf);
+    if (!guestReturn) await claimCpf(cpf);
     await base44.auth.updateMe({
       legal_name: fullName.trim(),
       phone,
@@ -252,16 +253,9 @@ export default function RegisterCliente() {
           </div>
         </div>
 
-        <div ref={cpfRef}>
-          <CpfInput
-            value={cpf}
-            onChange={(v) => {
-              setCpf(v);
-              if (fieldError === "cpf") setFieldError("");
-            }}
-            email={email}
-          />
-        </div>
+        {!guestReturn && <div ref={cpfRef}>
+          <CpfInput value={cpf} onChange={v => { setCpf(v); if (fieldError === 'cpf') setFieldError(''); }} email={email} />
+        </div>}
 
         <div className="space-y-2">
           <Label htmlFor="email">Email</Label>
