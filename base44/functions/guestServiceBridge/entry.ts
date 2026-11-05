@@ -2,7 +2,8 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.54';
 import { verifyInternalCall } from '../../shared/internalCall.ts';
 import { createServiceRequest } from '../../shared/createServiceRequest.ts';
 import { placeLookup } from '../../shared/placeLookup.ts';
-import { reserveGuestContact, claimGuestService } from '../../shared/guestServiceIdentity.ts';
+import { reserveGuestContact } from '../../shared/guestServiceIdentity.ts';
+import { signGuestClaimProof } from '../../shared/guestClaimProof.ts';
 import { guestServiceSnapshot } from '../../shared/guestServiceSnapshot.ts';
 import { guestOpeningData, guestServiceAction } from '../../shared/guestServiceOperations.ts';
 import { calculateServerServicePrice } from '../../shared/servicePricing.ts';
@@ -16,7 +17,7 @@ export default async function(req) {
   if (!verifyInternalCall(req, body)) return Response.json({ error: 'Forbidden' }, { status: 403 });
   try {
     const client = createClientFromRequest(req);
-    const { state, command: msg, authenticatedUserId } = body;
+    const { state, command: msg } = body;
     if (!state?.clientId?.startsWith('guest:') || !msg?.action) return Response.json({ error: 'Sessão inválida' }, { status: 400 });
     const entity = client.asServiceRole.entities.GuestServiceSession;
     const row = state.sessionId ? await entity.get(state.sessionId) : (await entity.filter({ guest_client_id: state.clientId }, 'created_date', 1))[0];
@@ -30,12 +31,12 @@ export default async function(req) {
     }
     if (row?.blocked) throw new Error('Atendimento bloqueado. Entre na sua conta para obter ajuda.');
     let data;
-    if (row?.claimed_user_id && msg.action !== 'claim') {
-      if (row.claimed_user_id !== authenticatedUserId) throw new Error('Este chamado já foi vinculado. Entre na sua conta.');
+    if (msg.action === 'claim_proof') {
+      if (!state.requestId || !row || row.guest_client_id !== state.clientId || row.request_id !== state.requestId) throw new Error('Inicie um atendimento neste navegador antes de vincular.');
+      data = await signGuestClaimProof(state);
+    } else if (row?.claimed_user_id) {
+      // The bearer already knows this request, but receives no account or service data.
       data = { claimed: true, request_id: state.requestId };
-    } else if (msg.action === 'claim') {
-      if (!authenticatedUserId || !state.requestId || !state.sessionId) throw new Error('Entre na sua conta de cliente para vincular o atendimento.');
-      data = await claimGuestService(client, state, authenticatedUserId);
     } else if (msg.action === 'snapshot') data = await guestServiceSnapshot(client, state);
     else if (msg.action === 'places') data = await readResponse(await placeLookup(msg.body || {}));
     else if (msg.action === 'opening_options') {
@@ -44,7 +45,6 @@ export default async function(req) {
       const config = await loadServicePricing(client, 'Abertura Automotiva'); const rule = matchingOpeningRule(vehicle, config.vehicle_opening_rules);
       data = { availability: openingAvailability(rule), lishi_percent: rule?.lishi_percent ?? config.values.lishi_percent };
     } else if (['quote','create'].includes(msg.action)) {
-      if (authenticatedUserId) throw new Error('Você já está conectado. Use o atendimento da sua conta.');
       if (state.requestId) data = await guestServiceSnapshot(client, state);
       else {
         const input = guestOpeningData(msg.data);

@@ -4,13 +4,20 @@ const KEY = 'chaveiroja_guest_room';
 export default function useGuestService(userId) {
   const room = useRef(null), waiting = useRef(new Map());
   const [snapshot, setSnapshot] = useState(null), [error, setError] = useState(''), [connected, setConnected] = useState(false), [revision, setRevision] = useState(0);
-  const call = useCallback((action, body = {}) => new Promise((resolve, reject) => {
+  const send = useCallback((action, body = {}) => new Promise((resolve, reject) => {
     if (!room.current) return reject(new Error('Conecte-se à internet e tente novamente.'));
     const id = crypto.randomUUID();
     const timeout = setTimeout(() => { waiting.current.delete(id); reject(new Error('A resposta demorou. Confira a conexão e tente novamente; seu chamado não será duplicado.')); }, 60000);
     waiting.current.set(id, { resolve, reject, timeout });
     room.current.send({ ...body, id, action });
   }), []);
+  const call = useCallback(async (action, body = {}) => {
+    if (action !== 'claim') return send(action, body);
+    const proof = await send('claim_proof');
+    const result = await base44.functions.invoke('claimGuestService', proof);
+    if (result.data.error) throw new Error(result.data.error);
+    return result.data;
+  }, [send]);
   const refresh = useCallback(async () => {
     const result = await call('snapshot'); setSnapshot(result); setError(''); return result;
   }, [call]);

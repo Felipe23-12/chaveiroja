@@ -26,7 +26,6 @@ export default class GuestServiceRoom extends Actor {
       // server-to-server call with the app secret before using service role.
       const response = await this.client.functions.invoke('guestServiceBridge', {
         _internal_token: secrets.get('INTERNAL_CALL_TOKEN'), state: this.state, command: msg,
-        authenticatedUserId: conn.identity?.type === 'authenticated' ? conn.identity.userId : null,
       });
       const result = response.data;
       if (result.error) throw new Error(result.error);
