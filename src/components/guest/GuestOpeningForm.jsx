@@ -20,7 +20,7 @@ export default function GuestOpeningForm({ contact, guest, onBack }) {
   };
   return <section className="mx-auto max-w-2xl space-y-5 rounded-2xl border bg-card p-4 sm:p-6">
     <ServiceQuoteScope location={form.location} confirmed={Boolean(form.location)}>
-      <ServiceConfig {...form.config} service={{ ...form.service, options: [] }} />
+      <ServiceConfig {...form.config} service={{ ...form.service, options: [] }} nearestDistance={null} />
     </ServiceQuoteScope>
     <ServiceLocationDetails value={form.context} onChange={form.setContext} vehicle={form.service.needsVehicleInfo} />
     {pricing && <div className="space-y-2 rounded-xl bg-muted p-4"><p className="text-sm">Valor total do chamado</p><p className="font-heading text-2xl font-bold">{pricing.price.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</p>{pricing.discount > 0 && <p className="text-sm text-muted-foreground">Desconto do primeiro chamado já aplicado.</p>}<p className="text-xs text-muted-foreground">Confira antes de solicitar. O deslocamento será validado no aceite pelo chaveiro.</p></div>}

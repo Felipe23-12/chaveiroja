@@ -20,12 +20,14 @@ export default function useGuestService(userId) {
     catch { setError('Permita o armazenamento neste navegador para manter acesso privado ao atendimento.'); return; }
     const connection = base44.actors.GuestServiceRoom(id).connect(); room.current = connection;
     const connectTimer = setTimeout(() => setError('Não foi possível conectar ao atendimento. Tente novamente ou entre na sua conta.'), 12000);
-    const subscription = connection.subscribe(msg => {
+    const subscription = connection.subscribe(message => {
+      if (!message || typeof message !== 'object') return;
+      const msg = /** @type {{type?: string, id?: string, error?: string, code?: string, data?: any}} */ (message);
       if (msg.type === 'ready') { clearTimeout(connectTimer); setConnected(true); refresh().catch(e => setError(e.message)); }
       if (msg.type !== 'result') return;
       const pending = waiting.current.get(msg.id); if (!pending) return;
       clearTimeout(pending.timeout); waiting.current.delete(msg.id);
-      if (msg.error) { const err = new Error(msg.error); err.code = msg.code; pending.reject(err); } else pending.resolve(msg.data);
+      if (msg.error) { const err = Object.assign(new Error(msg.error), { code: msg.code }); pending.reject(err); } else pending.resolve(msg.data);
     });
     return () => { clearTimeout(connectTimer); subscription.unsubscribe(); connection.close(); room.current = null; setConnected(false); for (const p of waiting.current.values()) { clearTimeout(p.timeout); p.reject(new Error('Conexão reiniciada. Tente novamente.')); } waiting.current.clear(); };
   }, [userId, revision, refresh]);

@@ -9,7 +9,7 @@ export default function GuestServiceMap({ request }) {
     if ([from.lat, from.lng].every(Number.isFinite)) fetchDrivingRoute(from, to).then(result => { if (active) setPath(result); });
     return () => { active = false; };
   }, [from.lat, from.lng, to.lat, to.lng]);
-  const markers = [{ ...to, id: 'customer', type: 'customer', label: 'Endereço do atendimento' }];
+  const markers = [{ ...to, id: 'customer', type: 'customer', label: 'Endereço do atendimento', active: false }];
   if ([from.lat, from.lng].every(Number.isFinite)) markers.push({ ...from, id: 'locksmith', type: 'locksmith', label: request.locksmith_name || 'Chaveiro', active: true });
   return <LightMap markers={markers} center={to} route={markers.length > 1 ? { from, to } : null} routePath={path?.coordinates} eta={path ? etaMinutes(path.duration) : null} height={300} />;
 }
