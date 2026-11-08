@@ -5,7 +5,6 @@ import { Button } from '@/components/ui/button';
 import ErrorBanner from '@/components/ui/ErrorBanner';
 import ServiceConfig from '@/components/locksmith/ServiceConfig';
 import ServiceLocationDetails from '@/components/client/ServiceLocationDetails';
-import ServiceQuoteScope from '@/components/location/ServiceQuoteScope';
 import useGuestOpeningForm from '@/components/guest/useGuestOpeningForm';
 
 const money = value => value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
@@ -66,9 +65,7 @@ export default function GuestOpeningForm({ contact, guest, onBack }) {
   };
 
   return <section className="mx-auto max-w-2xl space-y-5 rounded-2xl border bg-card p-4 sm:p-6">
-    <ServiceQuoteScope location={form.location} confirmed={Boolean(form.location)}>
-      <ServiceConfig {...form.config} service={{ ...form.service, options: [] }} nearestDistance={null} showPricePrompt={false} />
-    </ServiceQuoteScope>
+    <ServiceConfig {...form.config} service={{ ...form.service, options: [] }} nearestDistance={null} showPricePrompt={false} />
     <ServiceLocationDetails value={form.context} onChange={form.setContext} vehicle={form.service.needsVehicleInfo} />
     <div aria-live="polite">
       {!form.location && <p className="text-sm text-muted-foreground">Selecione uma sugestão de endereço ou use sua localização para calcular a prévia.</p>}
