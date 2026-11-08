@@ -20,58 +20,69 @@ const highlightMatch = (text, query) => {
 
 export default function AddressAutocomplete({ value, onChange, onSelect, placeholder = "Digite o endereço", includePlaces = false, location = undefined, allowCurrentLocation = false }) {
   const invoke = useServiceAccess();
-  const [query, setQuery] = useState(value || "");
-  const [predictions, setPredictions] = useState([]);
-  const [loading, setLoading] = useState(false);
+  const query = value || "";
+  const searchTerm = query.trim();
+  const [search, setSearch] = useState(null);
+  const [searchRevision, setSearchRevision] = useState(0);
+  const [selectionError, setSelectionError] = useState("");
   const [showDropdown, setShowDropdown] = useState(false);
   const [activeIndex, setActiveIndex] = useState(-1);
   const [touched, setTouched] = useState(false);
   const [fetchingDetails, setFetchingDetails] = useState(false);
-  const debounceRef = useRef(null);
+  const searchVersion = useRef(0);
   const selectionVersion = useRef(0);
   const containerRef = useRef(null);
   const inputRef = useRef(null);
   const listRef = useRef(null);
 
-  useEffect(() => {
-    setQuery(value || "");
-  }, [value]);
+  const showList = showDropdown && touched && searchTerm.length >= 2 && !fetchingDetails;
+  const currentSearch = search?.term === searchTerm && search.revision === searchRevision ? search : null;
+  const loading = showList && !currentSearch;
+  const predictions = currentSearch?.predictions || (loading ? search?.predictions : []) || [];
 
   useEffect(() => {
-    if (debounceRef.current) clearTimeout(debounceRef.current);
-    if (query.length < 2) {
-      setPredictions([]);
-      setShowDropdown(false);
-      setActiveIndex(-1);
-      return;
-    }
-    debounceRef.current = setTimeout(async () => {
-      setLoading(true);
+    if (!showList) return;
+    const version = ++searchVersion.current;
+    const timer = setTimeout(async () => {
       try {
-        const res = await invoke("googlePlacesAutocomplete", {
+        const { data } = await invoke("googlePlacesAutocomplete", {
           action: "search",
-          input: query,
+          input: searchTerm,
           include_places: includePlaces,
           lat: location?.lat,
-          lng: location?.lng
+          lng: location?.lng,
         });
-        setPredictions(res.data?.predictions || []);
-        setShowDropdown(true);
-        setActiveIndex(-1);
-      } catch (e) {
-        setPredictions([]);
-      } finally {
-        setLoading(false);
+        if (version !== searchVersion.current) return;
+        if (!Array.isArray(data?.predictions)) throw new Error("Resposta de endereço inválida.");
+        setSearch({ term: searchTerm, revision: searchRevision, predictions: data.predictions });
+      } catch {
+        if (version !== searchVersion.current) return;
+        setSearch({
+          term: searchTerm,
+          revision: searchRevision,
+          predictions: [],
+          error: navigator.onLine
+            ? "Não foi possível buscar endereços. Tente novamente."
+            : "Sem conexão. Reconecte-se para buscar endereços.",
+        });
       }
     }, 300);
-    return () => { if (debounceRef.current) clearTimeout(debounceRef.current); };
-  }, [query, includePlaces, location?.lat, location?.lng]);
+    return () => {
+      searchVersion.current += 1;
+      clearTimeout(timer);
+    };
+  }, [showList, searchTerm, searchRevision, includePlaces, location?.lat, location?.lng, invoke]);
 
-  // Fecha sugestões ao clicar fora
+  const closeDropdown = () => {
+    searchVersion.current += 1;
+    setShowDropdown(false);
+    setActiveIndex(-1);
+  };
+
   useEffect(() => {
-    const handleClickOutside = (e) => {
-      if (containerRef.current && !containerRef.current.contains(e.target)) {
-        setShowDropdown(false);
+    const handleClickOutside = (event) => {
+      if (containerRef.current && !containerRef.current.contains(event.target)) {
+        closeDropdown();
       }
     };
     document.addEventListener("mousedown", handleClickOutside);
@@ -85,80 +96,97 @@ export default function AddressAutocomplete({ value, onChange, onSelect, placeho
     if (el) el.scrollIntoView({ block: "nearest" });
   }, [activeIndex]);
 
-  const handleSelect = async (p) => {
-    const version = ++selectionVersion.current;
-    setQuery(p.description);
-    onChange(p.description);
-    setShowDropdown(false);
-    setActiveIndex(-1);
-    setTouched(false);
-    setFetchingDetails(true);
-    try {
-      const res = await invoke("googlePlacesAutocomplete", {
-        action: "details",
-        place_id: p.place_id
-      });
-      const details = res.data;
-      if (version !== selectionVersion.current) return;
-      if (onSelect && Number.isFinite(details?.lat) && Number.isFinite(details?.lng)) {
-        onSelect({ address: details.address || p.description, label: p.description, name: details.name, lat: details.lat, lng: details.lng });
-      }
-    } catch (e) {
-      // mantém o endereço textual mesmo se falhar a geocodificação
-    } finally {
-      setFetchingDetails(false);
-    }
-  };
-
-  const handleKeyDown = (e) => {
-    if (!showDropdown || predictions.length === 0) return;
-    if (e.key === "ArrowDown") {
-      e.preventDefault();
-      setActiveIndex((prev) => (prev + 1) % predictions.length);
-    } else if (e.key === "ArrowUp") {
-      e.preventDefault();
-      setActiveIndex((prev) => (prev <= 0 ? predictions.length - 1 : prev - 1));
-    } else if (e.key === "Enter") {
-      e.preventDefault();
-      if (activeIndex >= 0 && activeIndex < predictions.length) {
-        handleSelect(predictions[activeIndex]);
-      }
-    } else if (e.key === "Escape") {
-      e.preventDefault();
-      setShowDropdown(false);
-      setActiveIndex(-1);
-      inputRef.current?.blur();
-    }
-  };
-
-  const handleChange = (e) => {
+  const confirmAddress = (place) => {
     selectionVersion.current += 1;
-    setQuery(e.target.value);
-    onChange(e.target.value);
+    closeDropdown();
+    setTouched(false);
+    setSearch(null);
+    setSelectionError("");
+    setFetchingDetails(false);
+    onSelect?.(place);
+  };
+
+  const handleSelect = async (prediction) => {
+    if (loading) return;
+    const version = ++selectionVersion.current;
+    closeDropdown();
+    setTouched(false);
+    setSearch(null);
+    setSelectionError("");
+    setFetchingDetails(true);
+    onChange(prediction.description);
+    try {
+      const { data } = await invoke("googlePlacesAutocomplete", {
+        action: "details",
+        place_id: prediction.place_id,
+      });
+      if (version !== selectionVersion.current) return;
+      if (!Number.isFinite(data?.lat) || !Number.isFinite(data?.lng)) throw new Error("Endereço sem coordenadas.");
+      confirmAddress({ address: data.address || prediction.description, label: prediction.description, name: data.name, lat: data.lat, lng: data.lng });
+    } catch {
+      if (version === selectionVersion.current) {
+        setSelectionError("Não foi possível confirmar o endereço. Selecione a sugestão novamente ou use sua localização.");
+        setTouched(true);
+      }
+    } finally {
+      if (version === selectionVersion.current) setFetchingDetails(false);
+    }
+  };
+
+  const handleKeyDown = (event) => {
+    if (!showList) return;
+    if (event.key === "Escape") {
+      event.preventDefault();
+      closeDropdown();
+      return;
+    }
+    if (loading || predictions.length === 0) return;
+    if (event.key === "ArrowDown") {
+      event.preventDefault();
+      setActiveIndex(index => (index + 1) % predictions.length);
+    } else if (event.key === "ArrowUp") {
+      event.preventDefault();
+      setActiveIndex(index => index <= 0 ? predictions.length - 1 : index - 1);
+    } else if (event.key === "Enter" && activeIndex >= 0 && activeIndex < predictions.length) {
+      event.preventDefault();
+      handleSelect(predictions[activeIndex]);
+    }
+  };
+
+  const handleChange = (event) => {
+    searchVersion.current += 1;
+    selectionVersion.current += 1;
+    setFetchingDetails(false);
+    setSelectionError("");
+    setActiveIndex(-1);
     setTouched(true);
+    setShowDropdown(true);
+    onChange(event.target.value);
   };
 
   const handleClear = () => {
     selectionVersion.current += 1;
-    setQuery("");
+    closeDropdown();
+    setTouched(false);
+    setSearch(null);
+    setSelectionError("");
+    setFetchingDetails(false);
     onChange("");
-    setPredictions([]);
-    setShowDropdown(false);
-    setActiveIndex(-1);
     inputRef.current?.focus();
   };
 
-  const showList = showDropdown && touched && (loading || predictions.length > 0 || query.length >= 2);
-
   return (
-    <div className="relative" ref={containerRef}>
-      <MapPin className="w-4 h-4 text-muted-foreground absolute left-3 top-1/2 -translate-y-1/2 z-10" />
+    <div ref={containerRef} onBlur={event => {
+      if (!event.currentTarget.contains(event.relatedTarget)) closeDropdown();
+    }}>
+      <div className="relative">
+      <MapPin className="pointer-events-none w-4 h-4 text-muted-foreground absolute left-3 top-1/2 -translate-y-1/2" />
       <Input
         ref={inputRef}
         value={query}
         onChange={handleChange}
         onKeyDown={handleKeyDown}
-        onFocus={() => { if (predictions.length > 0) setShowDropdown(true); }}
+        onFocus={() => setShowDropdown(true)}
         placeholder={placeholder || "Digite seu endereço..."}
         className="pl-9 pr-9"
         autoComplete="off"
@@ -181,24 +209,30 @@ export default function AddressAutocomplete({ value, onChange, onSelect, placeho
           ref={listRef}
           className="absolute z-20 w-full mt-1 bg-white border border-border rounded-lg shadow-lg max-h-64 overflow-y-auto"
         >
-          {loading && (
-            <div className="flex items-center gap-2 px-3 py-3 text-sm text-muted-foreground">
-              <Loader2 className="w-4 h-4 animate-spin" /> Buscando endereços…
+          {loading && predictions.length === 0 && (
+            <p role="status" className="px-3 py-3 text-sm text-muted-foreground">Buscando endereços…</p>
+          )}
+          {currentSearch?.error && (
+            <div className="space-y-1 px-3 py-3 text-sm">
+              <p role="status" className="text-destructive">{currentSearch.error}</p>
+              <button type="button" className="underline" onClick={() => setSearchRevision(revision => revision + 1)}>Tentar novamente</button>
             </div>
           )}
-          {!loading && predictions.length === 0 && query.length >= 2 && (
+          {!loading && !currentSearch?.error && predictions.length === 0 && (
             <div className="px-3 py-4 text-center">
               <MapPin className="w-5 h-5 text-muted-foreground mx-auto mb-1.5" />
               <p className="text-sm text-muted-foreground">Nenhum local encontrado.</p>
                              <p className="text-xs text-muted-foreground mt-0.5">{includePlaces ? "Tente bairro, terminal, restaurante ou endereço." : "Tente digitar rua + número ou CEP."}</p>
             </div>
           )}
-          {!loading && predictions.map((p, i) => (
+          {predictions.map((p, i) => (
             <button
               key={p.place_id}
               type="button"
+              disabled={loading}
+              onMouseDown={event => event.preventDefault()}
               onClick={() => handleSelect(p)}
-              onMouseEnter={() => setActiveIndex(i)}
+              onMouseEnter={() => { if (!loading) setActiveIndex(i); }}
               className={`w-full text-left px-3 py-2.5 text-sm border-b border-border last:border-0 transition-colors ${
                 i === activeIndex ? "bg-primary/5" : "hover:bg-muted"
               }`}
@@ -220,10 +254,11 @@ export default function AddressAutocomplete({ value, onChange, onSelect, placeho
           ))}
         </div>
       )}
-      {allowCurrentLocation && <CurrentLocationButton onSelect={(place) => {
-        setQuery(place.address);
+      </div>
+      {selectionError && <p role="status" className="mt-1 text-xs text-destructive">{selectionError}</p>}
+      {allowCurrentLocation && <CurrentLocationButton onSelect={place => {
         onChange(place.address);
-        onSelect?.(place);
+        confirmAddress(place);
       }} />}
     </div>
   );
