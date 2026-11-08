@@ -34,6 +34,7 @@ export default function ServiceConfig({
   price,
   showCalculationDetails = false,
   showPriceBeforeAcceptance = false,
+  showPricePrompt = true,
   calculationService = null,
   nearestDistance,
   assumedNearby = false,
@@ -188,11 +189,11 @@ export default function ServiceConfig({
         </div>
       ) : price && showPriceBeforeAcceptance ? (
         <PriceSummary price={price} service={calculationService || service} showCalculationDetails={showCalculationDetails} nearestDistance={nearestDistance} assumedNearby={assumedNearby} />
-      ) : (
+      ) : showPricePrompt ? (
         <div className="rounded-2xl bg-muted p-4 text-sm text-muted-foreground text-center">
           {address ? "Complete os dados para consultar o valor do serviço." : "Informe o endereço acima para calcularmos o valor do serviço."}
         </div>
-      )}
+      ) : null}
     </div>
   );
 }
