@@ -7,14 +7,15 @@ import { Button } from '@/components/ui/button';
 import NativeSelectDrawer from '@/components/ui/NativeSelectDrawer';
 import { SERVICE_CATALOG } from '@/lib/pricing';
 import '@/components/guest/guestBooking.css';
-export default function GuestBookingIntro({ value, onChange, onContinue }) {
+export default function GuestBookingIntro({ value, onChange, onContinue, connected, connectionError }) {
   const update = (key, next) => onChange({ ...value, [key]: next });
-  const ready = value.name.trim().length >= 2 && value.phone.replace(/\D/g, '').length >= 10 && value.service && value.terms;
+  const ready = connected && value.name.trim().length >= 2 && value.phone.replace(/\D/g, '').length >= 10 && value.service && value.terms;
   return <section className="guest-booking bg-muted text-foreground font-body">
     <Link to="/login/cliente?login=1" aria-label="Fechar e entrar na minha conta" className="absolute right-3 top-3 z-10 flex h-11 w-11 items-center justify-center rounded-lg border bg-card"><X className="h-4 w-4" /></Link>
     <div className="guest-booking-card"><h1 className="guest-booking-title font-heading font-bold">Precisa de um chaveiro?</h1>
       <div className="guest-booking-row"><div className="guest-booking-content">
         <p className="text-sm text-muted-foreground">Primeiro chamado pela web sem login. Cadastre-se ao final do atendimento, antes de confirmar e pagar.</p>
+        {!connected && !connectionError && <p role="status" className="text-xs text-muted-foreground">Preparando o atendimento…</p>}
         <form className="space-y-3" onSubmit={e => { e.preventDefault(); if (ready) onContinue(); }}>
           <div className="space-y-2">
             <Input aria-label="Seu nome" placeholder="Seu nome" autoComplete="name" value={value.name} maxLength={100} onChange={e => update('name', e.target.value)} className="h-11 bg-card" required />
