@@ -8,9 +8,11 @@ async function invokeGuestFunction(name, body) {
 const KEY = 'chaveiroja_guest_token_v1';
 export default function useGuestService(userId) {
   const token = useRef(null);
+  const sessionReady = useRef(null);
   const [snapshot, setSnapshot] = useState(null), [error, setError] = useState(''), [connected, setConnected] = useState(false), [revision, setRevision] = useState(0);
   const send = useCallback(async (action, body = {}) => {
-    if (!token.current) throw new Error('Conecte-se à internet e tente novamente.');
+    if (!token.current && sessionReady.current) await sessionReady.current;
+    if (!token.current) throw new Error('O atendimento ainda está iniciando. Aguarde um instante e tente novamente.');
     const response = await invokeGuestFunction('guestServiceGateway', { ...body, action, token: token.current });
     if (response.data.error) throw Object.assign(new Error(response.data.error), { code: response.data.code });
     return response.data;
@@ -26,7 +28,7 @@ export default function useGuestService(userId) {
   useEffect(() => {
     let active = true;
     setConnected(false);
-    (async () => {
+    const ready = (async () => {
       let saved;
       try { saved = localStorage.getItem(KEY); }
       catch { throw new Error('Permita o armazenamento neste navegador para manter acesso privado ao atendimento.'); }
@@ -40,9 +42,13 @@ export default function useGuestService(userId) {
       }
       if (!active) return;
       token.current = saved;
+    })();
+    sessionReady.current = ready;
+    ready.then(async () => {
+      if (!active) return;
       const result = await send('snapshot');
       if (active) { setSnapshot(result); setError(''); setConnected(true); }
-    })().catch(e => { if (active) setError(e.message); });
+    }).catch(e => { if (active) setError(e.message); });
     return () => { active = false; };
   }, [userId, revision, send]);
   useEffect(() => {
