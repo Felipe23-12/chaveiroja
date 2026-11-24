@@ -36,7 +36,7 @@ export function MfaScreen({ children }) {
 
 // An icon, a title and a description, then the step's controls. A title that waits for the app's
 // name is null until it loads, so the right text appears once instead of replacing a placeholder.
-export function MfaHeader({ title, description }) {
+export function MfaHeader({ title, description = undefined }) {
   return (
     <div className="flex flex-col items-center text-center mb-6">
       <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-primary mb-4">
@@ -68,7 +68,7 @@ export function CodeField({ id, label = "Enter the 6-digit code", value, onChang
 }
 
 // "Didn't receive a code? Resend", counting down while a resend isn't allowed yet.
-export function ResendLine({ cooldown, disabled, onResend, error }) {
+export function ResendLine({ cooldown, disabled = false, onResend, error = undefined }) {
   return (
     <div className="space-y-1 text-center">
       <p className="text-sm text-muted-foreground">
@@ -242,7 +242,7 @@ export function useCooldown() {
     const timer = setTimeout(() => setLeft(left - 1), 1000);
     return () => clearTimeout(timer);
   }, [left]);
-  return [left, setLeft];
+  return /** @type {[number, React.Dispatch<React.SetStateAction<number>>]} */ ([left, setLeft]);
 }
 
 // Phones and tablets run the authenticator app on this device, so a QR code can't be scanned.
